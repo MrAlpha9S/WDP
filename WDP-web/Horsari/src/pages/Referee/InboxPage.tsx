@@ -9,12 +9,14 @@ import {
 type InviteStatus = "pending" | "accepted" | "declined";
 type PaymentStatus = "unpaid" | "processing" | "paid";
 type RaceType = "Stakes" | "Allowance" | "Claiming" | "Maiden";
+type GradeLevel = "G1" | "G2" | "G3" | "Listed" | "Open";
 
 interface RaceInvite {
     id: string;
     race: string;
     raceLabel: string;
     venue: string;
+    trackLocation: string;
     date: string;
     time: string;
     role: string;
@@ -22,6 +24,7 @@ interface RaceInvite {
     status: InviteStatus;
     isNew?: boolean;
     raceType: RaceType;
+    gradeLevel: GradeLevel;
     distance: string;
     track: string;
     entries: number;
@@ -38,45 +41,50 @@ interface RaceInvite {
 const INVITES: RaceInvite[] = [
     {
         id: "INV-3041", race: "R-1005", raceLabel: "The Pegasus Cup",
-        venue: "Churchill Downs", date: "Nov 2, 2024", time: "3:30 PM ET",
+        venue: "Churchill Downs", trackLocation: "Louisville, KY, USA",
+        date: "Nov 2, 2024", time: "3:30 PM ET",
         role: "Head Referee", sentAt: "2 hours ago", status: "pending", isNew: true,
-        raceType: "Stakes", distance: "1 1/8 Miles", track: "Dirt, Fast",
+        raceType: "Stakes", gradeLevel: "G1", distance: "1 1/8 Miles", track: "Dirt, Fast",
         entries: 14, assignedBy: "James Whitfield",
         notes: "High-profile Grade I race. Full stewards panel required on site by 1:00 PM.",
         fee: 850, paymentStatus: "unpaid",
     },
     {
         id: "INV-3039", race: "R-1002", raceLabel: "Dubai World Sprint",
-        venue: "Meydan Racecourse", date: "Nov 5, 2024", time: "7:00 PM GST",
+        venue: "Meydan Racecourse", trackLocation: "Dubai, UAE",
+        date: "Nov 5, 2024", time: "7:00 PM GST",
         role: "Gate Referee", sentAt: "5 hours ago", status: "pending", isNew: true,
-        raceType: "Allowance", distance: "6 Furlongs", track: "Turf, Good",
+        raceType: "Allowance", gradeLevel: "Open", distance: "6 Furlongs", track: "Turf, Good",
         entries: 10, assignedBy: "Amir Al-Hassan",
         notes: "International event. Gate inspection required 90 minutes prior to post time.",
         fee: 620, paymentStatus: "unpaid",
     },
     {
         id: "INV-3035", race: "R-998", raceLabel: "Ascot Gold Cup",
-        venue: "Ascot Racecourse", date: "Nov 8, 2024", time: "2:15 PM GMT",
+        venue: "Ascot Racecourse", trackLocation: "Ascot, Berkshire, UK",
+        date: "Nov 8, 2024", time: "2:15 PM GMT",
         role: "Track Referee", sentAt: "Yesterday", status: "pending",
-        raceType: "Stakes", distance: "2 Miles 4 Furlongs", track: "Turf, Soft",
+        raceType: "Stakes", gradeLevel: "G1", distance: "2 Miles 4 Furlongs", track: "Turf, Soft",
         entries: 12, assignedBy: "Oliver Hartley",
         notes: "Longest flat race of the season. Track condition report expected morning of race.",
         fee: 700, paymentStatus: "unpaid",
     },
     {
         id: "INV-3028", race: "R-990", raceLabel: "Ascot Stakes",
-        venue: "Ascot Racecourse", date: "Oct 24, 2024", time: "4:00 PM GMT",
+        venue: "Ascot Racecourse", trackLocation: "Ascot, Berkshire, UK",
+        date: "Oct 24, 2024", time: "4:00 PM GMT",
         role: "Head Referee", sentAt: "3 days ago", status: "accepted",
-        raceType: "Claiming", distance: "1 Mile", track: "Turf, Good",
+        raceType: "Claiming", gradeLevel: "G3", distance: "1 Mile", track: "Turf, Good",
         entries: 11, assignedBy: "Oliver Hartley",
-        notes: "Standard Grade II. Brief pre-race debrief with stewards at 2:30 PM.",
+        notes: "Standard Grade III. Brief pre-race debrief with stewards at 2:30 PM.",
         fee: 780, paymentStatus: "processing", paymentMethod: "Bank Transfer",
     },
     {
         id: "INV-3021", race: "R-985", raceLabel: "Kentucky Prep",
-        venue: "Churchill Downs", date: "Oct 20, 2024", time: "1:00 PM ET",
+        venue: "Churchill Downs", trackLocation: "Louisville, KY, USA",
+        date: "Oct 20, 2024", time: "1:00 PM ET",
         role: "Gate Referee", sentAt: "5 days ago", status: "declined",
-        raceType: "Maiden", distance: "7 Furlongs", track: "Dirt, Fast",
+        raceType: "Maiden", gradeLevel: "Open", distance: "7 Furlongs", track: "Dirt, Fast",
         entries: 9, assignedBy: "James Whitfield",
         notes: "Prep race for the Kentucky Derby. Standard gate protocols apply.",
         fee: 500, paymentStatus: "unpaid",
@@ -138,6 +146,21 @@ function RaceTypeBadge({ type }: { type: RaceType }) {
     );
 }
 
+function GradeBadge({ grade }: { grade: GradeLevel }) {
+    const map: Record<GradeLevel, string> = {
+        G1: "bg-yellow-50 border-yellow-400 text-yellow-700",
+        G2: "bg-gray-100 border-gray-400 text-gray-600",
+        G3: "bg-amber-50 border-amber-300 text-amber-700",
+        Listed: "bg-sky-50 border-sky-300 text-sky-700",
+        Open: "bg-gray-50 border-gray-200 text-gray-500",
+    };
+    return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg border text-[11px] font-black tracking-wide ${map[grade]}`}>
+            {grade}
+        </span>
+    );
+}
+
 // ── Expanded Detail Panel ─────────────────────────────────────────────────────
 
 function ExpandedDetail({ invite, onAccept, onDecline }: {
@@ -150,10 +173,11 @@ function ExpandedDetail({ invite, onAccept, onDecline }: {
     return (
         <div className="border-t border-gray-100 px-5 pb-5 pt-4 bg-gray-50/50">
 
-            {/* Race Type */}
+            {/* Race Classification */}
             <div className="mb-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Race Type</p>
-                <div className="flex items-center gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Race Classification</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <GradeBadge grade={invite.gradeLevel} />
                     <RaceTypeBadge type={invite.raceType} />
                     <span className="text-[12.5px] text-gray-500">{RACE_TYPE_DESCRIPTIONS[invite.raceType]}</span>
                 </div>
@@ -163,7 +187,8 @@ function ExpandedDetail({ invite, onAccept, onDecline }: {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
                 {[
                     { label: "Distance", value: invite.distance },
-                    { label: "Track", value: invite.track },
+                    { label: "Track Surface", value: invite.track },
+                    { label: "Track Location", value: invite.trackLocation },
                     { label: "Entries", value: `${invite.entries} horses` },
                     { label: "Assigned by", value: invite.assignedBy },
                 ].map(({ label, value }) => (
@@ -268,6 +293,7 @@ function InviteCard({ invite, onAccept, onDecline }: {
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[15px] font-bold text-gray-900">{invite.raceLabel}</span>
                             <span className="text-[11px] text-gray-400 font-mono">{invite.race}</span>
+                            <GradeBadge grade={invite.gradeLevel} />
                             <RaceTypeBadge type={invite.raceType} />
                             {invite.isNew && (
                                 <span className="text-[10px] font-bold uppercase tracking-widest bg-red-800 text-white px-2 py-0.5 rounded-full">New</span>
@@ -275,7 +301,9 @@ function InviteCard({ invite, onAccept, onDecline }: {
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                             <span className="flex items-center gap-1 text-[12px] text-gray-500">
-                                <MapPin size={11} className="text-red-700 shrink-0" />{invite.venue}
+                                <MapPin size={11} className="text-red-700 shrink-0" />
+                                <span className="font-semibold text-gray-700">{invite.venue}</span>
+                                <span className="text-gray-400">· {invite.trackLocation}</span>
                             </span>
                             <span className="flex items-center gap-1 text-[12px] text-gray-500">
                                 <Clock size={11} className="text-red-700 shrink-0" />{invite.date} · {invite.time}
