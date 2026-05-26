@@ -3,7 +3,8 @@ import { Search, LogOut, User } from "lucide-react";
 import { useAuth } from "../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 
-const NAV_LINKS = ["Races", "Results", "Predict", "News"] as const;
+const NAV_LINKS_OWNER = ["Races", "Results", "Predict", "News"];
+const NAV_LINKS_REFEREE = ["Races", "Tournament", "Inbox", "Management"];
 
 function getInitials(user: { name?: string; email: string }) {
   if (user.name) {
@@ -23,6 +24,9 @@ export default function NavBar() {
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [links, setLinks] = useState<string[]>([])
+
+
 
   // Close menu on outside click
   useEffect(() => {
@@ -32,6 +36,12 @@ export default function NavBar() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
+    if (user?.role == "referee") {
+      setLinks(NAV_LINKS_REFEREE)
+    }
+    else {
+      setLinks(NAV_LINKS_OWNER) //Default Link
+    }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -52,9 +62,9 @@ export default function NavBar() {
             Velosteed
           </a>
           <ul className="hidden md:flex items-center gap-1 list-none m-0 p-0">
-            {NAV_LINKS.map((label) => (
+            {links.map((label) => (
               <li key={label}>
-                <a href={`/${label.toLowerCase()}`}
+                <a href={user?.role == 'referee' ? `/referee/${label.toLowerCase()}` : `/${label.toLowerCase()}`}
                   className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-md transition-colors duration-150">
                   {label}
                 </a>
@@ -66,7 +76,7 @@ export default function NavBar() {
         {/* Right */}
         <div className="flex items-center gap-2.5">
           {/* Search */}
-          <label className="hidden sm:flex items-center gap-2 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 min-w-[190px] cursor-text focus-within:border-gray-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-gray-200 transition-all duration-150">
+          <label className="hidden sm:flex items-center gap-2 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 min-w-47.5 cursor-text focus-within:border-gray-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-gray-200 transition-all duration-150">
             <Search size={14} className="text-gray-400 shrink-0" />
             <input type="text" placeholder="Search races, horses..."
               value={search} onChange={(e) => setSearch(e.target.value)}
@@ -86,7 +96,7 @@ export default function NavBar() {
                   {getInitials(user)}
                 </div>
                 {/* Name (hidden on small screens) */}
-                <span className="hidden sm:block text-[13px] font-medium text-gray-700 max-w-[110px] truncate">
+                <span className="hidden sm:block text-[13px] font-medium text-gray-700 max-w-27.5 truncate">
                   {user.name ?? user.email}
                 </span>
                 {/* Chevron */}

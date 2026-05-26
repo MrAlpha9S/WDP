@@ -105,6 +105,9 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await signup(name, email, password, selectedRole?.role, pdfFile);
+      if (selectedRole.role == "referee") {
+        navigate("/referee", { replace: true })
+      }
       navigate("/", { replace: true });
     } catch (err: any) {
       setError(err?.message ?? "Sign up failed. Please try again.");

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 interface User {
   email: string;
   name?: string;
+  role?: string;
 }
 
 interface AuthContextValue {
@@ -55,9 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persist(u);
   };
 
-  const signup = async (name: string, email: string, _password: string) => {
+  const signup = async (name: string, email: string, _password: string, role: string, pdfFile: File) => {
     // TODO: await api.post("/auth/signup", { name, email, password })
-    const u: User = { email, name };
+    const u: User = { email, name, role };
     persist(u);
   };
 
