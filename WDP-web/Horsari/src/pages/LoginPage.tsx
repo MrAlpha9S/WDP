@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 import { useAuth } from "../providers/AuthProvider";
+import { PdfUploadField } from "../components/FilesUploadProps";
+import { RoleSelector, type Role } from "../components/RoleSelectionProps";
 
 type Tab = "login" | "signup";
 
@@ -59,6 +61,13 @@ export default function LoginPage() {
   const [confirmPw, setConfirmPw] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+
+  const ROLES: Role[] = [
+    { role: "referee", label: "Referee" },
+    { role: "owner", label: "Horse Owner" },
+  ];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,9 +90,21 @@ export default function LoginPage() {
       setError("Passwords do not match.");
       return;
     }
+    if (!pdfFile) {
+      setError("Certification must be submitted for this role");
+      return;
+    }
+    if (!selectedRole) {
+      setError("You must select a role");
+      return;
+    }
+    if (pdfFile && pdfFile.size > 5 * 1024 * 1024) {
+      setError("PDF must be under 5 MB.");
+      return;
+    }
     setSubmitting(true);
     try {
-      await signup(name, email, password);
+      await signup(name, email, password, selectedRole?.role, pdfFile);
       navigate("/", { replace: true });
     } catch (err: any) {
       setError(err?.message ?? "Sign up failed. Please try again.");
@@ -117,7 +138,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#f0f0ef] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-[400px] bg-white rounded-2xl shadow-lg shadow-black/8 px-9 pt-8 pb-9">
+      <div className="w-full max-w-100 bg-white rounded-2xl shadow-lg shadow-black/8 px-9 pt-8 pb-9">
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 mb-7">
@@ -194,6 +215,15 @@ export default function LoginPage() {
               value={password} onChange={setPassword} icon={<Lock size={15} />} rightElement={EyeToggle} required />
             <InputField label="Confirm Password" type="password" placeholder="Repeat your password"
               value={confirmPw} onChange={setConfirmPw} icon={<Lock size={15} />} required />
+
+            <RoleSelector roles={ROLES} selected={selectedRole} onChange={setSelectedRole} />
+
+            <PdfUploadField
+              label="License Document"
+              hint="PDF only · Max 5 MB"
+              file={pdfFile}
+              onChange={setPdfFile}
+            />
 
             <button type="submit" disabled={submitting}
               className="w-full bg-red-800 hover:bg-red-900 disabled:opacity-60 text-white font-bold text-sm tracking-widest uppercase py-3 rounded-xl transition-all duration-150 hover:shadow-lg hover:shadow-red-900/30 active:scale-[0.99] mt-1">
