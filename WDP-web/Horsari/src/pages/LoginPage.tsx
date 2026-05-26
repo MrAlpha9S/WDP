@@ -66,7 +66,7 @@ export default function LoginPage() {
 
   const ROLES: Role[] = [
     { role: "referee", label: "Referee" },
-    { role: "owner", label: "Owner" },
+    { role: "owner", label: "Horse Owner" },
   ];
 
   const handleLogin = async (e: React.FormEvent) => {

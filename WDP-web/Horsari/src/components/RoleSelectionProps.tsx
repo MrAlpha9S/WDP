@@ -12,7 +12,7 @@ export interface RoleSelectorProps {
 export function RoleSelector({ roles, selected, onChange }: RoleSelectorProps) {
     return (
         <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-medium text-gray-700">I am a...</label>
+            <label className="text-[13px] font-medium text-gray-700">Role</label>
             <div className="grid grid-cols-3 gap-2">
                 {roles.map((role) => (
                     <button
