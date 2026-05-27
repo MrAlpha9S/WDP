@@ -105,7 +105,11 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await signup(name, email, password, selectedRole?.role, pdfFile);
-      navigate("/", { replace: true });
+      if(selectedRole?.role === 'owner') {
+        navigate("/owner", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (err: any) {
       setError(err?.message ?? "Sign up failed. Please try again.");
     } finally {
