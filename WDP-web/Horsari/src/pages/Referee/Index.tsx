@@ -1,8 +1,10 @@
 import { useState } from "react";
-import RefereeNavBar, { type RefereeTab } from "../../components/refereeComponent/NavBar";
+import RefereeNavBar, { REFEREE_TABS, type RefereeTab } from "../../components/refereeComponent/NavBar";
 import RefereeDashboard from "./Homepage";
 import ManagementPage from "./ManagementPage";
 import InboxPage from "./InboxPage";
+import TournamentListPage from "./TournamentListPage";
+import { useParams } from "react-router-dom";
 
 
 // ── Placeholder pages for non-Dashboard tabs ──────────────────────────────────
@@ -29,14 +31,20 @@ function ActiveView({ tab }: { tab: RefereeTab }) {
             return <ManagementPage />;
         case "Inbox":
             return <InboxPage />
-        case "Tournament":
-            return;
+        case "Tournaments":
+            return <TournamentListPage />
     }
 }
 
 // ── Dashboard Page ─────────────────────────────────────────────────────────────
 export default function RefereeDashboardPage() {
-    const [activeTab, setActiveTab] = useState<RefereeTab>("Dashboard");
+    const { tabs } = useParams<{ tabs: string }>();
+
+    const initialTab = REFEREE_TABS.find(
+        t => t.toLowerCase() === tabs?.toLowerCase()
+    ) ?? "Dashboard";
+
+    const [activeTab, setActiveTab] = useState<RefereeTab>(initialTab);
 
     return (
         <div

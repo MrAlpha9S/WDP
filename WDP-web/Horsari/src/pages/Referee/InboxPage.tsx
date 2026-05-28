@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
-    CheckCircle2, ChevronDown, ChevronRight, ChevronUp,
-    Clock, CreditCard, Flag, MapPin, Users, XCircle,
+    CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
+    Clock, CreditCard, Flag, MapPin, XCircle,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -101,46 +101,50 @@ const RACE_TYPE_DESCRIPTIONS: Record<RaceType, string> = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function StatusPill({ status }: { status: InviteStatus }) {
-    const map = {
-        pending: "bg-amber-50 border-amber-300 text-amber-700",
-        accepted: "bg-emerald-50 border-emerald-300 text-emerald-700",
-        declined: "bg-gray-100 border-gray-300 text-gray-500",
-    };
-    const dot = { pending: "bg-amber-500", accepted: "bg-emerald-500", declined: "bg-gray-400" };
-    const label = { pending: "Pending", accepted: "Accepted", declined: "Declined" };
+    const cfg = {
+        pending: "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
+        accepted: "border-green-700/60 text-green-400 bg-green-500/10",
+        declined: "border-white/10 text-gray-600 bg-transparent",
+    }[status];
+    const dot = {
+        pending: "bg-yellow-500",
+        accepted: "bg-green-500",
+        declined: "bg-gray-600",
+    }[status];
+    const label = { pending: "Pending", accepted: "Accepted", declined: "Declined" }[status];
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold ${map[status]}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${dot[status]}`} />
-            {label[status]}
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold ${cfg}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+            {label}
         </span>
     );
 }
 
 function PaymentPill({ status }: { status: PaymentStatus }) {
-    const map = {
-        unpaid: "bg-red-50 border-red-200 text-red-700",
-        processing: "bg-amber-50 border-amber-300 text-amber-700",
-        paid: "bg-emerald-50 border-emerald-300 text-emerald-700",
-    };
-    const dot = { unpaid: "bg-red-500", processing: "bg-amber-500", paid: "bg-emerald-500" };
-    const label = { unpaid: "Unpaid", processing: "Processing", paid: "Paid" };
+    const cfg = {
+        unpaid: "border-red-800/60 text-red-400 bg-red-500/10",
+        processing: "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
+        paid: "border-green-700/60 text-green-400 bg-green-500/10",
+    }[status];
+    const dot = { unpaid: "bg-red-500", processing: "bg-yellow-500", paid: "bg-green-500" }[status];
+    const label = { unpaid: "Unpaid", processing: "Processing", paid: "Paid" }[status];
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold ${map[status]}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${dot[status]}`} />
-            {label[status]}
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold ${cfg}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+            {label}
         </span>
     );
 }
 
 function RaceTypeBadge({ type }: { type: RaceType }) {
     const map: Record<RaceType, string> = {
-        Stakes: "bg-red-50 border-red-200 text-red-800",
-        Allowance: "bg-blue-50 border-blue-200 text-blue-700",
-        Claiming: "bg-orange-50 border-orange-200 text-orange-700",
-        Maiden: "bg-purple-50 border-purple-200 text-purple-700",
+        Stakes: "border-red-800/60 text-red-400 bg-red-500/10",
+        Allowance: "border-blue-800/60 text-blue-400 bg-blue-500/10",
+        Claiming: "border-orange-800/60 text-orange-400 bg-orange-500/10",
+        Maiden: "border-purple-800/60 text-purple-400 bg-purple-500/10",
     };
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg border text-[11px] font-bold ${map[type]}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold ${map[type]}`}>
             {type}
         </span>
     );
@@ -148,16 +152,97 @@ function RaceTypeBadge({ type }: { type: RaceType }) {
 
 function GradeBadge({ grade }: { grade: GradeLevel }) {
     const map: Record<GradeLevel, string> = {
-        G1: "bg-yellow-50 border-yellow-400 text-yellow-700",
-        G2: "bg-gray-100 border-gray-400 text-gray-600",
-        G3: "bg-amber-50 border-amber-300 text-amber-700",
-        Listed: "bg-sky-50 border-sky-300 text-sky-700",
-        Open: "bg-gray-50 border-gray-200 text-gray-500",
+        G1: "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
+        G2: "border-gray-600/60 text-gray-400 bg-white/5",
+        G3: "border-amber-700/60 text-amber-400 bg-amber-500/10",
+        Listed: "border-sky-700/60 text-sky-400 bg-sky-500/10",
+        Open: "border-white/10 text-gray-500 bg-transparent",
     };
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg border text-[11px] font-black tracking-wide ${map[grade]}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-black tracking-wide ${map[grade]}`}>
             {grade}
         </span>
+    );
+}
+
+
+// ── Mini Calendar ─────────────────────────────────────────────────────────────
+
+const CAL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const CAL_DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+function parseDate(dateStr: string): Date | null {
+    // Parses "Nov 2, 2024" → Date
+    try { return new Date(dateStr); } catch { return null; }
+}
+
+function MiniCalendar({ highlightDate }: { highlightDate: string }) {
+    const parsed = parseDate(highlightDate);
+    const initMonth = parsed ? parsed.getMonth() : new Date().getMonth();
+    const initYear = parsed ? parsed.getFullYear() : new Date().getFullYear();
+
+    const [viewMonth, setViewMonth] = useState(initMonth);
+    const [viewYear, setViewYear] = useState(initYear);
+
+    const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+
+    const prevMonth = () => viewMonth === 0 ? (setViewMonth(11), setViewYear(y => y - 1)) : setViewMonth(m => m - 1);
+    const nextMonth = () => viewMonth === 11 ? (setViewMonth(0), setViewYear(y => y + 1)) : setViewMonth(m => m + 1);
+
+    const highlightDay = parsed && parsed.getMonth() === viewMonth && parsed.getFullYear() === viewYear
+        ? parsed.getDate() : null;
+
+    return (
+        <div className="bg-white/[0.03] rounded-xl border border-white/8 overflow-hidden">
+            {/* Nav */}
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/8">
+                <button onClick={prevMonth} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
+                    <ChevronLeft size={12} />
+                </button>
+                <span className="text-[11px] font-bold text-gray-300" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    {CAL_MONTHS[viewMonth].slice(0, 3)} {viewYear}
+                </span>
+                <button onClick={nextMonth} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
+                    <ChevronRight size={12} />
+                </button>
+            </div>
+
+            {/* Day names */}
+            <div className="grid grid-cols-7 px-2 pt-2">
+                {CAL_DAYS.map(d => (
+                    <div key={d} className="text-center text-[9px] font-bold uppercase text-gray-600 pb-1">{d}</div>
+                ))}
+            </div>
+
+            {/* Cells */}
+            <div className="grid grid-cols-7 px-2 pb-2 gap-y-0.5">
+                {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
+                {Array.from({ length: totalDays }).map((_, i) => {
+                    const day = i + 1;
+                    const isHL = day === highlightDay;
+                    return (
+                        <div
+                            key={day}
+                            className={[
+                                "flex items-center justify-center rounded-lg text-[11px] font-semibold h-7 transition-all",
+                                isHL ? "bg-red-700 text-white shadow-sm" : "text-gray-500",
+                            ].join(" ")}
+                        >
+                            {day}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Race date label */}
+            {highlightDay && (
+                <div className="px-3 py-2 border-t border-white/6 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                    <span className="text-[10.5px] text-gray-500">Race: {highlightDate}</span>
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -171,93 +256,106 @@ function ExpandedDetail({ invite, onAccept, onDecline }: {
     const isPending = invite.status === "pending";
 
     return (
-        <div className="border-t border-gray-100 px-5 pb-5 pt-4 bg-gray-50/50">
+        <div className="border-t border-white/8 bg-white/[0.02]">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-0">
 
-            {/* Race Classification */}
-            <div className="mb-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Race Classification</p>
-                <div className="flex items-center gap-2 flex-wrap">
-                    <GradeBadge grade={invite.gradeLevel} />
-                    <RaceTypeBadge type={invite.raceType} />
-                    <span className="text-[12.5px] text-gray-500">{RACE_TYPE_DESCRIPTIONS[invite.raceType]}</span>
-                </div>
-            </div>
+                {/* ── Left: detail content ── */}
+                <div className="px-5 pb-5 pt-4 border-r border-white/5">
 
-            {/* Detail grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
-                {[
-                    { label: "Distance", value: invite.distance },
-                    { label: "Track Surface", value: invite.track },
-                    { label: "Track Location", value: invite.trackLocation },
-                    { label: "Entries", value: `${invite.entries} horses` },
-                    { label: "Assigned by", value: invite.assignedBy },
-                ].map(({ label, value }) => (
-                    <div key={label} className="bg-white rounded-xl border border-gray-100 px-3.5 py-2.5">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">{label}</p>
-                        <p className="text-[13px] font-semibold text-gray-800">{value}</p>
+                    {/* Race Classification */}
+                    <div className="mb-4">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Race Classification</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <GradeBadge grade={invite.gradeLevel} />
+                            <RaceTypeBadge type={invite.raceType} />
+                            <span className="text-[12px] text-gray-500">{RACE_TYPE_DESCRIPTIONS[invite.raceType]}</span>
+                        </div>
                     </div>
-                ))}
-            </div>
 
-            {/* Notes */}
-            <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Coordinator Notes</p>
-                <p className="text-[12.5px] text-amber-900 leading-relaxed">{invite.notes}</p>
-            </div>
+                    {/* Detail grid */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
+                        {[
+                            { label: "Distance", value: invite.distance },
+                            { label: "Track", value: invite.track },
+                            { label: "Location", value: invite.trackLocation },
+                            { label: "Entries", value: `${invite.entries} horses` },
+                            { label: "Assigned", value: invite.assignedBy },
+                        ].map(({ label, value }) => (
+                            <div key={label} className="flex items-center gap-1">
+                                <span className="text-[11px] text-gray-600">{label}:</span>
+                                <span className="text-[11px] font-medium text-gray-500">{value}</span>
+                            </div>
+                        ))}
+                    </div>
 
-            {/* Payment */}
-            <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden mb-4">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-gray-50">
-                    <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-500">
-                        <CreditCard size={12} className="text-red-700" />
-                        Payment
+                    {/* Notes */}
+                    <div className="bg-yellow-500/5 border border-yellow-700/30 rounded-xl px-4 py-3 mb-4">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-600 mb-1">Coordinator Notes</p>
+                        <p className="text-[12.5px] text-yellow-200/80 leading-relaxed">{invite.notes}</p>
                     </div>
-                    <PaymentPill status={invite.paymentStatus} />
-                </div>
-                <div className="px-4 py-3 flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <span className="text-[13px] text-gray-600">Referee Fee</span>
-                        <span className="text-[17px] font-black text-gray-900">${invite.fee.toLocaleString()}</span>
+
+                    {/* Payment */}
+                    <div className="bg-[#1a1a1a] border border-white/8 rounded-xl overflow-hidden mb-4">
+                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8 bg-white/[0.03]">
+                            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-500">
+                                <CreditCard size={12} className="text-red-500" />
+                                Payment
+                            </div>
+                            <PaymentPill status={invite.paymentStatus} />
+                        </div>
+                        <div className="px-4 py-3 flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[13px] text-gray-500">Referee Fee</span>
+                                <span className="text-[17px] font-black text-white">${invite.fee.toLocaleString()}</span>
+                            </div>
+                            {invite.paymentMethod && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[13px] text-gray-500">Method</span>
+                                    <span className="text-[13px] font-semibold text-gray-300">{invite.paymentMethod}</span>
+                                </div>
+                            )}
+                            {invite.paymentStatus === "processing" && (
+                                <div className="bg-yellow-500/8 border border-yellow-700/30 rounded-xl px-3 py-2 text-[12px] text-yellow-300/80 mt-1">
+                                    Payment is being processed. Funds typically arrive within 2–3 business days.
+                                </div>
+                            )}
+                            {invite.paymentStatus === "unpaid" && invite.status === "accepted" && (
+                                <button className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all duration-150 mt-1">
+                                    <CreditCard size={13} /> Request Payment
+                                </button>
+                            )}
+                            {invite.paymentStatus === "unpaid" && invite.status === "pending" && (
+                                <p className="text-[11.5px] text-gray-600 text-center mt-1">Payment processed after accepting.</p>
+                            )}
+                        </div>
                     </div>
-                    {invite.paymentMethod && (
-                        <div className="flex items-center justify-between">
-                            <span className="text-[13px] text-gray-600">Method</span>
-                            <span className="text-[13px] font-semibold text-gray-700">{invite.paymentMethod}</span>
+
+                    {/* Accept / Decline */}
+                    {isPending && (
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => onDecline(invite.id)}
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/10 text-[13px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
+                            >
+                                <XCircle size={14} className="text-gray-600" /> Decline
+                            </button>
+                            <button
+                                onClick={() => onAccept(invite.id)}
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-700 text-white text-[13px] font-bold hover:bg-red-600 shadow-lg shadow-red-900/30 transition-all duration-150"
+                            >
+                                <CheckCircle2 size={14} /> Accept Invitation
+                            </button>
                         </div>
                     )}
-                    {invite.paymentStatus === "processing" && (
-                        <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-[12px] text-amber-700 mt-1">
-                            Payment is being processed. Funds typically arrive within 2–3 business days.
-                        </div>
-                    )}
-                    {invite.paymentStatus === "unpaid" && invite.status === "accepted" && (
-                        <button className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-800 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-900 shadow-sm transition-all duration-150 mt-1">
-                            <CreditCard size={13} /> Request Payment
-                        </button>
-                    )}
-                    {invite.paymentStatus === "unpaid" && invite.status === "pending" && (
-                        <p className="text-[11.5px] text-gray-400 text-center mt-1">Payment processed after accepting.</p>
-                    )}
-                </div>
-            </div>
+                </div>{/* end left col */}
 
-            {/* Accept / Decline */}
-            {isPending && (
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => onDecline(invite.id)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-200 bg-white text-[13px] font-semibold text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-all duration-150"
-                    >
-                        <XCircle size={14} className="text-gray-400" /> Decline
-                    </button>
-                    <button
-                        onClick={() => onAccept(invite.id)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-800 text-white text-[13px] font-bold hover:bg-red-900 shadow-sm hover:shadow-md hover:shadow-red-900/25 transition-all duration-150"
-                    >
-                        <CheckCircle2 size={14} /> Accept Invitation
-                    </button>
+                {/* ── Right: mini calendar ── */}
+                <div className="px-4 py-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Date</p>
+                    <MiniCalendar highlightDate={invite.date} />
                 </div>
-            )}
+
+            </div>{/* end grid */}
         </div>
     );
 }
@@ -274,9 +372,10 @@ function InviteCard({ invite, onAccept, onDecline }: {
 
     return (
         <div className={[
-            "bg-white rounded-2xl border shadow-sm transition-shadow duration-200 overflow-hidden",
-            isPending ? "border-gray-100 hover:shadow-md" : "border-gray-100 opacity-80",
+            "bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden transition-all duration-200",
+            isPending ? "hover:border-white/[0.12]" : "opacity-70",
         ].join(" ")}>
+
             {/* Card header row */}
             <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
 
@@ -284,37 +383,40 @@ function InviteCard({ invite, onAccept, onDecline }: {
                 <div className="flex items-start gap-4 flex-1 min-w-0">
                     <div className={[
                         "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
-                        isPending ? "bg-red-50" : "bg-gray-100",
+                        isPending ? "bg-red-900/40" : "bg-white/5",
                     ].join(" ")}>
-                        <Flag size={16} className={isPending ? "text-red-800" : "text-gray-400"} />
+                        <Flag size={16} className={isPending ? "text-red-500" : "text-gray-600"} />
                     </div>
 
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[15px] font-bold text-gray-900">{invite.raceLabel}</span>
-                            <span className="text-[11px] text-gray-400 font-mono">{invite.race}</span>
+                            <span className="text-[15px] font-bold text-white">{invite.raceLabel}</span>
+                            <span className="text-[11px] text-gray-600 font-mono">{invite.race}</span>
                             <GradeBadge grade={invite.gradeLevel} />
                             <RaceTypeBadge type={invite.raceType} />
                             {invite.isNew && (
-                                <span className="text-[10px] font-bold uppercase tracking-widest bg-red-800 text-white px-2 py-0.5 rounded-full">New</span>
+                                <span className="text-[9px] font-bold uppercase tracking-widest bg-red-700 text-white px-1.5 py-0.5 rounded-full">
+                                    New
+                                </span>
                             )}
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                             <span className="flex items-center gap-1 text-[12px] text-gray-500">
-                                <MapPin size={11} className="text-red-700 shrink-0" />
-                                <span className="font-semibold text-gray-700">{invite.venue}</span>
-                                <span className="text-gray-400">· {invite.trackLocation}</span>
+                                <MapPin size={11} className="text-red-600 shrink-0" />
+                                <span className="font-semibold text-gray-300">{invite.venue}</span>
+                                <span className="text-gray-600">· {invite.trackLocation}</span>
                             </span>
                             <span className="flex items-center gap-1 text-[12px] text-gray-500">
-                                <Clock size={11} className="text-red-700 shrink-0" />{invite.date} · {invite.time}
+                                <Clock size={11} className="text-red-600 shrink-0" />
+                                {invite.date} · {invite.time}
                             </span>
-                            <span className="text-[12px] font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-lg">
+                            <span className="text-[11px] font-semibold text-gray-500 bg-white/6 px-2 py-0.5 rounded-lg">
                                 {invite.role}
                             </span>
                         </div>
                         <div className="flex items-center gap-3 mt-1.5">
-                            <p className="text-[11.5px] text-gray-400">Invited {invite.sentAt} · {invite.id}</p>
-                            <span className="text-[12px] font-bold text-gray-700">${invite.fee.toLocaleString()}</span>
+                            <p className="text-[11px] text-gray-600">Invited {invite.sentAt} · {invite.id}</p>
+                            <span className="text-[12px] font-bold text-gray-300">${invite.fee.toLocaleString()}</span>
                             <PaymentPill status={invite.paymentStatus} />
                         </div>
                     </div>
@@ -328,22 +430,21 @@ function InviteCard({ invite, onAccept, onDecline }: {
                             <>
                                 <button
                                     onClick={() => onDecline(invite.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-all duration-150"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-[12px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
                                 >
-                                    <XCircle size={13} className="text-gray-400" /> Decline
+                                    <XCircle size={13} className="text-gray-600" /> Decline
                                 </button>
                                 <button
                                     onClick={() => onAccept(invite.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-800 text-white text-[12px] font-bold hover:bg-red-900 shadow-sm hover:shadow-md hover:shadow-red-900/25 transition-all duration-150"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-700 text-white text-[12px] font-bold hover:bg-red-600 shadow-lg shadow-red-900/30 transition-all duration-150"
                                 >
                                     <CheckCircle2 size={13} /> Accept
                                 </button>
                             </>
                         )}
-                        {/* Expand toggle */}
                         <button
                             onClick={() => setExpanded((p) => !p)}
-                            className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 transition-all duration-150"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
                             aria-label={expanded ? "Collapse" : "Expand"}
                         >
                             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -388,83 +489,85 @@ export default function InboxPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#fdf5f5]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            <div
-                className="min-h-screen"
-                style={{
-                    backgroundImage:
-                        "repeating-linear-gradient(90deg, transparent, transparent 38px, rgba(220,38,38,0.06) 38px, rgba(220,38,38,0.06) 40px)",
-                }}
-            >
-                <div className="max-w-3xl mx-auto px-5 py-8">
+        <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <div className="max-w-3xl mx-auto px-5 py-8">
 
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-6">
-                        <div>
-                            <h1 className="text-[26px] font-semibold text-gray-900 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-                                Inbox
-                            </h1>
-                            <p className="text-[13px] text-gray-500 mt-0.5">Race assignments and referee invitations.</p>
-                        </div>
-                        {counts.pending > 0 && (
-                            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-2.5 text-right">
-                                <p className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">Awaiting Response</p>
-                                <p className="text-[22px] font-black text-red-800 tracking-tight leading-tight">{counts.pending}</p>
-                            </div>
-                        )}
+                {/* Header */}
+                <div className="flex items-start justify-between mb-6">
+                    <div>
+                        <h1
+                            className="text-[26px] font-bold text-white tracking-tight"
+                            style={{ fontFamily: "'Playfair Display', serif" }}
+                        >
+                            Inbox
+                        </h1>
+                        <p className="text-[13px] text-gray-500 mt-0.5">Race assignments and referee invitations.</p>
                     </div>
-
-                    {/* Tabs */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-2 py-2 mb-5 flex gap-1">
-                        {TABS.map(({ key, label }) => (
-                            <button
-                                key={key}
-                                onClick={() => setTab(key)}
-                                className={[
-                                    "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[13px] font-semibold transition-all duration-150",
-                                    tab === key ? "bg-red-800 text-white shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50",
-                                ].join(" ")}
+                    {counts.pending > 0 && (
+                        <div className="bg-[#1a1a1a] border border-white/8 rounded-xl px-4 py-2.5 text-right">
+                            <p className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Awaiting Response</p>
+                            <p
+                                className="text-[22px] font-black text-red-500 tracking-tight leading-tight"
+                                style={{ fontFamily: "'Playfair Display', serif" }}
                             >
-                                {label}
-                                <span className={[
-                                    "text-[11px] font-bold px-1.5 py-0.5 rounded-full",
-                                    tab === key ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500",
-                                ].join(" ")}>
-                                    {counts[key]}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* List */}
-                    {filtered.length === 0 ? (
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-14 text-center">
-                            <p className="text-[13px] text-gray-400">No invitations in this category.</p>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-3">
-                            {filtered.map((invite) => (
-                                <InviteCard
-                                    key={invite.id}
-                                    invite={invite}
-                                    onAccept={handleAccept}
-                                    onDecline={handleDecline}
-                                />
-                            ))}
+                                {counts.pending}
+                            </p>
                         </div>
                     )}
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between mt-5 px-1">
-                        <span className="text-[12px] text-gray-400">
-                            Showing {filtered.length} of {invites.length} invitations
-                        </span>
-                        <button className="flex items-center gap-1 text-[13px] text-red-800 font-medium hover:underline">
-                            View all <ChevronRight size={14} />
-                        </button>
-                    </div>
-
                 </div>
+
+                {/* Tabs */}
+                <div className="bg-[#1a1a1a] border border-white/8 rounded-xl px-2 py-2 mb-5 flex gap-1">
+                    {TABS.map(({ key, label }) => (
+                        <button
+                            key={key}
+                            onClick={() => setTab(key)}
+                            className={[
+                                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold transition-all duration-150",
+                                tab === key
+                                    ? "bg-red-700 text-white shadow-sm"
+                                    : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]",
+                            ].join(" ")}
+                        >
+                            {label}
+                            <span className={[
+                                "text-[11px] font-bold px-1.5 py-0.5 rounded-full",
+                                tab === key ? "bg-white/20 text-white" : "bg-white/8 text-gray-500",
+                            ].join(" ")}>
+                                {counts[key]}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* List */}
+                {filtered.length === 0 ? (
+                    <div className="bg-[#1a1a1a] rounded-xl border border-white/8 px-5 py-14 text-center">
+                        <p className="text-[13px] text-gray-600">No invitations in this category.</p>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3">
+                        {filtered.map((invite) => (
+                            <InviteCard
+                                key={invite.id}
+                                invite={invite}
+                                onAccept={handleAccept}
+                                onDecline={handleDecline}
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {/* Footer */}
+                <div className="flex items-center justify-between mt-5 px-1">
+                    <span className="text-[12px] text-gray-600">
+                        Showing {filtered.length} of {invites.length} invitations
+                    </span>
+                    <button className="flex items-center gap-1 text-[13px] text-red-500 font-medium hover:text-red-400 transition-colors">
+                        View all <ChevronRight size={14} />
+                    </button>
+                </div>
+
             </div>
         </div>
     );

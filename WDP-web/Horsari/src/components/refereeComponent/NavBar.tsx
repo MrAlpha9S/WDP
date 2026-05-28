@@ -1,8 +1,8 @@
 import { Bell, ChevronDown, Trophy } from "lucide-react";
 
-export type RefereeTab = "Dashboard" | "Tournament" | "Inbox" | "Management";
+export type RefereeTab = "Dashboard" | "Tournaments" | "Inbox" | "Management";
 
-const TABS: RefereeTab[] = ["Dashboard", "Tournament", "Inbox", "Management"];
+export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Inbox", "Management"];
 
 interface NavBarProps {
     activeTab: RefereeTab;
@@ -26,7 +26,7 @@ export default function RefereeNavBar({ activeTab, onTabChange }: NavBarProps) {
 
                 {/* Nav tabs */}
                 <ul className="flex items-center gap-1">
-                    {TABS.map((tab) => {
+                    {REFEREE_TABS.map((tab) => {
                         const isActive = tab === activeTab;
                         return (
                             <li key={tab}>

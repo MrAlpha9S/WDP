@@ -5,6 +5,7 @@ import NavBar from "./components/NavBar";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import RefereeDashboardPage from "./pages/Referee/Index";
+import RaceMonitorPage from "./pages/Referee/RefereeRaceDetail";
 
 export default function App() {
   return (
@@ -32,8 +33,21 @@ export default function App() {
               <ProtectedRoute>
                 <RefereeDashboardPage />
               </ProtectedRoute>
-            }
-          />
+            } />
+          <Route
+            path="/referee/race-monitor" //add id later
+            element={
+              <ProtectedRoute>
+                <RaceMonitorPage />
+              </ProtectedRoute>
+            } />
+          <Route
+            path="/referee/:tabs"
+            element={
+              <ProtectedRoute>
+                <RefereeDashboardPage />
+              </ProtectedRoute>
+            } />
 
 
 

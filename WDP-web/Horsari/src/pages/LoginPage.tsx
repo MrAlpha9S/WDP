@@ -106,7 +106,7 @@ export default function LoginPage() {
     try {
       await signup(name, email, password, selectedRole?.role, pdfFile);
       if (selectedRole.role == "referee") {
-        navigate("/referee", { replace: true })
+        navigate("/referee/dashboard", { replace: true })
       }
       else {
         navigate("/", { replace: true });
