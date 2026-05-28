@@ -108,7 +108,9 @@ export default function LoginPage() {
       if (selectedRole.role == "referee") {
         navigate("/referee", { replace: true })
       }
-      navigate("/", { replace: true });
+      else {
+        navigate("/", { replace: true });
+      }
     } catch (err: any) {
       setError(err?.message ?? "Sign up failed. Please try again.");
     } finally {

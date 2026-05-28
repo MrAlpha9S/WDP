@@ -4,10 +4,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import NavBar from "./components/NavBar";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
-import RaceMonitorPage from "./pages/Referee/RefereeRaces";
-import ViolationManagementPage from "./pages/Referee/ManagementPage";
-import InboxPage from "./pages/Referee/InboxPage";
-import RefereeDashboardPage from "./pages/Referee/RefereeDashboard";
+import RefereeDashboardPage from "./pages/Referee/Index";
 
 export default function App() {
   return (
@@ -24,49 +21,20 @@ export default function App() {
               <ProtectedRoute>
                 <NavBar />
                 <HomePage />
-
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/referee/races"
-            element={
-              <ProtectedRoute>
-                <NavBar />
-                <RaceMonitorPage />
               </ProtectedRoute>
             }
           />
 
-          <Route
-            path="/referee/management"
-            element={
-              <ProtectedRoute>
-                <NavBar />
-                <ViolationManagementPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/referee/inbox"
-            element={
-              <ProtectedRoute>
-                <NavBar />
-                <InboxPage />
-              </ProtectedRoute>
-            }
-          />
 
           <Route
             path="/referee"
             element={
               <ProtectedRoute>
-                <NavBar />
                 <RefereeDashboardPage />
               </ProtectedRoute>
             }
           />
+
 
 
           {/* Fallback */}
