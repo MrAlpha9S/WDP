@@ -11,6 +11,11 @@ const horseOwnerSchema = new mongoose.Schema(
         license_link: {
             type: String,
         },
+        license_status: {
+            type: String,
+            enum: ['pending', 'approved', 'rejected'],
+            default: 'pending',
+        },
     },
     { timestamps: true }
 );
