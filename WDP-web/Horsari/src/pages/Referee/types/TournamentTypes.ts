@@ -44,7 +44,6 @@ export interface RaceRound {
     entries: number;
     prizePool: string;
     status: RaceStatus;
-    role: string | null;
     violations: number;
     tournamentId: string;
 }

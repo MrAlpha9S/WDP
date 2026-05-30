@@ -90,7 +90,6 @@ export function DayPopup({ iso, onSelectTournament, onOpenRaceMonitor }: {
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                     <GradeBadge grade={r.gradeLevel} />
-                                    {r.role && <span className="text-[10px] font-semibold text-gray-500 bg-white/5 px-2 py-0.5 rounded-md">{r.role}</span>}
                                     {isLive && <ChevronRight size={12} className="text-red-600" />}
                                 </div>
                             </button>
@@ -132,13 +131,11 @@ function RaceDetailPanel({ race, onClose }: { race: RaceRound; onClose: () => vo
                     </div>
                 ))}
             </div>
-            {race.role && (
-                <div className="px-4 pb-3 flex items-center justify-between">
-                    <span className="text-[11.5px] font-semibold text-gray-500 bg-white/5 px-3 py-1.5 rounded-lg">{race.role}</span>
-                    {race.status === "completed" && race.violations > 0 && (
+            {race.status === "completed" && (
+                <div className="px-4 pb-3 flex items-center justify-end">
+                    {race.violations > 0 ? (
                         <span className="flex items-center gap-1 text-[11px] text-red-400 font-semibold"><AlertCircle size={11} />{race.violations} violation{race.violations > 1 ? "s" : ""}</span>
-                    )}
-                    {race.status === "completed" && race.violations === 0 && (
+                    ) : (
                         <span className="flex items-center gap-1 text-[11px] text-green-500 font-semibold"><CheckCircle2 size={11} />Clean</span>
                     )}
                 </div>
@@ -328,7 +325,6 @@ function RacesTab({ t, onOpenRaceMonitor }: { t: Tournament; onOpenRaceMonitor: 
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                                {race.role && <span className="text-[10.5px] font-semibold text-gray-500 bg-white/5 px-2 py-1 rounded-lg hidden sm:block">{race.role}</span>}
                                 {isLive
                                     ? <ChevronRight size={13} className="text-red-600" />
                                     : <ChevronRight size={13} className={`text-gray-600 transition-transform duration-150 ${isExpanded ? "rotate-90" : ""}`} />
