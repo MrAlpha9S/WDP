@@ -4,10 +4,8 @@ import {
     ClipboardList, Dna, HeartPulse, ImagePlus, Shield,
     ShieldCheck, Trash2, UserCheck, X,
 } from "lucide-react";
-import {
-    RACE, VIOLATION_REASONS,
-    type HorseEntry, type PassFail,
-} from "../types/RaceData";
+import { RACE, VIOLATION_REASONS } from "../data/RaceData";
+import type { HorseEntry, PassFail } from "../types/RaceTypes";
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { RACE, PHASE_CONFIG, type RacePhase } from "./types/RaceData";
+import { RACE, PHASE_CONFIG } from "./data/RaceData";
+import type { RacePhase } from "./types/RaceTypes";
 import PreRacePage from "./Preracepage";
 import LivePage from "./LivePage.tsx";
 import PostRacePage from "./Postracepage.tsx";

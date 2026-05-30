@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { CheckCircle2, ClipboardList, Clock, Flag, Shield, ShieldCheck } from "lucide-react";
 import PreRaceInspectionModal from "./modal/PreRaceCheckup";
-import { RACE, HORSES, statusBadge, type HorseEntry } from "./types/RaceData";
+import { RACE, HORSES, statusBadge } from "./data/RaceData";
+import type { HorseEntry } from "./types/RaceTypes";
 
 export default function PreRacePage() {
     const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());

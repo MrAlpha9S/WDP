@@ -3,10 +3,8 @@ import {
     AlertTriangle, Camera, CheckCircle2, ChevronDown, ChevronRight,
     Flag, RefreshCw, Shield, ShieldAlert, Trophy, Zap,
 } from "lucide-react";
-import {
-    RACE, HORSES, LOGGED_INCIDENTS, HORSE_COLORS, HORSE_PROGRESS, CAMERAS,
-    type IncidentType,
-} from "./types/RaceData";
+import { RACE, HORSES, LOGGED_INCIDENTS, HORSE_COLORS, HORSE_PROGRESS, CAMERAS } from "./data/RaceData";
+import type { IncidentType } from "./types/RaceTypes";
 
 // ── Incident data (with icons) ────────────────────────────────────────────────
 

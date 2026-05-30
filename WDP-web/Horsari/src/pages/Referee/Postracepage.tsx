@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AlertTriangle, Camera, ChevronLeft, ChevronRight, Flag, Medal, Play, Pause, SkipBack, SkipForward, Trophy, Video } from "lucide-react";
-import { RACE, HORSES, LOGGED_INCIDENTS, ordinal } from "./types/RaceData";
+import { RACE, HORSES, LOGGED_INCIDENTS, ordinal } from "./data/RaceData";
 
 // ── Race video clips ──────────────────────────────────────────────────────────
 
