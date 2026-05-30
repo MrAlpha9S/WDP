@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Tournament } from "./types/TournamentTypes";
 import { TOURNAMENTS } from "./data/TournamentData";
-import TournamentCalendar from "./components/TournamentCalendar";
+import TournamentCalendar from "./RefereeComponents/TournamentCalendar";
 import { TournamentModal } from "./modal/TournamentModal";
 
 // ── Re-export types used by TournamentModal ────────────────────────────────────
@@ -10,7 +10,7 @@ import { TournamentModal } from "./modal/TournamentModal";
 export type { TournamentStatus, AssignmentStatus, RaceStatus, RaceType, GradeLevel, ModalTab } from "./types/TournamentTypes";
 export type { Tournament, RaceRound, LeaderEntry } from "./types/TournamentTypes";
 export { T_COLOR, TOURNAMENTS, ALL_RACES, RACES_BY_TOURNAMENT, LEADERBOARD, MONTH_NAMES, DAY_NAMES } from "./data/TournamentData";
-export { StatusBadge, GradeBadge, RaceTypeBadge, AssignmentTag } from "./components/TournamentBadges";
+export { StatusBadge, GradeBadge, RaceTypeBadge, AssignmentTag } from "./RefereeComponents/TournamentBadges";
 
 // ── Page Props ─────────────────────────────────────────────────────────────────
 

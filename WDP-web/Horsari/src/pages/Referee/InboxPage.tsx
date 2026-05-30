@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react";
 import type { InviteStatus } from "./types/InboxTypes";
 import type { RaceInvite } from "./types/InboxTypes";
 import { INVITES } from "./data/InboxData";
-import { InviteCard } from "./components/InboxCard";
+import { InviteCard } from "./RefereeComponents/InboxCard";
 
 // ── Tab type ──────────────────────────────────────────────────────────────────
 

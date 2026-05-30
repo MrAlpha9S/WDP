@@ -8,7 +8,7 @@ import {
     T_COLOR, RACES_BY_TOURNAMENT, LEADERBOARD, TOURNAMENTS, ALL_RACES,
     MONTH_NAMES, DAY_NAMES,
 } from "../data/TournamentData";
-import { StatusBadge, GradeBadge, RaceTypeBadge, AssignmentTag } from "../components/TournamentBadges";
+import { StatusBadge, GradeBadge, RaceTypeBadge, AssignmentTag } from "../RefereeComponents/TournamentBadges";
 
 // ── Day Popup ─────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import RefereeNavBar, { REFEREE_TABS, type RefereeTab } from "../../components/refereeComponent/NavBar";
+import RefereeNavBar, { REFEREE_TABS, type RefereeTab } from "./RefereeComponents/NavBar";
 import RefereeDashboard from "./Homepage";
 import ManagementPage from "./ManagementPage";
 import InboxPage from "./InboxPage";
@@ -41,7 +41,7 @@ export default function RefereeDashboardPage() {
     const { tabs } = useParams<{ tabs: string }>();
 
     const allTabs = [...REFEREE_TABS, "Inbox"] as RefereeTab[];
-    
+
     const initialTab = allTabs.find(
         t => t.toLowerCase() === tabs?.toLowerCase()
     ) ?? "Dashboard";
