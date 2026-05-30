@@ -100,8 +100,8 @@ export const HORSES: HorseEntry[] = [
         photo: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=120&q=80",
         mainJockey: { id: "JK-401", name: "I. Ortiz Jr.", license: "LIC-2024-0401", role: "main", weight: "126 lbs" },
         backupJockey: { id: "JK-402", name: "B. Hernandez", license: "LIC-2024-0402", role: "backup", weight: "124 lbs" },
-        gearStatus: "review", jockeyStatus: "cleared",
-        position: 1, finishPosition: 1, finishTime: "1:48.23", objection: true,
+        gearStatus: "cleared", jockeyStatus: "cleared",
+        position: 1, finishPosition: 1, finishTime: "1:48.23", objection: false,
     },
     {
         number: 5, name: "Silver Arrow", jockey: "J. Castellano",

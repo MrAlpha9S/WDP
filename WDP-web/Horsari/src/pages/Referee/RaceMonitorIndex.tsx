@@ -29,14 +29,14 @@ function PageHeader({ phase, onBack }: { phase: RacePhase; onBack: () => void })
                         {RACE.venue} &nbsp;·&nbsp; {RACE.track}, {RACE.condition} &nbsp;·&nbsp; {RACE.distance} &nbsp;·&nbsp; {RACE.grade}
                     </p>
                 </div>
-                <div className={`${cfg.bg} border ${cfg.border} rounded-xl px-4 py-2 text-right`}>
+                {/* <div className={`${cfg.bg} border ${cfg.border} rounded-xl px-4 py-2 text-right`}>
                     <p className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">
                         {phase === "pre" ? "Post Time" : phase === "live" ? "Elapsed" : "Official Time"}
                     </p>
                     <p className={`text-[20px] font-black tracking-tight leading-tight ${cfg.color}`} style={{ fontFamily: "'Playfair Display', serif" }}>
                         {phase === "pre" ? RACE.scheduledTime : RACE.officialTime}
                     </p>
-                </div>
+                </div> */}
             </div>
         </div>
     );

@@ -5,10 +5,11 @@ import { RACE, HORSES, LOGGED_INCIDENTS, ordinal } from "./types/RaceData";
 // ── Race video clips ──────────────────────────────────────────────────────────
 
 const RACE_CLIPS = [
-    { id: 1, label: "Full Race", timestamp: "0:00 – 1:48", src: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80", duration: "1:48" },
-    { id: 2, label: "Lane Cutting #4", timestamp: "0:42", src: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=900&q=80", duration: "0:12" },
-    { id: 3, label: "Interference #2", timestamp: "1:10", src: "https://images.unsplash.com/photo-1566033117334-c8a4f80c8df4?w=900&q=80", duration: "0:08" },
-    { id: 4, label: "Finish Line", timestamp: "1:47 – 1:48", src: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=900&q=80", duration: "0:06" },
+    { id: 1, label: "Main Broadcast", timestamp: "0:00 – 1:48", src: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80", duration: "1:48" },
+    { id: 2, label: "Head-On View", timestamp: "0:00 – 1:48", src: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=900&q=80", duration: "1:48" },
+    { id: 3, label: "Drone Cam", timestamp: "0:00 – 1:48", src: "https://images.unsplash.com/photo-1566033117334-c8a4f80c8df4?w=900&q=80", duration: "1:48" },
+    { id: 4, label: "Finish Line Cam", timestamp: "1:42 – 1:50", src: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=900&q=80", duration: "0:08" },
+    { id: 5, label: "Jockey Cam #1", timestamp: "0:00 – 1:48", src: "https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=900&q=80", duration: "1:48" },
 ];
 
 function VideoReviewPanel() {
