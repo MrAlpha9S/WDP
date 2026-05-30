@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { CheckCircle2, ChevronRight, Flag, MapPin, XCircle } from "lucide-react";
 import type { RecentInvite, InviteStatus } from "../types/HomepageTypes";
+import { useNavigate } from "react-router-dom";
 
 // ── Status Pill ────────────────────────────────────────────────────────────────
 
 function StatusPill({ status }: { status: InviteStatus }) {
     const cfg = {
-        pending:  "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
+        pending: "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
         accepted: "border-green-700/60 text-green-400 bg-green-500/10",
         declined: "border-white/10 text-gray-600 bg-transparent",
     }[status];
-    const dot   = { pending: "bg-yellow-500", accepted: "bg-green-500", declined: "bg-gray-600" }[status];
+    const dot = { pending: "bg-yellow-500", accepted: "bg-green-500", declined: "bg-gray-600" }[status];
     const label = { pending: "Pending", accepted: "Accepted", declined: "Declined" }[status];
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${cfg}`}>
@@ -28,8 +29,9 @@ interface InviteSidebarProps {
 
 export default function InviteSidebar({ invites: initial }: InviteSidebarProps) {
     const [invites, setInvites] = useState(initial);
+    const navigate = useNavigate();
 
-    const handleAccept  = (id: string) => setInvites(p => p.map(i => i.id === id ? { ...i, status: "accepted" as InviteStatus, isNew: false } : i));
+    const handleAccept = (id: string) => setInvites(p => p.map(i => i.id === id ? { ...i, status: "accepted" as InviteStatus, isNew: false } : i));
     const handleDecline = (id: string) => setInvites(p => p.map(i => i.id === id ? { ...i, status: "declined" as InviteStatus, isNew: false } : i));
 
     const pendingCount = invites.filter(i => i.status === "pending").length;
@@ -126,10 +128,13 @@ export default function InviteSidebar({ invites: initial }: InviteSidebarProps) 
 
             {/* Footer */}
             <div className="px-5 py-3 border-t border-white/8">
-                <button className="w-full flex items-center justify-center gap-1.5 text-[12px] text-red-500 font-semibold hover:text-red-400 transition-colors">
+                <button 
+                    className="w-full flex items-center justify-center gap-1.5 text-[12px] text-red-500 font-semibold hover:text-red-400 transition-colors" 
+                    onClick={() => navigate("/referee/inbox")}
+                >
                     View all invitations <ChevronRight size={13} />
                 </button>
             </div>
-        </div>
+        </div >
     );
 }
