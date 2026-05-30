@@ -5,7 +5,7 @@ import NavBar from "./components/NavBar";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import RefereeDashboardPage from "./pages/Referee/Index";
-import RaceMonitorPage from "./pages/Referee/RefereeRaceDetail";
+import RaceMonitorPage from "./pages/Referee/RaceMonitorIndex";
 
 export default function App() {
   return (

@@ -1,60 +1,8 @@
 import { useState } from "react";
 import { AlertCircle, ChevronLeft, ChevronRight, Flag, Search, User } from "lucide-react";
+import { INCIDENTS, JOCKEYS, STATUSES, type ViolationStatus, type Incident } from "./data/ManagementData";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type ViolationStatus = "Confirmed" | "Pending Review" | "Dismissed";
-
-interface Incident {
-    id: string;
-    timestamp: string;
-    race: string;
-    raceLabel: string;
-    offender: string;
-    offenderType: "jockey" | "horse";
-    violationType: string;
-    status: ViolationStatus;
-}
-
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-
-const INCIDENTS: Incident[] = [
-    {
-        id: "VI0-8492",
-        timestamp: "2024-10-24  14:32:05",
-        race: "R-992",
-        raceLabel: "Dubai Turf",
-        offender: "Marcus Vance",
-        offenderType: "jockey",
-        violationType: "Interference (Whip)",
-        status: "Confirmed",
-    },
-    {
-        id: "VI0-8491",
-        timestamp: "2024-10-24  12:15:22",
-        race: "R-990",
-        raceLabel: "Ascot Stakes",
-        offender: "Elena Rostova",
-        offenderType: "jockey",
-        violationType: "Weighing In Irregularity",
-        status: "Pending Review",
-    },
-    {
-        id: "VI0-8488",
-        timestamp: "2024-10-23  16:45:00",
-        race: "R-985",
-        raceLabel: "Kentucky Prep",
-        offender: "Midnight Runner",
-        offenderType: "horse",
-        violationType: "Gate Break Violation",
-        status: "Dismissed",
-    },
-];
-
-const JOCKEYS = ["All Jockeys", "Marcus Vance", "Elena Rostova"];
-const STATUSES: ViolationStatus[] = ["Confirmed", "Pending Review", "Dismissed"];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Status Badge ───────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: ViolationStatus }) {
     const styles: Record<ViolationStatus, string> = {
@@ -83,7 +31,7 @@ export default function ViolationManagementPage() {
     const [statusFilter, setStatusFilter] = useState("All Statuses");
     const [showModal, setShowModal] = useState(false);
 
-    const filtered = INCIDENTS.filter((inc) => {
+    const filtered = INCIDENTS.filter(inc => {
         const matchSearch = search === "" || inc.id.toLowerCase().includes(search.toLowerCase());
         const matchJockey = jockey === "All Jockeys" || inc.offender === jockey;
         const matchStatus = statusFilter === "All Statuses" || inc.status === statusFilter;
@@ -97,29 +45,23 @@ export default function ViolationManagementPage() {
         <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             <div className="max-w-5xl mx-auto px-5 py-8">
 
-                {/* ── Header ── */}
+                {/* Header */}
                 <div className="flex items-start justify-between mb-8">
                     <div>
-                        <h1
-                            className="text-[26px] font-bold text-white tracking-tight"
-                            style={{ fontFamily: "'Playfair Display', serif" }}
-                        >
+                        <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
                             Violation Management
                         </h1>
-                        <p className="text-[13px] text-gray-500 mt-0.5">
-                            Review and record referee identified infractions.
-                        </p>
+                        <p className="text-[13px] text-gray-500 mt-0.5">Review and record referee identified infractions.</p>
                     </div>
                     <button
                         onClick={() => setShowModal(true)}
                         className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-700 text-white text-[13px] font-bold uppercase tracking-widest hover:bg-red-600 shadow-lg shadow-red-900/40 transition-all duration-150"
                     >
-                        <AlertCircle size={14} />
-                        Record Incident
+                        <AlertCircle size={14} /> Record Incident
                     </button>
                 </div>
 
-                {/* ── Filters ── */}
+                {/* Filters */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 px-5 py-4 mb-5">
                     <div className="flex flex-wrap gap-3 items-end">
 
@@ -132,7 +74,7 @@ export default function ViolationManagementPage() {
                                     type="text"
                                     placeholder="Search by ID..."
                                     value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    onChange={e => setSearch(e.target.value)}
                                     className={`${inputCls} pl-8`}
                                 />
                             </div>
@@ -141,25 +83,17 @@ export default function ViolationManagementPage() {
                         {/* Jockey filter */}
                         <div className="flex flex-col gap-1.5 min-w-[160px]">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Jockey</label>
-                            <select
-                                value={jockey}
-                                onChange={(e) => setJockey(e.target.value)}
-                                className={selectCls}
-                            >
-                                {JOCKEYS.map((j) => <option key={j} className="bg-[#1a1a1a]">{j}</option>)}
+                            <select value={jockey} onChange={e => setJockey(e.target.value)} className={selectCls}>
+                                {JOCKEYS.map(j => <option key={j} className="bg-[#1a1a1a]">{j}</option>)}
                             </select>
                         </div>
 
                         {/* Status filter */}
                         <div className="flex flex-col gap-1.5 min-w-[160px]">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Status</label>
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className={selectCls}
-                            >
+                            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={selectCls}>
                                 <option className="bg-[#1a1a1a]">All Statuses</option>
-                                {STATUSES.map((s) => <option key={s} className="bg-[#1a1a1a]">{s}</option>)}
+                                {STATUSES.map(s => <option key={s} className="bg-[#1a1a1a]">{s}</option>)}
                             </select>
                         </div>
 
@@ -173,22 +107,19 @@ export default function ViolationManagementPage() {
                     </div>
                 </div>
 
-                {/* ── Table ── */}
+                {/* Table */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
+
                     {/* Table head */}
                     <div className="grid grid-cols-[110px_170px_180px_160px_1fr_140px_80px] gap-0 border-b border-white/8 px-5 py-2.5">
-                        {["Incident ID", "Timestamp", "Race", "Offender", "Violation Type", "Status", "Actions"].map((col) => (
-                            <span key={col} className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
-                                {col}
-                            </span>
+                        {["Incident ID", "Timestamp", "Race", "Offender", "Violation Type", "Status", "Actions"].map(col => (
+                            <span key={col} className="text-[10px] font-bold uppercase tracking-widest text-gray-600">{col}</span>
                         ))}
                     </div>
 
                     {/* Rows */}
                     {filtered.length === 0 ? (
-                        <div className="px-5 py-12 text-center text-[13px] text-gray-600">
-                            No incidents match your filters.
-                        </div>
+                        <div className="px-5 py-12 text-center text-[13px] text-gray-600">No incidents match your filters.</div>
                     ) : (
                         filtered.map((inc, i) => (
                             <div
@@ -198,37 +129,22 @@ export default function ViolationManagementPage() {
                                     i !== filtered.length - 1 ? "border-b border-white/5" : "",
                                 ].join(" ")}
                             >
-                                {/* ID */}
                                 <span className="text-[13px] font-bold text-white">{inc.id}</span>
-
-                                {/* Timestamp */}
                                 <span className="text-[12px] text-gray-500 font-mono">{inc.timestamp}</span>
-
-                                {/* Race */}
                                 <div className="flex items-center gap-1.5">
                                     <Flag size={12} className="text-red-600 shrink-0" />
                                     <span className="text-[13px] text-gray-300 font-medium">
                                         {inc.race} <span className="text-gray-600 font-normal">({inc.raceLabel})</span>
                                     </span>
                                 </div>
-
-                                {/* Offender */}
                                 <div className="flex items-center gap-1.5">
                                     <User size={12} className="text-gray-600 shrink-0" />
                                     <span className="text-[13px] text-gray-300">{inc.offender}</span>
                                 </div>
-
-                                {/* Violation Type */}
                                 <span className="text-[13px] text-gray-300">{inc.violationType}</span>
-
-                                {/* Status */}
                                 <div><StatusBadge status={inc.status} /></div>
-
-                                {/* Actions */}
                                 <div className="flex items-center gap-2">
-                                    <button className="text-[12px] font-semibold text-red-500 hover:text-red-400 transition-colors">
-                                        Edit
-                                    </button>
+                                    <button className="text-[12px] font-semibold text-red-500 hover:text-red-400 transition-colors">Edit</button>
                                 </div>
                             </div>
                         ))
@@ -236,9 +152,7 @@ export default function ViolationManagementPage() {
 
                     {/* Pagination */}
                     <div className="flex items-center justify-between px-5 py-3 border-t border-white/8">
-                        <span className="text-[12px] text-gray-600">
-                            Showing 1 to {filtered.length} of 124 incidents
-                        </span>
+                        <span className="text-[12px] text-gray-600">Showing 1 to {filtered.length} of 124 incidents</span>
                         <div className="flex items-center gap-1">
                             <button className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all">
                                 <ChevronLeft size={13} />
@@ -249,17 +163,13 @@ export default function ViolationManagementPage() {
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            {/* ── Record Incident Modal ── */}
+            {/* Record Incident Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/10 w-full max-w-md p-6 shadow-2xl">
-                        <h2
-                            className="text-[20px] font-bold text-white mb-1"
-                            style={{ fontFamily: "'Playfair Display', serif" }}
-                        >
+                        <h2 className="text-[20px] font-bold text-white mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
                             Record Incident
                         </h2>
                         <p className="text-[13px] text-gray-500 mb-5">Log a new referee-identified infraction.</p>
@@ -272,18 +182,14 @@ export default function ViolationManagementPage() {
                             ].map(({ label, placeholder }) => (
                                 <div key={label} className="flex flex-col gap-1.5">
                                     <label className="text-[12px] font-semibold text-gray-400">{label}</label>
-                                    <input
-                                        type="text"
-                                        placeholder={placeholder}
-                                        className={inputCls}
-                                    />
+                                    <input type="text" placeholder={placeholder} className={inputCls} />
                                 </div>
                             ))}
 
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[12px] font-semibold text-gray-400">Status</label>
                                 <select className={selectCls}>
-                                    {STATUSES.map((s) => <option key={s} className="bg-[#1a1a1a]">{s}</option>)}
+                                    {STATUSES.map(s => <option key={s} className="bg-[#1a1a1a]">{s}</option>)}
                                 </select>
                             </div>
                         </div>
