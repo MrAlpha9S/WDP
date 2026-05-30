@@ -10,24 +10,24 @@ import { StatusPill, PaymentPill, RaceTypeBadge, GradeBadge } from "./InboxBadge
 // ── Mini Calendar ─────────────────────────────────────────────────────────────
 
 const CAL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const CAL_DAYS   = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const CAL_DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 function parseDate(dateStr: string): Date | null {
     try { return new Date(dateStr); } catch { return null; }
 }
 
 function MiniCalendar({ highlightDate }: { highlightDate: string }) {
-    const parsed    = parseDate(highlightDate);
-    const initMonth = parsed ? parsed.getMonth()    : new Date().getMonth();
-    const initYear  = parsed ? parsed.getFullYear() : new Date().getFullYear();
+    const parsed = parseDate(highlightDate);
+    const initMonth = parsed ? parsed.getMonth() : new Date().getMonth();
+    const initYear = parsed ? parsed.getFullYear() : new Date().getFullYear();
 
     const [viewMonth, setViewMonth] = useState(initMonth);
-    const [viewYear,  setViewYear]  = useState(initYear);
+    const [viewYear, setViewYear] = useState(initYear);
 
-    const totalDays  = new Date(viewYear, viewMonth + 1, 0).getDate();
-    const firstDay   = new Date(viewYear, viewMonth, 1).getDay();
-    const prevMonth  = () => viewMonth === 0 ? (setViewMonth(11), setViewYear(y => y - 1)) : setViewMonth(m => m - 1);
-    const nextMonth  = () => viewMonth === 11 ? (setViewMonth(0), setViewYear(y => y + 1)) : setViewMonth(m => m + 1);
+    const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    const prevMonth = () => viewMonth === 0 ? (setViewMonth(11), setViewYear(y => y - 1)) : setViewMonth(m => m - 1);
+    const nextMonth = () => viewMonth === 11 ? (setViewMonth(0), setViewYear(y => y + 1)) : setViewMonth(m => m + 1);
 
     const highlightDay = parsed && parsed.getMonth() === viewMonth && parsed.getFullYear() === viewYear
         ? parsed.getDate() : null;
@@ -58,7 +58,7 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
             <div className="grid grid-cols-7 px-2 pb-2 gap-y-0.5">
                 {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
                 {Array.from({ length: totalDays }).map((_, i) => {
-                    const day  = i + 1;
+                    const day = i + 1;
                     const isHL = day === highlightDay;
                     return (
                         <div
@@ -86,7 +86,7 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
 
 interface ExpandedDetailProps {
     invite: RaceInvite;
-    onAccept:  (id: string) => void;
+    onAccept: (id: string) => void;
     onDecline: (id: string) => void;
 }
 
@@ -113,11 +113,11 @@ function ExpandedDetail({ invite, onAccept, onDecline }: ExpandedDetailProps) {
                     {/* Detail grid */}
                     <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
                         {[
-                            { label: "Distance",  value: invite.distance },
-                            { label: "Track",     value: invite.track },
-                            { label: "Location",  value: invite.trackLocation },
-                            { label: "Entries",   value: `${invite.entries} horses` },
-                            { label: "Assigned",  value: invite.assignedBy },
+                            { label: "Distance", value: invite.distance },
+                            { label: "Track", value: invite.track },
+                            { label: "Location", value: invite.trackLocation },
+                            { label: "Entries", value: `${invite.entries} horses` },
+                            { label: "Assigned", value: invite.assignedBy },
                         ].map(({ label, value }) => (
                             <div key={label} className="flex items-center gap-1">
                                 <span className="text-[11px] text-gray-600">{label}:</span>
@@ -200,7 +200,7 @@ function ExpandedDetail({ invite, onAccept, onDecline }: ExpandedDetailProps) {
 
 interface InviteCardProps {
     invite: RaceInvite;
-    onAccept:  (id: string) => void;
+    onAccept: (id: string) => void;
     onDecline: (id: string) => void;
 }
 
@@ -257,7 +257,7 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
                 <div className="flex items-center gap-2 shrink-0 sm:flex-col sm:items-end">
                     <StatusPill status={invite.status} />
                     <div className="flex items-center gap-2 mt-1">
-                        {isPending && (
+                        {/* {isPending && (
                             <>
                                 <button
                                     onClick={() => onDecline(invite.id)}
@@ -272,7 +272,7 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
                                     <CheckCircle2 size={13} /> Accept
                                 </button>
                             </>
-                        )}
+                        )} */}
                         <button
                             onClick={() => setExpanded(p => !p)}
                             className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"

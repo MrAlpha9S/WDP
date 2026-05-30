@@ -2,7 +2,7 @@ import { Bell, ChevronDown, Trophy } from "lucide-react";
 
 export type RefereeTab = "Dashboard" | "Tournaments" | "Inbox" | "Management";
 
-export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Inbox", "Management"];
+export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Management"];
 
 interface NavBarProps {
     activeTab: RefereeTab;
@@ -49,7 +49,7 @@ export default function RefereeNavBar({ activeTab, onTabChange }: NavBarProps) {
 
                 {/* Right icons */}
                 <div className="flex items-center gap-3">
-                    <button className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors duration-150">
+                    <button className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors duration-150" onClick={() => onTabChange("Inbox")}>
                         <Bell size={17} />
                         <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
                     </button>
