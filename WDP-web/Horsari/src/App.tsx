@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import RefereeDashboardPage from "./pages/Referee/Index";
 import RaceMonitorPage from "./pages/Referee/RaceMonitorIndex";
+import AdminDashboardPage from "./pages/Admin/Index";
 
 export default function App() {
   return (
@@ -49,6 +50,21 @@ export default function App() {
               </ProtectedRoute>
             } />
 
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } />
+
+          <Route
+            path="/admin/:tabs"
+            element={
+              <ProtectedRoute>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } />
 
 
           {/* Fallback */}
