@@ -49,6 +49,22 @@ export const SCHEDULED_RACES: ScheduledRace[] = [
         ],
         leftPercent: "41.5%",  // visually placed after 15:00
         widthPercent: "21%"    // visually ~40 mins length
+    },
+    {
+        id: "r3",
+        title: "Winter Sprint Invitational",
+        date: "2024-12-20",
+        time: "16:00",
+        trackId: "t1",
+        tournament: "Non-tournament",
+        status: "Upcoming",
+        maxSlots: 8,
+        participants: [
+            { horseId: "h1", horseName: "Silver Bullet", jockeyId: "j6", jockeyName: "Emma Stone", rating: 85 }
+        ],
+        pendingInvites: [],
+        leftPercent: "66.5%",
+        widthPercent: "16%"
     }
 ];
 

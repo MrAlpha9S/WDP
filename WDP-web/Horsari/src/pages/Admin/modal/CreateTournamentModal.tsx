@@ -1,10 +1,10 @@
 import { X } from "lucide-react";
-import type { AdminTournament } from "../../../shared/types/TournamentManagementTypes";
+import type { Tournament } from "../../../shared/types/TournamentTypes";
 
 interface CreateTournamentModalProps {
     isOpen: boolean;
     onClose: () => void;
-    editingTournament: AdminTournament | null;
+    editingTournament: Tournament | null;
 }
 
 export function CreateTournamentModal({ isOpen, onClose, editingTournament }: CreateTournamentModalProps) {
@@ -52,9 +52,9 @@ export function CreateTournamentModal({ isOpen, onClose, editingTournament }: Cr
                         <div>
                             <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Status</label>
                             <select defaultValue={editingTournament?.status || "Upcoming"} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none">
-                                <option value="Upcoming">Upcoming</option>
-                                <option value="Active">Active</option>
-                                <option value="Completed">Completed</option>
+                                <option value="upcoming">Upcoming</option>
+                                <option value="live">Live</option>
+                                <option value="completed">Completed</option>
                             </select>
                         </div>
                     </div>

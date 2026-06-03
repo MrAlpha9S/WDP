@@ -113,6 +113,7 @@ export default function TournamentCalendar({ onSelectTournament, onOpenRaceMonit
                 {/* Legend */}
                 <div className="px-4 py-3 border-t border-white/6 flex flex-wrap gap-x-4 gap-y-1.5">
                     {TOURNAMENTS.filter(t => {
+                        if (t.id === "none") return false;
                         const mStart = toISO(viewYear, viewMonth, 1);
                         const mEnd   = toISO(viewYear, viewMonth, daysInMonth(viewYear, viewMonth));
                         return t.startISO <= mEnd && t.endISO >= mStart;

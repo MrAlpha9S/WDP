@@ -2,6 +2,7 @@ import { useState } from "react";
 import { LayoutGrid, List, Plus, Settings, Users } from "lucide-react";
 import { SCHEDULED_RACES, TRACKS, TIME_SLOTS } from "../../shared/data/RaceData";
 import type { ViewMode } from "../../shared/types/RaceTypes";
+import { TOURNAMENTS } from "../../shared/data/TournamentData";
 import CreateRaceModal from "./modal/CreateRaceModal";
 import RaceDetailsPanel from "./AdminComponents/RaceDetailsPanel";
 
@@ -65,8 +66,8 @@ export default function RaceSchedulingPage() {
                                 className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Tournaments</option>
-                                {Array.from(new Set(SCHEDULED_RACES.map(r => r.tournament))).map(t => (
-                                    <option key={t} value={t}>{t}</option>
+                                {TOURNAMENTS.map(t => (
+                                    <option key={t.id} value={t.name}>{t.name}</option>
                                 ))}
                             </select>
 

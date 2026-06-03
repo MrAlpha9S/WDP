@@ -10,6 +10,7 @@ export const T_COLOR: Record<string, { band: string; dot: string; label: string;
     green:  { band: "bg-green-500/15",  dot: "bg-green-500",  label: "text-green-400",  border: "border-green-700/40"  },
     sky:    { band: "bg-sky-500/15",    dot: "bg-sky-500",    label: "text-sky-400",    border: "border-sky-700/40"    },
     orange: { band: "bg-orange-500/15", dot: "bg-orange-500", label: "text-orange-400", border: "border-orange-700/40" },
+    gray:   { band: "bg-gray-500/15",   dot: "bg-gray-500",   label: "text-gray-400",   border: "border-gray-700/40"   },
 };
 
 // ── Calendar constants ─────────────────────────────────────────────────────────
@@ -32,7 +33,7 @@ export function toISO(y: number, m: number, d: number) {
 }
 
 export function tournamentsOnDay(iso: string): Tournament[] {
-    return TOURNAMENTS.filter(t => iso >= t.startISO && iso <= t.endISO);
+    return TOURNAMENTS.filter(t => t.id !== "none" && iso >= t.startISO && iso <= t.endISO);
 }
 export function racesOnDay(iso: string): RaceRound[] {
     return ALL_RACES.filter(r => r.dateISO === iso);
@@ -117,6 +118,17 @@ export const TOURNAMENTS: Tournament[] = [
         status: "completed", assignment: "none", assignedRaces: 0, grade: "G1",
         color: "orange",
         description: "Europe's most prestigious flat race meeting at the historic Longchamp racecourse.",
+    },
+    {
+        id: "none", name: "Non-tournament",
+        series: "-",
+        country: "-", location: "-",
+        startDate: "", endDate: "",
+        startISO: "", endISO: "",
+        totalRaces: 0, completedRaces: 0, prizePool: "-",
+        status: "live", assignment: "none", assignedRaces: 0, grade: "Listed",
+        color: "gray",
+        description: "Standalone races not affiliated with any tournament.",
     },
 ];
 

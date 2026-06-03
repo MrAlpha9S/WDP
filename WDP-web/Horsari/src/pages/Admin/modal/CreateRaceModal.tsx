@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Calendar, MapPin, Search } from "lucide-react";
 import { TRACKS, MOCK_OWNERS, MOCK_REFEREES, checkEligibility } from "../../../shared/data/RaceData";
 import type { RaceType } from "../../../shared/types/RaceTypes";
+import { TOURNAMENTS } from "../../../shared/data/TournamentData";
 
 interface CreateRaceModalProps {
     isOpen: boolean;
@@ -34,10 +35,9 @@ export default function CreateRaceModal({ isOpen, onClose }: CreateRaceModalProp
                         <div>
                             <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Tournament</label>
                             <select className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none">
-                                <option value="none">Non-tournament</option>
-                                <option value="autumn">Autumn Series</option>
-                                <option value="global">Global Championship</option>
-                                <option value="summer">Summer Sprint Cup</option>
+                                {TOURNAMENTS.map(t => (
+                                    <option key={t.id} value={t.name}>{t.name}</option>
+                                ))}
                             </select>
                         </div>
                     </div>
