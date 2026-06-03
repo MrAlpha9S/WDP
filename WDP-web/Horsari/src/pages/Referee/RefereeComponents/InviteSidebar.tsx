@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CheckCircle2, ChevronRight, Flag, MapPin, XCircle } from "lucide-react";
-import type { RecentInvite, InviteStatus } from "../types/HomepageTypes";
+import type { RecentInvite, InviteStatus } from "../../../shared/types/HomepageTypes";
 import { useNavigate } from "react-router-dom";
 
 // ── Status Pill ────────────────────────────────────────────────────────────────

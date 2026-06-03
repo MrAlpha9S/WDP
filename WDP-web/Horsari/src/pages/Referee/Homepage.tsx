@@ -1,4 +1,4 @@
-import { UPCOMING, INVITES } from "./data/HomepageData";
+import { UPCOMING, INVITES } from "../../shared/data/HomepageData";
 import HomeCalendar from "./RefereeComponents/HomeCalendar";
 import InviteSidebar from "./RefereeComponents/InviteSidebar";
 

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import {
-    AlertTriangle, Camera, CheckCircle2, ChevronDown, ChevronRight,
+    Camera, CheckCircle2, ChevronDown, ChevronRight,
     Flag, RefreshCw, Shield, ShieldAlert, Trophy, Zap,
 } from "lucide-react";
-import { RACE, HORSES, LOGGED_INCIDENTS, HORSE_COLORS, HORSE_PROGRESS, CAMERAS } from "./data/RaceData";
-import type { IncidentType } from "./types/RaceTypes";
+import { RACE, HORSES, LOGGED_INCIDENTS, HORSE_COLORS, HORSE_PROGRESS, CAMERAS } from "../../shared/data/RaceData";
+import type { IncidentType } from "../../shared/types/RaceTypes";
 
 // ── Incident data (with icons) ────────────────────────────────────────────────
 

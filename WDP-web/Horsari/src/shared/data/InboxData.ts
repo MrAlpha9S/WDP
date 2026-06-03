@@ -1,4 +1,5 @@
-import type { RaceInvite, RaceType } from "../types/InboxTypes";
+import type { RaceInvite } from "../types/InboxTypes";
+import type { RaceType } from "../types/CommonTypes";
 
 // ── Invite mock data ───────────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ export const INVITES: RaceInvite[] = [
         venue: "Ascot Racecourse", trackLocation: "Ascot, Berkshire, UK",
         date: "Oct 24, 2024", time: "4:00 PM GMT",
         role: "Head Referee", sentAt: "3 days ago", status: "accepted",
-        raceType: "Claiming", gradeLevel: "G3", distance: "1 Mile", track: "Turf, Good",
+        raceType: "Claims", gradeLevel: "G3", distance: "1 Mile", track: "Turf, Good",
         entries: 11, assignedBy: "Oliver Hartley",
         notes: "Standard Grade III. Brief pre-race debrief with stewards at 2:30 PM.",
         fee: 780, paymentStatus: "processing", paymentMethod: "Bank Transfer",
@@ -60,6 +61,6 @@ export const INVITES: RaceInvite[] = [
 export const RACE_TYPE_DESCRIPTIONS: Record<RaceType, string> = {
     Stakes:    "Top tier — highest prize money.",
     Allowance: "Mid-level — horses that have won but aren't ready for stakes.",
-    Claiming:  "Any owner can purchase a horse at the listed price before the race.",
-    Maiden:    "For horses that have never won a race.",
+    Claims:  "Any owner can purchase a horse at the listed price before the race.",
+    Maiden:    "For horses that have never won a race."
 };

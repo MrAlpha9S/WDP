@@ -3,11 +3,11 @@ import {
     AlertCircle, CheckCircle2, ChevronDown, ChevronRight,
     Clock, Flag, Globe, MapPin, Trophy, Users, X,
 } from "lucide-react";
-import type { Tournament, RaceRound, ModalTab } from "../types/TournamentTypes";
+import type { Tournament, RaceRound, ModalTab } from "../../../shared/types/TournamentTypes";
 import {
     T_COLOR, RACES_BY_TOURNAMENT, LEADERBOARD, TOURNAMENTS, ALL_RACES,
     MONTH_NAMES, DAY_NAMES,
-} from "../data/TournamentData";
+} from "../../../shared/data/TournamentData";
 import { StatusBadge, GradeBadge, RaceTypeBadge, AssignmentTag } from "../RefereeComponents/TournamentBadges";
 
 // ── Day Popup ─────────────────────────────────────────────────────────────────

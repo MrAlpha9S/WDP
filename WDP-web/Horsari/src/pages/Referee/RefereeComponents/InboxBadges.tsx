@@ -1,4 +1,4 @@
-import type { InviteStatus, PaymentStatus, RaceType, GradeLevel } from "../types/InboxTypes";
+import type { InviteStatus, PaymentStatus, RaceType, GradeLevel } from "../../../shared/types/InboxTypes";
 
 // ── Status Pill ────────────────────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ export function RaceTypeBadge({ type }: { type: RaceType }) {
     const map: Record<RaceType, string> = {
         Stakes:    "border-red-800/60 text-red-400 bg-red-500/10",
         Allowance: "border-blue-800/60 text-blue-400 bg-blue-500/10",
-        Claiming:  "border-orange-800/60 text-orange-400 bg-orange-500/10",
+        Claims:  "border-orange-800/60 text-orange-400 bg-orange-500/10",
         Maiden:    "border-purple-800/60 text-purple-400 bg-purple-500/10",
     };
     return (

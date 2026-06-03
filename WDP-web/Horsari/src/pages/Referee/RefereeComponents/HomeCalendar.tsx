@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, Flag, MapPin } from "lucide-react";
-import type { UpcomingRace, RaceType, GradeLevel } from "../types/HomepageTypes";
+import type { UpcomingRace, RaceType, GradeLevel } from "../../../shared/types/HomepageTypes";
 import {
     TODAY, MONTHS, DAYS,
     daysInMonth, firstDayOfMonth, isSameDay,
     RACE_TYPE_DOT, GRADE_STYLE, TYPE_STYLE,
-} from "../data/HomepageData";
+} from "../../../shared/data/HomepageData";
 
 // ── Grade Badge ────────────────────────────────────────────────────────────────
 

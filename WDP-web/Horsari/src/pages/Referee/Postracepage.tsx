@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AlertTriangle, Camera, ChevronLeft, ChevronRight, Flag, Medal, Play, Pause, SkipBack, SkipForward, Trophy, Video } from "lucide-react";
-import { RACE, HORSES, LOGGED_INCIDENTS, ordinal } from "./data/RaceData";
+import { RACE, HORSES, LOGGED_INCIDENTS, ordinal } from "../../shared/data/RaceData";
 
 // ── Race video clips ──────────────────────────────────────────────────────────
 
@@ -134,7 +134,7 @@ function VideoReviewPanel() {
 }
 
 export default function PostRacePage() {
-    const [objectionResolved, setObjectionResolved] = useState(false);
+    const [objectionResolved] = useState(false);
     const [published, setPublished] = useState(false);
     const sorted = [...HORSES].sort((a, b) => (a.finishPosition ?? 9) - (b.finishPosition ?? 9));
     const hasObjection = sorted.some(h => h.objection) && !objectionResolved;

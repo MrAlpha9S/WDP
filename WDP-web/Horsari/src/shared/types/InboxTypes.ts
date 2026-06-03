@@ -1,9 +1,5 @@
-// ── Inbox Domain Types ─────────────────────────────────────────────────────────
-
-export type InviteStatus = "pending" | "accepted" | "declined";
-export type PaymentStatus = "unpaid" | "processing" | "paid";
-export type RaceType = "Stakes" | "Allowance" | "Claiming" | "Maiden";
-export type GradeLevel = "G1" | "G2" | "G3" | "Listed" | "Open";
+import type { RaceType, GradeLevel, InviteStatus, PaymentStatus } from "./CommonTypes";
+export type { RaceType, GradeLevel, InviteStatus, PaymentStatus };
 
 export interface RaceInvite {
     id: string;

@@ -1,63 +1,22 @@
 import { useState } from "react";
-import { Search, Plus, LayoutGrid, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { type AdminTab } from "./AdminComponents/NavBar";
-
-// ── Types ─────────────
-type ViewMode = "table" | "calendar";
-
-interface Tournament {
-    id: string;
-    name: string;
-    description: string;
-    startDate: string;
-    endDate: string;
-    prizePool: string;
-    status: "Upcoming" | "Active" | "Completed";
-}
-
-// ── Mock Data ──────────
-const INITIAL_TOURNAMENTS: Tournament[] = [
-    {
-        id: "t1",
-        name: "Autumn Series",
-        description: "The premier autumn racing circuit.",
-        startDate: "2024-11-01",
-        endDate: "2024-11-30",
-        prizePool: "$500,000",
-        status: "Upcoming"
-    },
-    {
-        id: "t2",
-        name: "Global Championship",
-        description: "The biggest event of the year.",
-        startDate: "2024-12-10",
-        endDate: "2024-12-25",
-        prizePool: "$2,000,000",
-        status: "Upcoming"
-    },
-    {
-        id: "t3",
-        name: "Summer Sprint Cup",
-        description: "Fast-paced summer races.",
-        startDate: "2024-06-01",
-        endDate: "2024-06-15",
-        prizePool: "$250,000",
-        status: "Completed"
-    }
-];
+import type { AdminViewMode, AdminTournament } from "../../shared/types/TournamentManagementTypes";
+import { INITIAL_TOURNAMENTS } from "../../shared/data/TournamentManagementData";
+import { CreateTournamentModal } from "./modal/CreateTournamentModal";
 
 interface Props {
     setActiveTab: (tab: AdminTab) => void;
 }
 
 export default function TournamentManagementPage({ setActiveTab }: Props) {
-    const [viewMode, setViewMode] = useState<ViewMode>("table");
-    const [tournaments, setTournaments] = useState<Tournament[]>(INITIAL_TOURNAMENTS);
+    const [viewMode, setViewMode] = useState<AdminViewMode>("table");
+    const [tournaments, setTournaments] = useState<AdminTournament[]>(INITIAL_TOURNAMENTS);
     const [searchQuery, setSearchQuery] = useState("");
     
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
+    const [editingTournament, setEditingTournament] = useState<AdminTournament | null>(null);
 
     // Filtered Data
     const filteredTournaments = tournaments.filter(t => 
@@ -70,7 +29,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
     };
 
     // Open Modal for Create or Edit
-    const openModal = (tournament?: Tournament) => {
+    const openModal = (tournament?: AdminTournament) => {
         setEditingTournament(tournament || null);
         setIsModalOpen(true);
     };
@@ -331,68 +290,11 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
             </main>
         </div>
 
-            {/* ── Create/Edit Modal ── */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="w-[500px] bg-[#161616] border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col">
-                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#1a1a1a]">
-                            <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">
-                                {editingTournament ? "Edit Tournament" : "Create New Tournament"}
-                            </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-white transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        
-                        <div className="p-6 flex flex-col gap-4">
-                            <div>
-                                <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Tournament Name</label>
-                                <input type="text" defaultValue={editingTournament?.name || ""} placeholder="e.g. Winter Cup" className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" />
-                            </div>
-                            
-                            <div>
-                                <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Description</label>
-                                <textarea defaultValue={editingTournament?.description || ""} rows={3} placeholder="Brief description..." className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 resize-none"></textarea>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Date</label>
-                                    <input type="date" defaultValue={editingTournament?.startDate || ""} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
-                                </div>
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">End Date</label>
-                                    <input type="date" defaultValue={editingTournament?.endDate || ""} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Prize Pool</label>
-                                    <input type="text" defaultValue={editingTournament?.prizePool || ""} placeholder="$100,000" className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" />
-                                </div>
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Status</label>
-                                    <select defaultValue={editingTournament?.status || "Upcoming"} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none">
-                                        <option value="Upcoming">Upcoming</option>
-                                        <option value="Active">Active</option>
-                                        <option value="Completed">Completed</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">
-                            <button onClick={() => setIsModalOpen(false)} className="px-5 py-2 rounded text-[13px] font-medium text-gray-400 hover:text-white transition-colors">
-                                Cancel
-                            </button>
-                            <button onClick={() => setIsModalOpen(false)} className="px-5 py-2 rounded text-[13px] font-medium text-white bg-red-700 hover:bg-red-600 transition-colors shadow-lg shadow-red-900/20">
-                                {editingTournament ? "Save Changes" : "Create Tournament"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <CreateTournamentModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                editingTournament={editingTournament}
+            />
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AlertCircle, ChevronLeft, ChevronRight, Flag, Search, User } from "lucide-react";
-import { INCIDENTS, JOCKEYS, STATUSES, type ViolationStatus, type Incident } from "./data/ManagementData";
+import { INCIDENTS, JOCKEYS, STATUSES, type ViolationStatus } from "../../shared/data/ManagementData";
 
 // ── Status Badge ───────────────────────────────────────────────────────────────
 

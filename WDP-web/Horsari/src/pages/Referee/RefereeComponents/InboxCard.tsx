@@ -3,8 +3,8 @@ import {
     CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
     Clock, CreditCard, Flag, MapPin, XCircle,
 } from "lucide-react";
-import type { RaceInvite, InviteStatus } from "../types/InboxTypes";
-import { RACE_TYPE_DESCRIPTIONS } from "../data/InboxData";
+import type { RaceInvite } from "../../../shared/types/InboxTypes";
+import { RACE_TYPE_DESCRIPTIONS } from "../../../shared/data/InboxData";
 import { StatusPill, PaymentPill, RaceTypeBadge, GradeBadge } from "./InboxBadges";
 
 // ── Mini Calendar ─────────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
-import type { UpcomingRace, RecentInvite, RaceType, GradeLevel } from "../types/HomepageTypes";
+import type { UpcomingRace, RecentInvite } from "../types/HomepageTypes";
+import type { RaceType, GradeLevel } from "../types/CommonTypes";
 
 // ── Date constants ─────────────────────────────────────────────────────────────
 
@@ -25,8 +26,8 @@ export function isSameDay(a: Date, b: Date) {
 export const RACE_TYPE_DOT: Record<RaceType, string> = {
     Stakes: "bg-red-500",
     Allowance: "bg-blue-500",
-    Claiming: "bg-orange-500",
-    Maiden: "bg-purple-500",
+    Claims: "bg-orange-500",
+    Maiden: "bg-purple-500"
 };
 
 export const GRADE_STYLE: Record<GradeLevel, string> = {
@@ -40,8 +41,8 @@ export const GRADE_STYLE: Record<GradeLevel, string> = {
 export const TYPE_STYLE: Record<RaceType, string> = {
     Stakes: "border-red-800/60 text-red-400 bg-red-500/10",
     Allowance: "border-blue-800/60 text-blue-400 bg-blue-500/10",
-    Claiming: "border-orange-800/60 text-orange-400 bg-orange-500/10",
-    Maiden: "border-purple-800/60 text-purple-400 bg-purple-500/10",
+    Claims: "border-orange-800/60 text-orange-400 bg-orange-500/10",
+    Maiden: "border-purple-800/60 text-purple-400 bg-purple-500/10"
 };
 
 // ── Upcoming races mock data ────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ export const UPCOMING: UpcomingRace[] = [
     { id: "R-998", label: "Ascot Gold Cup", venue: "Ascot Racecourse", trackLocation: "Ascot, Berkshire, UK", date: new Date(2024, 10, 8), time: "2:15 PM GMT", role: "Track Referee", raceType: "Stakes", gradeLevel: "G1", status: "tentative" },
     { id: "R-1010", label: "Breeders' Cup Mile", venue: "Santa Anita Park", trackLocation: "Arcadia, CA, USA", date: new Date(2024, 10, 14), time: "5:00 PM PT", role: "Head Referee", raceType: "Stakes", gradeLevel: "G1", status: "confirmed" },
     { id: "R-1015", label: "Japan Cup", venue: "Tokyo Racecourse", trackLocation: "Fuchu, Tokyo, Japan", date: new Date(2024, 10, 24), time: "3:40 PM JST", role: "Gate Referee", raceType: "Stakes", gradeLevel: "G1", status: "tentative" },
-    { id: "R-1018", label: "Hong Kong Mile", venue: "Sha Tin Racecourse", trackLocation: "Sha Tin, New Territories, HK", date: new Date(2024, 11, 8), time: "4:30 PM HKT", role: "Head Referee", raceType: "Claiming", gradeLevel: "G2", status: "confirmed" },
+    { id: "R-1018", label: "Hong Kong Mile", venue: "Sha Tin Racecourse", trackLocation: "Sha Tin, New Territories, HK", date: new Date(2024, 11, 8), time: "4:30 PM HKT", role: "Head Referee", raceType: "Claims", gradeLevel: "G2", status: "confirmed" },
 ];
 
 // ── Recent invites mock data ───────────────────────────────────────────────────

@@ -1,8 +1,5 @@
-// ── Homepage Domain Types ──────────────────────────────────────────────────────
-
-export type InviteStatus = "pending" | "accepted" | "declined";
-export type RaceType = "Stakes" | "Allowance" | "Claiming" | "Maiden";
-export type GradeLevel = "G1" | "G2" | "G3" | "Listed" | "Open";
+import type { RaceType, GradeLevel, InviteStatus } from "./CommonTypes";
+export type { RaceType, GradeLevel, InviteStatus };
 
 export interface UpcomingRace {
     id: string;

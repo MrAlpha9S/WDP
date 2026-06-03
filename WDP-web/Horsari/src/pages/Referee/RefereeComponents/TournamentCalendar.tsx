@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Flag } from "lucide-react";
-import type { Tournament } from "../types/TournamentTypes";
+import type { Tournament } from "../../../shared/types/TournamentTypes";
 import {
-    TOURNAMENTS, ALL_RACES, T_COLOR,
+    TOURNAMENTS, T_COLOR,
     MONTH_NAMES, DAY_NAMES, TODAY_ISO,
     daysInMonth, firstDayOfMonth, toISO,
     tournamentsOnDay, racesOnDay,
-} from "../data/TournamentData";
+} from "../../../shared/data/TournamentData";
 import { DayPopup } from "../modal/TournamentModal";
 
 // ── Tournament Calendar ────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ export default function TournamentCalendar({ onSelectTournament, onOpenRaceMonit
                             >
                                 {!isSel && bands.length > 0 && (
                                     <div className="absolute bottom-1.5 left-1 right-1 flex flex-col gap-0.5">
-                                        {bands.map((t, bi) => {
+                                        {bands.map((t) => {
                                             const c = T_COLOR[t.color];
                                             const isStart = iso === t.startISO;
                                             const isEnd   = iso === t.endISO;

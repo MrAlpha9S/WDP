@@ -1,5 +1,5 @@
 import { Flag } from "lucide-react";
-import type { TournamentStatus, AssignmentStatus, RaceType, GradeLevel } from "../types/TournamentTypes";
+import type { TournamentStatus, AssignmentStatus } from "../../../shared/types/TournamentTypes";
 
 // ── Status Badge ───────────────────────────────────────────────────────────────
 
@@ -41,8 +41,7 @@ export function RaceTypeBadge({ type }: { type: string }) {
     const cfg: Record<string, string> = {
         Stakes:    "border-red-800/60 text-red-400 bg-red-500/10",
         Allowance: "border-blue-800/60 text-blue-400 bg-blue-500/10",
-        Claiming:  "border-orange-800/60 text-orange-400 bg-orange-500/10",
-        Claims:    "border-orange-800/60 text-orange-400 bg-orange-500/10",
+        Claims:  "border-orange-800/60 text-orange-400 bg-orange-500/10",
         Maiden:    "border-purple-800/60 text-purple-400 bg-purple-500/10",
     };
     return (

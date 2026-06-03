@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
-import type { InviteStatus } from "./types/InboxTypes";
-import type { RaceInvite } from "./types/InboxTypes";
-import { INVITES } from "./data/InboxData";
+import type { InviteStatus } from "../../shared/types/InboxTypes";
+import type { RaceInvite } from "../../shared/types/InboxTypes";
+import { INVITES } from "../../shared/data/InboxData";
 import { InviteCard } from "./RefereeComponents/InboxCard";
 
 // ── Tab type ──────────────────────────────────────────────────────────────────

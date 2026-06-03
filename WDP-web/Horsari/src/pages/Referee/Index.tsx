@@ -7,20 +7,6 @@ import TournamentListPage from "./TournamentListPage";
 import { useParams } from "react-router-dom";
 
 
-// ── Placeholder pages for non-Dashboard tabs ──────────────────────────────────
-function ComingSoon({ title }: { title: string }) {
-    return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-            <p
-                className="text-[32px] font-bold text-white"
-                style={{ fontFamily: "'Playfair Display', serif" }}
-            >
-                {title}
-            </p>
-            <p className="text-[14px] text-gray-500">This section is coming soon.</p>
-        </div>
-    );
-}
 
 // ── Tab → component map ───────────────────────────────────────────────────────
 function ActiveView({ tab }: { tab: RefereeTab }) {

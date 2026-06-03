@@ -1,10 +1,9 @@
-// ── Tournament Domain Types ────────────────────────────────────────────────────
+import type { RaceType, GradeLevel } from "./CommonTypes";
+export type { RaceType, GradeLevel };
 
 export type TournamentStatus = "live" | "upcoming" | "completed";
 export type AssignmentStatus = "assigned" | "partial" | "none";
 export type RaceStatus = "completed" | "live" | "upcoming";
-export type RaceType = "Stakes" | "Allowance" | "Claiming" | "Maiden" | "Claims";
-export type GradeLevel = "G1" | "G2" | "G3" | "Listed" | "Open";
 export type ModalTab = "overview" | "races";
 
 export interface Tournament {
