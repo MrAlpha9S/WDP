@@ -1,22 +1,22 @@
 import { useState } from "react";
-import NavBar, {type Tab} from "../../components/ownerComponents/Navbar";
+import NavBar, { type Tab } from "../../components/ownerComponents/Navbar";
 import HomePage from "./HomePage";
 import ManagementPage from "./Management";
 
 // ── Placeholder pages for non-Dashboard tabs ──────────────────────────────────
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <p
-        className="text-[32px] font-bold text-white"
-        style={{ fontFamily: "'Playfair Display', serif" }}
-      >
-        {title}
-      </p>
-      <p className="text-[14px] text-gray-500">This section is coming soon.</p>
-    </div>
-  );
-}
+// function ComingSoon({ title }: { title: string }) {
+//   return (
+//     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+//       <p
+//         className="text-[32px] font-bold text-white"
+//         style={{ fontFamily: "'Playfair Display', serif" }}
+//       >
+//         {title}
+//       </p>
+//       <p className="text-[14px] text-gray-500">This section is coming soon.</p>
+//     </div>
+//   );
+// }
 
 // ── Tab → component map ───────────────────────────────────────────────────────
 function ActiveView({ tab }: { tab: Tab }) {
