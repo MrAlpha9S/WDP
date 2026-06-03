@@ -3,7 +3,11 @@ import { AuthProvider } from "./providers/AuthProvider";
 import ProtectedRoute from "./ProtectedRoute";
 import NavBar from "./components/NavBar";
 import LoginPage from "./pages/LoginPage";
+import GoogleRegisterPage from "./pages/GoogleRegisterPage";
 import HomePage from "./pages/HomePage";
+import RefereeDashboardPage from "./pages/Referee/Index";
+import RaceMonitorPage from "./pages/Referee/RaceMonitorIndex";
+import AdminDashboardPage from "./pages/Admin/Index";
 import DashboardPage from "./pages/horseOwner";
 
 export default function App() {
@@ -13,6 +17,7 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/google-register" element={<GoogleRegisterPage />} />
 
           {/* Protected */}
           <Route
@@ -24,6 +29,46 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+
+          <Route
+            path="/referee"
+            element={
+              <ProtectedRoute>
+                <RefereeDashboardPage />
+              </ProtectedRoute>
+            } />
+          <Route
+            path="/referee/race-monitor" //add id later
+            element={
+              <ProtectedRoute>
+                <RaceMonitorPage />
+              </ProtectedRoute>
+            } />
+          <Route
+            path="/referee/:tabs"
+            element={
+              <ProtectedRoute>
+                <RefereeDashboardPage />
+              </ProtectedRoute>
+            } />
+
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } />
+
+          <Route
+            path="/admin/:tabs"
+            element={
+              <ProtectedRoute>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            } />
+
 
           <Route
             path="/owner"

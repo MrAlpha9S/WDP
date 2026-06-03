@@ -105,7 +105,10 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await signup(name, email, password, selectedRole?.role, pdfFile);
-      if(selectedRole?.role === 'owner') {
+      if (selectedRole.role == "referee") {
+        navigate("/referee/dashboard", { replace: true })
+      }
+      else if(selectedRole?.role === 'owner') {
         navigate("/owner", { replace: true });
       } else {
         navigate("/", { replace: true });
@@ -240,7 +243,7 @@ export default function LoginPage() {
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            <button type="button" onClick={handleGoogle} disabled={submitting}
+            <button type="button" onClick={() => navigate("/google-register")} disabled={submitting}
               className="w-full flex items-center justify-center gap-2.5 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm disabled:opacity-60 transition-all duration-150">
               <GoogleIcon /> Google
             </button>
