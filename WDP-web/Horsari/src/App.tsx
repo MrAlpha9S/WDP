@@ -3,6 +3,7 @@ import { AuthProvider } from "./providers/AuthProvider";
 import ProtectedRoute from "./ProtectedRoute";
 import NavBar from "./components/NavBar";
 import LoginPage from "./pages/LoginPage";
+import GoogleRegisterPage from "./pages/GoogleRegisterPage";
 import HomePage from "./pages/HomePage";
 import RefereeDashboardPage from "./pages/Referee/Index";
 import RaceMonitorPage from "./pages/Referee/RaceMonitorIndex";
@@ -15,6 +16,7 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/google-register" element={<GoogleRegisterPage />} />
 
           {/* Protected */}
           <Route
