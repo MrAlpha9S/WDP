@@ -256,33 +256,45 @@ export default function LoginPage() {
                   </button>
                 }
                 required />
-              {/* Password strength checklist — shown when field has content */}
+              {/* Password strength feedback */}
               {(pwFocused || password.length > 0) && (
-                <ul className="mt-1 flex flex-col gap-1">
-                  {pwRules.map((rule) => {
-                    const ok = rule.test(password);
-                    return (
-                      <li key={rule.label} className={`flex items-center gap-1.5 text-[11.5px] transition-colors duration-150 ${
-                        ok ? "text-green-600" : "text-gray-400"
-                      }`}>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          {ok ? (
-                            <>
-                              <circle cx="6" cy="6" r="6" fill="#16a34a" opacity="0.15" />
-                              <path d="M3 6l2 2 4-4" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </>
-                          ) : (
-                            <>
-                              <circle cx="6" cy="6" r="5.5" stroke="#d1d5db" strokeWidth="1" />
-                              <path d="M6 3.5v3M6 8h.01" stroke="#9ca3af" strokeWidth="1.2" strokeLinecap="round" />
-                            </>
-                          )}
-                        </svg>
-                        {rule.label}
-                      </li>
-                    );
-                  })}
-                </ul>
+                allRulesPassed ? (
+                  /* All good — compact single checkmark */
+                  <p className="flex items-center gap-1.5 text-[11.5px] text-green-600 mt-1">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <circle cx="6" cy="6" r="6" fill="#16a34a" opacity="0.15" />
+                      <path d="M3 6l2 2 4-4" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Password looks good!
+                  </p>
+                ) : (
+                  /* Show individual rules until all pass */
+                  <ul className="mt-1 flex flex-col gap-1">
+                    {pwRules.map((rule) => {
+                      const ok = rule.test(password);
+                      return (
+                        <li key={rule.label} className={`flex items-center gap-1.5 text-[11.5px] transition-colors duration-150 ${
+                          ok ? "text-green-600" : "text-gray-400"
+                        }`}>
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            {ok ? (
+                              <>
+                                <circle cx="6" cy="6" r="6" fill="#16a34a" opacity="0.15" />
+                                <path d="M3 6l2 2 4-4" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </>
+                            ) : (
+                              <>
+                                <circle cx="6" cy="6" r="5.5" stroke="#d1d5db" strokeWidth="1" />
+                                <path d="M6 3.5v3M6 8h.01" stroke="#9ca3af" strokeWidth="1.2" strokeLinecap="round" />
+                              </>
+                            )}
+                          </svg>
+                          {rule.label}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )
               )}
             </div>
             <InputField label="Confirm Password" type="password" placeholder="Repeat your password"
