@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { type AdminTab } from "./AdminComponents/NavBar";
 import type { Tournament } from "../../shared/types/TournamentTypes";
-import { TOURNAMENTS } from "../../shared/data/TournamentData";
 import { CreateTournamentModal } from "./modal/CreateTournamentModal";
+import { DeleteTournamentModal } from "./modal/DeleteTournamentModal";
+import { adminService } from "../../api/adminService";
 
 type AdminViewMode = "table" | "calendar";
 
@@ -13,20 +14,59 @@ interface Props {
 
 export default function TournamentManagementPage({ setActiveTab }: Props) {
     const [viewMode, setViewMode] = useState<AdminViewMode>("table");
-    const [tournaments, setTournaments] = useState<Tournament[]>(TOURNAMENTS.filter(t => t.id !== "none"));
+    const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchTournaments() {
+            setLoading(true);
+            try {
+                const res = await adminService.getTournamentsWithDetails(1, 100);
+                if (res?.data?.items) {
+                    const mappedData: Tournament[] = res.data.items
+                        .filter((item: any) => item.tournament.tournamentName !== "Non-tournament")
+                        .map((item: any) => ({
+                            id: item.tournament._id,
+                            name: item.tournament.tournamentName,
+                            description: item.tournament.description || "",
+                            startDate: item.tournament.startDate ? new Date(item.tournament.startDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
+                            endDate: item.tournament.endDate ? new Date(item.tournament.endDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
+                            status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
+                            prizePool: `${item.priceTotalPool || 0} Pts`,
+                            startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
+                            endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
+                        }));
+                    setTournaments(mappedData);
+                }
+            } catch (error) {
+                console.error("Failed to load tournaments:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchTournaments();
+    }, []);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingTournament, setDeletingTournament] = useState<Tournament | null>(null);
 
     // Filtered Data
     const filteredTournaments = tournaments.filter(t =>
         t.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Delete Handler
-    const handleDelete = (id: string) => {
+    // Delete Handlers
+    const openDeleteModal = (tournament: Tournament) => {
+        setDeletingTournament(tournament);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleDeleteSuccess = (id: string) => {
         setTournaments(tournaments.filter(t => t.id !== id));
     };
 
@@ -204,7 +244,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                                             <Edit size={14} />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDelete(t.id)}
+                                                            onClick={() => openDeleteModal(t)}
                                                             className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                                                         >
                                                             <Trash2 size={14} />
@@ -213,10 +253,17 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {filteredTournaments.length === 0 && (
+                                        {filteredTournaments.length === 0 && !loading && (
                                             <tr>
                                                 <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500">
                                                     No tournaments found.
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {loading && (
+                                            <tr>
+                                                <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500 animate-pulse">
+                                                    Loading tournaments...
                                                 </td>
                                             </tr>
                                         )}
@@ -293,7 +340,34 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
             <CreateTournamentModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                onSuccess={() => {
+                    adminService.getTournamentsWithDetails(1, 100).then(res => {
+                        if (res?.data?.items) {
+                            const mappedData: Tournament[] = res.data.items
+                                .filter((item: any) => item.tournament.tournamentName !== "Non-tournament")
+                                .map((item: any) => ({
+                                    id: item.tournament._id,
+                                    name: item.tournament.tournamentName,
+                                    description: item.tournament.description || "",
+                                    startDate: item.tournament.startDate ? new Date(item.tournament.startDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
+                                    endDate: item.tournament.endDate ? new Date(item.tournament.endDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
+                                    status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
+                                    prizePool: `${item.priceTotalPool || 0} Pts`,
+                                    startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
+                                    endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
+                                }));
+                            setTournaments(mappedData);
+                        }
+                    });
+                }}
                 editingTournament={editingTournament}
+            />
+
+            <DeleteTournamentModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onSuccess={handleDeleteSuccess}
+                tournament={deletingTournament}
             />
         </div>
     );

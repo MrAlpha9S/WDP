@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { LayoutGrid, List, Plus, Settings, Users } from "lucide-react";
-import { SCHEDULED_RACES, TRACKS, TIME_SLOTS } from "../../shared/data/RaceData";
+import { useState, useEffect } from "react";
+import { LayoutGrid, List, Plus, Settings, Users, Loader2 } from "lucide-react";
+import { TIME_SLOTS } from "../../shared/data/RaceData";
 import type { ViewMode } from "../../shared/types/RaceTypes";
-import { TOURNAMENTS } from "../../shared/data/TournamentData";
 import CreateRaceModal from "./modal/CreateRaceModal";
 import RaceDetailsPanel from "./AdminComponents/RaceDetailsPanel";
+import { adminService } from "../../api/adminService";
 
 export default function RaceSchedulingPage() {
     const [viewMode, setViewMode] = useState<ViewMode>("timeline");
@@ -12,11 +12,114 @@ export default function RaceSchedulingPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedTournament, setSelectedTournament] = useState<string>("All");
 
-    const filteredRaces = selectedTournament === "All" 
-        ? SCHEDULED_RACES 
-        : SCHEDULED_RACES.filter(r => r.tournament === selectedTournament);
+    const [tournaments, setTournaments] = useState<any[]>([]);
+    const [raceRoundsData, setRaceRoundsData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-    const selectedRace = SCHEDULED_RACES.find(r => r.id === selectedRaceId);
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [tournamentsRes, raceRoundsRes] = await Promise.all([
+                adminService.getTournamentsWithDetails(1, 100),
+                adminService.getRaceRounds()
+            ]);
+            setTournaments(tournamentsRes.data?.items || []);
+            setRaceRoundsData(raceRoundsRes.data || []);
+        } catch (err) {
+            console.error("Failed to fetch scheduling data", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const getTimelineOffsets = (dateString: string) => {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return { leftPercent: "0%", widthPercent: "15%" };
+        
+        const hours = d.getHours() + d.getMinutes() / 60;
+        // Base 08:00 = 0%, 20:00 = 100%
+        const totalHours = 12; // 20 - 8
+        const offset = Math.max(0, Math.min(hours - 8, totalHours));
+        const leftPercent = (offset / totalHours) * 100;
+        return {
+            leftPercent: `${leftPercent}%`,
+            widthPercent: "15%" // fixed visual duration
+        };
+    };
+
+    const ALL_RACES = raceRoundsData.flatMap(t => {
+        return t.RaceRound.map((rr: any) => {
+            const dateObj = new Date(rr.raceDate);
+            const timeStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleDateString();
+            const { leftPercent, widthPercent } = getTimelineOffsets(rr.raceDate);
+
+            return {
+                id: rr._id,
+                trackId: rr.location || "TBD",
+                title: rr.roundName,
+                tournament: t.Tournaments_name,
+                date: dateStr,
+                time: timeStr,
+                status: rr.status,
+                participants: rr.Registration || [],
+                maxSlots: rr.maxParticipants || 0,
+                leftPercent,
+                widthPercent,
+                rawDate: dateObj,
+                trackLength: rr.trackLength || 0,
+                raceType: rr.raceType || "Standard"
+            };
+        });
+    });
+
+    // Date computation
+    const uniqueDates = Array.from(new Set(ALL_RACES.map(r => r.date))).filter(d => d !== "TBD");
+    uniqueDates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    // Auto-select a date if none is selected
+    useEffect(() => {
+        if (uniqueDates.length > 0 && (!selectedDate || !uniqueDates.includes(selectedDate))) {
+            setSelectedDate(uniqueDates[0]);
+        }
+    }, [uniqueDates, selectedDate]);
+
+    // Apply tournament filter and conditionally apply date filter (only for timeline view)
+    const filteredRaces = ALL_RACES.filter(r => {
+        const matchTournament = selectedTournament === "All" || r.tournament === selectedTournament;
+        const matchDate = viewMode === "timeline" && selectedDate ? r.date === selectedDate : true;
+        return matchTournament && matchDate;
+    });
+
+    const TRACKS_DYNAMIC = Array.from(new Set(filteredRaces.map(r => r.trackId))).map(loc => ({
+        id: loc,
+        name: loc,
+        surface: "Dirt", // default fallback
+        distance: "1200m" // default fallback
+    }));
+
+    const selectedRace = ALL_RACES.find(r => r.id === selectedRaceId);
+
+    const handlePrevDate = () => {
+        if (!selectedDate) return;
+        const currentIndex = uniqueDates.indexOf(selectedDate);
+        if (currentIndex > 0) {
+            setSelectedDate(uniqueDates[currentIndex - 1]);
+        }
+    };
+
+    const handleNextDate = () => {
+        if (!selectedDate) return;
+        const currentIndex = uniqueDates.indexOf(selectedDate);
+        if (currentIndex < uniqueDates.length - 1) {
+            setSelectedDate(uniqueDates[currentIndex + 1]);
+        }
+    };
 
     return (
         <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -25,7 +128,7 @@ export default function RaceSchedulingPage() {
             <div className="flex-1 grid grid-cols-[280px_1fr] gap-8 p-8 min-h-0">
 
                 {/* ── Left Panel (Race Details) ── */}
-                <RaceDetailsPanel selectedRace={selectedRace} />
+                <RaceDetailsPanel selectedRace={selectedRace as any} />
 
                 {/* ── Main Timeline Area ── */}
                 <main className="flex flex-col min-w-0 h-full">
@@ -66,8 +169,8 @@ export default function RaceSchedulingPage() {
                                 className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Tournaments</option>
-                                {TOURNAMENTS.map(t => (
-                                    <option key={t.id} value={t.name}>{t.name}</option>
+                                {tournaments.map(t => (
+                                    <option key={t.tournament._id} value={t.tournament.tournamentName}>{t.tournament.tournamentName}</option>
                                 ))}
                             </select>
 
@@ -81,13 +184,34 @@ export default function RaceSchedulingPage() {
                     </header>
 
                     {/* Main Content Area (Timeline or Table) */}
-                    <div className="flex-1 overflow-auto bg-[#141414] mt-6 rounded-xl border border-white/5">
+                    <div className="flex-1 overflow-auto bg-[#141414] mt-6 rounded-xl border border-white/5 relative">
+                        {loading && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#141414]/80 backdrop-blur-sm">
+                                <Loader2 className="animate-spin text-red-500" size={32} />
+                            </div>
+                        )}
                         {viewMode === "timeline" ? (
                             <div className="min-w-[800px] border border-white/5 rounded-lg overflow-hidden bg-[#161616]">
                                 {/* Time Headers */}
                                 <div className="flex border-b border-white/5 bg-[#1a1a1a]">
-                                    <div className="w-[200px] shrink-0 border-r border-white/5 p-4 flex items-center justify-center">
-                                        <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">Tracks</span>
+                                    <div className="w-[200px] shrink-0 border-r border-white/5 px-2 py-3 flex items-center justify-between bg-[#151515]">
+                                        <button 
+                                            onClick={handlePrevDate}
+                                            disabled={!uniqueDates.length || selectedDate === uniqueDates[0]}
+                                            className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
+                                        >
+                                            &larr;
+                                        </button>
+                                        <div className="text-[11px] font-bold tracking-widest text-white uppercase text-center flex-1">
+                                            {selectedDate || "N/A"}
+                                        </div>
+                                        <button 
+                                            onClick={handleNextDate}
+                                            disabled={!uniqueDates.length || selectedDate === uniqueDates[uniqueDates.length - 1]}
+                                            className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
+                                        >
+                                            &rarr;
+                                        </button>
                                     </div>
                                     <div className="flex-1 flex">
                                         {TIME_SLOTS.map((time, idx) => (
@@ -100,13 +224,16 @@ export default function RaceSchedulingPage() {
 
                                 {/* Tracks and Race Rows */}
                                 <div className="flex flex-col">
-                                    {TRACKS.map(track => (
+                                    {TRACKS_DYNAMIC.length === 0 && !loading && (
+                                        <div className="p-8 text-center text-gray-500 text-[13px]">No races scheduled for this date.</div>
+                                    )}
+                                    {TRACKS_DYNAMIC.map(track => (
                                         <div key={track.id} className="flex border-b border-white/5 last:border-b-0 min-h-[120px]">
 
                                             {/* Track Info (Y-axis label) */}
                                             <div className="w-[200px] shrink-0 border-r border-white/5 p-5 bg-[#181818] flex flex-col justify-center gap-1">
-                                                <span className="text-[14px] font-semibold text-white">{track.name}</span>
-                                                <span className="text-[12px] text-gray-500">{track.surface} · {track.distance}</span>
+                                                <span className="text-[14px] font-semibold text-white truncate">{track.name}</span>
+                                                <span className="text-[12px] text-gray-500">{track.surface}</span>
                                             </div>
 
                                             {/* Timeline area for this track */}
@@ -159,7 +286,6 @@ export default function RaceSchedulingPage() {
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
                                         {filteredRaces.map(race => {
-                                            const track = TRACKS.find(t => t.id === race.trackId);
                                             const isSelected = selectedRaceId === race.id;
                                             return (
                                                 <tr
@@ -172,7 +298,7 @@ export default function RaceSchedulingPage() {
                                                         <div className="text-[11px] text-gray-500 mt-0.5">{race.status}</div>
                                                     </td>
                                                     <td className="p-4">
-                                                        <div className="text-[13px] text-gray-300">{track?.name}</div>
+                                                        <div className="text-[13px] text-gray-300">{race.trackId}</div>
                                                     </td>
                                                     <td className="p-4">
                                                         <div className="text-[13px] text-gray-300">{race.tournament}</div>
@@ -218,7 +344,11 @@ export default function RaceSchedulingPage() {
             </footer>
 
             {/* ── Create Race Modal ── */}
-            <CreateRaceModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+            <CreateRaceModal 
+                isOpen={isCreateModalOpen} 
+                onClose={() => setIsCreateModalOpen(false)} 
+                onSuccess={fetchData}
+            />
         </div>
     );
 }
