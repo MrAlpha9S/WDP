@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { authService } from "../api/loginService";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface User {
@@ -10,7 +11,7 @@ interface User {
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   loginWithGoogle: () => Promise<void>;
   signup: (name: string, email: string, password: string, role: string, pdfFile: File) => Promise<void>;
   logout: () => void;
@@ -19,7 +20,7 @@ interface AuthContextValue {
 // ── Context ───────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const STORAGE_KEY = "velo_user";
+import { STORAGE_KEY, TOKEN_KEY } from "../utils/constants";
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -28,43 +29,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Rehydrate session on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setUser(JSON.parse(stored));
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setIsLoading(false);
-    }
+    const loadUser = async () => {
+      try {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token) {
+          const res = await authService.getCurrentUser();
+          if (res.data) {
+            setUser(res.data);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(res.data));
+          }
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(TOKEN_KEY);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadUser();
   }, []);
 
-  const persist = (u: User) => {
+  const persist = (u: User, token: string) => {
     setUser(u);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    localStorage.setItem(TOKEN_KEY, token);
   };
 
-  // Replace these with your real API calls
-  const login = async (email: string, _password: string) => {
-    // TODO: await api.post("/auth/login", { email, password })
-    const u: User = { email };
-    persist(u);
+  const login = async (email: string, password: string): Promise<User> => {
+    const res = await authService.login({ email, password });
+    if (res.code === 200 && res.data?.accessToken) {
+      const u = res.data.user || { email, role: res.data.user?.role };
+      persist(u, res.data.accessToken);
+      return u;
+    } else {
+      throw new Error(res.message || "Login failed");
+    }
   };
 
   const loginWithGoogle = async () => {
-    // TODO: integrate Google OAuth flow
-    const u: User = { email: "google-user@gmail.com", name: "Google User" };
-    persist(u);
+    // TODO: integrate Google OAuth flow proper if needed or assume popup flow
+    // For now we'll throw an error or mock if there's no actual data passed
+    throw new Error("Google login not fully implemented yet");
   };
 
-  const signup = async (name: string, email: string, _password: string, role: string, pdfFile: File) => {
-    // TODO: await api.post("/auth/signup", { name, email, password })
-    const u: User = { email, name, role };
-    persist(u);
+  const signup = async (name: string, email: string, password: string, role: string, pdfFile: File) => {
+    // We send JSON format, but if PDF is required, it should be multipart/form-data.
+    // The backend `register` might accept it. Let's send a standard JSON for now.
+    // If backend needs form data, we construct it:
+    let payload: any = { name, email, password, role };
+    
+    // Attempting standard JSON call
+    const res = await authService.register(payload);
+    if (res.code === 201 && res.data?.accessToken) {
+      persist(res.data.user || { email, name, role }, res.data.accessToken);
+    } else {
+      throw new Error(res.message || "Signup failed");
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (e) {
+      console.error(e);
+    }
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(TOKEN_KEY);
   };
 
   return (

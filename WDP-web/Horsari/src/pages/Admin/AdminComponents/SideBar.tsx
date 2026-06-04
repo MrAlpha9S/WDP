@@ -3,7 +3,8 @@ import {
     ShieldCheck,
     Activity,
     FileText,
-    User
+    User,
+    Mail
 } from "lucide-react";
 import { type AdminTab } from "./NavBar";
 
@@ -22,7 +23,7 @@ const ITEMS: SidebarItem[] = [
     { tab: "Horses", icon: <User size={17} /> },
     { tab: "Roles & Permissions", icon: <ShieldCheck size={17} /> },
     { tab: "Activity Logs", icon: <Activity size={17} /> },
-    { tab: "Inbox", icon: <FileText size={17} /> },
+    { tab: "Inbox", icon: <Mail size={17} /> },
     { tab: "Races", icon: <FileText size={17} /> },
     { tab: "Tournaments", icon: <FileText size={17} /> },
 ];

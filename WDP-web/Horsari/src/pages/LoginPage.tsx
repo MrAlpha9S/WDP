@@ -66,7 +66,7 @@ export default function LoginPage() {
 
   const ROLES: Role[] = [
     { role: "referee", label: "Referee" },
-    { role: "owner", label: "Horse Owner" },
+    { role: "horseowner", label: "Horse Owner" },
   ];
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -74,8 +74,17 @@ export default function LoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      await login(email, password);
-      navigate("/", { replace: true });
+      const user = await login(email, password);
+
+      if (user?.role === "referee") {
+        navigate("/referee/dashboard", { replace: true });
+      } else if (user?.role === "horseowner") {
+        navigate("/owner", { replace: true });
+      } else if (user?.role === "admin") {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (err: any) {
       setError(err?.message ?? "Login failed. Please try again.");
     } finally {
@@ -108,7 +117,7 @@ export default function LoginPage() {
       if (selectedRole.role == "referee") {
         navigate("/referee/dashboard", { replace: true })
       }
-      else if(selectedRole?.role === 'owner') {
+      else if (selectedRole?.role === 'horseowner') {
         navigate("/owner", { replace: true });
       } else {
         navigate("/", { replace: true });
