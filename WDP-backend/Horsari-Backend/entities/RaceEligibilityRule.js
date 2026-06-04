@@ -20,6 +20,7 @@ const raceEligibilityRuleSchema = new mongoose.Schema(
         },
         requiredGender: {
             type: String,
+            enum: ['male', 'female'],
             default: null,
         },
         requiredBreed: {

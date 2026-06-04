@@ -12,12 +12,10 @@ const horseSchema = new mongoose.Schema(
             required: true,
         },
         breed: String,
-        age: Number,
         gender: {
             type: String,
             enum: ['male', 'female'],
         },
-        color: String,
         healthStatus: {
             type: String,
             enum: ['healthy', 'injured', 'sick'],

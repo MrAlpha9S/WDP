@@ -3,12 +3,12 @@ const TournamentService = require('../services/TournamentService');
 class TournamentController {
     async createTournament(req, res, next) {
         try {
-            const response = await TournamentService.createTournament(req.body);
+            const tournamentData = { ...req.body, createdByAdminId: req.userId };
+            const response = await TournamentService.createTournament(tournamentData);
             return res.status(response.code).json(response);
         } catch (error) {
             next(error);
         }
-
     }
     async getTournaments(req, res, next) {
         const { keywords, page, limit } = req.query;

@@ -54,17 +54,32 @@ const mockData = async () => {
 
         // Create 2 horses for each horse owner
         const horsesCreated = [];
+        let ownerIndex = 0;
         for (const owner of horseOwners) {
+            ownerIndex++;
             for (let j = 1; j <= 2; j++) {
+                let status = 'active';
+                let age = Math.floor(Math.random() * 15) + 2; // 2 to 16
+
+                // Make Owner 3 have no eligible horses for Maiden
+                if (ownerIndex === 3) {
+                    if (j === 1) {
+                        status = 'retired'; // Eligible age, but retired
+                        age = 5;
+                    } else {
+                        status = 'active';
+                        age = 1; // Active, but too young (minAge is 2)
+                    }
+                }
+
                 const horse = await Horse.create({
                     ownerId: owner._id,
                     horseName: `Horse ${owner._id.toString().slice(-3)}-${j}`,
                     breed: ['Thoroughbred', 'Arabian', 'Quarter Horse', 'Standardbred'][Math.floor(Math.random() * 4)],
-                    age: Math.floor(Math.random() * 15) + 2,
+                    dateOfBirth: new Date(new Date().getFullYear() - age, 0, 1),
                     gender: j % 2 === 0 ? 'male' : 'female',
-                    color: ['Bay', 'Black', 'Chestnut', 'Gray', 'Palomino'][Math.floor(Math.random() * 5)],
                     healthStatus: 'healthy',
-                    status: 'active',
+                    status: status,
                     registrationDate: new Date(),
                 });
                 horsesCreated.push(horse);
@@ -175,6 +190,7 @@ const mockData = async () => {
         await RaceEligibilityRule.create({
             raceType: 'Maiden',
             minRacesWon: 0,
+            minAge: 2,
             licenseRequired: true,
             isActive: true,
         });

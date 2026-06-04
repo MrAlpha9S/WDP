@@ -32,19 +32,27 @@ const raceRoundSchema = new mongoose.Schema(
             enum: ['draft', 'scheduled', 'running', 'completed', 'cancelled'],
             default: 'draft',
         },
-        raceType: {
-            type: String,
-            required: [true, 'Race type is required'],
-        },
         minimalRidingFees: {
             type: Number,
             required: [true, 'Minimal riding fees is required'],
+        },
+        raceGround: {
+            type: String,
+            enum: ['dirt', 'turf', 'synthetic'],
+            required: [true, 'Race ground is required'],
+            default: 'dirt'
         },
         requireEntranceFees: {
             type: Boolean,
             default: false,
         },
         location: {
+            type: String,
+        },
+        raceGround: {
+            type: String,
+        },
+        address: {
             type: String,
         },
         eligibilityRuleId: {

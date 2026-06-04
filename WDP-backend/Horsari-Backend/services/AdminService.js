@@ -7,6 +7,14 @@ const RegistrationRepository = require('../repositories/RegistrationRepository')
 const Invitation = require('../entities/Invitation');
 const Horse = require('../entities/Horse');
 const Registration = require('../entities/Registration');
+const Tournament = require('../entities/Tournament');
+const RaceRound = require('../entities/RaceRound');
+const RaceReferee = require('../entities/RaceReferee');
+const Referee = require('../entities/Referee');
+const Prediction = require('../entities/Prediction');
+const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+const RaceResult = require('../entities/RaceResult');
+const HorseOwner = require('../entities/HorseOwner');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
@@ -223,9 +231,9 @@ class AdminService {
                     // Count accepted invitations for this race round (current_participants)
                     const currentParticipants = raceRound
                         ? await Invitation.countDocuments({
-                              registrationId: { $in: await Registration.find({ raceRoundId: raceRound._id }).distinct('_id') },
-                              invitationStatus: 'accepted',
-                          })
+                            registrationId: { $in: await Registration.find({ raceRoundId: raceRound._id }).distinct('_id') },
+                            invitationStatus: 'accepted',
+                        })
                         : 0;
 
                     // Fetch the first active horse belonging to this owner
@@ -250,27 +258,28 @@ class AdminService {
                         registrationStatus: reg.registrationStatus,
                         raceRound: raceRound
                             ? {
-                                  raceRoundId: raceRound._id,
-                                  roundName: raceRound.roundName,
-                                  raceDate: raceRound.raceDate,
-                                  maxParticipants: raceRound.maxParticipants,
-                                  currentParticipants: currentParticipants,
-                                  status: raceRound.status,
-                              }
+                                raceRoundId: raceRound._id,
+                                roundName: raceRound.roundName,
+                                raceDate: raceRound.raceDate,
+                                maxParticipants: raceRound.maxParticipants,
+                                currentParticipants: currentParticipants,
+                                status: raceRound.status,
+                            }
                             : null,
                         horse: horse
                             ? { horseId: horse._id, horseName: horse.horseName }
                             : null,
                         invitations: invitations.map((inv) => ({
+                            invitationsId: inv._id,
                             jockeyName: inv.jockeyId?._id?.fullName ?? 'Unknown',
                             isBackup: inv.isBackup,
                             status: inv.invitationStatus,
                         })),
                         horseOwner: horseOwner
                             ? {
-                                  ownerId: horseOwner._id,
-                                  fullName: horseOwner._id?.fullName ?? null,
-                              }
+                                ownerId: horseOwner._id,
+                                fullName: horseOwner._id?.fullName ?? null,
+                            }
                             : null,
                     };
                 })
@@ -290,6 +299,382 @@ class AdminService {
                 msg: 'Horse owner invitations retrieved successfully',
             };
         } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Get all referee invitations enriched with race round and referee user info
+    async getRefereeInvitations(page = 1, limit = 5) {
+        try {
+            const skip = (page - 1) * limit;
+            const RaceReferee = require('../entities/RaceReferee');
+
+            const raceReferees = await RaceReferee.find()
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate('raceRoundId')
+                .populate({
+                    path: 'refereeId',
+                    populate: { path: '_id', model: 'User', select: 'fullName' },
+                })
+                .lean();
+
+            const totalItems = await RaceReferee.countDocuments();
+            const totalPages = Math.ceil(totalItems / limit);
+
+            const items = raceReferees.map((rr) => {
+                const raceRound = rr.raceRoundId || null;
+                const referee = rr.refereeId || null;
+
+                return {
+                    raceReferee: {
+                        status: rr.status,
+                    },
+                    raceRound: raceRound
+                        ? {
+                            raceRoundId: raceRound._id,
+                            roundName: raceRound.roundName,
+                            raceDate: raceRound.raceDate,
+                            status: raceRound.status,
+                        }
+                        : null,
+                    referee: referee
+                        ? {
+                            refereeId: referee._id,
+                            user: {
+                                fullName: referee._id?.fullName ?? 'Unknown',
+                            },
+                        }
+                        : null,
+                };
+            });
+
+            return {
+                code: 200,
+                data: {
+                    items,
+                    pagination: {
+                        totalItems,
+                        totalPages,
+                        currentPage: page,
+                        limit,
+                    },
+                },
+                msg: 'Referee invitations retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Get all jockey invitations enriched with registration, race round, and sibling invitations
+    async getJockeyInvitations(page = 1, limit = 5) {
+        try {
+            const skip = (page - 1) * limit;
+
+            // Fetch all invitations
+            const invitations = await Invitation.find()
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate('horseId')
+                .populate({
+                    path: 'registrationId',
+                    populate: { path: 'raceRoundId' }
+                })
+                .populate({
+                    path: 'jockeyId',
+                    populate: { path: '_id', model: 'User', select: 'fullName' }
+                })
+                .lean();
+
+            const totalItems = await Invitation.countDocuments();
+            const totalPages = Math.ceil(totalItems / limit);
+
+            // Fetch sibling invitations for the same registrations
+            const registrationIds = invitations.map(inv => inv.registrationId?._id).filter(Boolean);
+            const siblingInvitations = await Invitation.find({
+                registrationId: { $in: registrationIds },
+                invitationStatus: { $in: ['accepted', 'pending'] }
+            }).populate({
+                path: 'jockeyId',
+                populate: { path: '_id', model: 'User', select: 'fullName' }
+            }).lean();
+
+            const items = invitations.map(inv => {
+                const reg = inv.registrationId || null;
+                const raceRound = reg?.raceRoundId || null;
+                const horse = inv.horseId || null;
+                const jockey = inv.jockeyId || null;
+                
+                const siblings = siblingInvitations.filter(sib => sib.registrationId?.toString() === reg?._id?.toString());
+
+                return {
+                    registrationId: reg ? reg._id : null,
+                    registration: reg ? {
+                        registrationAt: reg.registeredAt,
+                        registrationStatus: reg.registrationStatus
+                    } : null,
+                    raceRound: raceRound ? {
+                        raceRoundId: raceRound._id,
+                        roundName: raceRound.roundName,
+                        raceDate: raceRound.raceDate,
+                        status: raceRound.status
+                    } : null,
+                    horse: horse ? {
+                        horseId: horse._id,
+                        horseName: horse.horseName
+                    } : null,
+                    invitations: siblings.map(sib => ({
+                        invitationId: sib._id,
+                        jockeyName: sib.jockeyId?._id?.fullName || 'Unknown',
+                        isBackup: sib.isBackup,
+                        invitationStatus: sib.invitationStatus
+                    })),
+                    jockey: jockey ? {
+                        jockeyId: jockey._id,
+                        user: {
+                            fullName: jockey._id?.fullName || 'Unknown'
+                        }
+                    } : null,
+                    status: inv.invitationStatus,
+                    invitationId: inv._id
+                };
+            });
+
+            return {
+                code: 200,
+                data: {
+                    items,
+                    pagination: {
+                        totalItems,
+                        totalPages,
+                        currentPage: page,
+                        limit,
+                    },
+                },
+                msg: 'Jockey invitations retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Get tournaments enriched with race rounds and total prediction reward pool
+    async getTournamentsWithDetails(page = 1, limit = 5) {
+        try {
+            const skip = (page - 1) * limit;
+
+            const Tournament = require('../entities/Tournament');
+            const RaceRound = require('../entities/RaceRound');
+            const Registration = require('../entities/Registration');
+            const Prediction = require('../entities/Prediction');
+
+            const tournaments = await Tournament.find()
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean();
+
+            const totalItems = await Tournament.countDocuments();
+            const totalPages = Math.ceil(totalItems / limit);
+
+            const items = await Promise.all(
+                tournaments.map(async (tournament) => {
+                    // Fetch RaceRounds
+                    const raceRounds = await RaceRound.find({ tournamentId: tournament._id }).lean();
+                    const raceRoundIds = raceRounds.map(rr => rr._id);
+
+                    // Fetch Registrations for these RaceRounds
+                    const registrations = await Registration.find({ raceRoundId: { $in: raceRoundIds } }).lean();
+                    const registrationIds = registrations.map(reg => reg._id);
+
+                    // Fetch Predictions to calculate the total reward pool
+                    const predictions = await Prediction.find({ registrationId: { $in: registrationIds } }).lean();
+
+                    // Sum rewardPoints
+                    const priceTotalPool = predictions.reduce((sum, pred) => sum + (pred.rewardPoints || 0), 0);
+
+                    return {
+                        tournament: tournament,
+                        priceTotalPool: priceTotalPool,
+                        raceRound: raceRounds
+                    };
+                })
+            );
+
+            return {
+                code: 200,
+                data: {
+                    items,
+                    pagination: {
+                        totalItems,
+                        totalPages,
+                        currentPage: page,
+                        limit,
+                    },
+                },
+                msg: 'Tournaments retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Get Race Rounds grouped by Tournament
+    async getRaceRounds(tournamentFilter = null) {
+        try {
+            // 1. Fetch Tournaments
+            let query = {};
+            if (tournamentFilter) {
+                query._id = tournamentFilter;
+            }
+            const tournaments = await Tournament.find(query).lean();
+            
+            const results = [];
+
+            // 2. Loop through tournaments
+            for (const tournament of tournaments) {
+                const tObj = {
+                    T_id: tournament._id,
+                    Tournaments_name: tournament.tournamentName,
+                    Tournament_detail: tournament, // Added tournament detail as requested
+                    RaceRound: []
+                };
+
+                // Fetch RaceRounds for this tournament
+                const raceRounds = await RaceRound.find({ tournamentId: tournament._id }).lean();
+
+                for (const raceRound of raceRounds) {
+                    const rrObj = {
+                        ...raceRound,
+                        Referee: [],
+                        Registration: []
+                    };
+
+                    // Fetch Referees
+                    const raceReferees = await RaceReferee.find({ raceRoundId: raceRound._id })
+                        .populate('refereeId')
+                        .lean();
+                    rrObj.Referee = raceReferees.map(rr => rr.refereeId).filter(Boolean);
+
+                    // Fetch Registrations
+                    const registrations = await Registration.find({ raceRoundId: raceRound._id })
+                        .populate('horseOwnerId')
+                        .lean();
+
+                    for (const reg of registrations) {
+                        // Sum predictions
+                        const predictions = await Prediction.find({ registrationId: reg._id }).lean();
+                        const sum_prediction = predictions.reduce((sum, p) => sum + (p.rewardPoints || 0), 0);
+
+                        // Fetch Invitation (for Horse and Jockey)
+                        const invitation = await Invitation.findOne({ 
+                            registrationId: reg._id,
+                            isBackup: false 
+                        }).populate('horseId').populate('jockeyId').lean();
+
+                        // Fetch RaceResult
+                        const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
+
+                        // Fetch RaceType
+                        let raceType = raceRound.raceType || null;
+                        if (!raceType && raceRound.eligibilityRuleId) {
+                            const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
+                            if (rule && rule.raceType) raceType = rule.raceType;
+                        }
+
+                        rrObj.Registration.push({
+                            ...reg,
+                            sum_prediction,
+                            Horse: invitation ? invitation.horseId : null,
+                            Jockey: invitation ? invitation.jockeyId : null,
+                            Owner: reg.horseOwnerId,
+                            RaceResult: raceResult || null,
+                            RaceType: raceType
+                        });
+                    }
+
+                    tObj.RaceRound.push(rrObj);
+                }
+
+                results.push(tObj);
+            }
+
+            return { code: 200, data: results, msg: 'Race rounds retrieved successfully' };
+        } catch (error) {
+            console.error('Error fetching race rounds:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Get all metadata required for creating a race
+    async getCreateRaceMetadata() {
+        try {
+            const [previousRaceTracks, activeTournaments, eligibilityRules, referees, ownersRaw] = await Promise.all([
+                // 1. Get unique tracks (locations) and their grounds
+                RaceRound.aggregate([
+                    { $match: { location: { $ne: null, $ne: '' } } },
+                    { $group: { _id: "$location", location: { $first: "$location" }, raceGround: { $first: "$raceGround" } } },
+                    { $project: { _id: 0, location: 1, raceGround: 1 } }
+                ]),
+
+                // 2. Get active/scheduled tournaments
+                Tournament.find({ status: { $in: ['draft', 'scheduled', 'ongoing'] } }).lean(),
+
+                // 3. Get eligibility rules
+                RaceEligibilityRule.find({ isActive: true }).lean(),
+
+                // 4. Get referees populated with name
+                Referee.find().populate('_id', 'fullName').lean(),
+
+                // 5. Get horse owners populated with name
+                HorseOwner.find().populate('_id', 'fullName').lean()
+            ]);
+
+            // Enhance owners with their active horses and race results
+            const owners = await Promise.all(
+                ownersRaw.map(async (owner) => {
+                    const activeHorsesRaw = await Horse.find({ ownerId: owner._id, status: 'active' }).lean();
+
+                    const horses = await Promise.all(
+                        activeHorsesRaw.map(async (horse) => {
+                            // Find all invitations where this horse participated
+                            const invitations = await Invitation.find({ horseId: horse._id, registrationId: { $ne: null } }).lean();
+                            const registrationIds = invitations.map(inv => inv.registrationId);
+
+                            // Find all race results for those registrations
+                            const raceResults = await RaceResult.find({ registrationId: { $in: registrationIds } }).lean();
+
+                            return {
+                                ...horse,
+                                raceResults
+                            };
+                        })
+                    );
+
+                    return {
+                        _id: owner._id,
+                        user: owner._id, // populated fullName object is here
+                        horses
+                    };
+                })
+            );
+
+            return {
+                code: 200,
+                data: {
+                    previousRaceTracks,
+                    tournaments: activeTournaments,
+                    eligibilityRules,
+                    referees,
+                    owners
+                },
+                msg: 'Create race metadata retrieved successfully'
+            };
+        } catch (error) {
+            console.error('Error fetching create race metadata:', error);
             return { code: 500, msg: error.message };
         }
     }

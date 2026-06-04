@@ -3,7 +3,7 @@ const tournamentRepository = require('../repositories/TournamentRepository');
 class TournamentService {
     async createTournament(tournamentData) {
         try {
-            const { createdByAdminId, tournamentName, description, startDate, endDate, location } = tournamentData;
+            const { createdByAdminId, tournamentName, description, startDate, endDate } = tournamentData;
             if (!createdByAdminId || !tournamentName || !description) {
                 return { code: 400, msg: 'createdByAdminId, tournamentName, and description are required' };
             }
@@ -12,9 +12,6 @@ class TournamentService {
             }
             if (new Date(startDate) >= new Date(endDate)) {
                 return { code: 400, msg: 'startDate must be before endDate' };
-            }
-            if (!location) {
-                return { code: 400, msg: 'location is required' };
             }
 
             const tournament = await tournamentRepository.createTournament(tournamentData);

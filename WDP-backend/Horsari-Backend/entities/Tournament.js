@@ -21,10 +21,6 @@ const tournamentSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
-        location: {
-            type: String,
-            required: true,
-        },
         status: {
             type: String,
             enum: ['draft', 'scheduled', 'ongoing', 'completed', 'cancelled'],

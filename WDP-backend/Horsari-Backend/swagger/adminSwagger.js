@@ -361,4 +361,111 @@
  *         description: Internal server error
  */
 
+/**
+ * @swagger
+ * /api/admin/referee-invitations:
+ *   get:
+ *     summary: Get all referee invitations enriched with race round and user data
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: Referee invitations object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     items:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           raceReferee:
+ *                             type: object
+ *                             properties:
+ *                               status:
+ *                                 type: string
+ *                           raceRound:
+ *                             type: object
+ *                             properties:
+ *                               raceRoundId:
+ *                                 type: string
+ *                               roundName:
+ *                                 type: string
+ *                               raceDate:
+ *                                 type: string
+ *                               status:
+ *                                 type: string
+ *                           referee:
+ *                             type: object
+ *                             properties:
+ *                               refereeId:
+ *                                 type: string
+ *                               user:
+ *                                 type: object
+ *                                 properties:
+ *                                   fullName:
+ *                                     type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         totalItems:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         currentPage:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                 msg:
+ *                   type: string
+ *             example:
+ *               code: 200
+ *               data:
+ *                 items:
+ *                   - raceReferee:
+ *                       status: "assigned"
+ *                     raceRound:
+ *                       raceRoundId: "664a000000000000000000aa"
+ *                       roundName: "Quarter Final A"
+ *                       raceDate: "2026-06-10T08:00:00.000Z"
+ *                       status: "scheduled"
+ *                     referee:
+ *                       refereeId: "664a000000000000000000cc"
+ *                       user:
+ *                         fullName: "John Doe"
+ *                 pagination:
+ *                   totalItems: 12
+ *                   totalPages: 3
+ *                   currentPage: 1
+ *                   limit: 5
+ *               msg: "Referee invitations retrieved successfully"
+ *       401:
+ *         description: Unauthorized — missing or invalid token
+ *       403:
+ *         description: Forbidden — admin role required
+ *       500:
+ *         description: Internal server error
+ */
+
 module.exports = {};
