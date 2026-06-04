@@ -1,14 +1,15 @@
 const cloudinary = require('cloudinary').v2;
-
+const dotenv = require('dotenv');
+dotenv.config();
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_NAME,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 class CloudinaryUtil {
     // Upload file to Cloudinary
-    static async upload(fileBuffer, filename, folder = 'horsari') {
+    static async uploadFile(fileBuffer, filename, folder = 'horsari') {
         try {
             return new Promise((resolve, reject) => {
                 // Generate unique public_id using timestamp
@@ -23,7 +24,7 @@ class CloudinaryUtil {
                     },
                     (error, result) => {
                         if (error) reject(error);
-                        else resolve(result);
+                        else resolve(result.secure_url);
                     }
                 );
                 stream.end(fileBuffer);
@@ -34,7 +35,7 @@ class CloudinaryUtil {
     }
 
     // Delete file from Cloudinary
-    static async delete(publicId) {
+    static async deleteFile(publicId) {
         try {
             const result = await cloudinary.uploader.destroy(publicId);
             return result;
@@ -44,13 +45,13 @@ class CloudinaryUtil {
     }
 
     // Update file (delete old, upload new)
-    static async update(oldPublicId, newFileBuffer, newFilename, folder = 'horsari') {
+    static async updateFile(oldPublicId, newFileBuffer, newFilename, folder = 'horsari') {
         try {
             // Delete old file
-            await CloudinaryUtil.delete(oldPublicId);
+            await CloudinaryUtil.deleteFile(oldPublicId);
 
             // Upload new file
-            const result = await CloudinaryUtil.upload(
+            const result = await CloudinaryUtil.uploadFile(
                 newFileBuffer,
                 newFilename,
                 folder
@@ -77,9 +78,28 @@ class CloudinaryUtil {
     // Extract public ID from URL
     static extractPublicId(url) {
         try {
-            const parts = url.split('/');
-            const filename = parts[parts.length - 1];
-            return filename.split('.')[0];
+            // Use URL parsing to reliably get the pathname
+            const parsed = new URL(url);
+            const path = parsed.pathname; // e.g. /<cloud_name>/image/upload/v1234/folder/file.png
+            const parts = path.split('/');
+            const uploadIndex = parts.findIndex(p => p === 'upload');
+            if (uploadIndex === -1) {
+                // fallback: take last segment without extension
+                const filename = parts[parts.length - 1] || '';
+                const withoutExt = filename.replace(/\.[^/.]+$/, '');
+                return decodeURIComponent(withoutExt);
+            }
+
+            // Everything after 'upload' is version (optional) + folders + public_id.ext
+            let pubParts = parts.slice(uploadIndex + 1);
+            // remove version segment like 'v123456' if present
+            if (pubParts.length && /^v\d+$/.test(pubParts[0])) pubParts = pubParts.slice(1);
+
+            // Join remaining parts and strip extension
+            const joined = pubParts.join('/');
+            const withoutExt = joined.replace(/\.[^/.]+$/, '');
+            // Decode percent-encoding (e.g. %20 -> space)
+            return decodeURIComponent(withoutExt);
         } catch (error) {
             throw new Error(`Extract public ID error: ${error.message}`);
         }

@@ -67,6 +67,10 @@ class JockeyRepository {
         return await Jockey.countDocuments();
     }
 
+    async countByLicenseStatus(status) {
+        return await Jockey.countDocuments({ license_status: status });
+    }
+
     // Stats
     async getStats() {
         return await Jockey.aggregate([

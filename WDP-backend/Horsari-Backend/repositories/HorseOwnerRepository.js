@@ -53,6 +53,10 @@ class HorseOwnerRepository {
     async count() {
         return await HorseOwner.countDocuments();
     }
+
+    async countByLicenseStatus(status) {
+        return await HorseOwner.countDocuments({ license_status: status });
+    }
 }
 
 module.exports = new HorseOwnerRepository();

@@ -24,7 +24,6 @@ const horseSchema = new mongoose.Schema(
             default: 'healthy',
         },
         registrationDate: Date,
-        role: String,
         status: {
             type: String,
             enum: ['active', 'inactive', 'retired'],

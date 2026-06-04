@@ -12,7 +12,7 @@ router.get('/credentials/:certificationNumber', RefereeController.getRefereeByCr
 router.get('/license/:licenseNumber', RefereeController.getRefereeByLicense);
 
 // Public - create referee profile for existing user
-router.post('/:uid', RefereeController.createReferee);
+router.post('/:uid',RefereeController.createReferee);
 
 // Protected routes - Referee only
 router.get('/profile', authMiddleware, authReferee, RefereeController.getRefereeProfile);

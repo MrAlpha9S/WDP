@@ -118,4 +118,81 @@
  *         description: User not found
  */
 
+/**
+ * @swagger
+ * /api/admin/staticstic:
+ *   get:
+ *     summary: Get admin dashboard statistics
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     users:
+ *                       type: object
+ *                       properties:
+ *                         countActive:
+ *                           type: integer
+ *                     horseOwners:
+ *                       type: object
+ *                       properties:
+ *                         count:
+ *                           type: integer
+ *                         pending:
+ *                           type: integer
+ *                         approved:
+ *                           type: integer
+ *                     jockeys:
+ *                       type: object
+ *                       properties:
+ *                         count:
+ *                           type: integer
+ *                         pending:
+ *                           type: integer
+ *                         approved:
+ *                           type: integer
+ *                     tournaments:
+ *                       type: object
+ *                       properties:
+ *                         count:
+ *                           type: integer
+ *                         scheduled:
+ *                           type: integer
+ *                         ongoing:
+ *                           type: integer
+ *                 msg:
+ *                   type: string
+ *             example:
+ *               code: 200
+ *               data:
+ *                 users:
+ *                   countActive: 123
+ *                 horseOwners:
+ *                   count: 45
+ *                   pending: 5
+ *                   approved: 40
+ *                 jockeys:
+ *                   count: 30
+ *                   pending: 3
+ *                   approved: 27
+ *                 tournaments:
+ *                   count: 12
+ *                   scheduled: 4
+ *                   ongoing: 2
+ *               msg: Statistics retrieved successfully
+ *       500:
+ *         description: Server error
+ */
+
 module.exports = {};

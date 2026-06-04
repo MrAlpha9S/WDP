@@ -1,5 +1,8 @@
 const AdminRepository = require('../repositories/AdminRepository');
 const UserRepository = require('../repositories/UserRepository');
+const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
+const JockeyRepository = require('../repositories/JockeyRepository');
+const TournamentRepository = require('../repositories/TournamentRepository');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
@@ -152,6 +155,54 @@ class AdminService {
                 code: 500,
                 msg: error.message,
             };
+        }
+    }
+
+    // Get admin dashboard statistics
+    async getStatistics() {
+        try {
+            // Users
+            const countUserActive = await UserRepository.count({ status: 'active' });
+
+            // Horse owners
+            const countHorseOwner = await HorseOwnerRepository.count();
+            const horseOwnerPending = await HorseOwnerRepository.countByLicenseStatus('pending');
+            const horseOwnerApproved = await HorseOwnerRepository.countByLicenseStatus('approved');
+
+            // Jockeys
+            const countJockey = await JockeyRepository.count();
+            const jockeyPending = await JockeyRepository.countByLicenseStatus('pending');
+            const jockeyApproved = await JockeyRepository.countByLicenseStatus('approved');
+
+            // Tournaments
+            const countTournament = await TournamentRepository.count();
+            const tournamentScheduled = await TournamentRepository.countByStatus('scheduled');
+            const tournamentOngoing = await TournamentRepository.countByStatus('ongoing');
+
+            return {
+                code: 200,
+                data: {
+                    users: { countActive: countUserActive },
+                    horseOwners: {
+                        count: countHorseOwner,
+                        pending: horseOwnerPending,
+                        approved: horseOwnerApproved,
+                    },
+                    jockeys: {
+                        count: countJockey,
+                        pending: jockeyPending,
+                        approved: jockeyApproved,
+                    },
+                    tournaments: {
+                        count: countTournament,
+                        scheduled: tournamentScheduled,
+                        ongoing: tournamentOngoing,
+                    },
+                },
+                msg: 'Statistics retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
         }
     }
 }
