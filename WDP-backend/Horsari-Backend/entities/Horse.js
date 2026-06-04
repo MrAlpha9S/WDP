@@ -29,6 +29,8 @@ const horseSchema = new mongoose.Schema(
             enum: ['active', 'inactive', 'retired'],
             default: 'active',
         },
+        img: String,
+        dateOfBirth: Date,
     },
     { timestamps: true }
 );

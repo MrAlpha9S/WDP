@@ -12,6 +12,8 @@ const Admin = require('../entities/Admin');
 const Referee = require('../entities/Referee');
 const Spectator = require('../entities/Spectator');
 const Jockey = require('../entities/Jockey');
+const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+const Tournament = require('../entities/Tournament');
 
 const PASSWORD_HASH = '$2a$12$OXXNUWkz5KBayO.Ei9qMJeiTG.GGqixAHg5eb1ldREdsQApndrYKm';
 //Mongodb@1234
@@ -163,6 +165,32 @@ const mockData = async () => {
         }
         console.log('✅ Created 3 jockeys');
 
+        // Create 2 Race Eligibility Rules
+        await RaceEligibilityRule.create({
+            race_type: 'Claiming',
+            license_required: true,
+            isActive: true,
+        });
+
+        await RaceEligibilityRule.create({
+            race_type: 'Maiden',
+            min_races_won: 0,
+            license_required: true,
+            isActive: true,
+        });
+        console.log('✅ Created 2 Race Eligibility Rules');
+
+        // Create Non-tournament
+        await Tournament.create({
+            tournament_name: 'Non-tournament',
+            description: 'Standalone races that are not part of any tournament',
+            start_date: null,
+            end_date: null,
+            location: 'Various',
+            status: 'ongoing',
+        });
+        console.log('✅ Created Non-tournament');
+
         console.log('\n✅ Mock data generation completed!');
         console.log('====================================');
         console.log('Summary:');
@@ -171,6 +199,8 @@ const mockData = async () => {
         console.log('- 3 Referees');
         console.log('- 3 Spectators');
         console.log('- 3 Jockeys');
+        console.log('- 2 Race Eligibility Rules');
+        console.log('- 1 Tournament (Non-tournament)');
         console.log('====================================');
         console.log('Password for all users: $2a$12$vqdvnyFFBmhSkDSX/2Eu1eNVHviElpS6X23QbvA5rjoRliEb8zZw.');
         console.log('\nLogin examples:');

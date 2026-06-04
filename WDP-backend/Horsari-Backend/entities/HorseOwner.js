@@ -7,6 +7,9 @@ const horseOwnerSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
+        address: {
+            type: String,
+        },
         
         license_link: {
             type: String,

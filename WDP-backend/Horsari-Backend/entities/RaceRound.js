@@ -44,6 +44,13 @@ const raceRoundSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        location: {
+            type: String,
+        },
+        eligibilityRuleId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'RaceEligibilityRule',
+        },
     },
     { timestamps: true }
 );

@@ -14,12 +14,12 @@ const tournamentSchema = new mongoose.Schema(
             type: String,
         },
         start_date: {
-            required: true,
             type: Date,
+            default: null,
         },
         end_date: {
-            required: true,
             type: Date,
+            default: null,
         },
         location: {
             type: String,
