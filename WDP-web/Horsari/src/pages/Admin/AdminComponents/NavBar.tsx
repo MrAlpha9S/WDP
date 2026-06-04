@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, ChevronDown, Trophy, User, LogOut } from "lucide-react";
+import { Bell, ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 
@@ -13,15 +13,15 @@ interface NavBarProps {
 }
 
 function getInitials(user: { name?: string; email: string }) {
-  if (user.name) {
-    return user.name
-      .split(" ")
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  }
-  return user.email[0].toUpperCase();
+    if (user.name) {
+        return user.name
+            .split(" ")
+            .map((w) => w[0])
+            .slice(0, 2)
+            .join("")
+            .toUpperCase();
+    }
+    return user.email[0].toUpperCase();
 }
 
 export default function AdminNavBar({ activeTab, onTabChange }: NavBarProps) {
