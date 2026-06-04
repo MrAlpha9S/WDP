@@ -97,21 +97,21 @@ class AuthService {
             switch (effectiveRole) {
                 case 'horseowner':
                     await HorseOwnerRepository.create({
-                        ownerId: newUser._id,
+                        _id: newUser._id,
                         license_link: licenseUrl,
                         license_status: 'pending',
                     });
                     break;
                 case 'referee':
                     await RefereeRepository.create({
-                        refereeId: newUser._id,
+                        _id: newUser._id,
                         license_link: licenseUrl,
                         license_status: 'pending',
                     });
                     break;
                 case 'jockey':
                     await JockeyRepository.create({
-                        jockeyId: newUser._id,
+                        _id: newUser._id,
                         license_link: licenseUrl,
                         license_status: 'pending',
                         matchesRaced: 0,
@@ -121,7 +121,7 @@ class AuthService {
                     break;
                 case 'spectator':
                     await SpectatorRepository.create({
-                        spectatorId: newUser._id,
+                        _id: newUser._id,
                         rewardPoints: 0,
                     });
                     break;
@@ -423,7 +423,7 @@ class AuthService {
             switch (role) {
                 case 'horseowner':
                     entityData = await HorseOwnerRepository.create({
-                        ownerId: userId,
+                        _id: userId,
                         license_link: null,
                     });
                     break;
@@ -436,7 +436,7 @@ class AuthService {
                         };
                     }
                     entityData = await JockeyRepository.create({
-                        jockeyId: userId,
+                        _id: userId,
                         height,
                         weight,
                         ranking: null,
@@ -449,14 +449,14 @@ class AuthService {
 
                 case 'referee':
                     entityData = await RefereeRepository.create({
-                        refereeId: userId,
+                        _id: userId,
                         license_link: null,
                     });
                     break;
 
                 case 'spectator':
                     entityData = await SpectatorRepository.create({
-                        spectatorId: userId,
+                        _id: userId,
                         rewardPoints: 0,
                     });
                     break;
@@ -465,7 +465,7 @@ class AuthService {
                     // Admin creation might need special permissions
                     const AdminRepository = require('../repositories/AdminRepository');
                     entityData = await AdminRepository.create({
-                        adminId: userId,
+                        _id: userId,
                     });
                     break;
 
@@ -523,7 +523,7 @@ class AuthService {
             }
 
             const horseOwner = await HorseOwnerRepository.create({
-                ownerId: userId,
+                _id: userId,
                 address,
                 licenseNumber,
             });
@@ -566,7 +566,7 @@ class AuthService {
             }
 
             const jockey = await JockeyRepository.create({
-                jockeyId: userId,
+                _id: userId,
                 height,
                 weight,
                 ranking,
@@ -603,7 +603,7 @@ class AuthService {
             }
 
             const spectator = await SpectatorRepository.create({
-                spectatorId: userId,
+                _id: userId,
                 rewardPoints: 0,
             });
 

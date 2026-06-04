@@ -22,7 +22,7 @@ class RefereeService {
             }
 
             const refereeProfile = await RefereeRepository.create({
-                refereeId,
+                _id: refereeId,
                 license_link: license_link || null,
             });
 

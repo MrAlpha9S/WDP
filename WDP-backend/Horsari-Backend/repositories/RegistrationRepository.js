@@ -1,4 +1,4 @@
-const Registration= require('../entities/Registration');
+const Registration = require('../entities/Registration');
 
 class RegistrationRepository {
     async createRegistration(data) {
@@ -19,6 +19,28 @@ class RegistrationRepository {
         return await Registration.findByIdAndDelete(id);
     }
 
+    // Fetch all registrations with nested raceRound + horseOwner→User for admin view
+    async findAllWithDetails(page = 1, limit = 5) {
+        const skip = (page - 1) * limit;
+        return await Registration.find()
+            .populate('raceRoundId')
+            .populate({
+                path: 'horseOwnerId',
+                populate: {
+                    path: '_id',
+                    model: 'User',
+                    select: 'fullName email',
+                },
+            })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+    }
+
+    // Get total count of registrations
+    async countAll() {
+        return await Registration.countDocuments();
+    }
 }
 
-module.exports = new RegistrationRepository();
+module.exports = new RegistrationRepository();

@@ -195,4 +195,170 @@
  *         description: Server error
  */
 
+/**
+ * @swagger
+ * /api/admin/horse-owner-invitations:
+ *   get:
+ *     summary: Get all horse owner registrations with race, horse, and jockey invitation details
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: Enriched list of horse owner registrations
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     items:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           registrationId:
+ *                             type: string
+ *                             example: "664a1b2c3d4e5f6789012345"
+ *                           registration_at:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2026-05-01T10:00:00.000Z"
+ *                           registration_status:
+ *                             type: string
+ *                             enum: [pending, approved, rejected]
+ *                             example: approved
+ *                           raceRound:
+ *                             type: object
+ *                             nullable: true
+ *                             properties:
+ *                               raceRoundId:
+ *                                 type: string
+ *                               round_name:
+ *                                 type: string
+ *                                 example: "Quarter Final A"
+ *                               race_date:
+ *                                 type: string
+ *                                 format: date-time
+ *                               max_participants:
+ *                                 type: integer
+ *                                 example: 10
+ *                               current_participants:
+ *                                 type: integer
+ *                                 description: Number of accepted invitations in this race round
+ *                                 example: 3
+ *                               status:
+ *                                 type: string
+ *                                 enum: [draft, scheduled, running, completed, cancelled]
+ *                                 example: scheduled
+ *                           horse:
+ *                             type: object
+ *                             nullable: true
+ *                             properties:
+ *                               horseId:
+ *                                 type: string
+ *                               horseName:
+ *                                 type: string
+ *                                 example: "Thunderbolt"
+ *                           invitations:
+ *                             type: array
+ *                             description: Only accepted or pending invitations
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 jockeyName:
+ *                                   type: string
+ *                                   example: "Sarah Miller"
+ *                                 isBackup:
+ *                                   type: boolean
+ *                                   example: false
+ *                                 status:
+ *                                   type: string
+ *                                   example: "accepted"
+ *                           horseOwner:
+ *                             type: object
+ *                             nullable: true
+ *                             properties:
+ *                               ownerId:
+ *                                 type: string
+ *                               fullName:
+ *                                 type: string
+ *                                 example: "James Weston"
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         totalItems:
+ *                           type: integer
+ *                           example: 12
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 3
+ *                         currentPage:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 5
+ *                 msg:
+ *                   type: string
+ *                   example: "Horse owner invitations retrieved successfully"
+ *             example:
+ *               code: 200
+ *               data:
+ *                 items:
+ *                   - registrationId: "664a1b2c3d4e5f6789012345"
+ *                     registration_at: "2026-05-01T10:00:00.000Z"
+ *                     registration_status: "approved"
+ *                     raceRound:
+ *                       raceRoundId: "664a000000000000000000aa"
+ *                       round_name: "Quarter Final A"
+ *                       race_date: "2026-06-10T08:00:00.000Z"
+ *                       max_participants: 10
+ *                       current_participants: 3
+ *                       status: "scheduled"
+ *                     horse:
+ *                       horseId: "664a000000000000000000bb"
+ *                       horseName: "Thunderbolt"
+ *                     invitations:
+ *                       - jockeyName: "Sarah Miller"
+ *                         isBackup: false
+ *                         status: "accepted"
+ *                       - jockeyName: "Mike Ross"
+ *                         isBackup: true
+ *                         status: "accepted"
+ *                     horseOwner:
+ *                       ownerId: "664a000000000000000000cc"
+ *                       fullName: "James Weston"
+ *                 pagination:
+ *                   totalItems: 12
+ *                   totalPages: 3
+ *                   currentPage: 1
+ *                   limit: 5
+ *               msg: "Horse owner invitations retrieved successfully"
+ *       401:
+ *         description: Unauthorized — missing or invalid token
+ *       403:
+ *         description: Forbidden — admin role required
+ *       500:
+ *         description: Internal server error
+ */
+
 module.exports = {};

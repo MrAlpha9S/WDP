@@ -17,4 +17,7 @@ router.put('/users/:userId/status', authMiddleware, authAdmin, AdminController.u
 // admin level endpoints removed
 router.delete('/users/:userId', authMiddleware, authAdmin, AdminController.deleteUser);
 
+// Horse owner invitation list (enriched with race round, horse, jockeys, owner info)
+router.get('/horse-owner-invitations', authMiddleware, authAdmin, AdminController.getHorseOwnerInvitations);
+
 module.exports = router;

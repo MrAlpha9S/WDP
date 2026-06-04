@@ -21,15 +21,7 @@ const mockData = async () => {
         console.log('Connected to MongoDB');
 
         // Clear existing data
-        await Promise.all([
-            User.deleteMany({}),
-            HorseOwner.deleteMany({}),
-            Horse.deleteMany({}),
-            Admin.deleteMany({}),
-            Referee.deleteMany({}),
-            Spectator.deleteMany({}),
-            Jockey.deleteMany({}),
-        ]);
+        await mongoose.connection.db.dropDatabase();
         console.log('Cleared existing data');
 
         // Create 3 Horse Owners
@@ -49,7 +41,7 @@ const mockData = async () => {
             horseOwnerUsers.push(user);
 
             const owner = await HorseOwner.create({
-                ownerId: user._id,
+                _id: user._id,
                 address: `${i}00 Farm Lane, Horse City, HC 12345`,
                 licenseNumber: `HO-LIC-${1000 + i}`,
                 certificationFilePath: '',
@@ -63,7 +55,7 @@ const mockData = async () => {
         for (const owner of horseOwners) {
             for (let j = 1; j <= 2; j++) {
                 const horse = await Horse.create({
-                    ownerId: owner.ownerId,
+                    ownerId: owner._id,
                     horseName: `Horse ${owner._id.toString().slice(-3)}-${j}`,
                     breed: ['Thoroughbred', 'Arabian', 'Quarter Horse', 'Standardbred'][Math.floor(Math.random() * 4)],
                     age: Math.floor(Math.random() * 15) + 2,
@@ -94,7 +86,7 @@ const mockData = async () => {
             adminUsers.push(user);
 
             await Admin.create({
-                adminId: user._id,
+                _id: user._id,
             });
         }
         console.log('✅ Created 3 admins');
@@ -115,7 +107,7 @@ const mockData = async () => {
             refereeUsers.push(user);
 
             await Referee.create({
-                refereeId: user._id,
+                _id: user._id,
                 certificationNumber: `CERT-REF-${2000 + i}`,
                 licenseNumber: `REF-LIC-${2000 + i}`,
             });
@@ -138,7 +130,7 @@ const mockData = async () => {
             spectatorUsers.push(user);
 
             await Spectator.create({
-                spectatorId: user._id,
+                _id: user._id,
                 rewardPoints: Math.floor(Math.random() * 1000) + 100,
             });
         }
@@ -160,7 +152,7 @@ const mockData = async () => {
             jockeyUsers.push(user);
 
             await Jockey.create({
-                jockeyId: user._id,
+                _id: user._id,
                 height: 170 + Math.floor(Math.random() * 10),
                 weight: 50 + Math.floor(Math.random() * 15),
                 matchesRaced: Math.floor(Math.random() * 50) + 5,

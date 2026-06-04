@@ -22,7 +22,7 @@ class SpectatorService {
             }
 
             const spectatorProfile = await SpectatorRepository.create({
-                spectatorId,
+                _id: spectatorId,
                 rewardPoints: rewardPoints || 0,
             });
 

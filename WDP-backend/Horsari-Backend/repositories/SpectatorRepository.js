@@ -9,16 +9,16 @@ class SpectatorRepository {
 
     // Read
     async findById(id) {
-        return await Spectator.findById(id).populate('spectatorid');
+        return await Spectator.findById(id).populate('_id');
     }
 
     async findBySpectatorId(spectatorId) {
-        return await Spectator.findOne({ spectatorId }).populate('spectatorId');
+        return await Spectator.findById(spectatorId).populate('_id');
     }
 
     async findAll(limit = 10, skip = 0) {
         return await Spectator.find()
-            .populate('spectatorId')
+            .populate('_id')
             .limit(limit)
             .skip(skip);
     }
@@ -26,28 +26,28 @@ class SpectatorRepository {
     async findByRewardPointsRange(minPoints, maxPoints) {
         return await Spectator.find({
             rewardPoints: { $gte: minPoints, $lte: maxPoints },
-        }).populate('spectatorId');
+        }).populate('_id');
     }
 
     // Update
     async updateById(id, updateData) {
         return await Spectator.findByIdAndUpdate(id, updateData, {
             new: true,
-        }).populate('spectatorId');
+        }).populate('_id');
     }
 
     async updateBySpectatorId(spectatorId, updateData) {
-        return await Spectator.findOneAndUpdate({ spectatorId }, updateData, {
+        return await Spectator.findByIdAndUpdate(spectatorId, updateData, {
             new: true,
-        }).populate('spectatorId');
+        }).populate('_id');
     }
 
     async addRewardPoints(spectatorId, points) {
-        return await Spectator.findOneAndUpdate(
-            { spectatorId },
+        return await Spectator.findByIdAndUpdate(
+            spectatorId,
             { $inc: { rewardPoints: points } },
             { new: true }
-        ).populate('spectatorId');
+        ).populate('_id');
     }
 
     // Delete
@@ -56,7 +56,7 @@ class SpectatorRepository {
     }
 
     async deleteBySpectatorId(spectatorId) {
-        return await Spectator.findOneAndDelete({ spectatorId });
+        return await Spectator.findByIdAndDelete(spectatorId);
     }
 
     // Count

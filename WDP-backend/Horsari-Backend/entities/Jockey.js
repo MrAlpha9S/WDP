@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const jockeySchema = new mongoose.Schema(
     {
-        jockeyId: {
+        _id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             required: true,

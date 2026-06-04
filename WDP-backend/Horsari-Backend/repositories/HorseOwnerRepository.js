@@ -9,35 +9,35 @@ class HorseOwnerRepository {
 
     // Read
     async findById(id) {
-        return await HorseOwner.findById(id).populate('ownerid');
+        return await HorseOwner.findById(id).populate('_id');
     }
 
     async findByOwnerId(ownerId) {
-        return await HorseOwner.findOne({ ownerId }).populate('ownerId');
+        return await HorseOwner.findById(ownerId).populate('_id');
     }
 
     async findAll(limit = 10, skip = 0) {
         return await HorseOwner.find()
-            .populate('ownerId')
+            .populate('_id')
             .limit(limit)
             .skip(skip);
     }
 
     async findByLicenseNumber(licenseNumber) {
-        return await HorseOwner.findOne({ licenseNumber }).populate('ownerId');
+        return await HorseOwner.findOne({ licenseNumber }).populate('_id');
     }
 
     // Update
     async updateById(id, updateData) {
         return await HorseOwner.findByIdAndUpdate(id, updateData, {
             new: true,
-        }).populate('ownerId');
+        }).populate('_id');
     }
 
     async updateByOwnerId(ownerId, updateData) {
-        return await HorseOwner.findOneAndUpdate({ ownerId }, updateData, {
+        return await HorseOwner.findByIdAndUpdate(ownerId, updateData, {
             new: true,
-        }).populate('ownerId');
+        }).populate('_id');
     }
 
     // Delete
@@ -46,7 +46,7 @@ class HorseOwnerRepository {
     }
 
     async deleteByOwnerId(ownerId) {
-        return await HorseOwner.findOneAndDelete({ ownerId });
+        return await HorseOwner.findByIdAndDelete(ownerId);
     }
 
     // Count

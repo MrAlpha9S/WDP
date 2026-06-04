@@ -29,7 +29,7 @@ class RaceRoundService {
                 if (ho) {
                     horseOwners.push({
                         id: ho._id,
-                        name: ho.ownerId?.fullName || ho.ownerId?.username || null,
+                        name: ho._id?.fullName || ho._id?.username || null,
                         profile: ho,
                     });
 

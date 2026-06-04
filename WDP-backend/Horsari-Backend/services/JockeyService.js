@@ -22,7 +22,7 @@ class JockeyService {
             }
 
             const jockeyProfile = await JockeyRepository.create({
-                jockeyId,
+                _id: jockeyId,
                 height: height || 0,
                 weight: weight || 0,
                 matchesRaced: matchesRaced || 0,

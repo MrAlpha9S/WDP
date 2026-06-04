@@ -23,7 +23,7 @@ class HorseOwnerService {
             }
 
             const ownerProfile = await HorseOwnerRepository.create({
-                ownerId,
+                _id: ownerId,
                 license_link: license_link || null,
             });
 

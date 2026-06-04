@@ -52,6 +52,14 @@ class AdminController {
         const response = await AdminService.deleteUser(userId);
         return res.status(response.code).json(response);
     }
+
+    // Get horse owner invitation list (enriched)
+    async getHorseOwnerInvitations(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const response = await AdminService.getHorseOwnerInvitations(page, limit);
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new AdminController();

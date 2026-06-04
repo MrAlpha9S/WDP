@@ -68,7 +68,6 @@ const options = {
                     type: 'object',
                     properties: {
                         id: { type: 'string' },
-                        ownerId: { type: 'string' },
                         address: { type: 'string' },
                         licenseNumber: { type: 'string' },
                         createdAt: { type: 'string', format: 'date-time' },
@@ -79,7 +78,6 @@ const options = {
                     type: 'object',
                     properties: {
                         id: { type: 'string' },
-                        jockeyId: { type: 'string' },
                         height: { type: 'string' },
                         weight: { type: 'string' },
                         matchesRaced: { type: 'number' },
@@ -94,7 +92,6 @@ const options = {
                     type: 'object',
                     properties: {
                         id: { type: 'string' },
-                        refereeId: { type: 'string' },
                         certificationNumber: { type: 'string' },
                         licenseNumber: { type: 'string' },
                         createdAt: { type: 'string', format: 'date-time' },
@@ -105,7 +102,6 @@ const options = {
                     type: 'object',
                     properties: {
                         id: { type: 'string' },
-                        spectatorId: { type: 'string' },
                         rewardPoints: { type: 'number' },
                         createdAt: { type: 'string', format: 'date-time' },
                         updatedAt: { type: 'string', format: 'date-time' },
@@ -115,7 +111,6 @@ const options = {
                     type: 'object',
                     properties: {
                         id: { type: 'string' },
-                        adminId: { type: 'string' },
                         // adminLevel removed
                         createdAt: { type: 'string', format: 'date-time' },
                         updatedAt: { type: 'string', format: 'date-time' },

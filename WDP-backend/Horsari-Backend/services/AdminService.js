@@ -3,6 +3,10 @@ const UserRepository = require('../repositories/UserRepository');
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const JockeyRepository = require('../repositories/JockeyRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
+const RegistrationRepository = require('../repositories/RegistrationRepository');
+const Invitation = require('../entities/Invitation');
+const Horse = require('../entities/Horse');
+const Registration = require('../entities/Registration');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
@@ -24,9 +28,8 @@ class AdminService {
                 };
             }
 
-            // Create admin profile using AdminRepository only
             const adminProfile = await AdminRepository.create({
-                adminId,
+                _id: adminId,
             });
 
             return {
@@ -205,6 +208,97 @@ class AdminService {
             return { code: 500, msg: error.message };
         }
     }
+    // Get all horse owner registrations enriched with race, horse, and jockey invitation data
+    async getHorseOwnerInvitations(page = 1, limit = 5) {
+        try {
+            const registrations = await RegistrationRepository.findAllWithDetails(page, limit);
+            const totalItems = await RegistrationRepository.countAll();
+            const totalPages = Math.ceil(totalItems / limit);
+
+            const items = await Promise.all(
+                registrations.map(async (reg) => {
+                    const raceRound = reg.raceRoundId || null;
+                    const horseOwner = reg.horseOwnerId || null;
+
+                    // Count accepted invitations for this race round (current_participants)
+                    const currentParticipants = raceRound
+                        ? await Invitation.countDocuments({
+                              registrationId: { $in: await Registration.find({ raceRoundId: raceRound._id }).distinct('_id') },
+                              invitation_status: 'accepted',
+                          })
+                        : 0;
+
+                    // Fetch the first active horse belonging to this owner
+                    const horse = horseOwner
+                        ? await Horse.findOne({ ownerId: horseOwner._id, status: 'active' }).lean()
+                        : null;
+
+                    // Fetch only accepted invitations for this registration
+                    const invitations = await Invitation.find({
+                        registrationId: reg._id,
+                        invitation_status: 'accepted',
+                    })
+                        .populate({
+                            path: 'jockeyId',
+                            populate: { path: '_id', model: 'User', select: 'fullName' },
+                        })
+                        .lean();
+
+                    return {
+                        registrationId: reg._id,
+                        registration_at: reg.registered_at,
+                        registration_status: reg.registration_status,
+                        raceRound: raceRound
+                            ? {
+                                  raceRoundId: raceRound._id,
+                                  round_name: raceRound.round_name,
+                                  race_date: raceRound.race_date,
+                                  max_participants: raceRound.max_participants,
+                                  current_participants: currentParticipants,
+                                  status: raceRound.status,
+                              }
+                            : null,
+                        horse: horse
+                            ? { horseId: horse._id, horseName: horse.horseName }
+                            : null,
+                        invitations: invitations.map((inv) => ({
+                            jockeyName: inv.jockeyId?._id?.fullName ?? 'Unknown',
+                            isBackup: inv.isBackup,
+                            status: inv.invitation_status,
+                        })),
+                        horseOwner: horseOwner
+                            ? {
+                                  ownerId: horseOwner._id,
+                                  fullName: horseOwner._id?.fullName ?? null,
+                              }
+                            : null,
+                    };
+                })
+            );
+
+            return {
+                code: 200,
+                data: {
+                    items,
+                    pagination: {
+                        totalItems,
+                        totalPages,
+                        currentPage: page,
+                        limit,
+                    },
+                },
+                msg: 'Horse owner invitations retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+}
+
+// Helper: get all registrationIds that belong to a given raceRoundId
+async function getRegistrationIdsByRound(raceRoundId) {
+    const regs = await require('../entities/Registration').find({ raceRoundId }, '_id').lean();
+    return regs.map((r) => r._id);
 }
 
 module.exports = new AdminService();
