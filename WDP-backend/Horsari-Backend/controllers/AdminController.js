@@ -14,6 +14,12 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // Get statistics
+    async getStatistics(req, res) {
+        const response = await AdminService.getStatistics();
+        return res.status(response.code).json(response);
+    }
+
     // Get all users
     async getAllUsers(req, res) {
         const limit = parseInt(req.query.limit) || 10;

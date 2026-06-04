@@ -18,9 +18,12 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swaggerConfig');
-app.use(cors({ credentials: true, origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
+const raceRound = require('./routes/raceround');
+const raceRefereeRouter = require('./routes/racereferee');
+const registrationRouter = require('./routes/registration');
 dotenv.config();
 var app = express();
+app.use(cors({ credentials: true, origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
 (
   async () => {
     try {
@@ -57,24 +60,50 @@ app.use('/api/horse', horseRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/jockey', jockeyRouter);
 app.use('/api/horseowner', horseOwnerRouter);
+app.use('/api/tournament', require('./routes/tournament'));
 app.use('/api/referee', refereeRouter);
 app.use('/api/spectator', spectatorRouter);
 app.use('/api/upload', uploadRouter);
-
+app.use('/api/invitations', require('./routes/invitations'));
+app.use('/api/raceround', raceRound);
+app.use('/api/racereferee', raceRefereeRouter);
+app.use('/api/registration', registrationRouter);
+app.use('/api/cloudinary', require('./routes/demoUpload'));
 // catch 404 and forward to error handler
-app.use(function (req, res, next) {
-  next(createError(404));
+// app.use(function (req, res, next) {
+//   next(createError(404));
+// });
+
+// // error handler
+// app.use(function (err, req, res, next) {
+//   // set locals, only providing error in development
+//   res.locals.message = err.message;
+//   res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+//   // render the error page
+//   res.status(err.status || 500);
+//   res.render('error');
+// });
+app.use((err, req, res, next) => {
+  console.error(err);
+
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      code: 400,
+      message: err.message,
+    });
+  }
+
+  if (err.name === 'CastError') {
+    return res.status(400).json({
+      code: 400,
+      message: `${err.path} is invalid`,
+    });
+  }
+
+  return res.status(500).json({
+    code: 500,
+    message: 'Internal Server Error',
+  });
 });
-
-// error handler
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
-
 module.exports = app;
