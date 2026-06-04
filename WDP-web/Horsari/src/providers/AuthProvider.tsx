@@ -74,10 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (name: string, email: string, password: string, role: string, pdfFile: File) => {
-    // We send JSON format, but if PDF is required, it should be multipart/form-data.
-    // The backend `register` might accept it. Let's send a standard JSON for now.
-    // If backend needs form data, we construct it:
-    let payload: any = { name, email, password, role };
+    // Generate a username from the email handle
+    const username = email.split('@')[0];
+    
+    // Backend expects: username, email, password, fullName, role
+    let payload: any = { 
+      username,
+      fullName: name, 
+      email, 
+      password, 
+      role 
+    };
     
     // Attempting standard JSON call
     const res = await authService.register(payload);
