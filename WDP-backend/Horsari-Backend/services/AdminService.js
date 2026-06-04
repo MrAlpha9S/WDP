@@ -15,6 +15,7 @@ const Prediction = require('../entities/Prediction');
 const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
 const RaceResult = require('../entities/RaceResult');
 const HorseOwner = require('../entities/HorseOwner');
+const User = require('../entities/User');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
@@ -407,7 +408,7 @@ class AdminService {
                 const raceRound = reg?.raceRoundId || null;
                 const horse = inv.horseId || null;
                 const jockey = inv.jockeyId || null;
-                
+
                 const siblings = siblingInvitations.filter(sib => sib.registrationId?.toString() === reg?._id?.toString());
 
                 return {
@@ -531,7 +532,7 @@ class AdminService {
                 query._id = tournamentFilter;
             }
             const tournaments = await Tournament.find(query).lean();
-            
+
             const results = [];
 
             // 2. Loop through tournaments
@@ -553,27 +554,45 @@ class AdminService {
                         Registration: []
                     };
 
-                    // Fetch Referees
-                    const raceReferees = await RaceReferee.find({ raceRoundId: raceRound._id })
-                        .populate('refereeId')
-                        .lean();
-                    rrObj.Referee = raceReferees.map(rr => rr.refereeId).filter(Boolean);
+                    // Fetch Referees (populate Referee then manually fetch User for fullName)
+                    const raceReferees = await RaceReferee.find({ raceRoundId: raceRound._id }).lean();
+                    rrObj.Referee = await Promise.all(
+                        raceReferees.map(async (rr) => {
+                            // Referee._id === User._id, so refereeId IS the User's ObjectId
+                            const refereeUser = rr.refereeId
+                                ? await User.findById(rr.refereeId, 'fullName').lean()
+                                : null;
+                            return {
+                                refereeId: rr.refereeId,
+                                fullName: refereeUser?.fullName ?? null,
+                                assignmentStatus: rr.status
+                            };
+                        })
+                    );
 
-                    // Fetch Registrations
-                    const registrations = await Registration.find({ raceRoundId: raceRound._id })
-                        .populate('horseOwnerId')
-                        .lean();
+                    // Fetch Registrations (lean only — manually resolve Owner via User)
+                    const registrations = await Registration.find({ raceRoundId: raceRound._id }).lean();
 
                     for (const reg of registrations) {
                         // Sum predictions
                         const predictions = await Prediction.find({ registrationId: reg._id }).lean();
                         const sum_prediction = predictions.reduce((sum, p) => sum + (p.rewardPoints || 0), 0);
+                        // Fetch Owner User directly (HorseOwner._id === User._id === horseOwnerId)
+                        const ownerUser = reg.horseOwnerId
+                            ? await User.findById(reg.horseOwnerId, 'fullName').lean()
+                            : null;
 
-                        // Fetch Invitation (for Horse and Jockey)
-                        const invitation = await Invitation.findOne({ 
+                        // Fetch Invitation (for Horse and Jockey + Jockey User fullName)
+                        const invitation = await Invitation.findOne({
                             registrationId: reg._id,
-                            isBackup: false 
-                        }).populate('horseId').populate('jockeyId').lean();
+                            isBackup: false
+                        })
+                            .populate('horseId')
+                            .populate({
+                                path: 'jockeyId',
+                                populate: { path: '_id', model: 'User', select: 'fullName' }
+                            })
+                            .lean();
 
                         // Fetch RaceResult
                         const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
@@ -584,13 +603,12 @@ class AdminService {
                             const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
                             if (rule && rule.raceType) raceType = rule.raceType;
                         }
-
                         rrObj.Registration.push({
                             ...reg,
                             sum_prediction,
                             Horse: invitation ? invitation.horseId : null,
                             Jockey: invitation ? invitation.jockeyId : null,
-                            Owner: reg.horseOwnerId,
+                            Owner: ownerUser,  // { _id, fullName } from User directly
                             RaceResult: raceResult || null,
                             RaceType: raceType
                         });

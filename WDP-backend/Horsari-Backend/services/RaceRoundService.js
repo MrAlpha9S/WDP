@@ -7,7 +7,12 @@ const RegistrationRepository = require('../repositories/RegistrationRepository')
 class RaceRoundService {
     async createRaceRound(payload, adminID) {
         const { TournamentId, RaceRound: raceRoundData, HorseOwnerInvitation = [], RefereeInvitation = [] } = payload;
-        
+
+        // Safely extract a plain string/ObjectId from a value that might be a populated object
+        const toId = (v) => (v && typeof v === 'object') ? (v._id ?? v) : v;
+
+
+
         raceRoundData.tournamentId = TournamentId;
         raceRoundData.createdByAdminId = adminID;
 
@@ -17,30 +22,34 @@ class RaceRoundService {
         // create race-referee link
         const raceReferees = [];
         for (const refereeId of RefereeInvitation) {
-            const raceReferee = await RaceRefereeRepository.create({
-                raceRoundId: raceRound._id,
-                refereeId: refereeId,
-                assignedAt: new Date(),
-                assignedByAdminId: adminID,
-                status: 'pending',
-            });
-            raceReferees.push(raceReferee);
+            try {
+                const raceReferee = await RaceRefereeRepository.create({
+                    raceRoundId: raceRound._id,
+                    refereeId: toId(refereeId),
+                    assignedAt: new Date(),
+                    assignedByAdminId: adminID,
+                    status: 'pending',
+                });
+                raceReferees.push(raceReferee);
+            } catch (e) {
+                console.error('[createRaceRound] Referee assignment failed for', refereeId, ':', e.message);
+            }
         }
 
         // gather horse owner profiles and create registrations
         const registrations = [];
         for (const ownerId of HorseOwnerInvitation) {
             try {
-                // create registration for this horse owner for the new raceRound
+                const resolvedId = toId(ownerId);
                 const reg = await RegistrationRepository.createRegistration({
                     raceRoundId: raceRound._id,
-                    horseOwnerId: ownerId,
+                    horseOwnerId: resolvedId,
                     approvedByAdminId: adminID,
                     registrationStatus: 'pending',
                 });
                 registrations.push(reg);
             } catch (e) {
-                // ignore individual failures
+                console.error('[createRaceRound] Registration failed for owner', ownerId, ':', e.message);
             }
         }
 

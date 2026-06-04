@@ -380,23 +380,26 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                 </label>
                                 <div className="p-3 bg-[#111] border border-white/10 rounded flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar">
                                     {metadata?.owners?.filter((owner: any) => owner.horses.some((h: any) => checkEligibility(h, createRaceType))).map((owner: any) => {
+                                        const ownerId = owner._id?._id ?? owner._id;
+                                        const ownerName = owner.user?.fullName ?? owner._id?.fullName ?? 'Unknown Owner';
                                         const eligibleHorses = owner.horses.filter((h: any) => checkEligibility(h, createRaceType));
                                         return (
-                                            <label key={owner.user?._id || owner._id} className="flex items-start gap-3 p-2 cursor-pointer group hover:bg-white/5 rounded transition-colors">
+                                            <label key={String(ownerId)} className="flex items-start gap-3 p-2 cursor-pointer group hover:bg-white/5 rounded transition-colors">
                                                 <input 
                                                     type="checkbox" 
-                                                    checked={selectedOwners.includes(owner._id)}
+                                                    checked={selectedOwners.includes(String(ownerId))}
                                                     onChange={(e) => {
+                                                        const id = String(ownerId);
                                                         if (e.target.checked) {
-                                                            setSelectedOwners([...selectedOwners, owner._id]);
+                                                            setSelectedOwners([...selectedOwners, id]);
                                                         } else {
-                                                            setSelectedOwners(selectedOwners.filter(id => id !== owner._id));
+                                                            setSelectedOwners(selectedOwners.filter(sid => sid !== id));
                                                         }
                                                     }}
                                                     className="w-3.5 h-3.5 mt-1 accent-red-600 rounded bg-black border-white/20" 
                                                 />
                                                 <div className="flex flex-col">
-                                                    <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">{owner.user?.fullName || 'Unknown Owner'}</span>
+                                                    <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">{ownerName}</span>
                                                     <span className="text-[11px] text-gray-500">
                                                         Eligible: {eligibleHorses.map((h: any) => {
                                                             const wins = h.raceResults ? h.raceResults.filter((r: any) => r.finishPosition === 1).length : 0;
@@ -429,26 +432,31 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                         />
                                     </div>
                                     <div className="max-h-[120px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
-                                        {metadata?.referees?.filter((r: any) => (r._id?.fullName || "").toLowerCase().includes(refereeSearchQuery.toLowerCase())).map((referee: any) => (
-                                            <label key={referee.user?._id || referee._id} className="flex items-center gap-3 p-2 cursor-pointer group hover:bg-white/5 rounded transition-colors">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={selectedReferees.includes(referee._id)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setSelectedReferees([...selectedReferees, referee._id]);
-                                                        } else {
-                                                            setSelectedReferees(selectedReferees.filter(id => id !== referee._id));
-                                                        }
-                                                    }}
-                                                    className="w-3.5 h-3.5 accent-red-600 rounded bg-black border-white/20" 
-                                                />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">{referee._id?.fullName || "Unknown"}</span>
-                                                    <span className="text-[11px] text-gray-500">Active</span>
-                                                </div>
-                                            </label>
-                                        ))}
+                                        {metadata?.referees?.filter((r: any) => (r._id?.fullName || "").toLowerCase().includes(refereeSearchQuery.toLowerCase())).map((referee: any) => {
+                                            const refereeId = referee._id?._id ?? referee._id;
+                                            const refName = referee._id?.fullName ?? 'Unknown Referee';
+                                            return (
+                                                <label key={String(refereeId)} className="flex items-center gap-3 p-2 cursor-pointer group hover:bg-white/5 rounded transition-colors">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={selectedReferees.includes(String(refereeId))}
+                                                        onChange={(e) => {
+                                                            const id = String(refereeId);
+                                                            if (e.target.checked) {
+                                                                setSelectedReferees([...selectedReferees, id]);
+                                                            } else {
+                                                                setSelectedReferees(selectedReferees.filter(sid => sid !== id));
+                                                            }
+                                                        }}
+                                                        className="w-3.5 h-3.5 accent-red-600 rounded bg-black border-white/20" 
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">{refName}</span>
+                                                        <span className="text-[11px] text-gray-500">Active</span>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>

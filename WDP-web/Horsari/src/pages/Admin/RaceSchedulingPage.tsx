@@ -40,7 +40,7 @@ export default function RaceSchedulingPage() {
     const getTimelineOffsets = (dateString: string) => {
         const d = new Date(dateString);
         if (isNaN(d.getTime())) return { leftPercent: "0%", widthPercent: "15%" };
-        
+
         const hours = d.getHours() + d.getMinutes() / 60;
         // Base 08:00 = 0%, 20:00 = 100%
         const totalHours = 12; // 20 - 8
@@ -59,6 +59,7 @@ export default function RaceSchedulingPage() {
             const dateStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleDateString();
             const { leftPercent, widthPercent } = getTimelineOffsets(rr.raceDate);
 
+
             return {
                 id: rr._id,
                 trackId: rr.location || "TBD",
@@ -67,13 +68,25 @@ export default function RaceSchedulingPage() {
                 date: dateStr,
                 time: timeStr,
                 status: rr.status,
-                participants: rr.Registration || [],
+                participants: (rr.Registration || []).map((reg: any) => ({
+                    registrationId: reg._id,
+                    ownerName: reg.Owner?.fullName ?? 'Unknown Owner',  // Owner is now plain User {_id, fullName}
+                    horseName: reg.Horse?.horseName ?? null,
+                    jockeyName: reg.Jockey?._id?.fullName ?? null,
+                    status: reg.registrationStatus ?? 'pending',
+                })),
+                referees: (rr.Referee || []).map((ref: any) => ({
+                    refereeId: ref.refereeId,
+                    fullName: ref.fullName ?? 'Unknown Referee',  // fullName is now a top-level field
+                    assignmentStatus: ref.assignmentStatus ?? 'pending',
+                })),
+                pendingInvites: [],
                 maxSlots: rr.maxParticipants || 0,
                 leftPercent,
                 widthPercent,
                 rawDate: dateObj,
                 trackLength: rr.trackLength || 0,
-                raceType: rr.raceType || "Standard"
+                raceType: rr.raceType || rr.RaceType || "Standard"
             };
         });
     });
@@ -163,8 +176,8 @@ export default function RaceSchedulingPage() {
                         </div>
 
                         <div className="flex gap-3 items-center">
-                            <select 
-                                value={selectedTournament} 
+                            <select
+                                value={selectedTournament}
                                 onChange={(e) => setSelectedTournament(e.target.value)}
                                 className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer"
                             >
@@ -195,7 +208,7 @@ export default function RaceSchedulingPage() {
                                 {/* Time Headers */}
                                 <div className="flex border-b border-white/5 bg-[#1a1a1a]">
                                     <div className="w-[200px] shrink-0 border-r border-white/5 px-2 py-3 flex items-center justify-between bg-[#151515]">
-                                        <button 
+                                        <button
                                             onClick={handlePrevDate}
                                             disabled={!uniqueDates.length || selectedDate === uniqueDates[0]}
                                             className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
@@ -205,7 +218,7 @@ export default function RaceSchedulingPage() {
                                         <div className="text-[11px] font-bold tracking-widest text-white uppercase text-center flex-1">
                                             {selectedDate || "N/A"}
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={handleNextDate}
                                             disabled={!uniqueDates.length || selectedDate === uniqueDates[uniqueDates.length - 1]}
                                             className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
@@ -259,7 +272,7 @@ export default function RaceSchedulingPage() {
                                                                 <span className="text-[12px] font-medium text-[#f3b2a5] shrink-0">{race.time}</span>
                                                             </div>
                                                             <div className="flex items-center justify-between mt-auto">
-                                                                <span className="text-[11px] text-gray-400">{race.participants.length}/{race.maxSlots} Slots</span>
+                                                                <span className="text-[11px] text-gray-400">{race.participants.filter((p: any) => p.status === 'approved').length}/{race.maxSlots} Slots</span>
                                                                 <div className="flex gap-1">
                                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                                 </div>
@@ -312,11 +325,11 @@ export default function RaceSchedulingPage() {
                                                             <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden w-24">
                                                                 <div
                                                                     className="h-full bg-emerald-500 rounded-full"
-                                                                    style={{ width: `${(race.participants.length / race.maxSlots) * 100}%` }}
+                                                                    style={{ width: `${(race.participants.filter((p: any) => p.status === 'approved').length / Math.max(race.maxSlots, 1)) * 100}%` }}
                                                                 />
                                                             </div>
                                                             <span className="text-[12px] font-medium text-gray-400 min-w-[32px]">
-                                                                {race.participants.length}/{race.maxSlots}
+                                                                {race.participants.filter((p: any) => p.status === 'approved').length}/{race.maxSlots}
                                                             </span>
                                                         </div>
                                                     </td>
@@ -344,9 +357,9 @@ export default function RaceSchedulingPage() {
             </footer>
 
             {/* ── Create Race Modal ── */}
-            <CreateRaceModal 
-                isOpen={isCreateModalOpen} 
-                onClose={() => setIsCreateModalOpen(false)} 
+            <CreateRaceModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
                 onSuccess={fetchData}
             />
         </div>
