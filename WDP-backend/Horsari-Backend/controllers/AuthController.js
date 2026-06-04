@@ -3,7 +3,9 @@ const AuthService = require('../services/AuthService');
 class AuthController {
     // Unified register with role support
     async register(req, res) {
-        const response = await AuthService.register(req.body);
+        const fileBuffer = req.file ? req.file.buffer : null;
+        const fileName = req.file ? req.file.originalname : null;
+        const response = await AuthService.register(req.body, fileBuffer, fileName);
 
         if (response.code === 201) {
             // Set access token as httpOnly cookie (1 hour)

@@ -5,10 +5,11 @@ const SpectatorRepository = require('../repositories/SpectatorRepository');
 const RefereeRepository = require('../repositories/RefereeRepository');
 const PasswordUtil = require('../utils/PasswordUtil');
 const TokenUtil = require('../utils/TokenUtil');
+const CloudinaryUtil = require('../utils/cloudinaryUtil');
 
 class AuthService {
     // Unified register with role support
-    async register(userData) {
+    async register(userData, fileBuffer = null, fileName = null) {
         try {
             const { username, email, password, fullName, phoneNumber, dateOfBirth, role } =
                 userData;
@@ -22,10 +23,20 @@ class AuthService {
             }
 
             // Validate role if provided
-            if (role && !['horseowner', 'jockey', 'referee', 'spectator'].includes(role)) {
+            const licensedRoles = ['horseowner', 'jockey', 'referee'];
+            const allAllowedRoles = [...licensedRoles, 'spectator'];
+            if (role && !allAllowedRoles.includes(role)) {
                 return {
                     code: 400,
                     msg: 'Invalid role specified',
+                };
+            }
+
+            // Roles that require a license PDF
+            if (licensedRoles.includes(role) && !fileBuffer) {
+                return {
+                    code: 400,
+                    msg: `A license PDF is required for the ${role} role`,
                 };
             }
 
@@ -34,7 +45,7 @@ class AuthService {
             if (existingUser) {
                 return {
                     code: 409,
-                    msg: 'Email already exists',
+                    msg: 'An account with this email already exists',
                 };
             }
 
@@ -43,7 +54,7 @@ class AuthService {
             if (existingUsername) {
                 return {
                     code: 409,
-                    msg: 'Username already exists',
+                    msg: 'This username is already taken',
                 };
             }
 
@@ -54,7 +65,6 @@ class AuthService {
                     msg: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character',
                 };
             }
-
 
             // Hash password
             const passwordHash = await PasswordUtil.hashPassword(password);
@@ -71,7 +81,53 @@ class AuthService {
                 status: 'active',
             });
 
+            // Upload license PDF to Cloudinary if provided
+            let licenseUrl = null;
+            if (fileBuffer && licensedRoles.includes(role)) {
+                const safeFileName = fileName || `license_${newUser._id}.pdf`;
+                licenseUrl = await CloudinaryUtil.uploadFile(
+                    fileBuffer,
+                    safeFileName,
+                    `licenses/${role}`
+                );
+            }
 
+            // Create role-specific entity
+            const effectiveRole = role || 'spectator';
+            switch (effectiveRole) {
+                case 'horseowner':
+                    await HorseOwnerRepository.create({
+                        ownerId: newUser._id,
+                        license_link: licenseUrl,
+                        license_status: 'pending',
+                    });
+                    break;
+                case 'referee':
+                    await RefereeRepository.create({
+                        refereeId: newUser._id,
+                        license_link: licenseUrl,
+                        license_status: 'pending',
+                    });
+                    break;
+                case 'jockey':
+                    await JockeyRepository.create({
+                        jockeyId: newUser._id,
+                        license_link: licenseUrl,
+                        license_status: 'pending',
+                        matchesRaced: 0,
+                        totalWins: 0,
+                        status: 'active',
+                    });
+                    break;
+                case 'spectator':
+                    await SpectatorRepository.create({
+                        spectatorId: newUser._id,
+                        rewardPoints: 0,
+                    });
+                    break;
+                default:
+                    break;
+            }
 
             // Generate tokens
             const accessToken = TokenUtil.generateToken(newUser._id);

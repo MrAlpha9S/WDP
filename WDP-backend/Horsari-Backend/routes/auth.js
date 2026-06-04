@@ -4,6 +4,7 @@ const {
     authMiddleware,
     authorize,
 } = require('../middlewares/authMiddleware');
+const upload = require('../middlewares/uploadMiddleware');
 
 // Import swagger documentation
 require('../swagger/authSwagger');
@@ -11,7 +12,7 @@ require('../swagger/authSwagger');
 const router = express.Router();
 
 // Public routes
-router.post('/register', AuthController.register);
+router.post('/register', upload.single('license'), AuthController.register);
 router.post('/login', AuthController.login);
 router.post('/google/login', AuthController.googleLogin);
 
