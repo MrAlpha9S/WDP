@@ -76,18 +76,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (name: string, email: string, password: string, role: string, pdfFile: File) => {
     // Generate a username from the email handle
     const username = email.split('@')[0];
-    
-    // Backend expects: username, email, password, fullName, role
-    let payload: any = { 
-      username,
-      fullName: name, 
-      email, 
-      password, 
-      role 
-    };
-    
-    // Attempting standard JSON call
-    const res = await authService.register(payload);
+
+    // Build multipart/form-data so the PDF is sent alongside the text fields
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('fullName', name);
+    formData.append('email', email);
+    formData.append('password', password);
+    formData.append('role', role);
+    if (pdfFile) {
+      formData.append('license', pdfFile, pdfFile.name);
+    }
+
+    const res = await authService.register(formData);
     if (res.code === 201 && res.data?.accessToken) {
       persist(res.data.user || { email, name, role }, res.data.accessToken);
     } else {

@@ -5,9 +5,11 @@ export const authService = {
     const response = await api.post("/auth/login", data);
     return response.data;
   },
-  register: async (data: any) => {
-    // If data is FormData, axios handles the headers automatically
-    const response = await api.post("/auth/register", data);
+  register: async (data: FormData) => {
+    // Send as multipart/form-data — let axios set the Content-Type with boundary automatically
+    const response = await api.post("/auth/register", data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
   getCurrentUser: async () => {
