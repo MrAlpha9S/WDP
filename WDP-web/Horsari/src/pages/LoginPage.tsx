@@ -63,6 +63,17 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [pwFocused, setPwFocused] = useState(false);
+
+  // Password strength rules
+  const pwRules = [
+    { label: "At least 8 characters",       test: (p: string) => p.length >= 8 },
+    { label: "One uppercase letter (A–Z)",  test: (p: string) => /[A-Z]/.test(p) },
+    { label: "One lowercase letter (a–z)",  test: (p: string) => /[a-z]/.test(p) },
+    { label: "One number (0–9)",             test: (p: string) => /[0-9]/.test(p) },
+    { label: "One special character (!@#…)",test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+  ];
+  const allRulesPassed = pwRules.every(r => r.test(password));
 
   const ROLES: Role[] = [
     { role: "referee", label: "Referee" },
@@ -95,6 +106,10 @@ export default function LoginPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (!allRulesPassed) {
+      setError("Please meet all password requirements before continuing.");
+      return;
+    }
     if (password !== confirmPw) {
       setError("Passwords do not match.");
       return;
@@ -227,8 +242,49 @@ export default function LoginPage() {
               value={name} onChange={setName} icon={<User size={15} />} required />
             <InputField label="Email Address" type="email" placeholder="example@email.com"
               value={email} onChange={setEmail} icon={<Mail size={15} />} required />
-            <InputField label="Password" type={showPw ? "text" : "password"} placeholder="Create a password"
-              value={password} onChange={setPassword} icon={<Lock size={15} />} rightElement={EyeToggle} required />
+            <div className="flex flex-col gap-1.5">
+              <InputField label="Password" type={showPw ? "text" : "password"} placeholder="Create a password"
+                value={password}
+                onChange={(v) => { setPassword(v); }}
+                icon={<Lock size={15} />}
+                rightElement={
+                  <button type="button" onClick={() => setShowPw((p) => !p)}
+                    onFocus={() => setPwFocused(true)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label={showPw ? "Hide password" : "Show password"}>
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                }
+                required />
+              {/* Password strength checklist — shown when field has content */}
+              {(pwFocused || password.length > 0) && (
+                <ul className="mt-1 flex flex-col gap-1">
+                  {pwRules.map((rule) => {
+                    const ok = rule.test(password);
+                    return (
+                      <li key={rule.label} className={`flex items-center gap-1.5 text-[11.5px] transition-colors duration-150 ${
+                        ok ? "text-green-600" : "text-gray-400"
+                      }`}>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          {ok ? (
+                            <>
+                              <circle cx="6" cy="6" r="6" fill="#16a34a" opacity="0.15" />
+                              <path d="M3 6l2 2 4-4" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </>
+                          ) : (
+                            <>
+                              <circle cx="6" cy="6" r="5.5" stroke="#d1d5db" strokeWidth="1" />
+                              <path d="M6 3.5v3M6 8h.01" stroke="#9ca3af" strokeWidth="1.2" strokeLinecap="round" />
+                            </>
+                          )}
+                        </svg>
+                        {rule.label}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
             <InputField label="Confirm Password" type="password" placeholder="Repeat your password"
               value={confirmPw} onChange={setConfirmPw} icon={<Lock size={15} />} required />
 
