@@ -28,9 +28,9 @@ const Palette = {
 } as const;
 
 const SKILLS = [
-  { name: 'Speed Control', percent: 94, color: Palette.redLight },
-  { name: 'Stamina Management', percent: 88, color: Palette.redLight },
-  { name: 'Tactical Positioning', percent: 91, color: Palette.gold },
+  { name: 'Kiểm soát tốc độ', percent: 94, color: Palette.redLight },
+  { name: 'Quản lý sức bền', percent: 88, color: Palette.redLight },
+  { name: 'Định vị chiến thuật', percent: 91, color: Palette.gold },
 ];
 
 const TROPHIES = [
@@ -49,7 +49,7 @@ export default function ProfileScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
 
         {/* ─── Header ─── */}
-        <View style={styles.header}>
+          <View style={styles.header}>
           <View style={styles.headerLogoCircle}>
             <Image
               source={require('@/assets/images/horsari-logo.png')}
@@ -57,7 +57,7 @@ export default function ProfileScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>JOCKEY CENTRAL</Text>
+          <Text style={styles.headerTitle}>HỒ SƠ CỦA TÔI</Text>
           <Pressable hitSlop={8}>
             <Ionicons name="notifications-outline" size={22} color={Palette.textMuted} />
           </Pressable>
@@ -86,44 +86,44 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.heroName}>Alexander Thorne</Text>
               <View style={styles.heroMetaRow}>
-                <Text style={styles.heroRank}>ELITE JOCKEY #5</Text>
+                <Text style={styles.heroRank}>JOCKEY ELITE #5</Text>
                 <View style={styles.heroDot} />
                 <Ionicons name="globe-outline" size={13} color={Palette.textMuted} />
-                <Text style={styles.heroCountry}>United Kingdom</Text>
+                <Text style={styles.heroCountry}>Vương quốc Anh</Text>
               </View>
               <View style={styles.heroActions}>
                 <Pressable style={styles.btnEditProfile}>
-                  <Text style={styles.btnEditProfileText}>EDIT PROFILE</Text>
+                  <Text style={styles.btnEditProfileText}>CHỈNH SỬA HỒ SƠ</Text>
                 </Pressable>
                 <Pressable style={styles.btnJockeyBio}>
-                  <Text style={styles.btnJockeyBioText}>VIEW JOCKEY BIO</Text>
+                  <Text style={styles.btnJockeyBioText}>XEM TIỂU SỬ TAY ĐUA</Text>
                 </Pressable>
               </View>
             </View>
           </View>
 
           {/* ─── Professional Stats ─── */}
-          <Text style={styles.cardSectionTitle}>Professional Stats</Text>
+          <Text style={styles.cardSectionTitle}>Thống kê chuyên môn</Text>
 
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>CAREER WINS</Text>
+              <Text style={styles.statLabel}>SỐ LẦN THẮNG</Text>
               <Text style={[styles.statBig, { color: Palette.redLight }]}>1,248</Text>
-              <Text style={styles.statSub}>+12 this month</Text>
+              <Text style={styles.statSub}>+12 tháng này</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>TOTAL EARNINGS</Text>
+              <Text style={styles.statLabel}>TỔNG THU NHẬP</Text>
               <Text style={[styles.statBig, { color: Palette.gold }]}>$14.2M</Text>
-              <Text style={styles.statSub}>Top 2% Globally</Text>
+              <Text style={styles.statSub}>Top 2% toàn cầu</Text>
             </View>
           </View>
 
           <View style={styles.placementCard}>
             <View style={styles.placementLeft}>
-              <Text style={styles.statLabel}>AVERAGE PLACEMENT</Text>
+              <Text style={styles.statLabel}>THỨ HẠNG TRUNG BÌNH</Text>
               <View style={styles.placementValueRow}>
                 <Text style={styles.placementBig}>2.4</Text>
-                <Text style={styles.placementSub}>out of 12 starters</Text>
+                <Text style={styles.placementSub}>trong số 12 tay đua xuất phát</Text>
               </View>
             </View>
             <View style={styles.miniBars}>
@@ -147,7 +147,7 @@ export default function ProfileScreen() {
           <View style={styles.skillCard}>
             <View style={styles.skillCardHeader}>
               <Ionicons name="bar-chart-outline" size={16} color={Palette.redLight} />
-              <Text style={styles.skillCardTitle}>Skill Radar</Text>
+              <Text style={styles.skillCardTitle}>Bản đồ kỹ năng</Text>
             </View>
             {SKILLS.map((skill) => (
               <View key={skill.name} style={styles.skillRow}>
@@ -170,9 +170,9 @@ export default function ProfileScreen() {
           {/* ─── Trophy Cabinet ─── */}
           <View style={styles.trophySection}>
             <View style={styles.trophyHeader}>
-              <Text style={styles.cardSectionTitle}>Trophy Cabinet</Text>
+              <Text style={styles.cardSectionTitle}>Tủ danh hiệu</Text>
               <Pressable hitSlop={8}>
-                <Text style={styles.viewAllLink}>VIEW ALL</Text>
+                <Text style={styles.viewAllLink}>XEM TẤT CẢ</Text>
               </Pressable>
             </View>
             <View style={styles.trophyGrid}>
@@ -189,13 +189,13 @@ export default function ProfileScreen() {
 
           {/* ─── Account Settings ─── */}
           <View style={styles.settingsCard}>
-            <Text style={styles.settingsTitle}>Account Settings</Text>
+            <Text style={styles.settingsTitle}>Cài đặt tài khoản</Text>
 
             <Pressable style={styles.settingsRow}>
               <Ionicons name="globe-outline" size={18} color={Palette.textMuted} />
-              <Text style={styles.settingsLabel}>Language</Text>
+              <Text style={styles.settingsLabel}>Ngôn ngữ</Text>
               <View style={styles.settingsRight}>
-                <Text style={styles.settingsValue}>English</Text>
+                <Text style={styles.settingsValue}>Tiếng Việt</Text>
                 <Ionicons name="chevron-forward" size={16} color={Palette.textMuted} />
               </View>
             </Pressable>
@@ -204,7 +204,7 @@ export default function ProfileScreen() {
 
             <View style={styles.settingsRow}>
               <Ionicons name="notifications-outline" size={18} color={Palette.textMuted} />
-              <Text style={styles.settingsLabel}>Notifications</Text>
+              <Text style={styles.settingsLabel}>Thông báo</Text>
               <Switch
                 value={notificationsOn}
                 onValueChange={setNotificationsOn}
@@ -217,7 +217,7 @@ export default function ProfileScreen() {
 
             <View style={styles.settingsRow}>
               <Ionicons name="shield-checkmark-outline" size={18} color={Palette.textMuted} />
-              <Text style={styles.settingsLabel}>Biometric Login</Text>
+              <Text style={styles.settingsLabel}>Đăng nhập sinh trắc học</Text>
               <Switch
                 value={biometricOn}
                 onValueChange={setBiometricOn}
@@ -230,7 +230,8 @@ export default function ProfileScreen() {
           {/* ─── Log out ─── */}
           <Pressable style={styles.logoutBtn}>
             <Ionicons name="log-out-outline" size={16} color={Palette.red} />
-            <Text style={styles.logoutText}>LOG OUT JOCKEY ACCOUNT</Text>
+            <Text style={styles.logoutText}>ĐĂNG XUẤT</Text>
+            
           </Pressable>
 
           <View style={styles.bottomPad} />

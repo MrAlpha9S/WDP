@@ -56,7 +56,7 @@ export default function DashboardScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>JOCKEY ELITE</Text>
+          <Text style={styles.headerTitle}>TRANG CHỦ</Text>
           <Pressable hitSlop={8}>
             <Ionicons name="notifications-outline" size={22} color={Palette.textMuted} />
           </Pressable>

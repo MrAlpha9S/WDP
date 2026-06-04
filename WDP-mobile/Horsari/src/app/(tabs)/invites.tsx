@@ -115,7 +115,7 @@ export default function InvitesScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>LỊCH TRÌNH ĐUA</Text>
+          <Text style={styles.headerTitle}>LỜI MỜI</Text>
           <Pressable hitSlop={8}>
             <Ionicons name="notifications-outline" size={22} color={Palette.textMuted} />
           </Pressable>
@@ -222,7 +222,7 @@ export default function InvitesScreen() {
           )}
 
           {/* ─── Upcoming schedule ─── */}
-          <View style={[styles.sectionHeader, { marginTop: 8 }]}>
+          {/* <View style={[styles.sectionHeader, { marginTop: 8 }]}>
             <View style={styles.sectionTitleRow}>
               <View style={styles.sectionAccent} />
               <Text style={styles.sectionTitle}>Lịch thi đấu</Text>
@@ -266,7 +266,7 @@ export default function InvitesScreen() {
             </View>
           ))}
 
-          <View style={styles.bottomPad} />
+          <View style={styles.bottomPad} /> */}
         </ScrollView>
       </SafeAreaView>
     </View>
