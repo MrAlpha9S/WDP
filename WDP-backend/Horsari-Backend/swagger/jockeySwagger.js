@@ -22,7 +22,7 @@
  *                 type: number
  *               weight:
  *                 type: number
- *               license_link:
+ *               licenseLink:
  *                 type: string
  *                 description: "License document link"
  *     responses:
@@ -112,7 +112,7 @@
  *                 type: string
  *               ranking:
  *                 type: number
- *               license_link:
+ *               licenseLink:
  *                 type: string
  *                 description: "License document link"
  *     responses:

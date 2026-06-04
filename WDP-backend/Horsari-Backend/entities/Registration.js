@@ -6,16 +6,16 @@ const registrationSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'RaceRound',
         },
-        approved_by_adminId: {
+        approvedByAdminId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Admin',
         },
-        registration_status: {
+        registrationStatus: {
             type: String,
             enum: ['pending', 'approved', 'rejected'],
             default: 'pending',
         },
-        registered_at: {
+        registeredAt: {
             type: Date,
             default: Date.now,
         },

@@ -98,22 +98,22 @@ class AuthService {
                 case 'horseowner':
                     await HorseOwnerRepository.create({
                         _id: newUser._id,
-                        license_link: licenseUrl,
-                        license_status: 'pending',
+                        licenseLink: licenseUrl,
+                        licenseStatus: 'pending',
                     });
                     break;
                 case 'referee':
                     await RefereeRepository.create({
                         _id: newUser._id,
-                        license_link: licenseUrl,
-                        license_status: 'pending',
+                        licenseLink: licenseUrl,
+                        licenseStatus: 'pending',
                     });
                     break;
                 case 'jockey':
                     await JockeyRepository.create({
                         _id: newUser._id,
-                        license_link: licenseUrl,
-                        license_status: 'pending',
+                        licenseLink: licenseUrl,
+                        licenseStatus: 'pending',
                         matchesRaced: 0,
                         totalWins: 0,
                         status: 'active',
@@ -424,7 +424,7 @@ class AuthService {
                 case 'horseowner':
                     entityData = await HorseOwnerRepository.create({
                         _id: userId,
-                        license_link: null,
+                        licenseLink: null,
                     });
                     break;
 
@@ -442,7 +442,7 @@ class AuthService {
                         ranking: null,
                         matchesRaced: 0,
                         totalWins: 0,
-                        license_link: null,
+                        licenseLink: null,
                         status: 'active',
                     });
                     break;
@@ -450,7 +450,7 @@ class AuthService {
                 case 'referee':
                     entityData = await RefereeRepository.create({
                         _id: userId,
-                        license_link: null,
+                        licenseLink: null,
                     });
                     break;
 

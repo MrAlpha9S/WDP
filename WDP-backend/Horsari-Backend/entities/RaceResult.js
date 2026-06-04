@@ -12,7 +12,7 @@ const raceResultSchema = new mongoose.Schema(
             ref: 'Registration',
             required: true,
         },
-        published_by_adminId: {
+        publishedByAdminId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Admin',
         },

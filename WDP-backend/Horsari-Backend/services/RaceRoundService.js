@@ -15,7 +15,7 @@ class RaceRoundService {
             raceReferee = await RaceRefereeRepository.create({
                 raceRoundId: raceRound._id,
                 refereeId: refereeID,
-                assigned_at: new Date(),
+                assignedAt: new Date(),
                 status: 'assigned',
             });
         }
@@ -37,8 +37,8 @@ class RaceRoundService {
                     const reg = await RegistrationRepository.createRegistration({
                         raceRoundId: raceRound._id,
                         horseOwnerId: ho._id,
-                        approved_by_adminId: adminID,
-                        registration_status: 'pending',
+                        approvedByAdminId: adminID,
+                        registrationStatus: 'pending',
                     });
                     registrations.push(reg);
                 }

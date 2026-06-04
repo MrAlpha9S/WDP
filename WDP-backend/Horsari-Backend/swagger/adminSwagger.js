@@ -242,7 +242,7 @@
  *                             type: string
  *                             format: date-time
  *                             example: "2026-05-01T10:00:00.000Z"
- *                           registration_status:
+ *                           registrationStatus:
  *                             type: string
  *                             enum: [pending, approved, rejected]
  *                             example: approved
@@ -252,13 +252,13 @@
  *                             properties:
  *                               raceRoundId:
  *                                 type: string
- *                               round_name:
+ *                               roundName:
  *                                 type: string
  *                                 example: "Quarter Final A"
- *                               race_date:
+ *                               raceDate:
  *                                 type: string
  *                                 format: date-time
- *                               max_participants:
+ *                               maxParticipants:
  *                                 type: integer
  *                                 example: 10
  *                               current_participants:
@@ -326,12 +326,12 @@
  *                 items:
  *                   - registrationId: "664a1b2c3d4e5f6789012345"
  *                     registration_at: "2026-05-01T10:00:00.000Z"
- *                     registration_status: "approved"
+ *                     registrationStatus: "approved"
  *                     raceRound:
  *                       raceRoundId: "664a000000000000000000aa"
- *                       round_name: "Quarter Final A"
- *                       race_date: "2026-06-10T08:00:00.000Z"
- *                       max_participants: 10
+ *                       roundName: "Quarter Final A"
+ *                       raceDate: "2026-06-10T08:00:00.000Z"
+ *                       maxParticipants: 10
  *                       current_participants: 3
  *                       status: "scheduled"
  *                     horse:

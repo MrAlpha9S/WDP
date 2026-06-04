@@ -48,7 +48,7 @@ class CertificationController {
             req.body
         );
 
-        // If save was successful, update the license_link in the respective entity
+        // If save was successful, update the licenseLink in the respective entity
         if (response.code === 201 && repository) {
             let record = null;
             
@@ -62,7 +62,7 @@ class CertificationController {
             
             if (record) {
                 await repository.updateById(record._id, {
-                    license_link: response.data.filepath,
+                    licenseLink: response.data.filepath,
                 });
             }
         }

@@ -50,7 +50,7 @@ class InvitationService {
                 message: "Invitation not found",
             };
         }
-        const updatedInvitation = await InvitationRepository.updateById(id, { jockey_confirmation: newStatus });
+        const updatedInvitation = await InvitationRepository.updateById(id, { jockeyConfirmation: newStatus });
         return {
             code: 200,
             message: "Invitation status updated successfully",
@@ -108,7 +108,7 @@ class InvitationService {
 
             tournamentsMap.set(tId, {
                 ...tournament.toObject ? tournament.toObject() : tournament,
-                race_rounds: roundsWithInvitations,
+                raceRounds: roundsWithInvitations,
             });
         }
 
@@ -135,11 +135,11 @@ class InvitationService {
         }
         // prune the invitations per round to only include the current jockey's invitations
         const filteredTournaments = result.data.tournaments.map((t) => {
-            const race_rounds = t.race_rounds.map((rr) => {
+            const raceRounds = t.raceRounds.map((rr) => {
                 const filteredInvs = (rr.invitations || []).filter((inv) => inv.jockeyId === jockeyId);
                 return { ...rr, invitations: filteredInvs };
             });
-            return { ...t, race_rounds };
+            return { ...t, raceRounds };
         });
         return { code: 200, message: 'Success', data: { tournaments: filteredTournaments } };
     }

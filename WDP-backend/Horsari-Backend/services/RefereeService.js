@@ -5,7 +5,7 @@ class RefereeService {
     // Create referee profile for existing user (public)
     async createReferee(refereeId, data) {
         try {
-            const { license_link } = data || {};
+            const { licenseLink } = data || {};
 
             if (!refereeId) {
                 return { code: 400, msg: 'refereeId is required' };
@@ -23,7 +23,7 @@ class RefereeService {
 
             const refereeProfile = await RefereeRepository.create({
                 _id: refereeId,
-                license_link: license_link || null,
+                licenseLink: licenseLink || null,
             });
 
             return { code: 201, data: refereeProfile, msg: 'Referee profile created successfully' };
@@ -104,7 +104,7 @@ class RefereeService {
         try {
             return {
                 code: 400,
-                msg: 'This endpoint is deprecated. Certification information is now stored as license_link.',
+                msg: 'This endpoint is deprecated. Certification information is now stored as licenseLink.',
             };
         } catch (error) {
             return {
@@ -119,7 +119,7 @@ class RefereeService {
         try {
             return {
                 code: 400,
-                msg: 'This endpoint is deprecated. Certification information is now stored as license_link.',
+                msg: 'This endpoint is deprecated. Certification information is now stored as licenseLink.',
             };
         } catch (error) {
             return {
@@ -134,7 +134,7 @@ class RefereeService {
         try {
             return {
                 code: 400,
-                msg: 'This endpoint is deprecated. Use update profile to change license_link.',
+                msg: 'This endpoint is deprecated. Use update profile to change licenseLink.',
             };
         } catch (error) {
             return {
@@ -149,7 +149,7 @@ class RefereeService {
         try {
             return {
                 code: 400,
-                msg: 'This endpoint is deprecated. License information is now stored as license_link.',
+                msg: 'This endpoint is deprecated. License information is now stored as licenseLink.',
             };
         } catch (error) {
             return {

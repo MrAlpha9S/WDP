@@ -12,11 +12,11 @@ const raceRefereeSchema = new mongoose.Schema(
             ref: 'Referee',
             required: [true, 'Referee is required'],
         },
-        assigned_by_adminId: {
+        assignedByAdminId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Admin',
         },
-        assigned_at: {
+        assignedAt: {
             type: Date,
             default: Date.now,
         },

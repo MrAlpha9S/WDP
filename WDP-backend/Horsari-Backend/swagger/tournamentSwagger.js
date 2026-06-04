@@ -13,19 +13,19 @@
  *           schema:
  *             type: object
  *             required:
- *               - tournament_name
- *               - start_date
- *               - end_date
+ *               - tournamentName
+ *               - startDate
+ *               - endDate
  *               - location
  *             properties:
- *               tournament_name:
+ *               tournamentName:
  *                 type: string
  *               description:
  *                 type: string
- *               start_date:
+ *               startDate:
  *                 type: string
  *                 format: date-time
- *               end_date:
+ *               endDate:
  *                 type: string
  *                 format: date-time
  *               location:
@@ -90,14 +90,14 @@
  *           schema:
  *             type: object
  *             properties:
- *               tournament_name:
+ *               tournamentName:
  *                 type: string
  *               description:
  *                 type: string
- *               start_date:
+ *               startDate:
  *                 type: string
  *                 format: date-time
- *               end_date:
+ *               endDate:
  *                 type: string
  *                 format: date-time
  *               location:

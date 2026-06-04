@@ -14,39 +14,39 @@
  *             type: object
  *             required:
  *               - tournamentId
- *               - round_name
- *               - race_date
- *               - track_length
- *               - max_participants
- *               - race_type
- *               - minimal_riding_fees
+ *               - roundName
+ *               - raceDate
+ *               - trackLength
+ *               - maxParticipants
+ *               - raceType
+ *               - minimalRidingFees
  *             properties:
  *               tournamentId:
  *                 type: string
- *               round_name:
+ *               roundName:
  *                 type: string
- *               race_date:
+ *               raceDate:
  *                 type: string
  *                 format: date-time
- *               track_length:
+ *               trackLength:
  *                 type: number
- *               max_participants:
+ *               maxParticipants:
  *                 type: integer
- *               race_type:
+ *               raceType:
  *                 type: string
- *               minimal_riding_fees:
+ *               minimalRidingFees:
  *                 type: number
- *               require_entrance_fees:
+ *               requireEntranceFees:
  *                 type: boolean
  *           example:
  *             tournamentId: "60f7c2b8d3e2a12f4c8b4567"
- *             round_name: "Final Round"
- *             race_date: "2026-07-15T10:00:00.000Z"
- *             track_length: 1200
- *             max_participants: 12
- *             race_type: "flat"
- *             minimal_riding_fees: 50
- *             require_entrance_fees: true
+ *             roundName: "Final Round"
+ *             raceDate: "2026-07-15T10:00:00.000Z"
+ *             trackLength: 1200
+ *             maxParticipants: 12
+ *             raceType: "flat"
+ *             minimalRidingFees: 50
+ *             requireEntranceFees: true
  *             refereeID: "60f7c2b8d3e2a12f4c8b1234"
  *             listOwnerID:
  *               - "60f7c2b8d3e2a12f4c8b2222"
@@ -134,22 +134,22 @@
  *           schema:
  *             type: object
  *             properties:
- *               round_name:
+ *               roundName:
  *                 type: string
- *               race_date:
+ *               raceDate:
  *                 type: string
  *                 format: date-time
- *               track_length:
+ *               trackLength:
  *                 type: number
- *               max_participants:
+ *               maxParticipants:
  *                 type: integer
  *               status:
  *                 type: string
- *               race_type:
+ *               raceType:
  *                 type: string
- *               minimal_riding_fees:
+ *               minimalRidingFees:
  *                 type: number
- *               require_entrance_fees:
+ *               requireEntranceFees:
  *                 type: boolean
  *     responses:
  *       200:

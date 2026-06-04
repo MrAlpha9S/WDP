@@ -20,7 +20,7 @@
  *                 type: string
  *               horseOwnerId:
  *                 type: string
- *               registration_status:
+ *               registrationStatus:
  *                 type: string
  *                 enum: [pending, approved, rejected]
  *     responses:
@@ -64,7 +64,7 @@
  *           schema:
  *             type: object
  *             properties:
- *               registration_status:
+ *               registrationStatus:
  *                 type: string
  *                 enum: [pending, approved, rejected]
  *     responses:

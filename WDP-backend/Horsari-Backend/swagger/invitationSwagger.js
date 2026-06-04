@@ -40,7 +40,7 @@
  *                 type: string
  *               registrationId:
  *                 type: string
- *               percentage_payout:
+ *               percentagePayout:
  *                 type: number
  *               isBackup:
  *                 type: boolean
@@ -85,14 +85,14 @@
  *             properties:
  *               jockeyId:
  *                 type: string
- *               owner_confirmation:
+ *               ownerConfirmation:
  *                 type: boolean
- *               jockey_confirmation:
+ *               jockeyConfirmation:
  *                 type: boolean
- *               invitation_status:
+ *               invitationStatus:
  *                 type: string
  *                 enum: [pending, accepted, declined, cancelled]
- *               percentage_payout:
+ *               percentagePayout:
  *                 type: number
  *               isBackup:
  *                 type: boolean
@@ -174,7 +174,7 @@
  *                               properties:
  *                                 _id:
  *                                   type: string
- *                                 round_name:
+ *                                 roundName:
  *                                   type: string
  *                                 invitations:
  *                                   type: array

@@ -356,7 +356,7 @@
  *       - **Admin**: No additional fields required
  *       
  *       **Note**: After creating the role entity, users can upload their license/certification using the `/api/upload/cert/user/{id}` endpoint.
- *       The uploaded file will automatically update the `license_link` field in their role entity.
+ *       The uploaded file will automatically update the `licenseLink` field in their role entity.
  *     tags: [Auth]
  *     security:
  *       - BearerAuth: []

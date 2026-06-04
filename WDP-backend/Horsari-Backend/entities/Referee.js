@@ -7,10 +7,10 @@ const refereeSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
-        license_link: {
+        licenseLink: {
             type: String,
         },
-        license_status: {
+        licenseStatus: {
             type: String,
             enum: ['pending', 'approved', 'rejected'],
             default: 'pending',

@@ -167,25 +167,25 @@ const mockData = async () => {
 
         // Create 2 Race Eligibility Rules
         await RaceEligibilityRule.create({
-            race_type: 'Claiming',
-            license_required: true,
+            raceType: 'Claiming',
+            licenseRequired: true,
             isActive: true,
         });
 
         await RaceEligibilityRule.create({
-            race_type: 'Maiden',
-            min_races_won: 0,
-            license_required: true,
+            raceType: 'Maiden',
+            minRacesWon: 0,
+            licenseRequired: true,
             isActive: true,
         });
         console.log('✅ Created 2 Race Eligibility Rules');
 
         // Create Non-tournament
         await Tournament.create({
-            tournament_name: 'Non-tournament',
+            tournamentName: 'Non-tournament',
             description: 'Standalone races that are not part of any tournament',
-            start_date: null,
-            end_date: null,
+            startDate: null,
+            endDate: null,
             location: 'Various',
             status: 'ongoing',
         });

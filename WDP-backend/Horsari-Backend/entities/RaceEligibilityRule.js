@@ -2,35 +2,35 @@ const mongoose = require('mongoose');
 
 const raceEligibilityRuleSchema = new mongoose.Schema(
     {
-        min_age: {
+        minAge: {
             type: Number,
             default: null,
         },
-        max_age: {
+        maxAge: {
             type: Number,
             default: null,
         },
-        min_races_run: {
-            type: Number,
-            default: 0,
-        },
-        min_races_won: {
+        minRacesRun: {
             type: Number,
             default: 0,
         },
-        required_gender: {
+        minRacesWon: {
+            type: Number,
+            default: 0,
+        },
+        requiredGender: {
             type: String,
             default: null,
         },
-        required_breed: {
+        requiredBreed: {
             type: String,
             default: null,
         },
-        license_required: {
+        licenseRequired: {
             type: Boolean,
             default: false,
         },
-        require_nomination: {
+        requireNomination: {
             type: Boolean,
             default: false,
         },
@@ -38,7 +38,7 @@ const raceEligibilityRuleSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
-        race_type: {
+        raceType: {
             type: String,
             default: null,
         },

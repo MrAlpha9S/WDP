@@ -55,7 +55,7 @@ class HorseOwnerRepository {
     }
 
     async countByLicenseStatus(status) {
-        return await HorseOwner.countDocuments({ license_status: status });
+        return await HorseOwner.countDocuments({ licenseStatus: status });
     }
 }
 

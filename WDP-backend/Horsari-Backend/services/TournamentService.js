@@ -3,15 +3,15 @@ const tournamentRepository = require('../repositories/TournamentRepository');
 class TournamentService {
     async createTournament(tournamentData) {
         try {
-            const { created_by_adminId, tournament_name, description, start_date, end_date, location } = tournamentData;
-            if (!created_by_adminId || !tournament_name || !description) {
-                return { code: 400, msg: 'created_by_adminId, tournament_name, and description are required' };
+            const { createdByAdminId, tournamentName, description, startDate, endDate, location } = tournamentData;
+            if (!createdByAdminId || !tournamentName || !description) {
+                return { code: 400, msg: 'createdByAdminId, tournamentName, and description are required' };
             }
-            if (!start_date || !end_date) {
-                return { code: 400, msg: 'start_date and end_date are required' };
+            if (!startDate || !endDate) {
+                return { code: 400, msg: 'startDate and endDate are required' };
             }
-            if (new Date(start_date) >= new Date(end_date)) {
-                return { code: 400, msg: 'start_date must be before end_date' };
+            if (new Date(startDate) >= new Date(endDate)) {
+                return { code: 400, msg: 'startDate must be before endDate' };
             }
             if (!location) {
                 return { code: 400, msg: 'location is required' };

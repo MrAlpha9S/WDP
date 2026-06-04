@@ -18,10 +18,10 @@ const jockeySchema = new mongoose.Schema(
             default: 0,
         },
         ranking: Number,
-        license_link: {
+        licenseLink: {
             type: String,
         },
-        license_status: {
+        licenseStatus: {
             type: String,
             enum: ['pending', 'approved', 'rejected'],
             default: 'pending',

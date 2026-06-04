@@ -224,7 +224,7 @@ class AdminService {
                     const currentParticipants = raceRound
                         ? await Invitation.countDocuments({
                               registrationId: { $in: await Registration.find({ raceRoundId: raceRound._id }).distinct('_id') },
-                              invitation_status: 'accepted',
+                              invitationStatus: 'accepted',
                           })
                         : 0;
 
@@ -236,7 +236,7 @@ class AdminService {
                     // Fetch only accepted invitations for this registration
                     const invitations = await Invitation.find({
                         registrationId: reg._id,
-                        invitation_status: 'accepted',
+                        invitationStatus: 'accepted',
                     })
                         .populate({
                             path: 'jockeyId',
@@ -246,15 +246,15 @@ class AdminService {
 
                     return {
                         registrationId: reg._id,
-                        registration_at: reg.registered_at,
-                        registration_status: reg.registration_status,
+                        registrationAt: reg.registeredAt,
+                        registrationStatus: reg.registrationStatus,
                         raceRound: raceRound
                             ? {
                                   raceRoundId: raceRound._id,
-                                  round_name: raceRound.round_name,
-                                  race_date: raceRound.race_date,
-                                  max_participants: raceRound.max_participants,
-                                  current_participants: currentParticipants,
+                                  roundName: raceRound.roundName,
+                                  raceDate: raceRound.raceDate,
+                                  maxParticipants: raceRound.maxParticipants,
+                                  currentParticipants: currentParticipants,
                                   status: raceRound.status,
                               }
                             : null,
@@ -264,7 +264,7 @@ class AdminService {
                         invitations: invitations.map((inv) => ({
                             jockeyName: inv.jockeyId?._id?.fullName ?? 'Unknown',
                             isBackup: inv.isBackup,
-                            status: inv.invitation_status,
+                            status: inv.invitationStatus,
                         })),
                         horseOwner: horseOwner
                             ? {
