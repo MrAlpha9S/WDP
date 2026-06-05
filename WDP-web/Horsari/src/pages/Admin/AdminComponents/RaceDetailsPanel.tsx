@@ -163,6 +163,9 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
                                             <div className="flex items-center gap-2">
                                                 <Shield size={12} className="text-gray-500 shrink-0" />
                                                 <span className="text-[13px] font-semibold text-white truncate">{ref.fullName}</span>
+                                                {ref.fee !== undefined && (
+                                                    <span className="text-[11px] text-gray-400">(${ref.fee})</span>
+                                                )}
                                             </div>
                                             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${colorClass}`}>
                                                 {STATUS_LABEL[ref.assignmentStatus] ?? ref.assignmentStatus}

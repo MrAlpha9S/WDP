@@ -19,21 +19,6 @@ export function StatusBadge({ status }: { status: TournamentStatus }) {
     );
 }
 
-// ── Grade Badge ────────────────────────────────────────────────────────────────
-
-export function GradeBadge({ grade }: { grade: string }) {
-    const cfg: Record<string, string> = {
-        G1:     "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
-        G2:     "border-gray-600/60 text-gray-400 bg-white/5",
-        G3:     "border-amber-700/60 text-amber-400 bg-amber-500/10",
-        Listed: "border-sky-700/60 text-sky-400 bg-sky-500/10",
-    };
-    return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-black tracking-wide ${cfg[grade] ?? ""}`}>
-            {grade}
-        </span>
-    );
-}
 
 // ── Race Type Badge ────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import type { InviteStatus, PaymentStatus, RaceType, GradeLevel } from "../../../shared/types/InboxTypes";
+import type { InviteStatus, PaymentStatus, RaceType } from "../../../shared/types/InboxTypes";
 
 // ── Status Pill ────────────────────────────────────────────────────────────────
 
@@ -54,8 +54,9 @@ export function RaceTypeBadge({ type }: { type: RaceType }) {
 
 // ── Grade Badge ────────────────────────────────────────────────────────────────
 
-export function GradeBadge({ grade }: { grade: GradeLevel }) {
-    const map: Record<GradeLevel, string> = {
+export function GradeBadge({ grade }: { grade: string }) {
+    if (!grade) return null;
+    const map: Record<string, string> = {
         G1:     "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
         G2:     "border-gray-600/60 text-gray-400 bg-white/5",
         G3:     "border-amber-700/60 text-amber-400 bg-amber-500/10",

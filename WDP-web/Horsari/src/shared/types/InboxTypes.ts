@@ -23,5 +23,6 @@ export interface RaceInvite {
     fee: number;
     paymentStatus: PaymentStatus;
     paymentMethod?: string;
+    tournamentName?: string;
     paidOn?: string;
 }

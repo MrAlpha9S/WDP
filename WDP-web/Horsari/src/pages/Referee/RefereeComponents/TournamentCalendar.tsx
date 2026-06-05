@@ -1,26 +1,29 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Flag } from "lucide-react";
-import type { Tournament } from "../../../shared/types/TournamentTypes";
+import type { Tournament, RaceRound } from "../../../shared/types/TournamentTypes";
 import {
-    TOURNAMENTS, T_COLOR,
-    MONTH_NAMES, DAY_NAMES, TODAY_ISO,
+    T_COLOR,
+    MONTH_NAMES, DAY_NAMES, TODAY_ISO, TODAY,
     daysInMonth, firstDayOfMonth, toISO,
-    tournamentsOnDay, racesOnDay,
 } from "../../../shared/data/TournamentData";
 import { DayPopup } from "../modal/TournamentModal";
 
 // ── Tournament Calendar ────────────────────────────────────────────────────────
 
 interface TournamentCalendarProps {
+    tournaments: Tournament[];
+    allRaces: RaceRound[];
     onSelectTournament: (t: Tournament) => void;
     onOpenRaceMonitor: (raceId: string) => void;
 }
 
-export default function TournamentCalendar({ onSelectTournament, onOpenRaceMonitor }: TournamentCalendarProps) {
-    const TODAY = new Date(2024, 10, 2);
+export default function TournamentCalendar({ tournaments, allRaces, onSelectTournament, onOpenRaceMonitor }: TournamentCalendarProps) {
     const [viewMonth, setViewMonth] = useState(TODAY.getMonth());
     const [viewYear, setViewYear] = useState(TODAY.getFullYear());
     const [selectedISO, setSelectedISO] = useState<string | null>(TODAY_ISO);
+
+    const tournamentsOnDay = (iso: string) => tournaments.filter(t => t.id !== "none" && iso >= t.startISO && iso <= t.endISO);
+    const racesOnDay = (iso: string) => allRaces.filter(r => r.dateISO === iso);
 
     const totalDays = daysInMonth(viewYear, viewMonth);
     const firstDay  = firstDayOfMonth(viewYear, viewMonth);
@@ -98,7 +101,8 @@ export default function TournamentCalendar({ onSelectTournament, onOpenRaceMonit
                                 {hasRace && (
                                     <div className="flex items-center gap-0.5 mt-1 z-10">
                                         {races.slice(0, 3).map((r, ri) => {
-                                            const tc = T_COLOR[TOURNAMENTS.find(t => t.id === r.tournamentId)!.color];
+                                            const tournamentForRace = tournaments.find(t => t.id === r.tournamentId);
+                                            const tc = tournamentForRace ? T_COLOR[tournamentForRace.color] : T_COLOR["gray"];
                                             return (
                                                 <span key={ri} className={`w-1.5 h-1.5 rounded-full ${isSel ? "bg-white/70" : tc.dot} ${r.status === "live" ? "ring-1 ring-white/40" : ""}`} />
                                             );
@@ -112,7 +116,7 @@ export default function TournamentCalendar({ onSelectTournament, onOpenRaceMonit
 
                 {/* Legend */}
                 <div className="px-4 py-3 border-t border-white/6 flex flex-wrap gap-x-4 gap-y-1.5">
-                    {TOURNAMENTS.filter(t => {
+                    {tournaments.filter(t => {
                         if (t.id === "none") return false;
                         const mStart = toISO(viewYear, viewMonth, 1);
                         const mEnd   = toISO(viewYear, viewMonth, daysInMonth(viewYear, viewMonth));
@@ -133,7 +137,7 @@ export default function TournamentCalendar({ onSelectTournament, onOpenRaceMonit
             {/* Day popup */}
             {selectedISO && (
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                    <DayPopup iso={selectedISO} onSelectTournament={onSelectTournament} onOpenRaceMonitor={onOpenRaceMonitor} />
+                    <DayPopup iso={selectedISO} tournaments={tournaments} allRaces={allRaces} onSelectTournament={onSelectTournament} onOpenRaceMonitor={onOpenRaceMonitor} />
                 </div>
             )}
         </div>

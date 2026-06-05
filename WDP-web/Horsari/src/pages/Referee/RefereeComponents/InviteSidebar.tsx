@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle2, ChevronRight, Flag, MapPin, XCircle } from "lucide-react";
 import type { RecentInvite, InviteStatus } from "../../../shared/types/HomepageTypes";
 import { useNavigate } from "react-router-dom";
+import { refereeService } from "../../../api/refereeService";
 
 // ── Status Pill ────────────────────────────────────────────────────────────────
 
@@ -29,10 +30,43 @@ interface InviteSidebarProps {
 
 export default function InviteSidebar({ invites: initial }: InviteSidebarProps) {
     const [invites, setInvites] = useState(initial);
+    const [loadingId, setLoadingId] = useState<string | null>(null);
     const navigate = useNavigate();
 
-    const handleAccept = (id: string) => setInvites(p => p.map(i => i.id === id ? { ...i, status: "accepted" as InviteStatus, isNew: false } : i));
-    const handleDecline = (id: string) => setInvites(p => p.map(i => i.id === id ? { ...i, status: "declined" as InviteStatus, isNew: false } : i));
+    useEffect(() => {
+        const filtered = initial
+            .filter(i => (i.status as string) !== "cancelled")
+            .slice(0, 3);
+        setInvites(filtered);
+    }, [initial]);
+
+    const handleAccept = async (id: string) => {
+        setLoadingId(id);
+        try {
+            const res = await refereeService.acceptInvitation(id);
+            if (res.code === 200) {
+                setInvites(p => p.map(i => i.id === id ? { ...i, status: "accepted" as InviteStatus, isNew: false } : i));
+            }
+        } catch (error) {
+            console.error("Failed to accept invitation:", error);
+        } finally {
+            setLoadingId(null);
+        }
+    };
+
+    const handleDecline = async (id: string) => {
+        setLoadingId(id);
+        try {
+            const res = await refereeService.rejectInvitation(id);
+            if (res.code === 200) {
+                setInvites(p => p.map(i => i.id === id ? { ...i, status: "declined" as InviteStatus, isNew: false } : i));
+            }
+        } catch (error) {
+            console.error("Failed to decline invitation:", error);
+        } finally {
+            setLoadingId(null);
+        }
+    };
 
     const pendingCount = invites.filter(i => i.status === "pending").length;
 
@@ -70,10 +104,15 @@ export default function InviteSidebar({ invites: initial }: InviteSidebarProps) 
                                 <div className="flex-1 min-w-0">
 
                                     {/* Title row */}
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="text-[13px] font-bold text-white truncate">{inv.raceLabel}</span>
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[13px] font-bold text-white truncate">{inv.raceLabel}</p>
+                                            {inv.tournamentName && inv.tournamentName !== "Non-tournament" && (
+                                                <p className="text-[10.5px] text-gray-500 truncate mt-0.5">{inv.tournamentName}</p>
+                                            )}
+                                        </div>
                                         {inv.isNew && (
-                                            <span className="text-[9px] font-bold uppercase tracking-widest bg-red-700 text-white px-1.5 py-0.5 rounded-full shrink-0">
+                                            <span className="text-[9px] font-bold uppercase tracking-widest bg-red-700 text-white px-1.5 py-0.5 rounded-full shrink-0 mt-0.5">
                                                 New
                                             </span>
                                         )}
@@ -107,15 +146,17 @@ export default function InviteSidebar({ invites: initial }: InviteSidebarProps) 
                                         <div className="flex items-center gap-2 mt-2.5">
                                             <button
                                                 onClick={() => handleDecline(inv.id)}
-                                                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/10 text-[11px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all"
+                                                disabled={loadingId === inv.id}
+                                                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/10 text-[11px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all disabled:opacity-50"
                                             >
-                                                <XCircle size={11} className="text-gray-600" /> Decline
+                                                {loadingId === inv.id ? <div className="w-3 h-3 rounded-full border border-white/20 border-t-white animate-spin" /> : <XCircle size={11} className="text-gray-600" />} Decline
                                             </button>
                                             <button
                                                 onClick={() => handleAccept(inv.id)}
-                                                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-red-700 text-white text-[11px] font-bold hover:bg-red-600 transition-all"
+                                                disabled={loadingId === inv.id}
+                                                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-red-700 text-white text-[11px] font-bold hover:bg-red-600 transition-all disabled:opacity-50"
                                             >
-                                                <CheckCircle2 size={11} /> Accept
+                                                {loadingId === inv.id ? <div className="w-3 h-3 rounded-full border border-white/20 border-t-white animate-spin" /> : <CheckCircle2 size={11} />} Accept
                                             </button>
                                         </div>
                                     )}

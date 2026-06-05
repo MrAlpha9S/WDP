@@ -25,6 +25,15 @@ const raceRefereeSchema = new mongoose.Schema(
             enum: ['pending', 'assigned', 'rejected', 'cancelled'],
             default: 'pending',
         },
+        paymentStatus: {
+            type: String,
+            enum: ['unpaid', 'processing', 'paid'],
+            default: 'unpaid',
+        },
+        fee: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );

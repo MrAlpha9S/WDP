@@ -19,7 +19,7 @@ interface SidebarItem {
 }
 
 const ITEMS: SidebarItem[] = [
-    { tab: "Home", icon: <House size={17} /> },
+    { tab: "Dashboard", icon: <House size={17} /> },
     { tab: "Horses", icon: <User size={17} /> },
     { tab: "Roles & Permissions", icon: <ShieldCheck size={17} /> },
     { tab: "Activity Logs", icon: <Activity size={17} /> },

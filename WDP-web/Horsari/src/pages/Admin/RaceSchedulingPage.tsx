@@ -89,6 +89,7 @@ export default function RaceSchedulingPage() {
                     refereeId: ref.refereeId,
                     fullName: ref.fullName ?? 'Unknown Referee',  // fullName is now a top-level field
                     assignmentStatus: ref.assignmentStatus ?? 'pending',
+                    fee: ref.fee,
                 })),
                 pendingInvites: [],
                 maxSlots: rr.maxParticipants || 0,
