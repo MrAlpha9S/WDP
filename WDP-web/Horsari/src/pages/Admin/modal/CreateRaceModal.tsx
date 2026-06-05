@@ -6,12 +6,13 @@ interface CreateRaceModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
+    raceToEdit?: any;
 }
 
-export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRaceModalProps) {
+export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit }: CreateRaceModalProps) {
     const [createRaceType, setCreateRaceType] = useState<string>("Stakes");
     const [refereeSearchQuery, setRefereeSearchQuery] = useState("");
-    
+
     // Form States
     const [trackLength, setTrackLength] = useState<number | "">("");
     const [minimalRidingFees, setMinimalRidingFees] = useState<number | "">("");
@@ -23,13 +24,13 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
     const [raceGround, setRaceGround] = useState("");
     const [address, setAddress] = useState("");
     const [raceDate, setRaceDate] = useState("");
-    const [raceTime, setRaceTime] = useState("14:00");
+    const [raceTime, setRaceTime] = useState("09:00");
     const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
     const [selectedReferees, setSelectedReferees] = useState<string[]>([]);
     const [submitLoading, setSubmitLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showConfirm, setShowConfirm] = useState(false);
-    
+
     const [metadata, setMetadata] = useState<any>(null);
     const [loading, setLoading] = useState(false);
 
@@ -39,11 +40,37 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
             adminService.getCreateRaceMetadata()
                 .then(data => {
                     setMetadata(data.data);
-                    if (data.data?.eligibilityRules?.length > 0) {
-                        setCreateRaceType(data.data.eligibilityRules[0].raceType);
-                    }
-                    if (data.data?.tournaments?.length > 0) {
-                        setTournamentId(data.data.tournaments[0]._id);
+                    
+                    if (raceToEdit) {
+                        setRaceTitle(raceToEdit.roundName || "");
+                        setTournamentId(raceToEdit.tournamentId || (data.data?.tournaments?.length > 0 ? data.data.tournaments[0]._id : ""));
+                        setLocation(raceToEdit.location || "");
+                        setRaceGround(raceToEdit.raceGround || "");
+                        setAddress(raceToEdit.address || "");
+                        if (raceToEdit.raceDate) {
+                            const d = new Date(raceToEdit.raceDate);
+                            if (!isNaN(d.getTime())) {
+                                setRaceDate(d.toISOString().split('T')[0]);
+                                setRaceTime(d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+                            }
+                        }
+                        setTrackLength(raceToEdit.trackLength || "");
+                        setMinimalRidingFees(raceToEdit.minimalRidingFees || "");
+                        setMaxParticipants(raceToEdit.maxParticipants || 18);
+                        setCreateRaceType(raceToEdit.raceType || (data.data?.eligibilityRules?.length > 0 ? data.data.eligibilityRules[0].raceType : "Stakes"));
+
+                        const owners = raceToEdit.Registration?.filter((r: any) => r.registrationStatus !== 'cancelled').map((r: any) => r.Owner?._id || r.horseOwnerId).filter(Boolean) || [];
+                        const referees = raceToEdit.Referee?.filter((r: any) => r.status !== 'cancelled').map((r: any) => r.refereeId).filter(Boolean) || [];
+                        
+                        setSelectedOwners(owners.map((id: any) => typeof id === 'object' ? id._id : id));
+                        setSelectedReferees(referees.map((id: any) => typeof id === 'object' ? id._id : id));
+                    } else {
+                        if (data.data?.eligibilityRules?.length > 0) {
+                            setCreateRaceType(data.data.eligibilityRules[0].raceType);
+                        }
+                        if (data.data?.tournaments?.length > 0) {
+                            setTournamentId(data.data.tournaments[0]._id);
+                        }
                     }
                 })
                 .catch(err => console.error("Failed to load metadata", err))
@@ -57,10 +84,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
             setRaceGround("");
             setAddress("");
             setRaceDate("");
-            setRaceTime("14:00");
+            setRaceTime("09:00");
             setSelectedOwners([]);
             setSelectedReferees([]);
-            setTrackLength("");
+            setShowConfirm(false);
             setMinimalRidingFees("");
             setRequireEntranceFees(false);
             setMaxParticipants(18);
@@ -82,25 +109,25 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
 
     const checkEligibility = (horse: any, selectedRaceType: string) => {
         if (!metadata || !metadata.eligibilityRules) return false;
-        
+
         const rule = metadata.eligibilityRules.find((r: any) => r.raceType === selectedRaceType);
         if (!rule) return false;
 
         const wins = horse.raceResults ? horse.raceResults.filter((r: any) => r.finishPosition === 1).length : 0;
-        
+
         if (rule.minWins !== undefined && rule.minWins !== null && wins < rule.minWins) return false;
         if (rule.maxWins !== undefined && rule.maxWins !== null && wins > rule.maxWins) return false;
-        
+
         const currentYear = new Date().getFullYear();
         const horseAge = horse.dateOfBirth ? (currentYear - new Date(horse.dateOfBirth).getFullYear()) : 0;
-        
+
         if (rule.minAge !== undefined && rule.minAge !== null && horseAge < rule.minAge) return false;
         if (rule.maxAge !== undefined && rule.maxAge !== null && horseAge > rule.maxAge) return false;
-        
+
         if (rule.requiredGender && rule.requiredGender !== 'both' && rule.requiredGender !== horse.gender) {
             return false;
         }
-        
+
         return true;
     };
 
@@ -108,6 +135,14 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
         setError(null);
         if (!raceTitle || !tournamentId || !raceDate || !trackLength || !location) {
             setError("Please fill in all required fields (Title, Tournament, Date, Track Length, Location).");
+            return;
+        }
+
+        // Validate Time is between 09:00 and 17:00
+        const [hours, minutes] = raceTime.split(':').map(Number);
+        const timeInMinutes = hours * 60 + (minutes || 0);
+        if (timeInMinutes < 9 * 60 || timeInMinutes > 17 * 60) {
+            setError("Race start time must be between 09:00 AM and 05:00 PM.");
             return;
         }
 
@@ -122,7 +157,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
             return;
         }
 
-        if (selectedDate < twoWeeksFromNow) {
+        if (selectedDate < twoWeeksFromNow && !raceToEdit) {
             setError("Race date must be at least 14 days from today to allow for preparations.");
             return;
         }
@@ -165,7 +200,11 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
 
         setSubmitLoading(true);
         try {
-            await adminService.createRaceRound(payload);
+            if (raceToEdit) {
+                await adminService.updateRaceRound(raceToEdit._id, payload);
+            } else {
+                await adminService.createRaceRound(payload);
+            }
             if (onSuccess) onSuccess();
             onClose();
         } catch (err: any) {
@@ -184,7 +223,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
             <div className="w-[600px] bg-[#161616] border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col">
                 <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#1a1a1a]">
                     <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">
-                        {showConfirm ? "Confirm Race Creation" : "Create New Race"}
+                        {showConfirm ? (raceToEdit ? "Confirm Race Update" : "Confirm Race Creation") : (raceToEdit ? "Edit Race Round" : "Create New Race")}
                     </h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
                         <X size={20} />
@@ -197,24 +236,24 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                             <Loader2 className="animate-spin text-red-500" size={32} />
                         </div>
                     )}
-                    
+
                     {!showConfirm ? (
                         <>
                             {/* Form Fields */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Race Title</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={raceTitle}
                                         onChange={(e) => setRaceTitle(e.target.value)}
-                                        placeholder="e.g. Royal Ascot Gold Cup" 
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" 
+                                        placeholder="e.g. Royal Ascot Gold Cup"
+                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Tournament</label>
-                                    <select 
+                                    <select
                                         value={tournamentId}
                                         onChange={(e) => setTournamentId(e.target.value)}
                                         className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none"
@@ -246,9 +285,9 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Track Location</label>
                                     <div className="relative">
                                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                                        <input 
-                                            type="text" 
-                                            list="tracks-list" 
+                                        <input
+                                            type="text"
+                                            list="tracks-list"
                                             value={location}
                                             onChange={(e) => {
                                                 const loc = e.target.value;
@@ -258,8 +297,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                                     setRaceGround(match.raceGround);
                                                 }
                                             }}
-                                            placeholder="Select or enter custom..." 
-                                            className="w-full bg-[#111] border border-white/10 rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50" 
+                                            placeholder="Select or enter custom..."
+                                            className="w-full bg-[#111] border border-white/10 rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50"
                                         />
                                         <datalist id="tracks-list">
                                             {metadata?.previousRaceTracks?.map((t: any) => <option key={t.location} value={t.location} />)}
@@ -268,24 +307,24 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                 </div>
                                 <div>
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Race Ground</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={raceGround}
                                         onChange={(e) => setRaceGround(e.target.value)}
-                                        placeholder="e.g. Dirt, Turf" 
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" 
+                                        placeholder="e.g. Dirt, Turf"
+                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
                                     />
                                 </div>
                             </div>
 
                             <div>
                                 <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Address</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     value={address}
                                     onChange={(e) => setAddress(e.target.value)}
-                                    placeholder="e.g. 123 Racing Blvd, City" 
-                                    className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" 
+                                    placeholder="e.g. 123 Racing Blvd, City"
+                                    className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
                                 />
                             </div>
 
@@ -294,21 +333,24 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Date</label>
                                     <div className="relative">
                                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                                        <input 
-                                            type="date" 
+                                        <input
+                                            type="date"
                                             value={raceDate}
                                             onChange={(e) => setRaceDate(e.target.value)}
-                                            className="w-full bg-[#111] border border-white/10 rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" 
+                                            className="w-full bg-[#111] border border-white/10 rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
                                         />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Time</label>
-                                    <input 
-                                        type="time" 
+                                    <input
+                                        type="time"
                                         value={raceTime}
                                         onChange={(e) => setRaceTime(e.target.value)}
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" 
+                                        min="09:00"
+                                        max="17:00"
+                                        step="1800"
+                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
                                     />
                                 </div>
                             </div>
@@ -316,10 +358,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Track Length (m)</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         min="200"
-                                        placeholder="e.g. 1200" 
+                                        placeholder="e.g. 1200"
                                         value={trackLength}
                                         onChange={(e) => setTrackLength(e.target.value ? Number(e.target.value) : "")}
                                         onBlur={() => {
@@ -327,16 +369,16 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                                 setTrackLength(200);
                                             }
                                         }}
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" 
+                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Max Participants</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={maxParticipants}
                                         onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" 
+                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
                                     />
                                 </div>
                             </div>
@@ -344,10 +386,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Minimal Riding Fees ($)</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         min="0"
-                                        placeholder="e.g. 500" 
+                                        placeholder="e.g. 500"
                                         disabled={!requireEntranceFees}
                                         value={minimalRidingFees}
                                         onChange={(e) => setMinimalRidingFees(e.target.value ? Number(e.target.value) : "")}
@@ -356,13 +398,13 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                                 setMinimalRidingFees(0);
                                             }
                                         }}
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
                                 </div>
                                 <div className="flex flex-col justify-end">
                                     <label className="flex items-center gap-3 p-2.5 cursor-pointer group hover:bg-white/5 rounded border border-transparent hover:border-white/10 transition-colors h-[42px]">
-                                        <input 
-                                            type="checkbox" 
+                                        <input
+                                            type="checkbox"
                                             checked={requireEntranceFees}
                                             onChange={(e) => {
                                                 setRequireEntranceFees(e.target.checked);
@@ -370,7 +412,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                                     setMinimalRidingFees(0);
                                                 }
                                             }}
-                                            className="w-4 h-4 accent-red-600 rounded bg-black border-white/20 cursor-pointer" 
+                                            className="w-4 h-4 accent-red-600 rounded bg-black border-white/20 cursor-pointer"
                                         />
                                         <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">Require Entrance Fees</span>
                                     </label>
@@ -388,8 +430,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                         const eligibleHorses = owner.horses.filter((h: any) => checkEligibility(h, createRaceType));
                                         return (
                                             <label key={String(ownerId)} className="flex items-start gap-3 p-2 cursor-pointer group hover:bg-white/5 rounded transition-colors">
-                                                <input 
-                                                    type="checkbox" 
+                                                <input
+                                                    type="checkbox"
                                                     checked={selectedOwners.includes(String(ownerId))}
                                                     onChange={(e) => {
                                                         const id = String(ownerId);
@@ -399,7 +441,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                                             setSelectedOwners(selectedOwners.filter(sid => sid !== id));
                                                         }
                                                     }}
-                                                    className="w-3.5 h-3.5 mt-1 accent-red-600 rounded bg-black border-white/20" 
+                                                    className="w-3.5 h-3.5 mt-1 accent-red-600 rounded bg-black border-white/20"
                                                 />
                                                 <div className="flex flex-col">
                                                     <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">{ownerName}</span>
@@ -426,9 +468,9 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                 <div className="p-3 bg-[#111] border border-white/10 rounded flex flex-col gap-2">
                                     <div className="relative mb-2">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                                        <input 
-                                            type="text" 
-                                            placeholder="Search referee by name..." 
+                                        <input
+                                            type="text"
+                                            placeholder="Search referee by name..."
                                             value={refereeSearchQuery}
                                             onChange={(e) => setRefereeSearchQuery(e.target.value)}
                                             className="w-full bg-[#1a1a1a] border border-white/10 rounded py-1.5 pl-9 pr-3 text-[12px] text-white focus:outline-none focus:border-red-500/50"
@@ -440,8 +482,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                             const refName = referee._id?.fullName ?? 'Unknown Referee';
                                             return (
                                                 <label key={String(refereeId)} className="flex items-center gap-3 p-2 cursor-pointer group hover:bg-white/5 rounded transition-colors">
-                                                    <input 
-                                                        type="checkbox" 
+                                                    <input
+                                                        type="checkbox"
                                                         checked={selectedReferees.includes(String(refereeId))}
                                                         onChange={(e) => {
                                                             const id = String(refereeId);
@@ -451,7 +493,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                                                 setSelectedReferees(selectedReferees.filter(sid => sid !== id));
                                                             }
                                                         }}
-                                                        className="w-3.5 h-3.5 accent-red-600 rounded bg-black border-white/20" 
+                                                        className="w-3.5 h-3.5 accent-red-600 rounded bg-black border-white/20"
                                                     />
                                                     <div className="flex flex-col">
                                                         <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">{refName}</span>
@@ -471,7 +513,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                 <div className="grid grid-cols-2 gap-y-3 text-[13px]">
                                     <div className="text-gray-500">Title</div>
                                     <div className="font-medium">{raceTitle}</div>
-                                    
+
                                     <div className="text-gray-500">Tournament</div>
                                     <div className="font-medium">
                                         {metadata?.tournaments?.find((t: any) => t._id === tournamentId)?.tournamentName || "Unknown"}
@@ -497,11 +539,11 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                 </div>
                             </div>
                             <div className="text-[12px] text-gray-400">
-                                Please review the details above. Click Confirm to create the race round.
+                                Please review the details above. Click Confirm to {raceToEdit ? "save changes" : "create the race round"}.
                             </div>
                         </div>
                     )}
-                    
+
                     {error && (
                         <div className="p-3 bg-red-950/50 border border-red-500/50 rounded flex items-start gap-2 text-[13px] text-red-200">
                             <span>⚠️</span>
@@ -516,7 +558,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                             <button onClick={() => setShowConfirm(false)} className="px-6 py-2.5 text-[13px] font-semibold text-white hover:bg-white/5 rounded transition-colors" disabled={submitLoading}>
                                 Back
                             </button>
-                            <button 
+                            <button
                                 className="bg-red-600 hover:bg-red-700 text-white text-[13px] font-semibold py-2.5 px-6 rounded transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                 onClick={executeCreateRace}
                                 disabled={submitLoading}
@@ -524,7 +566,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                 {submitLoading ? (
                                     <Loader2 className="animate-spin" size={16} />
                                 ) : (
-                                    "Confirm & Create"
+                                    raceToEdit ? "Confirm & Save Changes" : "Confirm & Create"
                                 )}
                             </button>
                         </>
@@ -533,7 +575,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                             <button onClick={onClose} className="px-6 py-2.5 text-[13px] font-semibold text-white hover:bg-white/5 rounded transition-colors" disabled={submitLoading}>
                                 Cancel
                             </button>
-                            <button 
+                            <button
                                 className="bg-white hover:bg-gray-200 text-black text-[13px] font-semibold py-2.5 px-6 rounded transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                 onClick={validateAndConfirm}
                                 disabled={submitLoading}

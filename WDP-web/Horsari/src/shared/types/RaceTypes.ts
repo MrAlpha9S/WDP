@@ -31,7 +31,7 @@ export interface ScheduledRace {
     time: string; // e.g. "14:15"
     trackId: string;
     tournament: string;
-    status: "Upcoming" | "Live" | "Completed";
+    status: string;
     maxSlots: number;
     participants: Participant[];
     pendingInvites: PendingInvite[];

@@ -128,6 +128,15 @@ export const adminService = {
     }
   },
 
+  updateRaceRound: async (id: string, payload: any) => {
+    try {
+      const response = await api.put(`/raceround/${id}`, payload);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+
   createTournament: async (data: any) => {
     try {
       const response = await api.post('/tournament', data);
@@ -149,6 +158,15 @@ export const adminService = {
   deleteTournament: async (id: string) => {
     try {
       const response = await api.delete(`/tournament/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+
+  cancelRaceRound: async (id: string) => {
+    try {
+      const response = await api.patch(`/raceround/${id}/cancel`);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
