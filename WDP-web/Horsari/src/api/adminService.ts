@@ -1,5 +1,48 @@
 import api from './axios';
 
+export interface RaceRegistration {
+  _id: string;
+  registrationStatus?: string;
+  sum_prediction?: number;
+  Horse?: { horseName: string } | null;
+  Jockey?: { _id?: { fullName?: string } } | null;
+  Owner?: { fullName?: string } | null;
+  RaceResult?: any | null;
+}
+
+export interface RaceRefereeAssignment {
+  refereeId: string;
+  fullName: string | null;
+  assignmentStatus: string;
+}
+
+export interface RaceRoundData {
+  _id: string;
+  roundName: string;
+  raceDate: string;
+  location?: string;
+  status: string;
+  maxParticipants?: number;
+  trackLength?: number;
+  raceType?: string;
+  RaceType?: string;
+  Registration: RaceRegistration[];
+  Referee: RaceRefereeAssignment[];
+}
+
+export interface TournamentRaceData {
+  T_id: string;
+  Tournaments_name: string;
+  Tournament_detail?: any;
+  RaceRound: RaceRoundData[];
+}
+
+export interface RaceRoundsResponse {
+  code: number;
+  data: TournamentRaceData[];
+  msg: string;
+}
+
 export const adminService = {
   getStatistics: async () => {
     try {
@@ -54,7 +97,7 @@ export const adminService = {
     }
   },
 
-  getRaceRounds: async (tournamentFilter?: string | null) => {
+  getRaceRounds: async (tournamentFilter?: string | null): Promise<RaceRoundsResponse> => {
     try {
       const params: any = {};
       if (tournamentFilter) {

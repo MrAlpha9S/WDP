@@ -30,6 +30,7 @@ export default function RaceDetailsPanel({ selectedRace }: RaceDetailsPanelProps
                         <div className="flex items-center gap-4 text-[11px] font-medium text-gray-500">
                             <span>📅 {selectedRace.date}</span>
                             <span>🕒 {selectedRace.time}</span>
+                            {selectedRace.raceType && <span>🏷️ {selectedRace.raceType}</span>}
                         </div>
                     </div>
 

@@ -231,7 +231,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess }: CreateRa
                                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Race Type</label>
                                     <select
                                         value={createRaceType}
-                                        onChange={(e) => setCreateRaceType(e.target.value)}
+                                        onChange={(e) => {
+                                            setCreateRaceType(e.target.value);
+                                            setSelectedOwners([]);
+                                        }}
                                         className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none"
                                     >
                                         {metadata?.eligibilityRules?.map((rule: any) => (

@@ -4,7 +4,7 @@ import { TIME_SLOTS } from "../../shared/data/RaceData";
 import type { ViewMode } from "../../shared/types/RaceTypes";
 import CreateRaceModal from "./modal/CreateRaceModal";
 import RaceDetailsPanel from "./AdminComponents/RaceDetailsPanel";
-import { adminService } from "../../api/adminService";
+import { adminService, type TournamentRaceData } from "../../api/adminService";
 
 export default function RaceSchedulingPage() {
     const [viewMode, setViewMode] = useState<ViewMode>("timeline");
@@ -13,7 +13,7 @@ export default function RaceSchedulingPage() {
     const [selectedTournament, setSelectedTournament] = useState<string>("All");
 
     const [tournaments, setTournaments] = useState<any[]>([]);
-    const [raceRoundsData, setRaceRoundsData] = useState<any[]>([]);
+    const [raceRoundsData, setRaceRoundsData] = useState<TournamentRaceData[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -53,12 +53,11 @@ export default function RaceSchedulingPage() {
     };
 
     const ALL_RACES = raceRoundsData.flatMap(t => {
-        return t.RaceRound.map((rr: any) => {
+        return t.RaceRound.map((rr) => {
             const dateObj = new Date(rr.raceDate);
             const timeStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const dateStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleDateString();
             const { leftPercent, widthPercent } = getTimelineOffsets(rr.raceDate);
-
 
             return {
                 id: rr._id,
@@ -68,14 +67,14 @@ export default function RaceSchedulingPage() {
                 date: dateStr,
                 time: timeStr,
                 status: rr.status,
-                participants: (rr.Registration || []).map((reg: any) => ({
+                participants: (rr.Registration || []).map((reg) => ({
                     registrationId: reg._id,
                     ownerName: reg.Owner?.fullName ?? 'Unknown Owner',  // Owner is now plain User {_id, fullName}
                     horseName: reg.Horse?.horseName ?? null,
                     jockeyName: reg.Jockey?._id?.fullName ?? null,
                     status: reg.registrationStatus ?? 'pending',
                 })),
-                referees: (rr.Referee || []).map((ref: any) => ({
+                referees: (rr.Referee || []).map((ref) => ({
                     refereeId: ref.refereeId,
                     fullName: ref.fullName ?? 'Unknown Referee',  // fullName is now a top-level field
                     assignmentStatus: ref.assignmentStatus ?? 'pending',
@@ -86,7 +85,7 @@ export default function RaceSchedulingPage() {
                 widthPercent,
                 rawDate: dateObj,
                 trackLength: rr.trackLength || 0,
-                raceType: rr.raceType || rr.RaceType || "Standard"
+                raceType: rr.RaceType || rr.raceType || "Standard"
             };
         });
     });

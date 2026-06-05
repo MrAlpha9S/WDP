@@ -38,6 +38,7 @@ export interface ScheduledRace {
     // For CSS positioning in a simple visual demo:
     leftPercent: string;
     widthPercent: string;
+    raceType?: string;
 }
 
 export interface MockHorse {
