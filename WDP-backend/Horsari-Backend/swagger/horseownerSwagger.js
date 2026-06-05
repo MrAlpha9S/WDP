@@ -18,7 +18,7 @@
  *           schema:
  *             type: object
  *             properties:
- *               license_link:
+ *               licenseLink:
  *                 type: string
  *                 description: "License document link"
  *                 example: "https://cloudinary.com/license/abc123"
@@ -54,7 +54,7 @@
  * /api/horseowner/license/{licenseNumber}:
  *   get:
  *     summary: Get horse owner by license number (DEPRECATED)
- *     description: This endpoint is deprecated. License information is now stored as license_link.
+ *     description: This endpoint is deprecated. License information is now stored as licenseLink.
  *     tags: [HorseOwner]
  *     parameters:
  *       - in: path
@@ -87,7 +87,7 @@
  *           schema:
  *             type: object
  *             properties:
- *               license_link:
+ *               licenseLink:
  *                 type: string
  *                 description: "License document link"
  *     responses:

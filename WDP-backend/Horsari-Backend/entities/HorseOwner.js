@@ -2,16 +2,19 @@ const mongoose = require('mongoose');
 
 const horseOwnerSchema = new mongoose.Schema(
     {
-        ownerId: {
+        _id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             required: true,
         },
-        
-        license_link: {
+        address: {
             type: String,
         },
-        license_status: {
+        
+        licenseLink: {
+            type: String,
+        },
+        licenseStatus: {
             type: String,
             enum: ['pending', 'approved', 'rejected'],
             default: 'pending',

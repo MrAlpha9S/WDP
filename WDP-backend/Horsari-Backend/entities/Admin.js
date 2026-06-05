@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const adminSchema = new mongoose.Schema(
     {
-        adminId: {
+        _id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             required: true,

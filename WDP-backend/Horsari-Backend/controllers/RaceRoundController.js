@@ -3,8 +3,8 @@ const RaceRoundService = require('../services/RaceRoundService');
 class RaceRoundController {
     async createRaceRound(req, res, next) {
         try {
-            const { refereeID, listOwnerID, adminID, ...rest } = req.body;
-            const response = await RaceRoundService.createRaceRound(rest, refereeID, listOwnerID, adminID);
+            const adminID = req.userId; // from authMiddleware
+            const response = await RaceRoundService.createRaceRound(req.body, adminID);
             return res.status(response.code).json(response);
         } catch (error) {
             next(error);

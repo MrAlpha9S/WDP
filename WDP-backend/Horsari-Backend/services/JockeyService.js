@@ -5,7 +5,7 @@ class JockeyService {
     // Create jockey profile for existing user (public)
     async createJockey(jockeyId, data) {
         try {
-            const { height, weight, matchesRaced, totalWins, ranking, status, license_link } = data || {};
+            const { height, weight, matchesRaced, totalWins, ranking, status, licenseLink } = data || {};
 
             if (!jockeyId) {
                 return { code: 400, msg: 'jockeyId is required' };
@@ -22,13 +22,13 @@ class JockeyService {
             }
 
             const jockeyProfile = await JockeyRepository.create({
-                jockeyId,
+                _id: jockeyId,
                 height: height || 0,
                 weight: weight || 0,
                 matchesRaced: matchesRaced || 0,
                 totalWins: totalWins || 0,
                 ranking: ranking || null,
-                license_link: license_link || null,
+                licenseLink: licenseLink || null,
                 status: status || 'active',
             });
 

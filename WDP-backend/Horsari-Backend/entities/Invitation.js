@@ -11,15 +11,15 @@ const invitationSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Jockey',
         },
-        owner_confirmation: {
+        ownerConfirmation: {
             type: Boolean,
             default: true,
         },
-        jockey_confirmation: {
+        jockeyConfirmation: {
             type: Boolean,
             default: false,
         },
-        invitation_status: {
+        invitationStatus: {
             type: String,
             enum: ['pending', 'accepted', 'declined', 'cancelled'],
             default: 'pending',
@@ -32,7 +32,7 @@ const invitationSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Registration',
         },
-        percentage_payout: {
+        percentagePayout: {
             type: Number,
             min: 0,
             max: 100,

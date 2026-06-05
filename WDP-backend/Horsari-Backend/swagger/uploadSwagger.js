@@ -8,12 +8,12 @@
  *       The system automatically determines the certification type based on the user's role.
  *       Only PDF files are accepted (max 10MB).
  *       
- *       **After upload, the `license_link` field in the user's role entity (HorseOwner, Jockey, or Referee) will be automatically updated with the file path.**
+ *       **After upload, the `licenseLink` field in the user's role entity (HorseOwner, Jockey, or Referee) will be automatically updated with the file path.**
  *       
  *       **Allowed roles:**
- *       - **Horse Owner**: Uploads license document, updates HorseOwner.license_link
- *       - **Jockey**: Uploads license document, updates Jockey.license_link
- *       - **Referee**: Uploads license document, updates Referee.license_link
+ *       - **Horse Owner**: Uploads license document, updates HorseOwner.licenseLink
+ *       - **Jockey**: Uploads license document, updates Jockey.licenseLink
+ *       - **Referee**: Uploads license document, updates Referee.licenseLink
  *       
  *       **Note**: Spectators and Admins cannot upload certifications.
  *     tags: [Upload]
@@ -60,7 +60,7 @@
  *                     filepath:
  *                       type: string
  *                       example: "/uploads/certifications/507f1f77bcf86cd799439011_horseowner_certificate_1234567890.pdf"
- *                       description: "This path is automatically saved to the license_link field in the role entity"
+ *                       description: "This path is automatically saved to the licenseLink field in the role entity"
  *                     originalName:
  *                       type: string
  *                       example: "my_certificate.pdf"

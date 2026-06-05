@@ -17,4 +17,22 @@ router.put('/users/:userId/status', authMiddleware, authAdmin, AdminController.u
 // admin level endpoints removed
 router.delete('/users/:userId', authMiddleware, authAdmin, AdminController.deleteUser);
 
+// Horse owner invitation list (enriched with race round, horse, jockeys, owner info)
+router.get('/horse-owner-invitations', authMiddleware, authAdmin, AdminController.getHorseOwnerInvitations);
+
+// Referee invitation list
+router.get('/referee-invitations', authMiddleware, authAdmin, AdminController.getRefereeInvitations);
+
+// Jockey invitation list
+router.get('/jockey-invitations', authMiddleware, authAdmin, AdminController.getJockeyInvitations);
+
+// Get tournaments with details and prediction pool
+router.get('/tournaments', authMiddleware, authAdmin, AdminController.getTournamentsWithDetails);
+
+// Get race rounds grouped by tournament with deep nested entities
+router.get('/race-rounds', authMiddleware, authAdmin, AdminController.getRaceRounds);
+
+// Get all metadata required for creating a race
+router.get('/create-race-metadata', authMiddleware, authAdmin, AdminController.getCreateRaceMetadata);
+
 module.exports = router;

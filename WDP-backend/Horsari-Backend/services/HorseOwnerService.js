@@ -6,7 +6,7 @@ class HorseOwnerService {
     // Create horse owner profile for existing user (public)
     async createHorseOwner(ownerId, data) {
         try {
-            const { license_link } = data || {};
+            const { licenseLink } = data || {};
 
             if (!ownerId) {
                 return { code: 400, msg: 'ownerId is required' };
@@ -23,8 +23,8 @@ class HorseOwnerService {
             }
 
             const ownerProfile = await HorseOwnerRepository.create({
-                ownerId,
-                license_link: license_link || null,
+                _id: ownerId,
+                licenseLink: licenseLink || null,
             });
 
             return { code: 201, data: ownerProfile, msg: 'Horse owner profile created successfully' };
@@ -188,12 +188,12 @@ class HorseOwnerService {
         }
     }
 
-    // Get horse owner by license number - DEPRECATED (license_link is now used)
+    // Get horse owner by license number - DEPRECATED (licenseLink is now used)
     async getHorseOwnerByLicense(licenseNumber) {
         try {
             return {
                 code: 400,
-                msg: 'This endpoint is deprecated. License information is now stored as license_link.',
+                msg: 'This endpoint is deprecated. License information is now stored as licenseLink.',
             };
         } catch (error) {
             return {

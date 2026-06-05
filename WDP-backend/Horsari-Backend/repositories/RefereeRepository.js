@@ -9,16 +9,16 @@ class RefereeRepository {
 
     // Read
     async findById(id) {
-        return await Referee.findById(id).populate('refereeid');
+        return await Referee.findById(id).populate('_id');
     }
 
     async findByRefereeId(refereeId) {
-        return await Referee.findOne({ refereeId }).populate('refereeId');
+        return await Referee.findById(refereeId).populate('_id');
     }
 
     async findAll(limit = 10, skip = 0) {
         return await Referee.find()
-            .populate('refereeId')
+            .populate('_id')
             .limit(limit)
             .skip(skip);
     }
@@ -26,12 +26,12 @@ class RefereeRepository {
     async findByCertificationNumber(certificationNumber) {
         return await Referee.findOne({
             certificationNumber,
-        }).populate('refereeid');
+        }).populate('_id');
     }
 
     async findByLicenseNumber(licenseNumber) {
         return await Referee.findOne({ licenseNumber }).populate(
-            'refereeId'
+            '_id'
         );
     }
 
@@ -39,13 +39,13 @@ class RefereeRepository {
     async updateById(id, updateData) {
         return await Referee.findByIdAndUpdate(id, updateData, {
             new: true,
-        }).populate('refereeId');
+        }).populate('_id');
     }
 
     async updateByRefereeId(refereeId, updateData) {
-        return await Referee.findOneAndUpdate({ refereeId }, updateData, {
+        return await Referee.findByIdAndUpdate(refereeId, updateData, {
             new: true,
-        }).populate('refereeId');
+        }).populate('_id');
     }
 
     // Delete
@@ -54,7 +54,7 @@ class RefereeRepository {
     }
 
     async deleteByRefereeId(refereeId) {
-        return await Referee.findOneAndDelete({ refereeId });
+        return await Referee.findByIdAndDelete(refereeId);
     }
 
     // Count

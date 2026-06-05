@@ -18,7 +18,7 @@
  *           schema:
  *             type: object
  *             properties:
- *               license_link:
+ *               licenseLink:
  *                 type: string
  *                 description: "License document link"
  *     responses:
@@ -53,7 +53,7 @@
  * /api/referee/credentials/{certificationNumber}:
  *   get:
  *     summary: Get referee by certification number (DEPRECATED)
- *     description: This endpoint is deprecated. Certification information is now stored as license_link.
+ *     description: This endpoint is deprecated. Certification information is now stored as licenseLink.
  *     tags: [Referee]
  *     parameters:
  *       - in: path
@@ -68,7 +68,7 @@
  * /api/referee/license/{licenseNumber}:
  *   get:
  *     summary: Get referee by license number (DEPRECATED)
- *     description: This endpoint is deprecated. License information is now stored as license_link.
+ *     description: This endpoint is deprecated. License information is now stored as licenseLink.
  *     tags: [Referee]
  *     parameters:
  *       - in: path
@@ -101,7 +101,7 @@
  *           schema:
  *             type: object
  *             properties:
- *               license_link:
+ *               licenseLink:
  *                 type: string
  *                 description: "License document link"
  *     responses:
@@ -111,7 +111,7 @@
  * /api/referee/verify-credentials:
  *   post:
  *     summary: Verify referee credentials (DEPRECATED)
- *     description: This endpoint is deprecated. Certification information is now stored as license_link.
+ *     description: This endpoint is deprecated. Certification information is now stored as licenseLink.
  *     tags: [Referee]
  *     security:
  *       - BearerAuth: []
@@ -131,7 +131,7 @@
  * /api/referee/renew-certification:
  *   post:
  *     summary: Renew certification (DEPRECATED)
- *     description: This endpoint is deprecated. Use update profile to change license_link.
+ *     description: This endpoint is deprecated. Use update profile to change licenseLink.
  *     tags: [Referee]
  *     security:
  *       - BearerAuth: []

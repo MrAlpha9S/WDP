@@ -12,6 +12,8 @@ const Admin = require('../entities/Admin');
 const Referee = require('../entities/Referee');
 const Spectator = require('../entities/Spectator');
 const Jockey = require('../entities/Jockey');
+const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+const Tournament = require('../entities/Tournament');
 
 const PASSWORD_HASH = '$2a$12$OXXNUWkz5KBayO.Ei9qMJeiTG.GGqixAHg5eb1ldREdsQApndrYKm';
 //Mongodb@1234
@@ -21,15 +23,7 @@ const mockData = async () => {
         console.log('Connected to MongoDB');
 
         // Clear existing data
-        await Promise.all([
-            User.deleteMany({}),
-            HorseOwner.deleteMany({}),
-            Horse.deleteMany({}),
-            Admin.deleteMany({}),
-            Referee.deleteMany({}),
-            Spectator.deleteMany({}),
-            Jockey.deleteMany({}),
-        ]);
+        await mongoose.connection.db.dropDatabase();
         console.log('Cleared existing data');
 
         // Create 3 Horse Owners
@@ -49,7 +43,7 @@ const mockData = async () => {
             horseOwnerUsers.push(user);
 
             const owner = await HorseOwner.create({
-                ownerId: user._id,
+                _id: user._id,
                 address: `${i}00 Farm Lane, Horse City, HC 12345`,
                 licenseNumber: `HO-LIC-${1000 + i}`,
                 certificationFilePath: '',
@@ -60,17 +54,32 @@ const mockData = async () => {
 
         // Create 2 horses for each horse owner
         const horsesCreated = [];
+        let ownerIndex = 0;
         for (const owner of horseOwners) {
+            ownerIndex++;
             for (let j = 1; j <= 2; j++) {
+                let status = 'active';
+                let age = Math.floor(Math.random() * 15) + 2; // 2 to 16
+
+                // Make Owner 3 have no eligible horses for Maiden
+                if (ownerIndex === 3) {
+                    if (j === 1) {
+                        status = 'retired'; // Eligible age, but retired
+                        age = 5;
+                    } else {
+                        status = 'active';
+                        age = 1; // Active, but too young (minAge is 2)
+                    }
+                }
+
                 const horse = await Horse.create({
-                    ownerId: owner.ownerId,
+                    ownerId: owner._id,
                     horseName: `Horse ${owner._id.toString().slice(-3)}-${j}`,
                     breed: ['Thoroughbred', 'Arabian', 'Quarter Horse', 'Standardbred'][Math.floor(Math.random() * 4)],
-                    age: Math.floor(Math.random() * 15) + 2,
+                    dateOfBirth: new Date(new Date().getFullYear() - age, 0, 1),
                     gender: j % 2 === 0 ? 'male' : 'female',
-                    color: ['Bay', 'Black', 'Chestnut', 'Gray', 'Palomino'][Math.floor(Math.random() * 5)],
                     healthStatus: 'healthy',
-                    status: 'active',
+                    status: status,
                     registrationDate: new Date(),
                 });
                 horsesCreated.push(horse);
@@ -94,7 +103,7 @@ const mockData = async () => {
             adminUsers.push(user);
 
             await Admin.create({
-                adminId: user._id,
+                _id: user._id,
             });
         }
         console.log('✅ Created 3 admins');
@@ -115,7 +124,7 @@ const mockData = async () => {
             refereeUsers.push(user);
 
             await Referee.create({
-                refereeId: user._id,
+                _id: user._id,
                 certificationNumber: `CERT-REF-${2000 + i}`,
                 licenseNumber: `REF-LIC-${2000 + i}`,
             });
@@ -138,7 +147,7 @@ const mockData = async () => {
             spectatorUsers.push(user);
 
             await Spectator.create({
-                spectatorId: user._id,
+                _id: user._id,
                 rewardPoints: Math.floor(Math.random() * 1000) + 100,
             });
         }
@@ -160,7 +169,7 @@ const mockData = async () => {
             jockeyUsers.push(user);
 
             await Jockey.create({
-                jockeyId: user._id,
+                _id: user._id,
                 height: 170 + Math.floor(Math.random() * 10),
                 weight: 50 + Math.floor(Math.random() * 15),
                 matchesRaced: Math.floor(Math.random() * 50) + 5,
@@ -171,6 +180,33 @@ const mockData = async () => {
         }
         console.log('✅ Created 3 jockeys');
 
+        // Create 2 Race Eligibility Rules
+        await RaceEligibilityRule.create({
+            raceType: 'Claiming',
+            licenseRequired: true,
+            isActive: true,
+        });
+
+        await RaceEligibilityRule.create({
+            raceType: 'Maiden',
+            minRacesWon: 0,
+            minAge: 2,
+            licenseRequired: true,
+            isActive: true,
+        });
+        console.log('✅ Created 2 Race Eligibility Rules');
+
+        // Create Non-tournament
+        await Tournament.create({
+            tournamentName: 'Non-tournament',
+            description: 'Standalone races that are not part of any tournament',
+            startDate: null,
+            endDate: null,
+            location: 'Various',
+            status: 'ongoing',
+        });
+        console.log('✅ Created Non-tournament');
+
         console.log('\n✅ Mock data generation completed!');
         console.log('====================================');
         console.log('Summary:');
@@ -179,6 +215,8 @@ const mockData = async () => {
         console.log('- 3 Referees');
         console.log('- 3 Spectators');
         console.log('- 3 Jockeys');
+        console.log('- 2 Race Eligibility Rules');
+        console.log('- 1 Tournament (Non-tournament)');
         console.log('====================================');
         console.log('Password for all users: $2a$12$vqdvnyFFBmhSkDSX/2Eu1eNVHviElpS6X23QbvA5rjoRliEb8zZw.');
         console.log('\nLogin examples:');

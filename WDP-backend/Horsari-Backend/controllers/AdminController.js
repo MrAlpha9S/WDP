@@ -52,6 +52,51 @@ class AdminController {
         const response = await AdminService.deleteUser(userId);
         return res.status(response.code).json(response);
     }
+
+    // Get horse owner invitation list (enriched)
+    async getHorseOwnerInvitations(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const response = await AdminService.getHorseOwnerInvitations(page, limit);
+        return res.status(response.code).json(response);
+    }
+
+    // Get referee invitation list
+    async getRefereeInvitations(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const response = await AdminService.getRefereeInvitations(page, limit);
+        return res.status(response.code).json(response);
+    }
+
+    // Get jockey invitation list
+    async getJockeyInvitations(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const response = await AdminService.getJockeyInvitations(page, limit);
+        return res.status(response.code).json(response);
+    }
+
+    // Get tournaments with enriched details
+    async getTournamentsWithDetails(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const response = await AdminService.getTournamentsWithDetails(page, limit);
+        return res.status(response.code).json(response);
+    }
+
+    // Get race rounds
+    async getRaceRounds(req, res) {
+        const tournamentFilter = req.query.tournamentFilter || null;
+        const response = await AdminService.getRaceRounds(tournamentFilter);
+        return res.status(response.code).json(response);
+    }
+
+    // Get metadata for create race modal
+    async getCreateRaceMetadata(req, res) {
+        const response = await AdminService.getCreateRaceMetadata();
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new AdminController();

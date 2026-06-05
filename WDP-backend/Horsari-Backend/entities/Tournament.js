@@ -2,28 +2,24 @@ const mongoose = require('mongoose');
 
 const tournamentSchema = new mongoose.Schema(
     {
-        created_by_adminId: {
+        createdByAdminId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Admin',
         },
-        tournament_name: {
+        tournamentName: {
             type: String,
             required: true,
         },
         description: {
             type: String,
         },
-        start_date: {
-            required: true,
+        startDate: {
             type: Date,
+            default: null,
         },
-        end_date: {
-            required: true,
+        endDate: {
             type: Date,
-        },
-        location: {
-            type: String,
-            required: true,
+            default: null,
         },
         status: {
             type: String,

@@ -33,8 +33,8 @@ class InvitationController {
   async toggleInvitationStatus(req, res, next) {
     try {
       const { id } = req.params;
-      const { jockey_confirmation } = req.body;
-      const result = await InvitationService.toggleInvitationStatus(id, jockey_confirmation);
+      const { jockeyConfirmation } = req.body;
+      const result = await InvitationService.toggleInvitationStatus(id, jockeyConfirmation);
       return res.status(result.code).json(result);
     } catch (err) {
       next(err);

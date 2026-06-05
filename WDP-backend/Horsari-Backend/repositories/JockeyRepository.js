@@ -9,33 +9,33 @@ class JockeyRepository {
 
     // Read
     async findById(id) {
-        return await Jockey.findById(id).populate('jockeyid');
+        return await Jockey.findById(id).populate('_id');
     }
 
     async findByJockeyId(jockeyId) {
-        return await Jockey.findOne({ jockeyId }).populate('jockeyId');
+        return await Jockey.findById(jockeyId).populate('_id');
     }
 
     async findAll(limit = 10, skip = 0) {
         return await Jockey.find()
-            .populate('jockeyId')
+            .populate('_id')
             .limit(limit)
             .skip(skip);
     }
 
     async findByStatus(status) {
-        return await Jockey.find({ status }).populate('jockeyId');
+        return await Jockey.find({ status }).populate('_id');
     }
 
     async findByRanking(minRanking, maxRanking) {
         return await Jockey.find({
             ranking: { $gte: minRanking, $lte: maxRanking },
-        }).populate('jockeyId');
+        }).populate('_id');
     }
 
     async findTopJockeys(limit = 10) {
         return await Jockey.find()
-            .populate('jockeyId')
+            .populate('_id')
             .sort({ ranking: 1 })
             .limit(limit);
     }
@@ -44,13 +44,13 @@ class JockeyRepository {
     async updateById(id, updateData) {
         return await Jockey.findByIdAndUpdate(id, updateData, {
             new: true,
-        }).populate('jockeyId');
+        }).populate('_id');
     }
 
     async updateByJockeyId(jockeyId, updateData) {
-        return await Jockey.findOneAndUpdate({ jockeyId }, updateData, {
+        return await Jockey.findByIdAndUpdate(jockeyId, updateData, {
             new: true,
-        }).populate('jockeyId');
+        }).populate('_id');
     }
 
     // Delete
@@ -59,7 +59,7 @@ class JockeyRepository {
     }
 
     async deleteByJockeyId(jockeyId) {
-        return await Jockey.findOneAndDelete({ jockeyId });
+        return await Jockey.findByIdAndDelete(jockeyId);
     }
 
     // Count
@@ -68,7 +68,7 @@ class JockeyRepository {
     }
 
     async countByLicenseStatus(status) {
-        return await Jockey.countDocuments({ license_status: status });
+        return await Jockey.countDocuments({ licenseStatus: status });
     }
 
     // Stats

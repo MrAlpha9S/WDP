@@ -5,43 +5,40 @@ const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const RegistrationRepository = require('../repositories/RegistrationRepository');
 
 class RaceRoundService {
-    async createRaceRound(raceRoundData, refereeID, listOwnerIDs = [],adminID) {
+    async createRaceRound(payload, adminID) {
+        const { TournamentId, RaceRound: raceRoundData, HorseOwnerInvitation = [], RefereeInvitation = [] } = payload;
+        
+        raceRoundData.tournamentId = TournamentId;
+        raceRoundData.createdByAdminId = adminID;
+
         // create race round
         const raceRound = await RaceRoundRepository.create(raceRoundData);
 
-        // create race-referee link if refereeID provided
-        let raceReferee = null;
-        if (refereeID) {
-            raceReferee = await RaceRefereeRepository.create({
+        // create race-referee link
+        const raceReferees = [];
+        for (const refereeId of RefereeInvitation) {
+            const raceReferee = await RaceRefereeRepository.create({
                 raceRoundId: raceRound._id,
-                refereeId: refereeID,
-                assigned_at: new Date(),
-                status: 'assigned',
+                refereeId: refereeId,
+                assignedAt: new Date(),
+                assignedByAdminId: adminID,
+                status: 'pending',
             });
+            raceReferees.push(raceReferee);
         }
 
         // gather horse owner profiles and create registrations
-        const horseOwners = [];
         const registrations = [];
-        for (const ownerId of Array.isArray(listOwnerIDs) ? listOwnerIDs : [listOwnerIDs]) {
+        for (const ownerId of HorseOwnerInvitation) {
             try {
-                const ho = await HorseOwnerRepository.findByOwnerId(ownerId);
-                if (ho) {
-                    horseOwners.push({
-                        id: ho._id,
-                        name: ho.ownerId?.fullName || ho.ownerId?.username || null,
-                        profile: ho,
-                    });
-
-                    // create registration for this horse owner for the new raceRound
-                    const reg = await RegistrationRepository.createRegistration({
-                        raceRoundId: raceRound._id,
-                        horseOwnerId: ho._id,
-                        approved_by_adminId: adminID,
-                        registration_status: 'pending',
-                    });
-                    registrations.push(reg);
-                }
+                // create registration for this horse owner for the new raceRound
+                const reg = await RegistrationRepository.createRegistration({
+                    raceRoundId: raceRound._id,
+                    horseOwnerId: ownerId,
+                    approvedByAdminId: adminID,
+                    registrationStatus: 'pending',
+                });
+                registrations.push(reg);
             } catch (e) {
                 // ignore individual failures
             }
@@ -50,7 +47,7 @@ class RaceRoundService {
         // fetch tournament entity
         let tournament = null;
         try {
-            tournament = await TournamentRepository.getTournamentById(raceRound.tournamentId);
+            tournament = await TournamentRepository.getTournamentById(TournamentId);
         } catch (e) {
             tournament = null;
         }
@@ -61,9 +58,8 @@ class RaceRoundService {
             data: {
                 tournament,
                 raceRound,
-                horseOwners,
                 registrations,
-                raceReferee,
+                raceReferees,
             },
         };
     }

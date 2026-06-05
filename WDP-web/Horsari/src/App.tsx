@@ -34,21 +34,21 @@ export default function App() {
           <Route
             path="/referee"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["referee", "admin"]}>
                 <RefereeDashboardPage />
               </ProtectedRoute>
             } />
           <Route
             path="/referee/race-monitor" //add id later
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["referee", "admin"]}>
                 <RaceMonitorPage />
               </ProtectedRoute>
             } />
           <Route
             path="/referee/:tabs"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["referee", "admin"]}>
                 <RefereeDashboardPage />
               </ProtectedRoute>
             } />
@@ -56,7 +56,7 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboardPage />
               </ProtectedRoute>
             } />
@@ -64,7 +64,7 @@ export default function App() {
           <Route
             path="/admin/:tabs"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboardPage />
               </ProtectedRoute>
             } />
@@ -73,7 +73,7 @@ export default function App() {
           <Route
             path="/owner"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["horseowner", "admin"]}>
                 <DashboardPage />
               </ProtectedRoute>
             }

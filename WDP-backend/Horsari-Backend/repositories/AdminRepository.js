@@ -9,16 +9,16 @@ class AdminRepository {
 
     // Read
     async findById(id) {
-        return await Admin.findById(id).populate('adminid');
+        return await Admin.findById(id).populate('_id');
     }
 
     async findByAdminId(adminId) {
-        return await Admin.findOne({ adminId }).populate('adminId');
+        return await Admin.findById(adminId).populate('_id');
     }
 
     async findAll(limit = 10, skip = 0) {
         return await Admin.find()
-            .populate('adminId')
+            .populate('_id')
             .limit(limit)
             .skip(skip);
     }
@@ -28,13 +28,13 @@ class AdminRepository {
     async updateById(id, updateData) {
         return await Admin.findByIdAndUpdate(id, updateData, {
             new: true,
-        }).populate('adminId');
+        }).populate('_id');
     }
 
     async updateByAdminId(adminId, updateData) {
-        return await Admin.findOneAndUpdate({ adminId }, updateData, {
+        return await Admin.findByIdAndUpdate(adminId, updateData, {
             new: true,
-        }).populate('adminId');
+        }).populate('_id');
     }
 
     // Delete
@@ -43,7 +43,7 @@ class AdminRepository {
     }
 
     async deleteByAdminId(adminId) {
-        return await Admin.findOneAndDelete({ adminId });
+        return await Admin.findByIdAndDelete(adminId);
     }
 
     // Count

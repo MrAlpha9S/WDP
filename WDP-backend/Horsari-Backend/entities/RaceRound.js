@@ -7,23 +7,23 @@ const raceRoundSchema = new mongoose.Schema(
             ref: 'Tournament',
             required: [true, 'Tournament is required'],
         },
-        created_by_adminId: {
+        createdByAdminId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Admin',
         },
-        round_name: {
+        roundName: {
             type: String,
             required: [true, 'Round name is required'],
         },
-        race_date: {
+        raceDate: {
             type: Date,
             required: [true, 'Race date is required'],
         },
-        track_length: {
+        trackLength: {
             type: Number,
             required: [true, 'Track length is required'],
         },
-        max_participants: {
+        maxParticipants: {
             type: Number,
             required: [true, 'Max participants is required'],
         },
@@ -32,17 +32,32 @@ const raceRoundSchema = new mongoose.Schema(
             enum: ['draft', 'scheduled', 'running', 'completed', 'cancelled'],
             default: 'draft',
         },
-        race_type: {
-            type: String,
-            required: [true, 'Race type is required'],
-        },
-        minimal_riding_fees: {
+        minimalRidingFees: {
             type: Number,
             required: [true, 'Minimal riding fees is required'],
         },
-        require_entrance_fees: {
+        raceGround: {
+            type: String,
+            enum: ['dirt', 'turf', 'synthetic'],
+            required: [true, 'Race ground is required'],
+            default: 'dirt'
+        },
+        requireEntranceFees: {
             type: Boolean,
             default: false,
+        },
+        location: {
+            type: String,
+        },
+        raceGround: {
+            type: String,
+        },
+        address: {
+            type: String,
+        },
+        eligibilityRuleId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'RaceEligibilityRule',
         },
     },
     { timestamps: true }
