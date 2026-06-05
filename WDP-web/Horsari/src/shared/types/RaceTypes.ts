@@ -31,13 +31,14 @@ export interface ScheduledRace {
     time: string; // e.g. "14:15"
     trackId: string;
     tournament: string;
-    status: "Upcoming" | "Live" | "Completed";
+    status: string;
     maxSlots: number;
     participants: Participant[];
     pendingInvites: PendingInvite[];
     // For CSS positioning in a simple visual demo:
     leftPercent: string;
     widthPercent: string;
+    raceType?: string;
 }
 
 export interface MockHorse {

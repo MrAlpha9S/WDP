@@ -40,7 +40,8 @@ class RaceRoundController {
     async updateRaceRound(req, res, next) {
         const { id } = req.params;
         try {
-            const response = await RaceRoundService.updateRaceRound(id, req.body);
+            const adminID = req.userId;
+            const response = await RaceRoundService.updateRaceRound(id, req.body, adminID);
             return res.status(response.code).json(response);
         } catch (error) {
             next(error);
@@ -59,6 +60,16 @@ class RaceRoundController {
         const { status } = req.query;
         try {
             const response = await RaceRoundService.getRaceRoundsByStatus(status);
+            return res.status(response.code).json(response);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async cancelRaceRound(req, res, next) {
+        const { id } = req.params;
+        try {
+            const response = await RaceRoundService.cancelRaceRound(id);
             return res.status(response.code).json(response);
         } catch (error) {
             next(error);

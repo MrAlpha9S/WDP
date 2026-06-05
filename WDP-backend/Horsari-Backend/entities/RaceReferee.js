@@ -22,7 +22,7 @@ const raceRefereeSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ['pending', 'assigned', 'rejected'],
+            enum: ['pending', 'assigned', 'rejected', 'cancelled'],
             default: 'pending',
         },
     },

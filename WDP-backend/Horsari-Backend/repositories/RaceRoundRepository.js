@@ -23,6 +23,17 @@ class RaceRoundRepository {
     async delete(id) {
         return await RaceRound.findByIdAndDelete(id);
     }
+    
+    async findActiveRoundsByLocationAndDateRange(location, startDate, endDate) {
+        return await RaceRound.find({
+            location,
+            status: { $ne: 'cancelled' },
+            raceDate: {
+                $gte: startDate,
+                $lt: endDate
+            }
+        });
+    }
 
 }
 module.exports = new RaceRoundRepository();

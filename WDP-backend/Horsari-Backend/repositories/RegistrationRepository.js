@@ -12,8 +12,14 @@ class RegistrationRepository {
         const skip = (page - 1) * limit;
         return await Registration.find({ horseOwnerId: ownerId }).skip(skip).limit(limit);
     }
+    async findByRaceRoundId(raceRoundId) {
+        return await Registration.find({ raceRoundId });
+    }
     async updateRegistration(id, updateData) {
         return await Registration.findByIdAndUpdate(id, updateData, { new: true });
+    }
+    async updateManyByRaceRoundId(raceRoundId, updateData) {
+        return await Registration.updateMany({ raceRoundId }, updateData);
     }
     async deleteRegistration(id) {
         return await Registration.findByIdAndDelete(id);

@@ -27,6 +27,10 @@ class RaceRefereeRepository {
         return await RaceReferee.findByIdAndUpdate(id, updateData, { new: true });
     }
 
+    async updateManyByRaceRoundId(raceRoundId, updateData) {
+        return await RaceReferee.updateMany({ raceRoundId }, updateData);
+    }
+
     async delete(id) {
         return await RaceReferee.findByIdAndDelete(id);
     }
