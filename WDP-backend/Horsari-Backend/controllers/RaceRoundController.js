@@ -40,7 +40,8 @@ class RaceRoundController {
     async updateRaceRound(req, res, next) {
         const { id } = req.params;
         try {
-            const response = await RaceRoundService.updateRaceRound(id, req.body);
+            const adminID = req.userId;
+            const response = await RaceRoundService.updateRaceRound(id, req.body, adminID);
             return res.status(response.code).json(response);
         } catch (error) {
             next(error);

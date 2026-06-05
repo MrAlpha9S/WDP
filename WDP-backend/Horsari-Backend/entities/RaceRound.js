@@ -38,9 +38,7 @@ const raceRoundSchema = new mongoose.Schema(
         },
         raceGround: {
             type: String,
-            enum: ['dirt', 'turf', 'synthetic'],
             required: [true, 'Race ground is required'],
-            default: 'dirt'
         },
         requireEntranceFees: {
             type: Boolean,
