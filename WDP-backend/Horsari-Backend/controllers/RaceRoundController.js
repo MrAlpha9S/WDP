@@ -65,5 +65,15 @@ class RaceRoundController {
         }
     }
 
+    async cancelRaceRound(req, res, next) {
+        const { id } = req.params;
+        try {
+            const response = await RaceRoundService.cancelRaceRound(id);
+            return res.status(response.code).json(response);
+        } catch (error) {
+            next(error);
+        }
+    }
+
 }
 module.exports = new RaceRoundController();

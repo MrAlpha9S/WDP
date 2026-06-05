@@ -27,6 +27,9 @@ class InvitationRepository {
     async updateById(id, updateData) {
         return await Invitation.findByIdAndUpdate(id, updateData, { new: true });
     }
+    async updateManyByRegistrationIds(registrationIds, updateData) {
+        return await Invitation.updateMany({ registrationId: { $in: registrationIds } }, updateData);
+    }
 
 }
 module.exports = new InvitationRepository();

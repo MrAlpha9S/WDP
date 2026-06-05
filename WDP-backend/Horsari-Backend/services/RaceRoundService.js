@@ -3,6 +3,7 @@ const RaceRefereeRepository = require('../repositories/RaceRefereeRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const RegistrationRepository = require('../repositories/RegistrationRepository');
+const InvitationRepository = require('../repositories/InvitationRepository');
 
 class RaceRoundService {
     async createRaceRound(payload, adminID) {
@@ -110,7 +111,40 @@ class RaceRoundService {
         return { code: 200, message: 'Race rounds retrieved successfully', data: raceRounds };
     }
 
+    async cancelRaceRound(id) {
+        const raceRound = await RaceRoundRepository.findById(id);
+        if (!raceRound) {
+            return { code: 404, message: 'Race round not found' };
+        }
+        
+        if (raceRound.status === 'completed' || raceRound.status === 'running') {
+            return { code: 400, message: `Cannot cancel a race round that is already ${raceRound.status}` };
+        }
 
+        if (raceRound.status === 'cancelled') {
+            return { code: 400, message: 'Race round is already cancelled' };
+        }
+        
+        // Update race round
+        const updatedRaceRound = await RaceRoundRepository.update(id, { status: 'cancelled' });
+        
+        // Update referees
+        await RaceRefereeRepository.updateManyByRaceRoundId(id, { status: 'cancelled' });
+        
+        // Find registrations to get their IDs
+        const registrations = await RegistrationRepository.findByRaceRoundId(id);
+        const registrationIds = registrations.map(reg => reg._id);
+        
+        // Update registrations
+        if (registrationIds.length > 0) {
+            await RegistrationRepository.updateManyByRaceRoundId(id, { registrationStatus: 'cancelled' });
+            
+            // Update invitations linked to these registrations
+            await InvitationRepository.updateManyByRegistrationIds(registrationIds, { invitationStatus: 'cancelled' });
+        }
+        
+        return { code: 200, message: 'Race round cancelled successfully', data: updatedRaceRound };
+    }
 
 }
 module.exports = new RaceRoundService();

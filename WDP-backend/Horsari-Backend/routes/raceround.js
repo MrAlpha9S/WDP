@@ -9,6 +9,7 @@ router.get('/tournament/:tournamentId', authMiddleware, RaceRoundController.getR
 router.get('/:id', authMiddleware, RaceRoundController.getRaceRoundById);
 router.get('/', authMiddleware, RaceRoundController.getAllRaceRounds);
 router.put('/:id', authMiddleware, authAdmin, RaceRoundController.updateRaceRound);
+router.patch('/:id/cancel', authMiddleware, authAdmin, RaceRoundController.cancelRaceRound);
 router.delete('/:id', authMiddleware, authAdmin, RaceRoundController.deleteRaceRound);
 router.get('/status', authMiddleware, RaceRoundController.getRaceRoundsByStatus);
 

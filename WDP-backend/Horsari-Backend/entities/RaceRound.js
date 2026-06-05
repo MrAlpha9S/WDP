@@ -49,9 +49,6 @@ const raceRoundSchema = new mongoose.Schema(
         location: {
             type: String,
         },
-        raceGround: {
-            type: String,
-        },
         address: {
             type: String,
         },

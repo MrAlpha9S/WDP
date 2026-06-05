@@ -12,7 +12,7 @@ const registrationSchema = new mongoose.Schema(
         },
         registrationStatus: {
             type: String,
-            enum: ['pending', 'approved', 'rejected', 'verified', 'notVerified'],
+            enum: ['pending', 'approved', 'rejected', 'verified', 'notVerified', 'cancelled'],
             default: 'pending',
         },
         registeredAt: {
