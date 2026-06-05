@@ -548,8 +548,16 @@ class AdminService {
                 const raceRounds = await RaceRound.find({ tournamentId: tournament._id }).lean();
 
                 for (const raceRound of raceRounds) {
+                    // Fetch RaceType
+                    let raceType = raceRound.raceType || null;
+                    if (!raceType && raceRound.eligibilityRuleId) {
+                        const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
+                        if (rule && rule.raceType) raceType = rule.raceType;
+                    }
+
                     const rrObj = {
                         ...raceRound,
+                        RaceType: raceType,
                         Referee: [],
                         Registration: []
                     };
@@ -597,20 +605,13 @@ class AdminService {
                         // Fetch RaceResult
                         const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
 
-                        // Fetch RaceType
-                        let raceType = raceRound.raceType || null;
-                        if (!raceType && raceRound.eligibilityRuleId) {
-                            const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
-                            if (rule && rule.raceType) raceType = rule.raceType;
-                        }
                         rrObj.Registration.push({
                             ...reg,
                             sum_prediction,
                             Horse: invitation ? invitation.horseId : null,
                             Jockey: invitation ? invitation.jockeyId : null,
                             Owner: ownerUser,  // { _id, fullName } from User directly
-                            RaceResult: raceResult || null,
-                            RaceType: raceType
+                            RaceResult: raceResult || null
                         });
                     }
 
