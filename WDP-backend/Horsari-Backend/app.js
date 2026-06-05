@@ -68,6 +68,7 @@ app.use('/api/invitations', require('./routes/invitations'));
 app.use('/api/raceround', raceRound);
 app.use('/api/racereferee', raceRefereeRouter);
 app.use('/api/registration', registrationRouter);
+app.use('/api/eligibility-rules', require('./routes/raceEligibilityRule'));
 app.use('/api/cloudinary', require('./routes/demoUpload'));
 // catch 404 and forward to error handler
 // app.use(function (req, res, next) {

@@ -16,6 +16,28 @@ class RefereeController {
         return res.status(response.code).json(response);
     }
 
+    // Get referee invitations
+    async getRefereeInvitations(req, res) {
+        const limit = parseInt(req.query.limit) || 10;
+        const page = parseInt(req.query.page) || 1;
+        const response = await RefereeService.getRefereeInvitations(req.userId, limit, page);
+        return res.status(response.code).json(response);
+    }
+
+    // Accept invitation
+    async acceptInvitation(req, res) {
+        const { id } = req.params;
+        const response = await RefereeService.acceptInvitation(req.userId, id);
+        return res.status(response.code).json(response);
+    }
+
+    // Reject invitation
+    async rejectInvitation(req, res) {
+        const { id } = req.params;
+        const response = await RefereeService.rejectInvitation(req.userId, id);
+        return res.status(response.code).json(response);
+    }
+
     // Get all referees
     async getAllReferees(req, res) {
         const limit = parseInt(req.query.limit) || 10;
@@ -55,6 +77,18 @@ class RefereeController {
     async getRefereeByLicense(req, res) {
         const { licenseNumber } = req.params;
         const response = await RefereeService.getRefereeByLicense(licenseNumber);
+        return res.status(response.code).json(response);
+    }
+
+    // Get referee race rounds
+    async getRefereeRaceRounds(req, res) {
+        const response = await RefereeService.getRefereeRaceRounds(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    // Get referee tournaments
+    async getRefereeTournaments(req, res) {
+        const response = await RefereeService.getRefereeTournaments(req.userId);
         return res.status(response.code).json(response);
     }
 }

@@ -573,7 +573,8 @@ class AdminService {
                             return {
                                 refereeId: rr.refereeId,
                                 fullName: refereeUser?.fullName ?? null,
-                                assignmentStatus: rr.status
+                                assignmentStatus: rr.status,
+                                fee: rr.fee
                             };
                         })
                     );

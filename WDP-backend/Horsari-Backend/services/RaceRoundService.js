@@ -49,14 +49,18 @@ class RaceRoundService {
 
         // create race-referee link
         const raceReferees = [];
-        for (const refereeId of RefereeInvitation) {
+        for (const refereeItem of RefereeInvitation) {
             try {
+                const refereeId = refereeItem?.refereeId || refereeItem;
+                const fee = refereeItem?.fee ?? raceRoundData.minimalRidingFees ?? 0;
+                
                 const raceReferee = await RaceRefereeRepository.create({
                     raceRoundId: raceRound._id,
                     refereeId: toId(refereeId),
                     assignedAt: new Date(),
                     assignedByAdminId: adminID,
                     status: 'pending',
+                    fee: fee,
                 });
                 raceReferees.push(raceReferee);
             } catch (e) {
@@ -257,7 +261,7 @@ class RaceRoundService {
 
         // Process RefereeInvitation
         if (RefereeInvitation) {
-            const newRefereeIds = new Set(RefereeInvitation.map(toId));
+            const newRefereeIds = new Set(RefereeInvitation.map(item => toId(item?.refereeId || item)));
             
             for (const ref of existingReferees) {
                 const refIdStr = ref.refereeId.toString();
@@ -272,18 +276,20 @@ class RaceRoundService {
             }
 
             raceReferees = [];
-            for (const refereeId of RefereeInvitation) {
+            for (const refereeItem of RefereeInvitation) {
                 try {
-                    const resolvedId = toId(refereeId);
+                    const extractedId = refereeItem?.refereeId || refereeItem;
+                    const resolvedId = toId(extractedId);
+                    const fee = refereeItem?.fee ?? updateData?.minimalRidingFees ?? existingRaceRound.minimalRidingFees ?? 0;
                     const existingRef = existingRefMap.get(resolvedId);
 
                     if (existingRef) {
+                        const updates = { fee };
                         if (existingRef.status === 'cancelled') {
-                            const updatedRef = await RaceRefereeRepository.update(existingRef._id, { status: 'pending' });
-                            raceReferees.push(updatedRef);
-                        } else {
-                            raceReferees.push(existingRef);
+                            updates.status = 'pending';
                         }
+                        const updatedRef = await RaceRefereeRepository.update(existingRef._id, updates);
+                        raceReferees.push(updatedRef);
                     } else {
                         const newRef = await RaceRefereeRepository.create({
                             raceRoundId: id,
@@ -291,6 +297,7 @@ class RaceRoundService {
                             assignedAt: new Date(),
                             assignedByAdminId: adminID,
                             status: 'pending',
+                            fee: fee,
                         });
                         raceReferees.push(newRef);
                     }
