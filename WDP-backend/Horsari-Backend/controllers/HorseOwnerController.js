@@ -1,4 +1,5 @@
 const HorseOwnerService = require('../services/HorseOwnerService');
+const JockeyService = require('../services/JockeyService');
 
 class HorseOwnerController {
     // (admin register removed)
@@ -48,6 +49,14 @@ class HorseOwnerController {
         const limit = parseInt(req.query.limit) || 10;
         const skip = parseInt(req.query.skip) || 0;
         const response = await HorseOwnerService.getAllHorseOwners(limit, skip);
+        return res.status(response.code).json(response);
+    }
+
+    // For horse owners: get all jockeys (with stats if any)
+    async getAllJockeys(req, res) {
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = parseInt(req.query.skip) || 0;
+        const response = await JockeyService.getAllJockeys(limit, skip);
         return res.status(response.code).json(response);
     }
 

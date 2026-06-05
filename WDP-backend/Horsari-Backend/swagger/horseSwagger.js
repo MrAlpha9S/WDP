@@ -185,6 +185,38 @@
  *     responses:
  *       200:
  *         description: Horse statistics
+ *
+ * /api/horse/upload-image/{horseId}:
+ *   post:
+ *     summary: Upload an image for a horse (owner only)
+ *     tags: [Horse]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: horseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Image uploaded and horse updated
+ *       400:
+ *         description: Bad request (missing horseId or image)
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not the horse owner
  */
 
 module.exports = {};
