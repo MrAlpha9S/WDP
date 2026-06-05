@@ -27,4 +27,5 @@ export interface RecentInvite {
     status: InviteStatus;
     isNew?: boolean;
     fee: number;
+    tournamentName?: string;
 }

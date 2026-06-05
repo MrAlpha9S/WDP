@@ -104,7 +104,6 @@ function ExpandedDetail({ invite, onAccept, onDecline }: ExpandedDetailProps) {
                     <div className="mb-4">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Race Classification</p>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <GradeBadge grade={invite.gradeLevel} />
                             <RaceTypeBadge type={invite.raceType} />
                             <span className="text-[12px] text-gray-500">{RACE_TYPE_DESCRIPTIONS[invite.raceType]}</span>
                         </div>
@@ -224,10 +223,11 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
                     </div>
 
                     <div className="flex-1 min-w-0">
+                        {invite.tournamentName && invite.tournamentName !== "Non-tournament" && (
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">{invite.tournamentName}</p>
+                        )}
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[15px] font-bold text-white">{invite.raceLabel}</span>
-                            <span className="text-[11px] text-gray-600 font-mono">{invite.race}</span>
-                            <GradeBadge grade={invite.gradeLevel} />
                             <RaceTypeBadge type={invite.raceType} />
                             {invite.isNew && (
                                 <span className="text-[9px] font-bold uppercase tracking-widest bg-red-700 text-white px-1.5 py-0.5 rounded-full">New</span>
@@ -243,7 +243,6 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
                                 <Clock size={11} className="text-red-600 shrink-0" />
                                 {invite.date} · {invite.time}
                             </span>
-                            <span className="text-[11px] font-semibold text-gray-500 bg-white/6 px-2 py-0.5 rounded-lg">{invite.role}</span>
                         </div>
                         <div className="flex items-center gap-3 mt-1.5">
                             <p className="text-[11px] text-gray-600">Invited {invite.sentAt} · {invite.id}</p>

@@ -14,6 +14,7 @@ export interface RaceRefereeAssignment {
   refereeId: string;
   fullName: string | null;
   assignmentStatus: string;
+  fee?: number;
 }
 
 export interface RaceRoundData {
@@ -21,6 +22,7 @@ export interface RaceRoundData {
   roundName: string;
   raceDate: string;
   location?: string;
+  address?: string;
   status: string;
   maxParticipants?: number;
   trackLength?: number;

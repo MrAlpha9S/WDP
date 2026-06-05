@@ -1,36 +1,30 @@
 import { useState } from "react";
 import {
-    AlertCircle, CheckCircle2, ChevronDown, ChevronRight,
-    Clock, Flag, Globe, MapPin, Trophy, Users, X,
+    AlertCircle, CheckCircle2, ChevronRight,
+    Clock, Globe, MapPin, Trophy, Users, X,
 } from "lucide-react";
 import type { Tournament, RaceRound, ModalTab } from "../../../shared/types/TournamentTypes";
 import {
-    T_COLOR, RACES_BY_TOURNAMENT, LEADERBOARD, TOURNAMENTS, ALL_RACES,
+    T_COLOR,
     MONTH_NAMES, DAY_NAMES,
 } from "../../../shared/data/TournamentData";
-import { StatusBadge, GradeBadge, RaceTypeBadge, AssignmentTag } from "../RefereeComponents/TournamentBadges";
+import { StatusBadge, RaceTypeBadge, AssignmentTag } from "../RefereeComponents/TournamentBadges";
 
 // ── Day Popup ─────────────────────────────────────────────────────────────────
 
-function tournamentsOnDay(iso: string): Tournament[] {
-    return TOURNAMENTS.filter(t => iso >= t.startISO && iso <= t.endISO);
-}
-
-function racesOnDay(iso: string): RaceRound[] {
-    return ALL_RACES.filter(r => r.dateISO === iso);
-}
-
-export function DayPopup({ iso, onSelectTournament, onOpenRaceMonitor }: {
+export function DayPopup({ iso, tournaments, allRaces, onSelectTournament, onOpenRaceMonitor }: {
     iso: string;
+    tournaments: Tournament[];
+    allRaces: RaceRound[];
     onSelectTournament: (t: Tournament) => void;
     onOpenRaceMonitor: (raceId: string) => void;
 }) {
-    const tournaments = tournamentsOnDay(iso);
-    const races = racesOnDay(iso);
+    const tournamentsOnDay = tournaments.filter(t => iso >= t.startISO && iso <= t.endISO);
+    const racesOnDay = allRaces.filter(r => r.dateISO === iso);
     const [y, m, d] = iso.split("-").map(Number);
     const label = `${DAY_NAMES[new Date(y, m - 1, d).getDay()]}, ${MONTH_NAMES[m - 1]} ${d}`;
 
-    if (tournaments.length === 0 && races.length === 0) return null;
+
 
     return (
         <div className="bg-[#1a1a1a] rounded-xl border border-white/10 overflow-hidden">
@@ -38,10 +32,10 @@ export function DayPopup({ iso, onSelectTournament, onOpenRaceMonitor }: {
                 <p className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">{label}</p>
             </div>
 
-            {tournaments.length > 0 && (
+            {tournamentsOnDay.length > 0 && (
                 <div className="px-4 py-3 flex flex-col gap-2 border-b border-white/6">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">Tournaments Active</p>
-                    {tournaments.map(t => {
+                    {tournamentsOnDay.map(t => {
                         const c = T_COLOR[t.color];
                         return (
                             <button
@@ -61,12 +55,12 @@ export function DayPopup({ iso, onSelectTournament, onOpenRaceMonitor }: {
                 </div>
             )}
 
-            {races.length > 0 && (
+            {racesOnDay.length > 0 && (
                 <div className="px-4 py-3 flex flex-col gap-2">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">Races</p>
-                    {races.map(r => {
-                        const t = TOURNAMENTS.find(t => t.id === r.tournamentId)!;
-                        const c = T_COLOR[t.color];
+                    {racesOnDay.map(r => {
+                        const t = tournaments.find(t => t.id === r.tournamentId);
+                        if (!t) return null;
                         const isLive = r.status === "live";
                         return (
                             <button
@@ -89,12 +83,17 @@ export function DayPopup({ iso, onSelectTournament, onOpenRaceMonitor }: {
                                     <p className="text-[11px] text-gray-600">{r.venue} · {r.time}</p>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                    <GradeBadge grade={r.gradeLevel} />
                                     {isLive && <ChevronRight size={12} className="text-red-600" />}
                                 </div>
                             </button>
                         );
                     })}
+                </div>
+            )}
+
+            {tournamentsOnDay.length === 0 && racesOnDay.length === 0 && (
+                <div className="px-4 py-6 flex items-center justify-center">
+                    <p className="text-[11px] text-gray-500 font-medium tracking-wide">No events scheduled for this day</p>
                 </div>
             )}
         </div>
@@ -103,13 +102,12 @@ export function DayPopup({ iso, onSelectTournament, onOpenRaceMonitor }: {
 
 // ── Race Detail Panel ─────────────────────────────────────────────────────────
 
-function RaceDetailPanel({ race, onClose }: { race: RaceRound; onClose: () => void }) {
+function RaceDetailPanel({ race, onClose, onOpenRaceMonitor }: { race: RaceRound; onClose: () => void; onOpenRaceMonitor?: (id: string) => void }) {
     return (
         <div className="bg-[#141414] rounded-xl border border-white/10 overflow-hidden mt-1">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[13px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>{race.label}</span>
-                    <GradeBadge grade={race.gradeLevel} />
                     <RaceTypeBadge type={race.raceType} />
                 </div>
                 <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
@@ -123,7 +121,7 @@ function RaceDetailPanel({ race, onClose }: { race: RaceRound; onClose: () => vo
                     { label: "Entries", value: `${race.entries} horses` },
                     { label: "Prize Pool", value: race.prizePool },
                     { label: "Venue", value: race.venue },
-                    { label: "Location", value: race.trackLocation },
+                    { label: "Address", value: race.trackLocation },
                 ].map(({ label, value }) => (
                     <div key={label} className="bg-white/[0.03] rounded-lg border border-white/6 px-3 py-2">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-0.5">{label}</p>
@@ -140,27 +138,37 @@ function RaceDetailPanel({ race, onClose }: { race: RaceRound; onClose: () => vo
                     )}
                 </div>
             )}
+            {onOpenRaceMonitor && (
+                <div className="px-4 pb-4">
+                    <button 
+                        onClick={() => onOpenRaceMonitor(race.id)}
+                        className="w-full flex items-center justify-center gap-2 bg-white/[0.04] hover:bg-white/[0.08] text-white text-[12px] font-bold py-2.5 rounded-lg border border-white/10 transition-all"
+                    >
+                        View in Race Monitor <ChevronRight size={14} />
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 
-function OverviewTab({ t }: { t: Tournament }) {
-    const races = RACES_BY_TOURNAMENT[t.id] ?? [];
+function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) {
+    const races = allRaces.filter(r => r.tournamentId === t.id);
     const completed = races.filter(r => r.status === "completed").length;
     const violations = races.reduce((a, r) => a + r.violations, 0);
+    const totalEarnings = races.reduce((a, r) => a + (r.refereeFee || 0), 0);
     const liveRace = races.find(r => r.status === "live");
     const c = T_COLOR[t.color];
-    const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
     return (
         <div className="flex flex-col gap-5">
             <div className="bg-white/[0.03] rounded-xl border border-white/8 px-5 py-4">
                 <p className="text-[12.5px] text-gray-400 leading-relaxed mb-4">{t.description}</p>
                 <div className="flex items-center gap-x-5 gap-y-1.5 flex-wrap text-[12px] text-gray-500">
-                    <span className="flex items-center gap-1.5"><MapPin size={11} className="text-gray-600" />{t.location}</span>
-                    <span className="flex items-center gap-1.5"><Globe size={11} className="text-gray-600" />{t.country}</span>
+                    {t.location && <span className="flex items-center gap-1.5"><MapPin size={11} className="text-gray-600" />{t.location}</span>}
+                    {t.country && <span className="flex items-center gap-1.5"><Globe size={11} className="text-gray-600" />{t.country}</span>}
                     <span>{t.startDate} – {t.endDate}</span>
                 </div>
                 <div className="mt-4">
@@ -172,7 +180,7 @@ function OverviewTab({ t }: { t: Tournament }) {
                     <div className="flex justify-between mt-1.5">
                         <span className="text-[10px] text-gray-600">Round 1</span>
                         {liveRace && <span className={`text-[10px] font-semibold ${c.label}`}>Round {liveRace.round} · Live</span>}
-                        <span className="text-[10px] text-gray-600">Round {t.totalRaces}</span>
+                        {t.totalRaces > 1 && <span className="text-[10px] text-gray-600">Round {t.totalRaces}</span>}
                     </div>
                 </div>
             </div>
@@ -182,7 +190,7 @@ function OverviewTab({ t }: { t: Tournament }) {
                     { label: "Assigned Races", value: `${t.assignedRaces}/${t.totalRaces}`, sub: "of total", subColor: c.label },
                     { label: "Completed", value: `${completed}`, sub: "races done", subColor: "text-gray-500" },
                     { label: "Violations Filed", value: `${violations}`, sub: "this series", subColor: violations > 0 ? "text-yellow-400" : "text-gray-500" },
-                    { label: "Total Earnings", value: "$4,310", sub: "series total", subColor: "text-green-400" },
+                    { label: "Total Earnings", value: `$${totalEarnings.toLocaleString()}`, sub: "series total", subColor: "text-green-400" },
                 ].map(card => (
                     <div key={card.label} className="bg-white/[0.03] rounded-xl border border-white/8 px-4 py-3.5">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1.5">{card.label}</p>
@@ -193,75 +201,16 @@ function OverviewTab({ t }: { t: Tournament }) {
             </div>
 
             <div className="bg-white/[0.03] rounded-xl border border-white/8 overflow-hidden">
+                {/* Leaderboard omitted as it is mocked */}
                 <button
-                    onClick={() => setLeaderboardOpen(o => !o)}
+                    onClick={() => {}}
                     className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.02] transition-colors"
                 >
                     <h3 className="text-[13.5px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>Leaderboard</h3>
                     <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">By Owner</span>
-                        <ChevronDown
-                            size={14}
-                            className={`text-gray-600 transition-transform duration-200 ${leaderboardOpen ? "rotate-180" : ""}`}
-                        />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Coming Soon</span>
                     </div>
                 </button>
-                {leaderboardOpen && (
-                    <div className="border-t border-white/8">
-                        {LEADERBOARD.map(e => {
-                            const rankColor = e.rank === 1 ? c.label : e.rank === 2 ? "text-gray-400" : "text-gray-600";
-                            return (
-                                <div key={e.rank} className="flex items-start gap-3 px-5 py-3.5 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
-                                    {/* Rank */}
-                                    <span className={`text-[16px] font-bold w-5 text-center shrink-0 mt-0.5 ${rankColor}`} style={{ fontFamily: "'Playfair Display', serif" }}>{e.rank}</span>
-                                    {/* Horse + owner + placements */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-baseline gap-2 flex-wrap">
-                                            <p className="text-[13px] font-bold text-white">{e.horse}</p>
-                                            <p className="text-[11px] text-gray-500">Owner: {e.owner}</p>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                                            {e.placements.map((pos, i) => {
-                                                const isPending = pos === null;
-                                                const isLiveRound = races[i]?.status === "live";
-                                                const posStyle = isPending
-                                                    ? "border-white/8 text-gray-600 bg-transparent"
-                                                    : pos === 1
-                                                        ? "border-yellow-700/50 text-yellow-400 bg-yellow-500/10"
-                                                        : pos === 2
-                                                            ? "border-gray-500/50 text-gray-300 bg-white/5"
-                                                            : pos === 3
-                                                                ? "border-amber-700/50 text-amber-500 bg-amber-500/8"
-                                                                : "border-white/8 text-gray-500 bg-white/[0.03]";
-                                                return (
-                                                    <span
-                                                        key={i}
-                                                        title={`R${i + 1}: ${isPending ? "Pending" : `${pos}${pos === 1 ? "st" : pos === 2 ? "nd" : pos === 3 ? "rd" : "th"}`}`}
-                                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-bold ${posStyle}`}
-                                                    >
-                                                        <span className="text-[9px] text-gray-600 font-medium">R{i + 1}</span>
-                                                        {isPending
-                                                            ? <span className="text-gray-600">—</span>
-                                                            : <span>{pos}{pos === 1 ? "st" : pos === 2 ? "nd" : pos === 3 ? "rd" : "th"}</span>
-                                                        }
-                                                        {isLiveRound && !isPending && (
-                                                            <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
-                                                        )}
-                                                    </span>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                    {/* Points */}
-                                    <div className="text-right shrink-0">
-                                        <p className="text-[13px] font-bold text-white">{e.points}</p>
-                                        <p className="text-[10px] text-gray-600 mt-0.5">{e.wins}W</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -269,9 +218,9 @@ function OverviewTab({ t }: { t: Tournament }) {
 
 // ── Races Tab ─────────────────────────────────────────────────────────────────
 
-function RacesTab({ t, onOpenRaceMonitor }: { t: Tournament; onOpenRaceMonitor: (raceId: string) => void }) {
+function RacesTab({ t, allRaces, onOpenRaceMonitor }: { t: Tournament; allRaces: RaceRound[]; onOpenRaceMonitor: (raceId: string) => void }) {
     const [expandedId, setExpandedId] = useState<string | null>(null);
-    const races = RACES_BY_TOURNAMENT[t.id] ?? [];
+    const races = allRaces.filter(r => r.tournamentId === t.id);
     const liveRace = races.find(r => r.status === "live");
     const c = T_COLOR[t.color];
 
@@ -310,7 +259,6 @@ function RacesTab({ t, onOpenRaceMonitor }: { t: Tournament; onOpenRaceMonitor: 
                                     <span className={`text-[13.5px] font-bold ${isCompleted ? "text-gray-400" : "text-white"}`} style={{ fontFamily: "'Playfair Display', serif" }}>
                                         {race.label}
                                     </span>
-                                    <GradeBadge grade={race.gradeLevel} />
                                     <RaceTypeBadge type={race.raceType} />
                                     {isLive && (
                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-red-700/60 text-red-400 bg-red-500/10 text-[10px] font-bold">
@@ -331,7 +279,7 @@ function RacesTab({ t, onOpenRaceMonitor }: { t: Tournament; onOpenRaceMonitor: 
                                 }
                             </div>
                         </div>
-                        {isExpanded && <RaceDetailPanel race={race} onClose={() => setExpandedId(null)} />}
+                        {isExpanded && <RaceDetailPanel race={race} onClose={() => setExpandedId(null)} onOpenRaceMonitor={onOpenRaceMonitor} />}
                     </div>
                 );
             })}
@@ -341,8 +289,9 @@ function RacesTab({ t, onOpenRaceMonitor }: { t: Tournament; onOpenRaceMonitor: 
 
 // ── Tournament Modal ──────────────────────────────────────────────────────────
 
-export function TournamentModal({ tournament: t, onClose, onOpenRaceMonitor }: {
+export function TournamentModal({ tournament: t, allRaces, onClose, onOpenRaceMonitor }: {
     tournament: Tournament;
+    allRaces: RaceRound[];
     onClose: () => void;
     onOpenRaceMonitor: (raceId: string) => void;
 }) {
@@ -371,7 +320,6 @@ export function TournamentModal({ tournament: t, onClose, onOpenRaceMonitor }: {
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                     <StatusBadge status={t.status} />
-                                    <GradeBadge grade={t.grade} />
                                     <AssignmentTag assignment={t.assignment} assignedRaces={t.assignedRaces} totalRaces={t.totalRaces} />
                                 </div>
                                 <h2 className="text-[20px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -395,7 +343,7 @@ export function TournamentModal({ tournament: t, onClose, onOpenRaceMonitor }: {
                                     tab === key ? "bg-red-700 text-white shadow-sm" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]",
                                 ].join(" ")}
                             >
-                                {key === "overview" ? "Overview" : `Races (${(RACES_BY_TOURNAMENT[t.id] ?? []).length})`}
+                                {key === "overview" ? "Overview" : `Races (${allRaces.filter(r => r.tournamentId === t.id).length})`}
                             </button>
                         ))}
                     </div>
@@ -403,8 +351,8 @@ export function TournamentModal({ tournament: t, onClose, onOpenRaceMonitor }: {
 
                 <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
                     {tab === "overview"
-                        ? <OverviewTab t={t} />
-                        : <RacesTab t={t} onOpenRaceMonitor={onOpenRaceMonitor} />
+                        ? <OverviewTab t={t} allRaces={allRaces} />
+                        : <RacesTab t={t} allRaces={allRaces} onOpenRaceMonitor={onOpenRaceMonitor} />
                     }
                 </div>
             </div>

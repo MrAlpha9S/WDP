@@ -27,6 +27,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     const [raceTime, setRaceTime] = useState("09:00");
     const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
     const [selectedReferees, setSelectedReferees] = useState<string[]>([]);
+    const [refereeFees, setRefereeFees] = useState<Record<string, number>>({});
     const [submitLoading, setSubmitLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -60,10 +61,19 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                         setCreateRaceType(raceToEdit.raceType || (data.data?.eligibilityRules?.length > 0 ? data.data.eligibilityRules[0].raceType : "Stakes"));
 
                         const owners = raceToEdit.Registration?.filter((r: any) => r.registrationStatus !== 'cancelled').map((r: any) => r.Owner?._id || r.horseOwnerId).filter(Boolean) || [];
-                        const referees = raceToEdit.Referee?.filter((r: any) => r.status !== 'cancelled').map((r: any) => r.refereeId).filter(Boolean) || [];
+                        const referees = raceToEdit.Referee?.filter((r: any) => r.assignmentStatus !== 'cancelled') || [];
                         
                         setSelectedOwners(owners.map((id: any) => typeof id === 'object' ? id._id : id));
-                        setSelectedReferees(referees.map((id: any) => typeof id === 'object' ? id._id : id));
+                        setSelectedReferees(referees.map((r: any) => typeof r.refereeId === 'object' ? r.refereeId._id : r.refereeId).filter(Boolean));
+
+                        const fees: Record<string, number> = {};
+                        referees.forEach((r: any) => {
+                            const id = typeof r.refereeId === 'object' ? r.refereeId._id : r.refereeId;
+                            if (id && r.fee !== undefined) {
+                                fees[id] = r.fee;
+                            }
+                        });
+                        setRefereeFees(fees);
                     } else {
                         if (data.data?.eligibilityRules?.length > 0) {
                             setCreateRaceType(data.data.eligibilityRules[0].raceType);
@@ -87,6 +97,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             setRaceTime("09:00");
             setSelectedOwners([]);
             setSelectedReferees([]);
+            setRefereeFees({});
             setShowConfirm(false);
             setMinimalRidingFees("");
             setRequireEntranceFees(false);
@@ -195,7 +206,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                 status: "scheduled"
             },
             HorseOwnerInvitation: selectedOwners,
-            RefereeInvitation: selectedReferees
+            RefereeInvitation: selectedReferees.map(id => {
+                const fee = refereeFees[id];
+                return fee !== undefined ? { refereeId: id, fee } : { refereeId: id };
+            })
         };
 
         setSubmitLoading(true);
@@ -495,10 +509,28 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                                                         }}
                                                         className="w-3.5 h-3.5 accent-red-600 rounded bg-black border-white/20"
                                                     />
-                                                    <div className="flex flex-col">
+                                                    <div className="flex flex-col flex-1">
                                                         <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">{refName}</span>
                                                         <span className="text-[11px] text-gray-500">Active</span>
                                                     </div>
+                                                    {selectedReferees.includes(String(refereeId)) && (
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Fee"
+                                                            value={refereeFees[String(refereeId)] ?? ""}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value ? Number(e.target.value) : undefined;
+                                                                setRefereeFees(prev => {
+                                                                    const next = { ...prev };
+                                                                    if (val !== undefined) next[String(refereeId)] = val;
+                                                                    else delete next[String(refereeId)];
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                            className="w-20 bg-[#111] border border-white/10 rounded px-2 py-1 text-[12px] text-white focus:outline-none focus:border-red-500/50"
+                                                        />
+                                                    )}
                                                 </label>
                                             );
                                         })}

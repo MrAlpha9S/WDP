@@ -3,7 +3,7 @@ import type { RaceType, GradeLevel } from "../types/CommonTypes";
 
 // ── Date constants ─────────────────────────────────────────────────────────────
 
-export const TODAY = new Date(2024, 10, 2);
+export const TODAY = new Date();
 
 // ── Calendar helpers ───────────────────────────────────────────────────────────
 

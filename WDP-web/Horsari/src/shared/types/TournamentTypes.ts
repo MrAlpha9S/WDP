@@ -42,6 +42,7 @@ export interface RaceRound {
     track: string;
     entries: number;
     prizePool: string;
+    refereeFee: number;
     status: RaceStatus;
     violations: number;
     tournamentId: string;
