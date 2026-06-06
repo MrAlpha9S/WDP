@@ -32,6 +32,9 @@ router.get('/tournaments', authMiddleware, authAdmin, AdminController.getTournam
 // Get race rounds grouped by tournament with deep nested entities
 router.get('/race-rounds', authMiddleware, authAdmin, AdminController.getRaceRounds);
 
+// Get race round details
+router.get('/race-rounds/:id/detail', authMiddleware, authAdmin, AdminController.getRaceRoundDetail);
+
 // Get all metadata required for creating a race
 router.get('/create-race-metadata', authMiddleware, authAdmin, AdminController.getCreateRaceMetadata);
 

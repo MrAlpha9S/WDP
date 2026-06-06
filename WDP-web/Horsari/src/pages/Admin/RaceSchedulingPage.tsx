@@ -71,12 +71,19 @@ export default function RaceSchedulingPage() {
         setTablePage(1);
     }, [selectedTournament, selectedStatus, selectedDate, viewMode]);
 
-    const handleEditRace = (race: any) => {
+    const handleEditRace = async (race: any) => {
         if (!race) return;
         const rawRace = raceRoundsData.find(r => r._id === race.id);
         if (rawRace) {
-            setRaceToEdit(rawRace);
-            setIsCreateModalOpen(true);
+            try {
+                const res = await adminService.getRaceRoundDetail(rawRace._id);
+                if (res.data) {
+                    setRaceToEdit(res.data);
+                    setIsCreateModalOpen(true);
+                }
+            } catch (err) {
+                console.error("Failed to fetch detailed race for edit", err);
+            }
         }
     };
 
@@ -112,19 +119,8 @@ export default function RaceSchedulingPage() {
             date: dateStr,
             time: timeStr,
             status: rr.status,
-            participants: (rr.Registration || []).map((reg) => ({
-                registrationId: reg._id,
-                ownerName: reg.Owner?.fullName ?? 'Unknown Owner',  // Owner is now plain User {_id, fullName}
-                horseName: reg.Horse?.horseName ?? null,
-                jockeyName: reg.Jockey?._id?.fullName ?? null,
-                status: reg.registrationStatus ?? 'pending',
-            })),
-            referees: (rr.Referee || []).map((ref) => ({
-                refereeId: ref.refereeId,
-                fullName: ref.fullName ?? 'Unknown Referee',  // fullName is now a top-level field
-                assignmentStatus: ref.assignmentStatus ?? 'pending',
-                fee: ref.fee,
-            })),
+            participants: [],
+            referees: [],
             pendingInvites: [],
             maxSlots: rr.maxParticipants || 0,
             leftPercent,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Shield, X, AlertCircle, Loader2, ChevronDown, ChevronUp, Calendar, Clock, Tag, Ban, Pencil } from "lucide-react";
 import type { ScheduledRace } from "../../../shared/types/RaceTypes";
 import { adminService } from "../../../api/adminService";
@@ -26,6 +26,42 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
     const [isCancelling, setIsCancelling] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [expandedSection, setExpandedSection] = useState<'registrations' | 'referees' | null>('registrations');
+
+    const [detailedParticipants, setDetailedParticipants] = useState<any[]>([]);
+    const [detailedReferees, setDetailedReferees] = useState<any[]>([]);
+    const [loadingDetails, setLoadingDetails] = useState(false);
+
+    useEffect(() => {
+        if (selectedRace?.id) {
+            setLoadingDetails(true);
+            adminService.getRaceRoundDetail(selectedRace.id)
+                .then(res => {
+                    if (res.data) {
+                        const parts = (res.data.Registration || []).map((reg) => ({
+                            registrationId: reg._id,
+                            ownerName: reg.Owner?.fullName ?? 'Unknown Owner',
+                            horseName: reg.Horse?.horseName ?? null,
+                            jockeyName: reg.Jockey?._id?.fullName ?? null,
+                            status: reg.registrationStatus ?? 'pending',
+                        }));
+                        setDetailedParticipants(parts);
+
+                        const refs = (res.data.Referee || []).map((ref) => ({
+                            refereeId: ref.refereeId,
+                            fullName: ref.fullName ?? 'Unknown Referee',
+                            assignmentStatus: ref.assignmentStatus ?? 'pending',
+                            fee: ref.fee,
+                        }));
+                        setDetailedReferees(refs);
+                    }
+                })
+                .catch(err => console.error("Failed to fetch detailed race info", err))
+                .finally(() => setLoadingDetails(false));
+        } else {
+            setDetailedParticipants([]);
+            setDetailedReferees([]);
+        }
+    }, [selectedRace?.id]);
 
     const handleCancelRace = async () => {
         if (!selectedRace) return;
@@ -104,7 +140,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
                                 <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Registrations</h3>
                                 <div className="flex items-center gap-3">
                                     <span className="text-[11px] font-medium text-gray-500">
-                                        {(selectedRace.participants as any[]).filter((p: any) => p.status === 'approved').length}
+                                        {loadingDetails ? <Loader2 size={12} className="animate-spin inline mr-1" /> : detailedParticipants.filter((p: any) => p.status === 'approved').length}
                                         {" "}/ {selectedRace.maxSlots} approved
                                     </span>
                                     {expandedSection === 'registrations' ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
@@ -112,30 +148,36 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
                             </button>
                             {expandedSection === 'registrations' && (
                                 <div className="flex flex-col gap-2 p-3 border-t border-white/5 max-h-[300px] overflow-y-auto custom-scrollbar">
-                                    {((selectedRace.participants as any[]) ?? []).map((p: any) => {
-                                    const colorClass = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending;
-                                    return (
-                                        <div key={p.registrationId ?? p.ownerName} className="p-2.5 rounded bg-[#1f1a1a] border border-white/5 flex flex-col gap-1.5">
-                                            {/* Row 1: owner + status */}
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="text-[13px] font-semibold text-white truncate">{p.ownerName}</span>
-                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${colorClass}`}>
-                                                    {STATUS_LABEL[p.status] ?? p.status}
-                                                </span>
-                                            </div>
-                                            {/* Row 2: horse + jockey */}
-                                            {(p.horseName || p.jockeyName) && (
-                                                <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                                                    {p.horseName && <span>🐎 {p.horseName}</span>}
-                                                    {p.jockeyName && <span className="text-[#f3b2a5]">🎽 {p.jockeyName}</span>}
+                                    {loadingDetails ? (
+                                        <div className="flex justify-center p-4"><Loader2 size={16} className="animate-spin text-gray-500" /></div>
+                                    ) : (
+                                        <>
+                                            {detailedParticipants.map((p: any) => {
+                                            const colorClass = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending;
+                                            return (
+                                                <div key={p.registrationId ?? p.ownerName} className="p-2.5 rounded bg-[#1f1a1a] border border-white/5 flex flex-col gap-1.5">
+                                                    {/* Row 1: owner + status */}
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-[13px] font-semibold text-white truncate">{p.ownerName}</span>
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${colorClass}`}>
+                                                            {STATUS_LABEL[p.status] ?? p.status}
+                                                        </span>
+                                                    </div>
+                                                    {/* Row 2: horse + jockey */}
+                                                    {(p.horseName || p.jockeyName) && (
+                                                        <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                                                            {p.horseName && <span>🐎 {p.horseName}</span>}
+                                                            {p.jockeyName && <span className="text-[#f3b2a5]">🎽 {p.jockeyName}</span>}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                                {((selectedRace.participants as any[]) ?? []).length === 0 && (
-                                    <div className="text-[12px] text-gray-500 italic p-2 text-center">No registrations yet.</div>
-                                )}
+                                            );
+                                        })}
+                                        {detailedParticipants.length === 0 && (
+                                            <div className="text-[12px] text-gray-500 italic p-2 text-center">No registrations yet.</div>
+                                        )}
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -149,33 +191,39 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
                                 <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Referees</h3>
                                 <div className="flex items-center gap-3">
                                     <span className="text-[11px] font-medium text-gray-500">
-                                        {((selectedRace as any).referees ?? []).length} assigned
+                                        {loadingDetails ? <Loader2 size={12} className="animate-spin inline mr-1" /> : detailedReferees.length} assigned
                                     </span>
                                     {expandedSection === 'referees' ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
                                 </div>
                             </button>
                             {expandedSection === 'referees' && (
                                 <div className="flex flex-col gap-2 p-3 border-t border-white/5 max-h-[300px] overflow-y-auto custom-scrollbar">
-                                    {(((selectedRace as any).referees ?? []) as any[]).map((ref: any) => {
-                                    const colorClass = STATUS_COLORS[ref.assignmentStatus] ?? STATUS_COLORS.pending;
-                                    return (
-                                        <div key={ref.refereeId ?? ref.fullName} className="flex items-center justify-between p-2.5 rounded bg-[#1f1a1a] border border-white/5">
-                                            <div className="flex items-center gap-2">
-                                                <Shield size={12} className="text-gray-500 shrink-0" />
-                                                <span className="text-[13px] font-semibold text-white truncate">{ref.fullName}</span>
-                                                {ref.fee !== undefined && (
-                                                    <span className="text-[11px] text-gray-400">(${ref.fee})</span>
-                                                )}
-                                            </div>
-                                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${colorClass}`}>
-                                                {STATUS_LABEL[ref.assignmentStatus] ?? ref.assignmentStatus}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                                {(((selectedRace as any).referees ?? []) as any[]).length === 0 && (
-                                    <div className="text-[12px] text-gray-500 italic p-2 text-center">No referees assigned.</div>
-                                )}
+                                    {loadingDetails ? (
+                                        <div className="flex justify-center p-4"><Loader2 size={16} className="animate-spin text-gray-500" /></div>
+                                    ) : (
+                                        <>
+                                            {detailedReferees.map((ref: any) => {
+                                            const colorClass = STATUS_COLORS[ref.assignmentStatus] ?? STATUS_COLORS.pending;
+                                            return (
+                                                <div key={ref.refereeId ?? ref.fullName} className="flex items-center justify-between p-2.5 rounded bg-[#1f1a1a] border border-white/5">
+                                                    <div className="flex items-center gap-2">
+                                                        <Shield size={12} className="text-gray-500 shrink-0" />
+                                                        <span className="text-[13px] font-semibold text-white truncate">{ref.fullName}</span>
+                                                        {ref.fee !== undefined && (
+                                                            <span className="text-[11px] text-gray-400">(${ref.fee})</span>
+                                                        )}
+                                                    </div>
+                                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${colorClass}`}>
+                                                        {STATUS_LABEL[ref.assignmentStatus] ?? ref.assignmentStatus}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                        {detailedReferees.length === 0 && (
+                                            <div className="text-[12px] text-gray-500 italic p-2 text-center">No referees assigned.</div>
+                                        )}
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>

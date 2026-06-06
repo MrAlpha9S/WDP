@@ -93,6 +93,13 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // Get race round detail
+    async getRaceRoundDetail(req, res) {
+        const id = req.params.id;
+        const response = await AdminService.getRaceRoundDetail(id);
+        return res.status(response.code).json(response);
+    }
+
     // Get metadata for create race modal
     async getCreateRaceMetadata(req, res) {
         const response = await AdminService.getCreateRaceMetadata();

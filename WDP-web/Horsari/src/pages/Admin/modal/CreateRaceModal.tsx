@@ -173,6 +173,26 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             return;
         }
 
+        const selectedTournament = metadata?.tournaments?.find((t: any) => t._id === tournamentId);
+        if (selectedTournament) {
+            if (selectedTournament.startDate) {
+                const tStart = new Date(selectedTournament.startDate);
+                tStart.setHours(0, 0, 0, 0);
+                if (selectedDate < tStart) {
+                    setError(`Race date cannot be earlier than tournament start date (${tStart.toLocaleDateString()}).`);
+                    return;
+                }
+            }
+            if (selectedTournament.endDate) {
+                const tEnd = new Date(selectedTournament.endDate);
+                tEnd.setHours(23, 59, 59, 999);
+                if (selectedDate > tEnd) {
+                    setError(`Race date cannot be later than tournament end date (${tEnd.toLocaleDateString()}).`);
+                    return;
+                }
+            }
+        }
+
         const rule = metadata?.eligibilityRules?.find((r: any) => r.raceType === createRaceType);
         if (!rule) {
             setError("Invalid race type selected.");
@@ -232,6 +252,30 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     };
 
     if (!isOpen) return null;
+
+    const selectedTournamentUI = metadata?.tournaments?.find((t: any) => t._id === tournamentId);
+    let minDateUI: string | undefined = undefined;
+    let maxDateUI: string | undefined = undefined;
+
+    const twoWeeksFromNow = new Date();
+    twoWeeksFromNow.setDate(new Date().getDate() + 14);
+    const twoWeeksStr = twoWeeksFromNow.toISOString().split('T')[0];
+
+    if (!raceToEdit) {
+        minDateUI = twoWeeksStr;
+    }
+    
+    if (selectedTournamentUI) {
+        if (selectedTournamentUI.startDate) {
+            const tournamentStartStr = new Date(selectedTournamentUI.startDate).toISOString().split('T')[0];
+            if (!minDateUI || tournamentStartStr > minDateUI) {
+                minDateUI = tournamentStartStr;
+            }
+        }
+        if (selectedTournamentUI.endDate) {
+            maxDateUI = new Date(selectedTournamentUI.endDate).toISOString().split('T')[0];
+        }
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -352,6 +396,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                                         <input
                                             type="date"
                                             value={raceDate}
+                                            min={minDateUI}
+                                            max={maxDateUI}
                                             onChange={(e) => setRaceDate(e.target.value)}
                                             className="w-full bg-[#111] border border-white/10 rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
                                         />

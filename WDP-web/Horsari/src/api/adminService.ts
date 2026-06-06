@@ -29,8 +29,8 @@ export interface RaceRoundData {
   trackLength?: number;
   raceType?: string;
   RaceType?: string;
-  Registration: RaceRegistration[];
-  Referee: RaceRefereeAssignment[];
+  Registration?: RaceRegistration[];
+  Referee?: RaceRefereeAssignment[];
 }
 
 export interface TournamentRaceData {
@@ -113,6 +113,15 @@ export const adminService = {
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to fetch race rounds' };
+    }
+  },
+
+  getRaceRoundDetail: async (id: string): Promise<{ code: number; data: RaceRoundData; msg: string }> => {
+    try {
+      const response = await api.get(`/admin/race-rounds/${id}/detail`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch race round detail' };
     }
   },
 
