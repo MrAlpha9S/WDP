@@ -21,8 +21,8 @@ interface SidebarItem {
 const ITEMS: SidebarItem[] = [
     { tab: "Dashboard", icon: <House size={17} /> },
     { tab: "Horses", icon: <User size={17} /> },
-    { tab: "Roles & Permissions", icon: <ShieldCheck size={17} /> },
-    { tab: "Activity Logs", icon: <Activity size={17} /> },
+    { tab: "Users", icon: <User size={17} /> },
+    { tab: "Rules Managment", icon: <FileText size={17} /> },
     { tab: "Inbox", icon: <Mail size={17} /> },
     { tab: "Races", icon: <FileText size={17} /> },
     { tab: "Tournaments", icon: <FileText size={17} /> },

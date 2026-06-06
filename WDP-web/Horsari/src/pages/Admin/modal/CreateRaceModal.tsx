@@ -41,7 +41,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             adminService.getCreateRaceMetadata()
                 .then(data => {
                     setMetadata(data.data);
-                    
+
                     if (raceToEdit) {
                         setRaceTitle(raceToEdit.roundName || "");
                         setTournamentId(raceToEdit.tournamentId || (data.data?.tournaments?.length > 0 ? data.data.tournaments[0]._id : ""));
@@ -62,7 +62,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
 
                         const owners = raceToEdit.Registration?.filter((r: any) => r.registrationStatus !== 'cancelled').map((r: any) => r.Owner?._id || r.horseOwnerId).filter(Boolean) || [];
                         const referees = raceToEdit.Referee?.filter((r: any) => r.assignmentStatus !== 'cancelled') || [];
-                        
+
                         setSelectedOwners(owners.map((id: any) => typeof id === 'object' ? id._id : id));
                         setSelectedReferees(referees.map((r: any) => typeof r.refereeId === 'object' ? r.refereeId._id : r.refereeId).filter(Boolean));
 
@@ -307,8 +307,9 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                                                 const loc = e.target.value;
                                                 setLocation(loc);
                                                 const match = metadata?.previousRaceTracks?.find((t: any) => t.location === loc);
-                                                if (match && match.raceGround) {
-                                                    setRaceGround(match.raceGround);
+                                                if (match) {
+                                                    if (match.raceGround) setRaceGround(match.raceGround);
+                                                    if (match.address) setAddress(match.address);
                                                 }
                                             }}
                                             placeholder="Select or enter custom..."

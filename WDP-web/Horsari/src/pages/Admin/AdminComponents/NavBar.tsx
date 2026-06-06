@@ -3,7 +3,7 @@ import { Bell, ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 
-export type AdminTab = "Dashboard" | "Home" | "Tournaments" | "Users" | "Financial" | "Races" | "Roles & Permissions" | "Horses" | "Activity Logs" | "Inbox";
+export type AdminTab = "Dashboard" | "Home" | "Tournaments" | "Users" | "Financial" | "Races" | "Rules Managment" | "Horses" | "Inbox";
 
 export const ADMIN_TABS: AdminTab[] = [];
 

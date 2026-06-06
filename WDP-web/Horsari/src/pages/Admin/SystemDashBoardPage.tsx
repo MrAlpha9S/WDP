@@ -14,14 +14,7 @@ interface ActiveRace {
 }
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
-
-
-
-const ACTIVE_RACES: ActiveRace[] = [
-    { id: "1", status: "LIVE", name: "Dubai World Cup", detail: "Race 4 · 1200m" },
-    { id: "2", status: "PRE-RACE", name: "Ascot Gold Cup", detail: "Starts in 15m" },
-    { id: "3", status: "POST-RACE", name: "Kentucky Derby", detail: "Results Pending" },
-];
+// Removed mock ACTIVE_RACES array
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -102,18 +95,51 @@ import InvitationsSection from "./AdminComponents/InvitationsSection";
 export default function SystemDashboardPage() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [activeRaces, setActiveRaces] = useState<ActiveRace[]>([]);
+    const [racesLoading, setRacesLoading] = useState(true);
 
     useEffect(() => {
         async function fetchData() {
             setLoading(true);
+            setRacesLoading(true);
             try {
-                // Fetch stats concurrently if not already fetched, or just fetch them anyway
-                const statsRes = await adminService.getStatistics();
+                // Fetch stats and race rounds concurrently
+                const [statsRes, racesRes] = await Promise.all([
+                    adminService.getStatistics(),
+                    adminService.getRaceRounds()
+                ]);
                 setStats(statsRes.data);
+                
+                // Process race rounds
+                const allRounds = racesRes.data?.flatMap((t: any) => t.RaceRound) || [];
+                const mappedRaces: ActiveRace[] = allRounds.map((r: any) => {
+                    const statusStr = (r.status || "").toLowerCase();
+                    let mappedStatus: RaceStatus = "PRE-RACE";
+                    if (statusStr.includes("ongoing") || statusStr.includes("live")) {
+                        mappedStatus = "LIVE";
+                    } else if (statusStr.includes("completed") || statusStr.includes("finished")) {
+                        mappedStatus = "POST-RACE";
+                    }
+                    
+                    const dateStr = r.raceDate ? new Date(r.raceDate).toLocaleDateString() : "";
+                    const trackStr = r.trackLength ? `${r.trackLength}m` : "";
+                    const detail = [dateStr, trackStr].filter(Boolean).join(" · ");
+                    
+                    return {
+                        id: r._id,
+                        status: mappedStatus,
+                        name: r.roundName,
+                        detail: detail || "Details Pending"
+                    };
+                });
+                
+                // Show top 3 recent/upcoming
+                setActiveRaces(mappedRaces.slice(0, 3));
             } catch (error) {
                 console.error("Failed to load dashboard data", error);
             } finally {
                 setLoading(false);
+                setRacesLoading(false);
             }
         }
         fetchData();
@@ -182,23 +208,29 @@ export default function SystemDashboardPage() {
                     </div>
 
                     <div className="flex flex-col gap-3">
-                        {ACTIVE_RACES.map((race) => (
-                            <div
-                                key={race.id}
-                                className="rounded-lg bg-[#1a1a1a] border border-white/[0.05] px-4 py-3 flex items-center justify-between"
-                            >
-                                <div>
-                                    <RaceStatusBadge status={race.status} />
-                                    <p className="text-[13px] font-semibold text-white mt-1 leading-snug">
-                                        {race.name}
-                                    </p>
-                                    <p className="text-[11px] text-gray-500 mt-0.5">
-                                        {race.detail}
-                                    </p>
+                        {racesLoading ? (
+                            <p className="text-[13px] text-gray-500 text-center py-4">Loading races...</p>
+                        ) : activeRaces.length === 0 ? (
+                            <p className="text-[13px] text-gray-500 text-center py-4">No active races found.</p>
+                        ) : (
+                            activeRaces.map((race) => (
+                                <div
+                                    key={race.id}
+                                    className="rounded-lg bg-[#1a1a1a] border border-white/[0.05] px-4 py-3 flex items-center justify-between"
+                                >
+                                    <div>
+                                        <RaceStatusBadge status={race.status} />
+                                        <p className="text-[13px] font-semibold text-white mt-1 leading-snug">
+                                            {race.name}
+                                        </p>
+                                        <p className="text-[11px] text-gray-500 mt-0.5">
+                                            {race.detail}
+                                        </p>
+                                    </div>
+                                    <RaceIcon status={race.status} />
                                 </div>
-                                <RaceIcon status={race.status} />
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
             </div>

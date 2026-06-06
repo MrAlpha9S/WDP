@@ -633,11 +633,11 @@ class AdminService {
     async getCreateRaceMetadata() {
         try {
             const [previousRaceTracks, activeTournaments, eligibilityRules, referees, ownersRaw] = await Promise.all([
-                // 1. Get unique tracks (locations) and their grounds
+                // 1. Get unique tracks (locations) and their grounds and addresses
                 RaceRound.aggregate([
                     { $match: { location: { $ne: null, $ne: '' } } },
-                    { $group: { _id: "$location", location: { $first: "$location" }, raceGround: { $first: "$raceGround" } } },
-                    { $project: { _id: 0, location: 1, raceGround: 1 } }
+                    { $group: { _id: "$location", location: { $first: "$location" }, raceGround: { $first: "$raceGround" }, address: { $first: "$address" } } },
+                    { $project: { _id: 0, location: 1, raceGround: 1, address: 1 } }
                 ]),
 
                 // 2. Get active/scheduled tournaments
