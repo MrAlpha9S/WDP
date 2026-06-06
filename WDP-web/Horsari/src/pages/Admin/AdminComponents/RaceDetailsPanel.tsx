@@ -5,7 +5,7 @@ import { adminService } from "../../../api/adminService";
 
 interface RaceDetailsPanelProps {
     selectedRace?: ScheduledRace;
-    onRefresh?: () => void;
+    onRefresh?: (updateInfo?: { type: 'CREATE' | 'UPDATE'; tournament_id?: string; raceRound_id?: string }) => void;
     onEdit?: () => void;
 }
 
@@ -33,7 +33,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
         try {
             await adminService.cancelRaceRound(selectedRace.id);
             setIsCancelModalOpen(false);
-            if (onRefresh) onRefresh();
+            if (onRefresh) onRefresh({ type: 'UPDATE', raceRound_id: selectedRace.id });
         } catch (error) {
             console.error("Failed to cancel race round:", error);
         } finally {

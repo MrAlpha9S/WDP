@@ -87,8 +87,9 @@ class AdminController {
 
     // Get race rounds
     async getRaceRounds(req, res) {
-        const tournamentFilter = req.query.tournamentFilter || null;
-        const response = await AdminService.getRaceRounds(tournamentFilter);
+        const tournament_id = req.query.tournament_id || null;
+        const raceRound_id = req.query.raceRound_id || null;
+        const response = await AdminService.getRaceRounds(tournament_id, raceRound_id);
         return res.status(response.code).json(response);
     }
 

@@ -19,6 +19,7 @@ export interface RaceRefereeAssignment {
 
 export interface RaceRoundData {
   _id: string;
+  tournamentId?: string;
   roundName: string;
   raceDate: string;
   location?: string;
@@ -41,7 +42,7 @@ export interface TournamentRaceData {
 
 export interface RaceRoundsResponse {
   code: number;
-  data: TournamentRaceData[];
+  data: RaceRoundData[];
   msg: string;
 }
 
@@ -99,11 +100,14 @@ export const adminService = {
     }
   },
 
-  getRaceRounds: async (tournamentFilter?: string | null): Promise<RaceRoundsResponse> => {
+  getRaceRounds: async (tournament_id?: string | null, raceRound_id?: string | null): Promise<RaceRoundsResponse> => {
     try {
       const params: any = {};
-      if (tournamentFilter) {
-        params.tournamentFilter = tournamentFilter;
+      if (tournament_id) {
+        params.tournament_id = tournament_id;
+      }
+      if (raceRound_id) {
+        params.raceRound_id = raceRound_id;
       }
       const response = await api.get('/admin/race-rounds', { params });
       return response.data;

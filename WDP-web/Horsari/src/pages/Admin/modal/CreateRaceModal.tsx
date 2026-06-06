@@ -5,7 +5,7 @@ import { adminService } from "../../../api/adminService";
 interface CreateRaceModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess?: () => void;
+    onSuccess?: (updateInfo?: { type: 'CREATE' | 'UPDATE'; tournament_id?: string; raceRound_id?: string }) => void;
     raceToEdit?: any;
 }
 
@@ -216,10 +216,11 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         try {
             if (raceToEdit) {
                 await adminService.updateRaceRound(raceToEdit._id, payload);
+                if (onSuccess) onSuccess({ type: 'UPDATE', raceRound_id: raceToEdit._id, tournament_id: tournamentId });
             } else {
                 await adminService.createRaceRound(payload);
+                if (onSuccess) onSuccess({ type: 'CREATE', tournament_id: tournamentId });
             }
-            if (onSuccess) onSuccess();
             onClose();
         } catch (err: any) {
             console.error("Failed to create race", err);
