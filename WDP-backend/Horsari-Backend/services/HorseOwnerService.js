@@ -219,7 +219,7 @@ class HorseOwnerService {
             const horseIds = horses.map(h => String(h._id));
 
             const result = await Promise.all(regs.map(async reg => {
-                const rr = await RaceRound.findById(reg.raceRoundId).lean();
+                const rr = await RaceRound.findById(reg.raceRoundId).populate('eligibilityRuleId').lean();
                 let tournament = null;
                 if (rr && rr.tournamentId) {
                     tournament = await Tournament.findById(rr.tournamentId).lean();
