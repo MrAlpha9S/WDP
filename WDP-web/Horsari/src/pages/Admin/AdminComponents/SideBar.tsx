@@ -1,6 +1,5 @@
 import {
     House,
-    ShieldCheck,
     Activity,
     FileText,
     User,
@@ -23,9 +22,9 @@ const ITEMS: SidebarItem[] = [
     { tab: "Horses", icon: <User size={17} /> },
     { tab: "Users", icon: <User size={17} /> },
     { tab: "Rules Managment", icon: <FileText size={17} /> },
-    { tab: "Inbox", icon: <Mail size={17} /> },
-    { tab: "Races", icon: <FileText size={17} /> },
+    // { tab: "Inbox", icon: <Mail size={17} /> },
     { tab: "Tournaments", icon: <FileText size={17} /> },
+    { tab: "Races", icon: <FileText size={17} /> },
 ];
 
 export default function AdminSidebar({ activeTab, onTabChange }: SidebarProps) {
