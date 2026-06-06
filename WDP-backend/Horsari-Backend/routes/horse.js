@@ -1,10 +1,14 @@
 const express = require('express');
 const HorseController = require('../controllers/HorseController');
 const { authMiddleware, authHorseOwner } = require('../middlewares/authMiddleware');
+const { upload } = require('../utils/CloudinaryUtil');
 
 const router = express.Router();
 
 require('../swagger/horseSwagger');
+
+// multer in-memory for direct upload to Cloudinary
+
 
 // CRUD routes
 // Create horse (protected)
@@ -30,5 +34,8 @@ router.delete('/:id', authMiddleware, authHorseOwner, HorseController.deleteHors
 
 // Get horse stats
 router.get('/stats/all', authMiddleware, HorseController.getHorseStats);
+
+// Upload horse image - horse files only
+router.post('/upload-image/:horseId', authMiddleware, authHorseOwner, upload.single('image'), HorseController.uploadHorseImage);
 
 module.exports = router;

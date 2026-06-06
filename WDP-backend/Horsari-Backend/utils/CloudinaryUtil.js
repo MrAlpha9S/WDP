@@ -6,7 +6,9 @@ cloudinary.config({
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 class CloudinaryUtil {
     // Upload file to Cloudinary
     static async uploadFile(fileBuffer, filename, folder = 'horsari') {
@@ -106,4 +108,4 @@ class CloudinaryUtil {
     }
 }
 
-module.exports = CloudinaryUtil;
+module.exports = {CloudinaryUtil, upload};
