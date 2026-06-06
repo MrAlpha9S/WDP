@@ -35,9 +35,24 @@ export const horseOwnerService = {
   },
   getHorseOwnerInvitations: async () => {
     try {
-      const response = await api.get('/invitations?limit=10&page=1');
-      console.log(response)
+      const response = await api.get('/horseowner/race-invitations');
       return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  getAllJockey: async () => {
+    try {
+      const response = await api.get('/jockey/all?limit=10&skip=0');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  approveRegistration: async (registrationId: string) => {
+    if (!registrationId || registrationId === '') return
+    try {
+      await api.post(`/horseowner/registration/${registrationId}/approve`);
     } catch (error: any) {
       throw error.response?.data || error;
     }
