@@ -12,7 +12,7 @@ require('../swagger/horseSwagger');
 
 // CRUD routes
 // Create horse (protected)
-router.post('/', authMiddleware, HorseController.createHorse);
+router.post('/', authMiddleware, authHorseOwner, HorseController.createHorse);
 
 // Get all horses
 router.get('/', authMiddleware, HorseController.getAllHorses);
