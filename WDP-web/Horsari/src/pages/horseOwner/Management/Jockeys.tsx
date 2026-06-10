@@ -250,8 +250,9 @@ export default function JockeysPage() {
         <HireJockeyModal
           jockey={hiring}
           onClose={() => setHiring(null)}
-          onConfirm={(payload) => {
+          onConfirm={async (payload) => {
             console.log("Hire payload:", payload);
+            await horseOwnerService.HireJockey(payload)
             setHiring(null);
           }}
         />

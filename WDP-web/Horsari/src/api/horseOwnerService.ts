@@ -24,10 +24,18 @@ export interface Horse {
   __v: number;
 }
 
+export interface hireJockey {
+  horseId: string,
+  jockeyId: string,
+  registrationId: string,
+  percentagePayout: number,
+  isBackup: boolean
+}
+
 export const horseOwnerService = {
   getUserHorse: async () => {
     try {
-      const response = await api.get('/horse?limit=10&skip=0');
+      const response = await api.get('/horseowner/my-horses?limit=10&skip=0');
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -36,6 +44,7 @@ export const horseOwnerService = {
   getHorseOwnerInvitations: async () => {
     try {
       const response = await api.get('/horseowner/race-invitations');
+      console.log('DATA: ', response.data)
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -53,6 +62,14 @@ export const horseOwnerService = {
     if (!registrationId || registrationId === '') return
     try {
       await api.post(`/horseowner/registration/${registrationId}/approve`);
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  HireJockey: async (data: hireJockey) => {
+    if (!data) return;
+    try {
+      await api.post(`/invitations`, data);
     } catch (error: any) {
       throw error.response?.data || error;
     }

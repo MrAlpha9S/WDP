@@ -3,7 +3,7 @@ import {
   X, Trophy, Flag, ChevronDown, Check,
   Loader2, AlertCircle, Shield, Repeat2,
 } from "lucide-react";
-import { horseOwnerService } from "../../../api/horseOwnerService";
+import { horseOwnerService, type hireJockey } from "../../../api/horseOwnerService";
 import { type Jockey } from "../../../components/ownerComponents/JockeyModal/Jockeydetailmodal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -33,10 +33,10 @@ function formatDate(iso: string): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapRace(raw: any, i: number): Race {
   return {
-    id:    raw._id                             ?? String(i),
-    name:  raw.raceName  ?? raw.name           ?? "Unnamed Race",
-    date:  raw.raceDate  ? formatDate(raw.raceDate) : raw.date ?? "TBA",
-    venue: raw.venue     ?? raw.location       ?? "TBA",
+    id:    raw.registration._id                             ?? String(i),
+    name:  raw.raceRound.roundName  ?? raw.name           ?? "Unnamed Race",
+    date:  raw.raceRound.raceDate  ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
+    venue: raw.raceRound.location    ?? raw.location       ?? "TBA",
     grade: raw.grade                           ?? "TBA",
   };
 }
@@ -117,7 +117,7 @@ export default function HireJockeyModal({
 }: {
   jockey: Jockey;
   onClose: () => void;
-  onConfirm?: (payload: { jockeyId: string | number; raceId: string; horseId: string; position: Position }) => void;
+  onConfirm?: (payload: hireJockey) => void;
 }) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
@@ -132,7 +132,7 @@ export default function HireJockeyModal({
   // Selections
   const [selectedRace,  setSelectedRace]  = useState<Race | null>(null);
   const [selectedHorse, setSelectedHorse] = useState<Horse | null>(null);
-  const [position,      setPosition]      = useState<Position>("main");
+  const [position,      setPosition]      = useState(false);
 
   // Fetch races (approved registrations only)
   useEffect(() => {
@@ -189,10 +189,11 @@ export default function HireJockeyModal({
   function handleConfirm() {
     if (!selectedRace || !selectedHorse) return;
     onConfirm?.({
-      jockeyId: jockey.id,
-      raceId:   selectedRace.id,
-      horseId:  selectedHorse.id,
-      position,
+      jockeyId: String(jockey.id),
+      registrationId:   String(selectedRace.id),
+      percentagePayout: 0.1,
+      horseId:  String(selectedHorse.id),
+      isBackup: position
     });
     onClose();
   }
@@ -305,8 +306,8 @@ export default function HireJockeyModal({
 
               <SelectCard
                 item={{ id: "main" }}
-                selected={position === "main"}
-                onSelect={() => setPosition("main")}
+                selected={position === false}
+                onSelect={() => setPosition(false)}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-red-900/30 border border-red-700/30 flex items-center justify-center shrink-0">
@@ -323,8 +324,8 @@ export default function HireJockeyModal({
 
               <SelectCard
                 item={{ id: "substitution" }}
-                selected={position === "substitution"}
-                onSelect={() => setPosition("substitution")}
+                selected={position === true}
+                onSelect={() => setPosition(true)}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-blue-900/30 border border-blue-700/30 flex items-center justify-center shrink-0">
@@ -400,11 +401,11 @@ export default function HireJockeyModal({
                 <>
                   <span>·</span>
                   <div className="flex items-center gap-1.5">
-                    {position === "main"
+                    {position === false
                       ? <Shield size={10} className="text-red-400" />
                       : <Repeat2 size={10} className="text-blue-400" />
                     }
-                    <span className="text-gray-400 font-medium capitalize">{position === "main" ? "Main Racer" : "Substitution"}</span>
+                    <span className="text-gray-400 font-medium capitalize">{position === false ? "Main Racer" : "Substitution"}</span>
                   </div>
                 </>
               )}
