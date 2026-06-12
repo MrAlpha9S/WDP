@@ -137,10 +137,15 @@ class JockeyService {
     async getAllJockeys(limit = 10, skip = 0) {
         try {
             const jockeys = await JockeyRepository.findAll(limit, skip);
-            const count = await JockeyRepository.count();
+            const p = jockeys.map(i => {
+
+                const { _id, ...rest } = i.toObject();
+                const { passwordHash, ...rest2 } = i._id.toObject();
+                return Object.assign({}, rest, rest2);
+            });
             return {
                 code: 200,
-                data: { jockeys, count },
+                data: { jockeys: p },
                 msg: 'Jockeys retrieved successfully',
             };
         } catch (error) {
@@ -150,7 +155,20 @@ class JockeyService {
             };
         }
     }
+    async getAllJockeysWithUserInfo(limit = 10, skip = 0) {
+        try {
+            const jockeys = await this.getAllJockeys(limit, skip);
 
+            jockeys.forEach(j => {
+
+            });
+        } catch (error) {
+            return {
+                code: 500,
+                msg: error.message,
+            };
+        }
+    }
     // Get jockeys by status
     async getJockeysByStatus(status) {
         try {

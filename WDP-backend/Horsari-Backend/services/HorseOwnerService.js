@@ -1,6 +1,10 @@
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const HorseRepository = require('../repositories/HorseRepository');
 const UserRepository = require('../repositories/UserRepository');
+const Registration = require('../entities/Registration');
+const RaceRound = require('../entities/RaceRound');
+const Tournament = require('../entities/Tournament');
+const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
 
 class HorseOwnerService {
     // Create horse owner profile for existing user (public)
@@ -200,6 +204,101 @@ class HorseOwnerService {
                 code: 500,
                 msg: error.message,
             };
+        }
+    }
+
+    // Get race invitations for owner: registrations + raceRound (+ tournament, eligibility rule)
+    async getRaceInvitations(ownerId) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+
+            // Find registrations for this owner that are pending/approved (invitations)
+            const regs = await Registration.find({ horseOwnerId: ownerId }).lean();
+
+            const horses = await HorseRepository.findByOwnerId(ownerId);
+            const horseIds = horses.map(h => String(h._id));
+
+            const result = await Promise.all(regs.map(async reg => {
+                const rr = await RaceRound.findById(reg.raceRoundId).populate('eligibilityRuleId').lean();
+                let tournament = null;
+                if (rr && rr.tournamentId) {
+                    tournament = await Tournament.findById(rr.tournamentId).lean();
+                }
+
+                let eligibleHorseIds = [];
+                if (rr && rr.eligibilityRuleId) {
+                    const rule = await RaceEligibilityRule.findById(rr.eligibilityRuleId).lean();
+                    if (rule) {
+                        // Basic matching: filter by requiredBreed and requiredGender when provided
+                        eligibleHorseIds = horses.filter(h => {
+                            if (rule.requiredBreed && h.breed !== rule.requiredBreed) return false;
+                            if (rule.requiredGender && h.gender !== rule.requiredGender) return false;
+                            return true;
+                        }).map(h => h._id);
+                    }
+                }
+
+                return {
+                    registration: reg,
+                    raceRound: rr || null,
+                    tournament: tournament || null,
+                    eligibleHorseIds,
+                };
+            }));
+
+            return { code: 200, data: result, msg: 'Race invitations retrieved successfully' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Approve a registration (owner action)
+    async approveRegistration(ownerId, registrationId) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+            if (!registrationId) return { code: 400, msg: 'registrationId is required' };
+
+            const reg = await Registration.findById(registrationId);
+            if (!reg) return { code: 404, msg: 'Registration not found' };
+            const tournament = await Tournament.findById(reg.tournamentId);
+            if (tournament && tournament.status === 'cancelled') {
+                return { code: 400, msg: 'Registrations for cancelled tournaments cannot be approved' };
+            }
+            if (reg.registrationStatus == 'cancelled' || reg.registrationStatus == 'rejected') {
+                return { code: 400, msg: 'rejected or cancelled registrations cannot be approved' };
+            }
+            if (String(reg.horseOwnerId) !== String(ownerId)) {
+                return { code: 403, msg: 'Not authorized to modify this registration' };
+            }
+
+            reg.registrationStatus = 'approved';
+            await reg.save();
+
+            return { code: 200, data: reg, msg: 'Registration approved' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Reject a registration (owner action)
+    async rejectRegistration(ownerId, registrationId) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+            if (!registrationId) return { code: 400, msg: 'registrationId is required' };
+
+            const reg = await Registration.findById(registrationId);
+            if (!reg) return { code: 404, msg: 'Registration not found' };
+
+            if (String(reg.horseOwnerId) !== String(ownerId)) {
+                return { code: 403, msg: 'Not authorized to modify this registration' };
+            }
+
+            reg.registrationStatus = 'rejected';
+            await reg.save();
+
+            return { code: 200, data: reg, msg: 'Registration rejected' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
         }
     }
 }
