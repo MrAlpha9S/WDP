@@ -260,7 +260,13 @@ class HorseOwnerService {
 
             const reg = await Registration.findById(registrationId);
             if (!reg) return { code: 404, msg: 'Registration not found' };
-
+            const tournament = await Tournament.findById(reg.tournamentId);
+            if (tournament && tournament.status === 'cancelled') {
+                return { code: 400, msg: 'Registrations for cancelled tournaments cannot be approved' };
+            }
+            if (reg.registrationStatus == 'cancelled' || reg.registrationStatus == 'rejected') {
+                return { code: 400, msg: 'rejected or cancelled registrations cannot be approved' };
+            }
             if (String(reg.horseOwnerId) !== String(ownerId)) {
                 return { code: 403, msg: 'Not authorized to modify this registration' };
             }
