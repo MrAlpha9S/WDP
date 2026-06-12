@@ -49,7 +49,11 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                             trackLength: data.trackLength,
                             raceGround: data.raceGround,
                             maxParticipants: data.maxParticipants,
-                            raceType: data.RaceType || data.raceType
+                            raceType: data.RaceType || data.raceType,
+                            firstPlacePrize: data.firstPlacePrize,
+                            secondPlacePrize: data.secondPlacePrize,
+                            thirdPlacePrize: data.thirdPlacePrize,
+                            currencyType: data.currencyType || "USD",
                         });
 
                         const parts = (res.data.Registration || []).map((reg: any) => ({
@@ -216,6 +220,22 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         
                                         <span className="text-gray-500 font-medium">Race Type</span>
                                         <span className="text-white">{detailedOverview?.raceType || selectedRace.raceType || <span className="text-gray-600 italic">N/A</span>}</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-4">
+                                    <h3 className="text-[13px] font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-2">
+                                        <Trophy size={16} className="text-gray-500" /> Prize Pool
+                                    </h3>
+                                    <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-4 text-[13px]">
+                                        <span className="text-gray-500 font-medium">1st Place</span>
+                                        <span className="text-[#f3b2a5] font-semibold">{detailedOverview?.firstPlacePrize ? `${detailedOverview?.currencyType} ${detailedOverview.firstPlacePrize.toLocaleString()}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                        
+                                        <span className="text-gray-500 font-medium">2nd Place</span>
+                                        <span className="text-[#f3b2a5] font-semibold">{detailedOverview?.secondPlacePrize ? `${detailedOverview?.currencyType} ${detailedOverview.secondPlacePrize.toLocaleString()}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                        
+                                        <span className="text-gray-500 font-medium">3rd Place</span>
+                                        <span className="text-[#f3b2a5] font-semibold">{detailedOverview?.thirdPlacePrize ? `${detailedOverview?.currencyType} ${detailedOverview.thirdPlacePrize.toLocaleString()}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
                                     </div>
                                 </div>
                             </div>

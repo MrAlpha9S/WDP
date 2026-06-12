@@ -44,6 +44,22 @@ const raceRoundSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        firstPlacePrize: {
+            type: Number,
+            default: 0,
+        },
+        secondPlacePrize: {
+            type: Number,
+            default: 0,
+        },
+        thirdPlacePrize: {
+            type: Number,
+            default: 0,
+        },
+        currencyType: {
+            type: String,
+            default: 'USD',
+        },
         location: {
             type: String,
         },

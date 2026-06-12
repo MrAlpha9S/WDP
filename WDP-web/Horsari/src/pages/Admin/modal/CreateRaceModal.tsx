@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
-import { X, Calendar, MapPin, Search, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { adminService } from "../../../api/adminService";
+import CreateRaceBasicInfo from "../AdminComponents/CreateRaceBasicInfo";
+import CreateRacePrizes from "../AdminComponents/CreateRacePrizes";
+import CreateRaceParticipants from "../AdminComponents/CreateRaceParticipants";
+import CreateRaceSummary from "../AdminComponents/CreateRaceSummary";
 
 interface CreateRaceModalProps {
     isOpen: boolean;
@@ -18,6 +22,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     const [minimalRidingFees, setMinimalRidingFees] = useState<number | "">("");
     const [requireEntranceFees, setRequireEntranceFees] = useState<boolean>(false);
     const [maxParticipants, setMaxParticipants] = useState<number>(18);
+    const [firstPlacePrize, setFirstPlacePrize] = useState<number | "">("");
+    const [secondPlacePrize, setSecondPlacePrize] = useState<number | "">("");
+    const [thirdPlacePrize, setThirdPlacePrize] = useState<number | "">("");
+    const [currencyType, setCurrencyType] = useState<string>("USD");
     const [raceTitle, setRaceTitle] = useState("");
     const [tournamentId, setTournamentId] = useState("");
     const [location, setLocation] = useState("");
@@ -58,6 +66,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                         setTrackLength(raceToEdit.trackLength || "");
                         setMinimalRidingFees(raceToEdit.minimalRidingFees || "");
                         setMaxParticipants(raceToEdit.maxParticipants || 18);
+                        setFirstPlacePrize(raceToEdit.firstPlacePrize ?? "");
+                        setSecondPlacePrize(raceToEdit.secondPlacePrize ?? "");
+                        setThirdPlacePrize(raceToEdit.thirdPlacePrize ?? "");
+                        setCurrencyType(raceToEdit.currencyType ?? "USD");
                         setCreateRaceType(raceToEdit.raceType || (data.data?.eligibilityRules?.length > 0 ? data.data.eligibilityRules[0].raceType : "Stakes"));
 
                         const owners = raceToEdit.Registration?.filter((r: any) => r.registrationStatus !== 'cancelled').map((r: any) => r.Owner?._id || r.horseOwnerId).filter(Boolean) || [];
@@ -102,6 +114,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             setMinimalRidingFees("");
             setRequireEntranceFees(false);
             setMaxParticipants(18);
+            setFirstPlacePrize("");
+            setSecondPlacePrize("");
+            setThirdPlacePrize("");
+            setCurrencyType("USD");
             setError(null);
             setShowConfirm(false);
         }
@@ -219,6 +235,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                 maxParticipants: Number(maxParticipants),
                 minimalRidingFees: requireEntranceFees ? Number(minimalRidingFees) : 0,
                 requireEntranceFees: requireEntranceFees,
+                firstPlacePrize: firstPlacePrize ? Number(firstPlacePrize) : 0,
+                secondPlacePrize: secondPlacePrize ? Number(secondPlacePrize) : 0,
+                thirdPlacePrize: thirdPlacePrize ? Number(thirdPlacePrize) : 0,
+                currencyType: currencyType,
                 location: location,
                 raceGround: raceGround,
                 address: address,
@@ -298,330 +318,81 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
 
                     {!showConfirm ? (
                         <>
-                            {/* Form Fields */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Race Title</label>
-                                    <input
-                                        type="text"
-                                        value={raceTitle}
-                                        onChange={(e) => setRaceTitle(e.target.value)}
-                                        placeholder="e.g. Royal Ascot Gold Cup"
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Tournament</label>
-                                    <select
-                                        value={tournamentId}
-                                        onChange={(e) => setTournamentId(e.target.value)}
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none"
-                                    >
-                                        {metadata?.tournaments?.map((t: any) => (
-                                            <option key={t._id} value={t._id}>{t.tournamentName}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
+                            <CreateRaceBasicInfo
+                                raceTitle={raceTitle}
+                                setRaceTitle={setRaceTitle}
+                                tournamentId={tournamentId}
+                                setTournamentId={setTournamentId}
+                                metadata={metadata}
+                                createRaceType={createRaceType}
+                                setCreateRaceType={setCreateRaceType}
+                                setSelectedOwners={setSelectedOwners}
+                                location={location}
+                                setLocation={setLocation}
+                                raceGround={raceGround}
+                                setRaceGround={setRaceGround}
+                                address={address}
+                                setAddress={setAddress}
+                                raceDate={raceDate}
+                                setRaceDate={setRaceDate}
+                                minDateUI={minDateUI}
+                                maxDateUI={maxDateUI}
+                                raceTime={raceTime}
+                                setRaceTime={setRaceTime}
+                                trackLength={trackLength}
+                                setTrackLength={setTrackLength}
+                                maxParticipants={maxParticipants}
+                                setMaxParticipants={setMaxParticipants}
+                            />
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Race Type</label>
-                                    <select
-                                        value={createRaceType}
-                                        onChange={(e) => {
-                                            setCreateRaceType(e.target.value);
-                                            setSelectedOwners([]);
-                                        }}
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none"
-                                    >
-                                        {metadata?.eligibilityRules?.map((rule: any) => (
-                                            <option key={rule._id} value={rule.raceType}>{rule.raceType}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Track Location</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                                        <input
-                                            type="text"
-                                            list="tracks-list"
-                                            value={location}
-                                            onChange={(e) => {
-                                                const loc = e.target.value;
-                                                setLocation(loc);
-                                                const match = metadata?.previousRaceTracks?.find((t: any) => t.location === loc);
-                                                if (match) {
-                                                    if (match.raceGround) setRaceGround(match.raceGround);
-                                                    if (match.address) setAddress(match.address);
-                                                }
-                                            }}
-                                            placeholder="Select or enter custom..."
-                                            className="w-full bg-[#111] border border-white/10 rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                                        />
-                                        <datalist id="tracks-list">
-                                            {metadata?.previousRaceTracks?.map((t: any) => <option key={t.location} value={t.location} />)}
-                                        </datalist>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Race Ground</label>
-                                    <input
-                                        type="text"
-                                        value={raceGround}
-                                        onChange={(e) => setRaceGround(e.target.value)}
-                                        placeholder="e.g. Dirt, Turf"
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                                    />
-                                </div>
-                            </div>
+                            <CreateRacePrizes
+                                requireEntranceFees={requireEntranceFees}
+                                setRequireEntranceFees={setRequireEntranceFees}
+                                minimalRidingFees={minimalRidingFees}
+                                setMinimalRidingFees={setMinimalRidingFees}
+                                currencyType={currencyType}
+                                setCurrencyType={setCurrencyType}
+                                firstPlacePrize={firstPlacePrize}
+                                setFirstPlacePrize={setFirstPlacePrize}
+                                secondPlacePrize={secondPlacePrize}
+                                setSecondPlacePrize={setSecondPlacePrize}
+                                thirdPlacePrize={thirdPlacePrize}
+                                setThirdPlacePrize={setThirdPlacePrize}
+                            />
 
-                            <div>
-                                <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Address</label>
-                                <input
-                                    type="text"
-                                    value={address}
-                                    onChange={(e) => setAddress(e.target.value)}
-                                    placeholder="e.g. 123 Racing Blvd, City"
-                                    className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Date</label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                                        <input
-                                            type="date"
-                                            value={raceDate}
-                                            min={minDateUI}
-                                            max={maxDateUI}
-                                            onChange={(e) => setRaceDate(e.target.value)}
-                                            className="w-full bg-[#111] border border-white/10 rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Time</label>
-                                    <input
-                                        type="time"
-                                        value={raceTime}
-                                        onChange={(e) => setRaceTime(e.target.value)}
-                                        min="09:00"
-                                        max="17:00"
-                                        step="1800"
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Track Length (m)</label>
-                                    <input
-                                        type="number"
-                                        min="200"
-                                        placeholder="e.g. 1200"
-                                        value={trackLength}
-                                        onChange={(e) => setTrackLength(e.target.value ? Number(e.target.value) : "")}
-                                        onBlur={() => {
-                                            if (typeof trackLength === 'number' && trackLength < 200) {
-                                                setTrackLength(200);
-                                            }
-                                        }}
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Max Participants</label>
-                                    <input
-                                        type="number"
-                                        value={maxParticipants}
-                                        onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Minimal Riding Fees ($)</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        placeholder="e.g. 500"
-                                        disabled={!requireEntranceFees}
-                                        value={minimalRidingFees}
-                                        onChange={(e) => setMinimalRidingFees(e.target.value ? Number(e.target.value) : "")}
-                                        onBlur={() => {
-                                            if (typeof minimalRidingFees === 'number' && minimalRidingFees < 0) {
-                                                setMinimalRidingFees(0);
-                                            }
-                                        }}
-                                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    />
-                                </div>
-                                <div className="flex flex-col justify-end">
-                                    <label className="flex items-center gap-3 p-2.5 cursor-pointer group hover:bg-white/5 rounded border border-transparent hover:border-white/10 transition-colors h-[42px]">
-                                        <input
-                                            type="checkbox"
-                                            checked={requireEntranceFees}
-                                            onChange={(e) => {
-                                                setRequireEntranceFees(e.target.checked);
-                                                if (!e.target.checked) {
-                                                    setMinimalRidingFees(0);
-                                                }
-                                            }}
-                                            className="w-4 h-4 accent-red-600 rounded bg-black border-white/20 cursor-pointer"
-                                        />
-                                        <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">Require Entrance Fees</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
-                                    Invite Horse Owners <span className="text-gray-500 normal-case ml-1 font-normal">(Auto-filtered for {createRaceType} eligibility)</span>
-                                </label>
-                                <div className="p-3 bg-[#111] border border-white/10 rounded flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar">
-                                    {metadata?.owners?.filter((owner: any) => owner.horses.some((h: any) => checkEligibility(h, createRaceType))).map((owner: any) => {
-                                        const ownerId = owner._id?._id ?? owner._id;
-                                        const ownerName = owner.user?.fullName ?? owner._id?.fullName ?? 'Unknown Owner';
-                                        const eligibleHorses = owner.horses.filter((h: any) => checkEligibility(h, createRaceType));
-                                        return (
-                                            <label key={String(ownerId)} className="flex items-start gap-3 p-2 cursor-pointer group hover:bg-white/5 rounded transition-colors">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedOwners.includes(String(ownerId))}
-                                                    onChange={(e) => {
-                                                        const id = String(ownerId);
-                                                        if (e.target.checked) {
-                                                            setSelectedOwners([...selectedOwners, id]);
-                                                        } else {
-                                                            setSelectedOwners(selectedOwners.filter(sid => sid !== id));
-                                                        }
-                                                    }}
-                                                    className="w-3.5 h-3.5 mt-1 accent-red-600 rounded bg-black border-white/20"
-                                                />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">{ownerName}</span>
-                                                    <span className="text-[11px] text-gray-500">
-                                                        Eligible: {eligibleHorses.map((h: any) => {
-                                                            const wins = h.raceResults ? h.raceResults.filter((r: any) => r.finishPosition === 1).length : 0;
-                                                            return `${h.horseName} (${wins}w)`;
-                                                        }).join(", ")}
-                                                    </span>
-                                                </div>
-                                            </label>
-                                        );
-                                    })}
-                                    {(!metadata?.owners || metadata.owners.filter((owner: any) => owner.horses.some((h: any) => checkEligibility(h, createRaceType))).length === 0) && (
-                                        <div className="text-[12px] text-gray-500 p-2 italic text-center">No eligible horse owners found for this race type.</div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
-                                    Assign Referee <span className="text-gray-500 normal-case ml-1 font-normal">(Optional)</span>
-                                </label>
-                                <div className="p-3 bg-[#111] border border-white/10 rounded flex flex-col gap-2">
-                                    <div className="relative mb-2">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                                        <input
-                                            type="text"
-                                            placeholder="Search referee by name..."
-                                            value={refereeSearchQuery}
-                                            onChange={(e) => setRefereeSearchQuery(e.target.value)}
-                                            className="w-full bg-[#1a1a1a] border border-white/10 rounded py-1.5 pl-9 pr-3 text-[12px] text-white focus:outline-none focus:border-red-500/50"
-                                        />
-                                    </div>
-                                    <div className="max-h-[120px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
-                                        {metadata?.referees?.filter((r: any) => (r._id?.fullName || "").toLowerCase().includes(refereeSearchQuery.toLowerCase())).map((referee: any) => {
-                                            const refereeId = referee._id?._id ?? referee._id;
-                                            const refName = referee._id?.fullName ?? 'Unknown Referee';
-                                            return (
-                                                <label key={String(refereeId)} className="flex items-center gap-3 p-2 cursor-pointer group hover:bg-white/5 rounded transition-colors">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedReferees.includes(String(refereeId))}
-                                                        onChange={(e) => {
-                                                            const id = String(refereeId);
-                                                            if (e.target.checked) {
-                                                                setSelectedReferees([...selectedReferees, id]);
-                                                            } else {
-                                                                setSelectedReferees(selectedReferees.filter(sid => sid !== id));
-                                                            }
-                                                        }}
-                                                        className="w-3.5 h-3.5 accent-red-600 rounded bg-black border-white/20"
-                                                    />
-                                                    <div className="flex flex-col flex-1">
-                                                        <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">{refName}</span>
-                                                        <span className="text-[11px] text-gray-500">Active</span>
-                                                    </div>
-                                                    {selectedReferees.includes(String(refereeId)) && (
-                                                        <input
-                                                            type="number"
-                                                            placeholder="Fee"
-                                                            value={refereeFees[String(refereeId)] ?? ""}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value ? Number(e.target.value) : undefined;
-                                                                setRefereeFees(prev => {
-                                                                    const next = { ...prev };
-                                                                    if (val !== undefined) next[String(refereeId)] = val;
-                                                                    else delete next[String(refereeId)];
-                                                                    return next;
-                                                                });
-                                                            }}
-                                                            className="w-20 bg-[#111] border border-white/10 rounded px-2 py-1 text-[12px] text-white focus:outline-none focus:border-red-500/50"
-                                                        />
-                                                    )}
-                                                </label>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </div>
+                            <CreateRaceParticipants
+                                metadata={metadata}
+                                createRaceType={createRaceType}
+                                selectedOwners={selectedOwners}
+                                setSelectedOwners={setSelectedOwners}
+                                checkEligibility={checkEligibility}
+                                refereeSearchQuery={refereeSearchQuery}
+                                setRefereeSearchQuery={setRefereeSearchQuery}
+                                selectedReferees={selectedReferees}
+                                setSelectedReferees={setSelectedReferees}
+                                refereeFees={refereeFees}
+                                setRefereeFees={setRefereeFees}
+                            />
                         </>
                     ) : (
-                        <div className="flex flex-col gap-4 text-white">
-                            <div className="p-4 bg-[#111] border border-white/10 rounded">
-                                <h3 className="text-[14px] font-semibold mb-4 text-gray-300">Race Summary</h3>
-                                <div className="grid grid-cols-2 gap-y-3 text-[13px]">
-                                    <div className="text-gray-500">Title</div>
-                                    <div className="font-medium">{raceTitle}</div>
-
-                                    <div className="text-gray-500">Tournament</div>
-                                    <div className="font-medium">
-                                        {metadata?.tournaments?.find((t: any) => t._id === tournamentId)?.tournamentName || "Unknown"}
-                                    </div>
-
-                                    <div className="text-gray-500">Date & Time</div>
-                                    <div className="font-medium">{raceDate} at {raceTime}</div>
-
-                                    <div className="text-gray-500">Track & Ground</div>
-                                    <div className="font-medium">{location} ({raceGround || "N/A"})</div>
-
-                                    <div className="text-gray-500">Track Length</div>
-                                    <div className="font-medium">{trackLength}m</div>
-
-                                    <div className="text-gray-500">Race Type</div>
-                                    <div className="font-medium">{createRaceType}</div>
-
-                                    <div className="text-gray-500">Owners Invited</div>
-                                    <div className="font-medium">{selectedOwners.length}</div>
-
-                                    <div className="text-gray-500">Referees Invited</div>
-                                    <div className="font-medium">{selectedReferees.length}</div>
-                                </div>
-                            </div>
-                            <div className="text-[12px] text-gray-400">
-                                Please review the details above. Click Confirm to {raceToEdit ? "save changes" : "create the race round"}.
-                            </div>
-                        </div>
+                        <CreateRaceSummary
+                            raceTitle={raceTitle}
+                            tournamentId={tournamentId}
+                            metadata={metadata}
+                            raceDate={raceDate}
+                            raceTime={raceTime}
+                            location={location}
+                            raceGround={raceGround}
+                            trackLength={trackLength}
+                            createRaceType={createRaceType}
+                            currencyType={currencyType}
+                            firstPlacePrize={firstPlacePrize}
+                            secondPlacePrize={secondPlacePrize}
+                            thirdPlacePrize={thirdPlacePrize}
+                            selectedOwners={selectedOwners}
+                            selectedReferees={selectedReferees}
+                            raceToEdit={raceToEdit}
+                        />
                     )}
 
                     {error && (

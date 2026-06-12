@@ -29,6 +29,10 @@ export interface RaceRoundData {
   trackLength?: number;
   raceType?: string;
   RaceType?: string;
+  firstPlacePrize?: number;
+  secondPlacePrize?: number;
+  thirdPlacePrize?: number;
+  currencyType?: string;
   Registration?: RaceRegistration[];
   Referee?: RaceRefereeAssignment[];
 }

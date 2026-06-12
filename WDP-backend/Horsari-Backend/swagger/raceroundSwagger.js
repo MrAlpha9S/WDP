@@ -38,6 +38,14 @@
  *                 type: number
  *               requireEntranceFees:
  *                 type: boolean
+ *               firstPlacePrize:
+ *                 type: number
+ *               secondPlacePrize:
+ *                 type: number
+ *               thirdPlacePrize:
+ *                 type: number
+ *               currencyType:
+ *                 type: string
  *           example:
  *             tournamentId: "60f7c2b8d3e2a12f4c8b4567"
  *             roundName: "Final Round"
@@ -47,6 +55,10 @@
  *             raceType: "flat"
  *             minimalRidingFees: 50
  *             requireEntranceFees: true
+ *             firstPlacePrize: 1000
+ *             secondPlacePrize: 500
+ *             thirdPlacePrize: 250
+ *             currencyType: "USD"
  *             refereeID: "60f7c2b8d3e2a12f4c8b1234"
  *             listOwnerID:
  *               - "60f7c2b8d3e2a12f4c8b2222"
@@ -151,6 +163,14 @@
  *                 type: number
  *               requireEntranceFees:
  *                 type: boolean
+ *               firstPlacePrize:
+ *                 type: number
+ *               secondPlacePrize:
+ *                 type: number
+ *               thirdPlacePrize:
+ *                 type: number
+ *               currencyType:
+ *                 type: string
  *     responses:
  *       200:
  *         description: RaceRound updated
