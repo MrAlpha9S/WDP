@@ -111,7 +111,7 @@ export default function SystemDashboardPage() {
                 setStats(statsRes.data);
                 
                 // Process race rounds
-                const allRounds = racesRes.data?.flatMap((t: any) => t.RaceRound) || [];
+                const allRounds = Array.isArray(racesRes.data) ? racesRes.data : [];
                 const mappedRaces: ActiveRace[] = allRounds.map((r: any) => {
                     const statusStr = (r.status || "").toLowerCase();
                     let mappedStatus: RaceStatus = "PRE-RACE";

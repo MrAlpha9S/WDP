@@ -15,7 +15,17 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
     );
 }
 
-export default function RuleDetailPanel({ rule, onClose }: { rule: RaceEligibilityRule; onClose: () => void }) {
+export default function RuleDetailPanel({ 
+    rule, 
+    onClose, 
+    onEdit, 
+    onToggleActive 
+}: { 
+    rule: RaceEligibilityRule; 
+    onClose: () => void;
+    onEdit: (rule: RaceEligibilityRule) => void;
+    onToggleActive: (rule: RaceEligibilityRule) => void;
+}) {
     const statusStyle = STATUS_STYLES[rule.isActive ? "active" : "inactive"];
 
     return (
@@ -56,20 +66,13 @@ export default function RuleDetailPanel({ rule, onClose }: { rule: RaceEligibili
                 </div>
 
                 {/* Status Pills */}
-                <div className="grid grid-cols-2 gap-3 mt-2">
+                <div className="grid grid-cols-1 gap-3 mt-2">
                     <div className={`flex items-center justify-between p-3 rounded-lg border ${rule.licenseRequired ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-gray-500/10 border-white/5 text-gray-500'}`}>
                         <div className="flex items-center gap-2">
                             <ShieldAlert size={14} />
                             <span className="text-[11px] font-semibold uppercase tracking-wider">License</span>
                         </div>
                         <span className="text-[12px] font-bold">{rule.licenseRequired ? "Required" : "Not Required"}</span>
-                    </div>
-                    <div className={`flex items-center justify-between p-3 rounded-lg border ${rule.requireNomination ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-gray-500/10 border-white/5 text-gray-500'}`}>
-                        <div className="flex items-center gap-2">
-                            <Calendar size={14} />
-                            <span className="text-[11px] font-semibold uppercase tracking-wider">Nomination</span>
-                        </div>
-                        <span className="text-[12px] font-bold">{rule.requireNomination ? "Required" : "Not Required"}</span>
                     </div>
                 </div>
 
@@ -106,8 +109,8 @@ export default function RuleDetailPanel({ rule, onClose }: { rule: RaceEligibili
                         <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">System</p>
                     </div>
                     <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-3 flex flex-col">
-                        <DetailRow label="Created At" value={new Date(rule.create_at).toLocaleString()} />
-                        <DetailRow label="Updated At" value={new Date(rule.updated_at).toLocaleString()} />
+                        <DetailRow label="Created At" value={rule.create_at ? new Date(rule.create_at).toLocaleString() : "N/A"} />
+                        <DetailRow label="Updated At" value={rule.updated_at ? new Date(rule.updated_at).toLocaleString() : "N/A"} />
                     </div>
                 </div>
 
@@ -115,15 +118,15 @@ export default function RuleDetailPanel({ rule, onClose }: { rule: RaceEligibili
 
             {/* Footer */}
             <div className="flex gap-2 px-5 py-3 border-t border-white/[0.07] flex-shrink-0">
-                <button className="flex-1 text-[12px] font-semibold bg-white/[0.05] hover:bg-white/[0.09] text-gray-300 py-2 rounded-lg transition-colors border border-white/[0.07]">
+                <button onClick={() => onEdit(rule)} className="flex-1 text-[12px] font-semibold bg-white/[0.05] hover:bg-white/[0.09] text-gray-300 py-2 rounded-lg transition-colors border border-white/[0.07]">
                     Edit Rule
                 </button>
                 {rule.isActive ? (
-                    <button className="flex-1 text-[12px] font-semibold bg-red-700/20 hover:bg-red-700/30 text-red-400 py-2 rounded-lg transition-colors border border-red-700/30">
+                    <button onClick={() => onToggleActive(rule)} className="flex-1 text-[12px] font-semibold bg-red-700/20 hover:bg-red-700/30 text-red-400 py-2 rounded-lg transition-colors border border-red-700/30">
                         Deactivate
                     </button>
                 ) : (
-                    <button className="flex-1 text-[12px] font-semibold bg-emerald-700/20 hover:bg-emerald-700/30 text-emerald-400 py-2 rounded-lg transition-colors border border-emerald-700/30">
+                    <button onClick={() => onToggleActive(rule)} className="flex-1 text-[12px] font-semibold bg-emerald-700/20 hover:bg-emerald-700/30 text-emerald-400 py-2 rounded-lg transition-colors border border-emerald-700/30">
                         Activate
                     </button>
                 )}

@@ -237,21 +237,26 @@ class AdminService {
                         })
                         : 0;
 
-                    // Fetch the first active horse belonging to this owner
-                    const horse = horseOwner
-                        ? await Horse.findOne({ ownerId: horseOwner._id, status: 'active' }).lean()
-                        : null;
+                    const ownerUser = horseOwner ? await User.findById(horseOwner._id).select('fullName').lean() : null;
 
-                    // Fetch only accepted invitations for this registration
+                    // Fetch all invitations for this registration and populate the associated horse
                     const invitations = await Invitation.find({
                         registrationId: reg._id,
-                        invitationStatus: 'accepted',
                     })
-                        .populate({
-                            path: 'jockeyId',
-                            populate: { path: '_id', model: 'User', select: 'fullName' },
-                        })
+                        .populate('horseId')
+                        .populate('jockeyId')
                         .lean();
+
+                    for (let inv of invitations) {
+                        if (inv.jockeyId) {
+                            inv.jockeyUser = await User.findById(inv.jockeyId._id).select('fullName').lean();
+                        }
+                    }
+
+                    // Extract horse from the first invitation (all invitations for a registration share the same horse)
+                    const horse = invitations.length > 0 && invitations[0].horseId 
+                        ? invitations[0].horseId 
+                        : null;
 
                     return {
                         registrationId: reg._id,
@@ -272,14 +277,14 @@ class AdminService {
                             : null,
                         invitations: invitations.map((inv) => ({
                             invitationsId: inv._id,
-                            jockeyName: inv.jockeyId?._id?.fullName ?? 'Unknown',
+                            jockeyName: inv.jockeyUser?.fullName ?? 'Unknown',
                             isBackup: inv.isBackup,
                             status: inv.invitationStatus,
                         })),
                         horseOwner: horseOwner
                             ? {
                                 ownerId: horseOwner._id,
-                                fullName: horseOwner._id?.fullName ?? null,
+                                fullName: ownerUser?.fullName ?? null,
                             }
                             : null,
                     };
@@ -315,20 +320,19 @@ class AdminService {
                 .skip(skip)
                 .limit(limit)
                 .populate('raceRoundId')
-                .populate({
-                    path: 'refereeId',
-                    populate: { path: '_id', model: 'User', select: 'fullName' },
-                })
+                .populate('refereeId')
                 .lean();
 
             const totalItems = await RaceReferee.countDocuments();
             const totalPages = Math.ceil(totalItems / limit);
 
-            const items = raceReferees.map((rr) => {
+            const items = await Promise.all(raceReferees.map(async (rr) => {
                 const raceRound = rr.raceRoundId || null;
                 const referee = rr.refereeId || null;
+                const refereeUser = referee ? await User.findById(referee._id).select('fullName').lean() : null;
 
                 return {
+                    raceRefereeId: rr._id,
                     raceReferee: {
                         status: rr.status,
                     },
@@ -344,12 +348,12 @@ class AdminService {
                         ? {
                             refereeId: referee._id,
                             user: {
-                                fullName: referee._id?.fullName ?? 'Unknown',
+                                fullName: refereeUser?.fullName ?? 'Unknown',
                             },
                         }
                         : null,
                 };
-            });
+            }));
 
             return {
                 code: 200,
@@ -384,10 +388,7 @@ class AdminService {
                     path: 'registrationId',
                     populate: { path: 'raceRoundId' }
                 })
-                .populate({
-                    path: 'jockeyId',
-                    populate: { path: '_id', model: 'User', select: 'fullName' }
-                })
+                .populate('jockeyId')
                 .lean();
 
             const totalItems = await Invitation.countDocuments();
@@ -398,18 +399,21 @@ class AdminService {
             const siblingInvitations = await Invitation.find({
                 registrationId: { $in: registrationIds },
                 invitationStatus: { $in: ['accepted', 'pending'] }
-            }).populate({
-                path: 'jockeyId',
-                populate: { path: '_id', model: 'User', select: 'fullName' }
-            }).lean();
+            }).populate('jockeyId').lean();
 
-            const items = invitations.map(inv => {
+            const items = await Promise.all(invitations.map(async inv => {
                 const reg = inv.registrationId || null;
                 const raceRound = reg?.raceRoundId || null;
                 const horse = inv.horseId || null;
                 const jockey = inv.jockeyId || null;
+                const jockeyUser = jockey ? await User.findById(jockey._id).select('fullName').lean() : null;
 
                 const siblings = siblingInvitations.filter(sib => sib.registrationId?.toString() === reg?._id?.toString());
+                for (let sib of siblings) {
+                    if (sib.jockeyId) {
+                        sib.jockeyUser = await User.findById(sib.jockeyId._id).select('fullName').lean();
+                    }
+                }
 
                 return {
                     registrationId: reg ? reg._id : null,
@@ -429,20 +433,21 @@ class AdminService {
                     } : null,
                     invitations: siblings.map(sib => ({
                         invitationId: sib._id,
-                        jockeyName: sib.jockeyId?._id?.fullName || 'Unknown',
+                        jockeyName: sib.jockeyUser?.fullName || 'Unknown',
                         isBackup: sib.isBackup,
                         invitationStatus: sib.invitationStatus
                     })),
                     jockey: jockey ? {
                         jockeyId: jockey._id,
                         user: {
-                            fullName: jockey._id?.fullName || 'Unknown'
+                            fullName: jockeyUser?.fullName || 'Unknown'
                         }
                     } : null,
                     status: inv.invitationStatus,
-                    invitationId: inv._id
+                    invitationId: inv._id,
+                    isBackup: inv.isBackup
                 };
-            });
+            }));
 
             return {
                 code: 200,
@@ -701,6 +706,99 @@ class AdminService {
             };
         } catch (error) {
             console.error('Error fetching create race metadata:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // --- Race Eligibility Rule CRUD ---
+
+    async getAllRules() {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const rules = await RaceEligibilityRule.find().sort({ create_at: -1 }).lean();
+            return {
+                code: 200,
+                data: rules,
+                msg: 'Race eligibility rules retrieved successfully'
+            };
+        } catch (error) {
+            console.error('Error fetching rules:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async getRuleById(id) {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const rule = await RaceEligibilityRule.findById(id).lean();
+            if (!rule) {
+                return { code: 404, msg: 'Race eligibility rule not found' };
+            }
+            return {
+                code: 200,
+                data: rule,
+                msg: 'Race eligibility rule retrieved successfully'
+            };
+        } catch (error) {
+            console.error('Error fetching rule:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async createRule(ruleData) {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const newRule = new RaceEligibilityRule(ruleData);
+            await newRule.save();
+            return {
+                code: 201,
+                data: newRule,
+                msg: 'Race eligibility rule created successfully'
+            };
+        } catch (error) {
+            console.error('Error creating rule:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async updateRule(id, ruleData) {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const updatedRule = await RaceEligibilityRule.findByIdAndUpdate(
+                id,
+                { $set: ruleData },
+                { new: true, runValidators: true }
+            ).lean();
+            
+            if (!updatedRule) {
+                return { code: 404, msg: 'Race eligibility rule not found' };
+            }
+            return {
+                code: 200,
+                data: updatedRule,
+                msg: 'Race eligibility rule updated successfully'
+            };
+        } catch (error) {
+            console.error('Error updating rule:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async deleteRule(id) {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const deletedRule = await RaceEligibilityRule.findByIdAndDelete(id).lean();
+            
+            if (!deletedRule) {
+                return { code: 404, msg: 'Race eligibility rule not found' };
+            }
+            return {
+                code: 200,
+                data: null,
+                msg: 'Race eligibility rule deleted successfully'
+            };
+        } catch (error) {
+            console.error('Error deleting rule:', error);
             return { code: 500, msg: error.message };
         }
     }

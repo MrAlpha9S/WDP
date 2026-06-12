@@ -135,8 +135,14 @@ function RoleDetails({ user }: { user: FullUser }) {
 // ── Inline Detail Panel ───────────────────────────────────────────────────────
 
 export default function UserDetailPanel({ user, onClose }: { user: FullUser; onClose: () => void }) {
+    const [activeTab, setActiveTab] = useState<"Overview" | "Role Info" | "History">("Overview");
     const style = ROLE_STYLES[user.role];
     const statusStyle = STATUS_STYLES[user.status];
+
+    // Reset tab when user changes
+    useState(() => {
+        setActiveTab("Overview");
+    });
 
     return (
         <div
@@ -177,22 +183,84 @@ export default function UserDetailPanel({ user, onClose }: { user: FullUser; onC
                     </div>
                 </div>
 
-                {/* Base info */}
-                <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-3 flex flex-col">
-                    <DetailRow label="Email" value={user.email} />
-                    <DetailRow label="Phone" value={user.phoneNumber} />
-                    <DetailRow label="Date of Birth" value={user.dateOfBirth} />
-                    <DetailRow label="Confirmed" value={
-                        user.confirm === true ? <span className="text-emerald-400 flex items-center gap-1"><CheckCircle size={12} /> Yes</span>
-                            : user.confirm === false ? <span className="text-amber-400 flex items-center gap-1"><Clock size={12} /> Pending</span>
-                                : null
-                    } />
-                    <DetailRow label="Last Updated" value={user.updatedAt} />
+                {/* Tabs */}
+                <div className="flex border-b border-white/[0.07] mt-2 mb-2">
+                    <button 
+                        className={`flex-1 pb-2 text-[12px] font-semibold transition-colors ${activeTab === "Overview" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                        onClick={() => setActiveTab("Overview")}
+                    >
+                        Overview
+                    </button>
+                    <button 
+                        className={`flex-1 pb-2 text-[12px] font-semibold transition-colors ${activeTab === "Role Info" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                        onClick={() => setActiveTab("Role Info")}
+                    >
+                        Role Info
+                    </button>
+                    {["Jockey", "HorseOwner"].includes(user.role) && (
+                        <button 
+                            className={`flex-1 pb-2 text-[12px] font-semibold transition-colors ${activeTab === "History" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                            onClick={() => setActiveTab("History")}
+                        >
+                            {user.role === "HorseOwner" ? "Stables" : "History"}
+                        </button>
+                    )}
                 </div>
 
-                {/* Role-specific */}
                 <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                    <RoleDetails user={user} />
+                    {/* Tab Content */}
+                    {activeTab === "Overview" && (
+                        <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-3 flex flex-col">
+                            <DetailRow label="Email" value={user.email} />
+                            <DetailRow label="Phone" value={user.phoneNumber} />
+                            <DetailRow label="Date of Birth" value={user.dateOfBirth} />
+                            <DetailRow label="Confirmed" value={
+                                user.confirm === true ? <span className="text-emerald-400 flex items-center gap-1"><CheckCircle size={12} /> Yes</span>
+                                    : user.confirm === false ? <span className="text-amber-400 flex items-center gap-1"><Clock size={12} /> Pending</span>
+                                        : null
+                            } />
+                            <DetailRow label="Last Updated" value={user.updatedAt} />
+                        </div>
+                    )}
+
+                    {activeTab === "Role Info" && (
+                        <RoleDetails user={user} />
+                    )}
+
+                    {activeTab === "History" && user.role === "Jockey" && user.data && 'raceHistory' in user.data && (
+                        <div className="flex flex-col gap-2">
+                            {user.data.raceHistory?.map((race: any) => (
+                                <div key={race.id} className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[13px] font-semibold text-white">{race.raceName}</p>
+                                        <p className="text-[11px] text-gray-500">{race.date}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[13px] font-bold text-amber-400">{race.position === 1 ? '1st Place' : race.position === 2 ? '2nd Place' : race.position === 3 ? '3rd Place' : `${race.position}th Place`}</p>
+                                        <p className="text-[11px] text-emerald-400 font-medium">${race.prize.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            )) || <p className="text-[12px] text-gray-500 text-center py-4">No race history available.</p>}
+                        </div>
+                    )}
+
+                    {activeTab === "History" && user.role === "HorseOwner" && user.data && 'horses' in user.data && (
+                        <div className="flex flex-col gap-2">
+                            {user.data.horses?.map((horse: any) => (
+                                <div key={horse.id} className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[13px] font-semibold text-white">{horse.name}</p>
+                                        <p className="text-[11px] text-gray-500">{horse.breed} • {horse.age} yrs</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${horse.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                                            {horse.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            )) || <p className="text-[12px] text-gray-500 text-center py-4">No horses registered.</p>}
+                        </div>
+                    )}
                 </div>
             </div>
 

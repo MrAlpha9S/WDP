@@ -15,8 +15,10 @@ export interface BaseUser {
     role: UserRole; confirm: boolean; updatedAt: string; status: UserStatus;
 }
 
-export interface HorseOwnerData { address: string; licenseStatus: string; licenseLink: string; }
-export interface JockeyData { height: number; weight: number; matchesRaced: number; totalWins: number; ranking: number; status: string; licenseLink: string; licenseStatus: string; }
+export interface HorseData { id: string; name: string; breed: string; age: number; status: string; }
+export interface HorseOwnerData { address: string; licenseStatus: string; licenseLink: string; horses?: HorseData[]; }
+export interface RaceHistoryData { id: string; raceName: string; date: string; position: number; prize: number; }
+export interface JockeyData { height: number; weight: number; matchesRaced: number; totalWins: number; ranking: number; status: string; licenseLink: string; licenseStatus: string; raceHistory?: RaceHistoryData[]; }
 export interface RefereeData { certificationNumber: string; licenseNumber: string; }
 export interface SpectatorData { rewardPoints: number; }
 export interface AdminData { adminLevel: number; }
@@ -38,14 +40,26 @@ const USERS: FullUser[] = [
         dateOfBirth: "1985-03-12", phoneNumber: "+1 555 0101",
         image: "https://i.pravatar.cc/150?img=11",
         role: "HorseOwner", confirm: true, updatedAt: "2024-10-24", status: "active",
-        data: { address: "14 Paddock Lane, Dubai", licenseStatus: "Valid", licenseLink: "https://cdn.horsari.com/licenses/jweston.pdf" }
+        data: { 
+            address: "14 Paddock Lane, Dubai", licenseStatus: "Valid", licenseLink: "https://cdn.horsari.com/licenses/jweston.pdf",
+            horses: [
+                { id: "h1", name: "Desert Storm", breed: "Arabian", age: 4, status: "Active" },
+                { id: "h2", name: "Midnight Runner", breed: "Thoroughbred", age: 3, status: "Injured" }
+            ]
+        }
     },
     {
         userId: "u2", userName: "smiller", email: "sarah@horsari.com", fullName: "Sarah Miller",
         dateOfBirth: "1994-07-22", phoneNumber: "+1 555 0202",
         image: "https://i.pravatar.cc/150?img=5",
         role: "Jockey", confirm: true, updatedAt: "2024-10-23", status: "active",
-        data: { height: 162, weight: 54, matchesRaced: 48, totalWins: 19, ranking: 3, status: "Professional", licenseLink: "https://cdn.horsari.com/licenses/smiller.pdf", licenseStatus: "Valid" }
+        data: { 
+            height: 162, weight: 54, matchesRaced: 48, totalWins: 19, ranking: 3, status: "Professional", licenseLink: "https://cdn.horsari.com/licenses/smiller.pdf", licenseStatus: "Valid",
+            raceHistory: [
+                { id: "r1", raceName: "Dubai World Cup", date: "2024-03-30", position: 1, prize: 5000000 },
+                { id: "r2", raceName: "Epsom Derby", date: "2024-06-01", position: 3, prize: 150000 }
+            ]
+        }
     },
     {
         userId: "u3", userName: "dross", email: "david@horsari.com", fullName: "David Ross",
@@ -70,7 +84,13 @@ const USERS: FullUser[] = [
         dateOfBirth: "1996-09-14", phoneNumber: "+1 555 0606",
         image: "https://i.pravatar.cc/150?img=9",
         role: "Jockey", confirm: true, updatedAt: "2024-10-18", status: "suspended",
-        data: { height: 158, weight: 51, matchesRaced: 22, totalWins: 7, ranking: 11, status: "Amateur", licenseLink: "https://cdn.horsari.com/licenses/lchang.pdf", licenseStatus: "Suspended" }
+        data: { 
+            height: 158, weight: 51, matchesRaced: 22, totalWins: 7, ranking: 11, status: "Amateur", licenseLink: "https://cdn.horsari.com/licenses/lchang.pdf", licenseStatus: "Suspended",
+            raceHistory: [
+                { id: "r3", raceName: "Local Maiden", date: "2024-09-12", position: 1, prize: 5000 },
+                { id: "r4", raceName: "Autumn Stakes", date: "2024-10-05", position: 8, prize: 0 }
+            ]
+        }
     },
     {
         userId: "u7", userName: "admin01", email: "admin@horsari.com", fullName: "System Admin",

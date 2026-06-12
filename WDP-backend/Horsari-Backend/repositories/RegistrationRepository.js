@@ -30,14 +30,7 @@ class RegistrationRepository {
         const skip = (page - 1) * limit;
         return await Registration.find()
             .populate('raceRoundId')
-            .populate({
-                path: 'horseOwnerId',
-                populate: {
-                    path: '_id',
-                    model: 'User',
-                    select: 'fullName email',
-                },
-            })
+            .populate('horseOwnerId')
             .skip(skip)
             .limit(limit)
             .lean();

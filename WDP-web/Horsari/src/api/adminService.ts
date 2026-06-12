@@ -200,5 +200,46 @@ export const adminService = {
     } catch (error: any) {
       throw error.response?.data || error;
     }
+  },
+
+  // --- Race Eligibility Rules ---
+  getRules: async () => {
+    try {
+      const response = await api.get('/admin/rules');
+      console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch rules' };
+    }
+  },
+
+  createRule: async (data: any) => {
+    try {
+      const response = await api.post('/admin/rules', data);
+      console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to create rule' };
+    }
+  },
+
+  updateRule: async (id: string, data: any) => {
+    try {
+      const response = await api.put(`/admin/rules/${id}`, data);
+      console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to update rule' };
+    }
+  },
+
+  deleteRule: async (id: string) => {
+    try {
+      const response = await api.delete(`/admin/rules/${id}`);
+      console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to delete rule' };
+    }
   }
 };

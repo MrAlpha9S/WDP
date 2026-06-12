@@ -2,8 +2,8 @@ import { useState } from "react";
 import {
     X, Search, CheckCircle, XCircle, Clock,
     Image as ImageIcon, ExternalLink, Calendar,
-    ShieldCheck, Activity, User, Trophy, Flag,
-    Timer, DollarSign, Medal,
+    ShieldCheck, Activity, User, Trophy,
+    Timer,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -154,77 +154,6 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
             <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium flex-shrink-0">{label}</span>
             <span className="text-[12px] text-gray-200 text-right">{value}</span>
         </div>
-    );
-}
-
-function HorseImage({ href, name }: { href: string; name: string }) {
-    const [errored, setErrored] = useState(false);
-    const [expanded, setExpanded] = useState(false);
-
-    if (!href || errored) {
-        return (
-            <div className="w-full aspect-video rounded-xl bg-white/[0.03] border border-white/[0.06] flex flex-col items-center justify-center gap-2 text-gray-600">
-                <ImageIcon size={22} />
-                <span className="text-[11px] uppercase tracking-wider">No image uploaded</span>
-            </div>
-        );
-    }
-
-    return (
-        <>
-            {/* Inline preview */}
-            <div
-                className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/[0.07] cursor-pointer group"
-                onClick={() => setExpanded(true)}
-            >
-                <img
-                    src={href}
-                    alt={name}
-                    onError={() => setErrored(true)}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                />
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 flex items-center justify-center">
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1.5 text-[11px] font-semibold text-white bg-black/50 px-3 py-1.5 rounded-full">
-                        <ExternalLink size={11} /> View full size
-                    </span>
-                </div>
-            </div>
-
-            {/* Link row below */}
-            <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all group"
-            >
-                <ExternalLink size={11} className="text-gray-600 group-hover:text-gray-400" />
-                <span className="text-[11px] text-gray-500 group-hover:text-gray-300 transition-colors truncate">{href}</span>
-            </a>
-
-            {/* Lightbox */}
-            {expanded && (
-                <div
-                    className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
-                    onClick={() => setExpanded(false)}
-                >
-                    <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
-                        <button
-                            onClick={() => setExpanded(false)}
-                            className="absolute -top-3 -right-3 z-10 w-7 h-7 rounded-full bg-[#1a1a1a] border border-white/[0.1] flex items-center justify-center text-gray-400 hover:text-white transition-colors"
-                        >
-                            <X size={13} />
-                        </button>
-                        <img
-                            src={href}
-                            alt={name}
-                            className="w-full rounded-xl border border-white/[0.1] shadow-2xl"
-                        />
-                        <p className="text-center text-[12px] text-gray-500 mt-3">{name}</p>
-                    </div>
-                </div>
-            )}
-        </>
     );
 }
 
@@ -539,120 +468,143 @@ export default function AdminHorsesPage() {
     const panelOpen = selectedHorse !== null;
 
     return (
-        <div className="px-8 py-7" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-
-            {/* Header + Toolbar — same row */}
-            <div className="flex items-center gap-4 mb-5 flex-wrap">
-                {/* Title */}
-                <div className="mr-2">
-                    <h1 className="text-[26px] font-bold text-white tracking-tight leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>
-                        Horses
-                    </h1>
-                    <p className="text-[12px] text-gray-500 mt-0.5">
-                        Manage all registered horses and their health records.
-                    </p>
-                </div>
-
-                {/* Search */}
-                <div className="relative w-52">
-                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
-                    <input
-                        type="text"
-                        placeholder="Search by name, breed, owner…"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="w-full bg-[#1a1a1a] border border-white/[0.07] rounded-lg pl-8 pr-3 py-2 text-[12px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
-                    />
-                </div>
-
-                {/* Status filters */}
-                <div className="flex items-center gap-1">
-                    {(["All", "active", "injured", "pending", "retired"] as const).map(s => (
-                        <button
-                            key={s}
-                            onClick={() => setStatusFilter(s)}
-                            className={`text-[12px] font-medium px-3 py-1.5 rounded-lg capitalize transition-colors ${statusFilter === s ? "bg-white/[0.1] text-white" : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]"
-                                }`}
-                        >
-                            {s === "All" ? "All" : STATUS_STYLES[s].label}
-                        </button>
-                    ))}
-                </div>
-
-                <span className="ml-auto text-[12px] text-gray-600">
-                    {filtered.length} horse{filtered.length !== 1 ? "s" : ""}
-                </span>
-            </div>
-
-            {/* Split layout */}
-            <div className="flex gap-4 items-start">
-
-                {/* Table */}
-                <div className={`min-w-0 transition-all duration-200 ${panelOpen ? "flex-[0_0_38%]" : "flex-1"}`}>
-                    <div className="rounded-xl border border-white/[0.07] bg-[#141414] overflow-hidden">
-                        <div className={`grid gap-4 px-5 py-3 border-b border-white/[0.07] ${panelOpen ? "grid-cols-[2fr_1.2fr_1fr]" : "grid-cols-[2fr_1.5fr_1.2fr_1.2fr_1fr_1fr]"
-                            }`}>
-                            {(panelOpen
-                                ? ["Horse", "Breed", "Status"]
-                                : ["Horse", "Owner", "Breed", "Gender", "Health", "Status"]
-                            ).map(h => (
-                                <p key={h} className="text-[10px] font-bold tracking-widest text-gray-600 uppercase">{h}</p>
-                            ))}
+        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
+                <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? "flex-[0_0_50%]" : "flex-1"}`}>
+                    
+                    {/* Header */}
+                    <header className="pb-6 flex items-center justify-between border-b border-white/5 shrink-0">
+                        <div>
+                            <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                Horses
+                            </h1>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[11px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase">
+                                    All Registered Horses
+                                </span>
+                                <span className="text-[13px] text-gray-500">· {filtered.length} horse{filtered.length !== 1 ? "s" : ""}</span>
+                            </div>
                         </div>
-                        <div className="divide-y divide-white/[0.04]">
-                            {filtered.map(horse => {
-                                const status = STATUS_STYLES[horse.status];
-                                const health = HEALTH_STYLES[horse.healthStatus];
-                                const isSelected = selectedHorse?.horseId === horse.horseId;
-                                const hasResults = (RACE_RESULTS[horse.horseId]?.length ?? 0) > 0;
 
-                                return (
-                                    <div
-                                        key={horse.horseId}
-                                        onClick={() => setSelectedHorse(isSelected ? null : horse)}
-                                        className={`grid gap-4 px-5 py-3.5 items-center cursor-pointer transition-colors
-                                            ${panelOpen ? "grid-cols-[2fr_1.2fr_1fr]" : "grid-cols-[2fr_1.5fr_1.2fr_1.2fr_1fr_1fr]"}
-                                            ${isSelected ? "bg-white/[0.07] border-l-2 border-l-amber-500/40" : "hover:bg-white/[0.03]"}
-                                        `}
-                                    >
-                                        <div className="flex items-center gap-2.5 min-w-0">
-                                            <div
-                                                className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white/80 flex-shrink-0"
-                                                style={{ background: GENDER_COLORS[horse.gender] }}
+                        <div className="flex gap-3 items-center">
+                            <div className="relative w-56">
+                                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name, breed, owner…"
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-8 pr-3 text-[12px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[34px] transition-colors"
+                                />
+                            </div>
+
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value as any)}
+                                className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer capitalize"
+                            >
+                                <option value="All">All Statuses</option>
+                                <option value="active">Active</option>
+                                <option value="injured">Injured</option>
+                                <option value="pending">Pending</option>
+                                <option value="retired">Retired</option>
+                            </select>
+
+                            <button className="flex items-center gap-2 px-5 text-[13px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[34px]">
+                                + Add Horse
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Table Area */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pt-6">
+                        <div className="w-full rounded-xl border border-white/[0.07] bg-[#141414] overflow-hidden">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-[#1a1a1a] border-b border-white/5">
+                                        {(panelOpen
+                                            ? ["Horse", "Breed", "Status"]
+                                            : ["Horse", "Owner", "Breed", "Gender", "Health", "Status"]
+                                        ).map(h => (
+                                            <th key={h} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {filtered.map(horse => {
+                                        const status = STATUS_STYLES[horse.status];
+                                        const health = HEALTH_STYLES[horse.healthStatus];
+                                        const isSelected = selectedHorse?.horseId === horse.horseId;
+                                        const hasResults = (RACE_RESULTS[horse.horseId]?.length ?? 0) > 0;
+
+                                        return (
+                                            <tr
+                                                key={horse.horseId}
+                                                onClick={() => setSelectedHorse(isSelected ? null : horse)}
+                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}
                                             >
-                                                {horseInitials(horse.horseName)}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-1.5">
-                                                    <p className="text-[13px] text-white font-medium truncate">{horse.horseName}</p>
-                                                    {hasResults && <Trophy size={10} className="text-amber-500 flex-shrink-0" />}
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <div
+                                                            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white/80 flex-shrink-0"
+                                                            style={{ background: GENDER_COLORS[horse.gender] }}
+                                                        >
+                                                            {horseInitials(horse.horseName)}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <p className="text-[13px] text-white font-medium truncate">{horse.horseName}</p>
+                                                                {hasResults && <Trophy size={10} className="text-amber-500 flex-shrink-0" />}
+                                                            </div>
+                                                            {!panelOpen && <p className="text-[11px] text-gray-600 truncate">{horse.dateOfBirth}</p>}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                {!panelOpen && (
+                                                    <td className="p-4">
+                                                        <p className="text-[12px] text-gray-400 truncate">{horse.ownerName}</p>
+                                                    </td>
+                                                )}
+                                                <td className="p-4">
+                                                    <p className="text-[12px] text-gray-400 truncate">{horse.breed}</p>
+                                                </td>
+                                                {!panelOpen && (
+                                                    <td className="p-4">
+                                                        <p className="text-[12px] text-gray-400">{horse.gender}</p>
+                                                    </td>
+                                                )}
+                                                {!panelOpen && (
+                                                    <td className="p-4">
+                                                        <span className={`text-[12px] font-medium ${health.color}`}>{horse.healthStatus}</span>
+                                                    </td>
+                                                )}
+                                                <td className="p-4">
+                                                    <span className={`flex items-center gap-1 text-[12px] font-medium ${status.color}`}>
+                                                        {status.icon}
+                                                        {!panelOpen && <span className="hidden xl:inline">{status.label}</span>}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                    {filtered.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6}>
+                                                <div className="py-10 text-center">
+                                                    <p className="text-[12px] text-gray-600">No horses found.</p>
                                                 </div>
-                                                {!panelOpen && <p className="text-[11px] text-gray-600 truncate">{horse.dateOfBirth}</p>}
-                                            </div>
-                                        </div>
-                                        {!panelOpen && <p className="text-[12px] text-gray-400 truncate">{horse.ownerName}</p>}
-                                        <p className="text-[12px] text-gray-400 truncate">{horse.breed}</p>
-                                        {!panelOpen && <p className="text-[12px] text-gray-400">{horse.gender}</p>}
-                                        {!panelOpen && <span className={`text-[12px] font-medium ${health.color}`}>{horse.healthStatus}</span>}
-                                        <span className={`flex items-center gap-1 text-[12px] font-medium ${status.color}`}>
-                                            {status.icon}
-                                            {!panelOpen && status.label}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                            {filtered.length === 0 && (
-                                <div className="py-10 text-center">
-                                    <p className="text-[12px] text-gray-600">No horses found.</p>
-                                </div>
-                            )}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
+                </main>
 
                 {/* Detail panel */}
                 {panelOpen && (
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-[500px] h-full">
                         <HorseDetailPanel horse={selectedHorse!} onClose={() => setSelectedHorse(null)} />
                     </div>
                 )}

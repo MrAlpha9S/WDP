@@ -105,6 +105,36 @@ class AdminController {
         const response = await AdminService.getCreateRaceMetadata();
         return res.status(response.code).json(response);
     }
+
+    // --- Race Eligibility Rule CRUD ---
+
+    async getAllRules(req, res) {
+        const response = await AdminService.getAllRules();
+        return res.status(response.code).json(response);
+    }
+
+    async getRuleById(req, res) {
+        const { id } = req.params;
+        const response = await AdminService.getRuleById(id);
+        return res.status(response.code).json(response);
+    }
+
+    async createRule(req, res) {
+        const response = await AdminService.createRule(req.body);
+        return res.status(response.code).json(response);
+    }
+
+    async updateRule(req, res) {
+        const { id } = req.params;
+        const response = await AdminService.updateRule(id, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    async deleteRule(req, res) {
+        const { id } = req.params;
+        const response = await AdminService.deleteRule(id);
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new AdminController();

@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, ScrollText, CheckCircle, XCircle } from "lucide-react";
 import RuleDetailPanel from "./AdminComponents/RuleDetailPanel";
+import RuleModal from "./AdminComponents/RuleModal";
+import { adminService } from "../../api/adminService";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -22,35 +24,7 @@ export interface RaceEligibilityRule {
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
-const RULES: RaceEligibilityRule[] = [
-    {
-        _id: "6a2389d30ab08833644098de",
-        minAge: null, maxAge: null,
-        minRacesRun: 0, minRacesWon: 0,
-        requiredGender: null, requiredBreed: "Arabian",
-        licenseRequired: true, requireNomination: false,
-        isActive: true, raceType: "Claiming",
-        create_at: "2026-06-06T02:45:39.479Z", updated_at: "2026-06-06T02:45:39.479Z"
-    },
-    {
-        _id: "6a2389d30ab08833644098df",
-        minAge: 2, maxAge: 4,
-        minRacesRun: 5, minRacesWon: 1,
-        requiredGender: "male", requiredBreed: "Thoroughbred",
-        licenseRequired: true, requireNomination: true,
-        isActive: true, raceType: "Stakes",
-        create_at: "2026-06-05T12:00:00.000Z", updated_at: "2026-06-05T12:00:00.000Z"
-    },
-    {
-        _id: "6a2389d30ab08833644098e0",
-        minAge: 3, maxAge: 3,
-        minRacesRun: 0, minRacesWon: 0,
-        requiredGender: null, requiredBreed: null,
-        licenseRequired: false, requireNomination: false,
-        isActive: false, raceType: "Maiden",
-        create_at: "2026-06-04T09:30:00.000Z", updated_at: "2026-06-04T09:30:00.000Z"
-    }
-];
+// Removed mock data
 
 export const STATUS_STYLES: Record<"active" | "inactive", { icon: React.ReactNode; text: string; color: string }> = {
     active: { icon: <CheckCircle size={13} />, text: "Active", color: "text-emerald-400" },
@@ -63,8 +37,60 @@ export default function AdminRuleManagementPage() {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<"All" | "active" | "inactive">("All");
     const [selectedRule, setSelectedRule] = useState<RaceEligibilityRule | null>(null);
+    const [rules, setRules] = useState<RaceEligibilityRule[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalRule, setModalRule] = useState<RaceEligibilityRule | null>(null);
 
-    const filtered = RULES.filter(r => {
+    useEffect(() => {
+        fetchRules();
+    }, []);
+
+    const fetchRules = async () => {
+        try {
+            setLoading(true);
+            const res = await adminService.getRules();
+            setRules(res.data);
+            if (selectedRule) {
+                const updatedSelected = res.data.find((r: any) => r._id === selectedRule._id);
+                setSelectedRule(updatedSelected || null);
+            }
+        } catch (error) {
+            console.error("Failed to load rules", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveRule = async (data: any) => {
+        if (modalRule) {
+            await adminService.updateRule(modalRule._id, data);
+        } else {
+            await adminService.createRule(data);
+        }
+        await fetchRules();
+    };
+
+    const handleToggleActive = async (rule: RaceEligibilityRule) => {
+        try {
+            await adminService.updateRule(rule._id, { isActive: !rule.isActive });
+            await fetchRules();
+        } catch (error) {
+            console.error("Failed to toggle active", error);
+        }
+    };
+
+    const openCreateModal = () => {
+        setModalRule(null);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (rule: RaceEligibilityRule) => {
+        setModalRule(rule);
+        setIsModalOpen(true);
+    };
+
+    const filtered = rules.filter(r => {
         const matchSearch =
             (r.raceType?.toLowerCase().includes(search.toLowerCase()) || false) ||
             (r.requiredBreed?.toLowerCase().includes(search.toLowerCase()) || false);
@@ -115,7 +141,7 @@ export default function AdminRuleManagementPage() {
                                 <option value="inactive">Inactive</option>
                             </select>
 
-                            <button className="flex items-center gap-2 px-5 text-[13px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[34px]">
+                            <button onClick={openCreateModal} className="flex items-center gap-2 px-5 text-[13px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[34px]">
                                 + Create Rule
                             </button>
                         </div>
@@ -199,7 +225,11 @@ export default function AdminRuleManagementPage() {
                                             </tr>
                                         );
                                     })}
-                                    {filtered.length === 0 && (
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan={6} className="p-8 text-center text-[13px] text-gray-500">Loading rules...</td>
+                                        </tr>
+                                    ) : filtered.length === 0 ? (
                                         <tr>
                                             <td colSpan={6}>
                                                 <div className="py-10 text-center">
@@ -208,7 +238,7 @@ export default function AdminRuleManagementPage() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    )}
+                                    ) : null}
                                 </tbody>
                             </table>
                         </div>
@@ -218,10 +248,23 @@ export default function AdminRuleManagementPage() {
                 {/* Detail panel */}
                 {panelOpen && (
                     <div className="flex-1 min-w-[500px] h-full">
-                        <RuleDetailPanel rule={selectedRule!} onClose={() => setSelectedRule(null)} />
+                        <RuleDetailPanel 
+                            rule={selectedRule!} 
+                            onClose={() => setSelectedRule(null)} 
+                            onEdit={openEditModal}
+                            onToggleActive={handleToggleActive}
+                        />
                     </div>
                 )}
             </div>
+
+            {/* Modal */}
+            <RuleModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSaveRule}
+                rule={modalRule}
+            />
         </div>
     );
 }
