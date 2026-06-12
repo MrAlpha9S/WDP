@@ -13,6 +13,7 @@ interface Race {
   date: string;
   venue: string;
   grade: string;
+  eligibleHorseIds: string[];  // ← add this
 }
 
 interface Horse {
@@ -33,22 +34,23 @@ function formatDate(iso: string): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapRace(raw: any, i: number): Race {
   return {
-    id:    raw.registration._id                             ?? String(i),
-    name:  raw.raceRound.roundName  ?? raw.name           ?? "Unnamed Race",
-    date:  raw.raceRound.raceDate  ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
-    venue: raw.raceRound.location    ?? raw.location       ?? "TBA",
-    grade: raw.grade                           ?? "TBA",
+    id: raw.registration._id ?? String(i),
+    name: raw.raceRound.roundName ?? raw.name ?? "Unnamed Race",
+    date: raw.raceRound.raceDate ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
+    venue: raw.raceRound.location ?? raw.location ?? "TBA",
+    grade: raw.grade ?? "TBA",
+    eligibleHorseIds: Array.isArray(raw.eligibleHorseIds) ? raw.eligibleHorseIds : [],  // ← add this
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapHorse(raw: any, i: number): Horse {
   return {
-    id:           raw._id                           ?? String(i),
-    name:         raw.horseName  ?? raw.name        ?? "Unnamed Horse",
-    breed:        raw.breed                         ?? "Unknown",
-    gender:       raw.gender                        ?? "N/A",
-    healthStatus: raw.healthStatus                  ?? "N/A",
+    id: raw._id ?? String(i),
+    name: raw.horseName ?? raw.name ?? "Unnamed Horse",
+    breed: raw.breed ?? "Unknown",
+    gender: raw.gender ?? "N/A",
+    healthStatus: raw.healthStatus ?? "N/A",
   };
 }
 
@@ -67,18 +69,16 @@ function SelectCard<T extends { id: string }>({
   return (
     <button
       onClick={onSelect}
-      className={`w-full text-left rounded-xl border px-4 py-3 transition-all duration-150 ${
-        selected
+      className={`w-full text-left rounded-xl border px-4 py-3 transition-all duration-150 ${selected
           ? "border-red-600/60 bg-red-900/10"
           : "border-white/8 bg-[#141414] hover:border-white/18 hover:bg-[#1c1c1c]"
-      }`}
+        }`}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">{children}</div>
         <div
-          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all duration-150 ${
-            selected ? "border-red-500 bg-red-600" : "border-white/20"
-          }`}
+          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all duration-150 ${selected ? "border-red-500 bg-red-600" : "border-white/20"
+            }`}
         >
           {selected && <Check size={9} className="text-white" strokeWidth={3} />}
         </div>
@@ -89,16 +89,15 @@ function SelectCard<T extends { id: string }>({
 
 // ── Step indicator ────────────────────────────────────────────────────────────
 function StepDot({ step, current, label }: { step: number; current: number; label: string }) {
-  const done   = current > step;
+  const done = current > step;
   const active = current === step;
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all duration-200 ${
-          done    ? "bg-red-700 border-red-600 text-white"
-          : active ? "bg-[#1a1a1a] border-red-500 text-red-400"
-                   : "bg-[#141414] border-white/10 text-gray-600"
-        }`}
+        className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all duration-200 ${done ? "bg-red-700 border-red-600 text-white"
+            : active ? "bg-[#1a1a1a] border-red-500 text-red-400"
+              : "bg-[#141414] border-white/10 text-gray-600"
+          }`}
       >
         {done ? <Check size={11} strokeWidth={3} /> : step}
       </div>
@@ -122,17 +121,17 @@ export default function HireJockeyModal({
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Data
-  const [races,        setRaces]        = useState<Race[]>([]);
-  const [horses,       setHorses]       = useState<Horse[]>([]);
+  const [races, setRaces] = useState<Race[]>([]);
+  const [horses, setHorses] = useState<Horse[]>([]);
   const [loadingRaces, setLoadingRaces] = useState(true);
-  const [loadingHorses,setLoadingHorses]= useState(true);
-  const [errorRaces,   setErrorRaces]   = useState<string | null>(null);
-  const [errorHorses,  setErrorHorses]  = useState<string | null>(null);
+  const [loadingHorses, setLoadingHorses] = useState(true);
+  const [errorRaces, setErrorRaces] = useState<string | null>(null);
+  const [errorHorses, setErrorHorses] = useState<string | null>(null);
 
   // Selections
-  const [selectedRace,  setSelectedRace]  = useState<Race | null>(null);
+  const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [selectedHorse, setSelectedHorse] = useState<Horse | null>(null);
-  const [position,      setPosition]      = useState(false);
+  const [position, setPosition] = useState(false);
 
   // Fetch races (approved registrations only)
   useEffect(() => {
@@ -141,6 +140,7 @@ export default function HireJockeyModal({
       try {
         setLoadingRaces(true);
         const data = await horseOwnerService.getHorseOwnerInvitations();
+        console.log('data: ', data)
         if (cancelled) return;
 
         const list: unknown[] = data?.data?.invitations ?? data?.data ?? (Array.isArray(data) ? data : []);
@@ -190,9 +190,9 @@ export default function HireJockeyModal({
     if (!selectedRace || !selectedHorse) return;
     onConfirm?.({
       jockeyId: String(jockey.id),
-      registrationId:   String(selectedRace.id),
+      registrationId: String(selectedRace.id),
       percentagePayout: 0.1,
-      horseId:  String(selectedHorse.id),
+      horseId: String(selectedHorse.id),
       isBackup: position
     });
     onClose();
@@ -363,28 +363,48 @@ export default function HireJockeyModal({
                   No horses found in your stable.
                 </div>
               )}
-              {horses.map((horse) => (
-                <SelectCard
-                  key={horse.id}
-                  item={horse}
-                  selected={selectedHorse?.id === horse.id}
-                  onSelect={() => setSelectedHorse(horse)}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Flag size={11} className="text-red-400 shrink-0" />
-                    <span className="text-[13px] font-bold text-white truncate">{horse.name}</span>
+              {horses.map((horse) => {
+                const isEligible =
+                  !selectedRace ||
+                  selectedRace.eligibleHorseIds.length === 0 ||
+                  selectedRace.eligibleHorseIds.includes(horse.id);
+
+                return (
+                  <div key={horse.id} className="relative">
+                    <SelectCard
+                      item={horse}
+                      selected={selectedHorse?.id === horse.id}
+                      onSelect={() => { if (isEligible) setSelectedHorse(horse); }}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Flag size={11} className={isEligible ? "text-red-400 shrink-0" : "text-gray-600 shrink-0"} />
+                        <span className={`text-[13px] font-bold truncate ${isEligible ? "text-white" : "text-gray-600"}`}>
+                          {horse.name}
+                        </span>
+                        {!isEligible && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 text-yellow-500 font-bold shrink-0 tracking-wide uppercase">
+                            Not Eligible
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-gray-600">
+                        <span>{horse.breed}</span>
+                        <span>·</span>
+                        <span className="capitalize">{horse.gender}</span>
+                        <span>·</span>
+                        <span className={horse.healthStatus === "healthy" ? "text-green-500" : "text-yellow-500"}>
+                          {horse.healthStatus}
+                        </span>
+                      </div>
+                    </SelectCard>
+
+                    {/* Ineligible overlay — blocks click visually */}
+                    {!isEligible && (
+                      <div className="absolute inset-0 rounded-xl bg-black/40 cursor-not-allowed" />
+                    )}
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-gray-600">
-                    <span>{horse.breed}</span>
-                    <span>·</span>
-                    <span className="capitalize">{horse.gender}</span>
-                    <span>·</span>
-                    <span className={horse.healthStatus === "healthy" ? "text-green-500" : "text-yellow-500"}>
-                      {horse.healthStatus}
-                    </span>
-                  </div>
-                </SelectCard>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -435,11 +455,10 @@ export default function HireJockeyModal({
             <button
               onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
               disabled={!canNext}
-              className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${
-                canNext
+              className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${canNext
                   ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
                   : "bg-[#1a1a1a] border border-white/8 text-gray-600 cursor-not-allowed"
-              }`}
+                }`}
             >
               Next <ChevronDown size={13} className="-rotate-90" />
             </button>
@@ -447,11 +466,10 @@ export default function HireJockeyModal({
             <button
               onClick={handleConfirm}
               disabled={!selectedHorse}
-              className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${
-                selectedHorse
+              className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${selectedHorse
                   ? "bg-green-700 hover:bg-green-600 text-white shadow-lg shadow-green-900/30"
                   : "bg-[#1a1a1a] border border-white/8 text-gray-600 cursor-not-allowed"
-              }`}
+                }`}
             >
               <Check size={14} /> Confirm Hire
             </button>
