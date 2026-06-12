@@ -30,6 +30,10 @@ api.interceptors.response.use(
   },
   (error) => {
     // Handle global errors here
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );

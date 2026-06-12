@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Shield, X, AlertCircle, Loader2, ChevronDown, ChevronUp, Calendar, Clock, Tag, Ban, Pencil } from "lucide-react";
+import { Shield, X, AlertCircle, Loader2, Calendar, Clock, Tag, Ban, Pencil, Map, Flag, Users, DollarSign, Trophy } from "lucide-react";
 import type { ScheduledRace } from "../../../shared/types/RaceTypes";
 import { adminService } from "../../../api/adminService";
 
@@ -7,6 +7,7 @@ interface RaceDetailsPanelProps {
     selectedRace?: ScheduledRace;
     onRefresh?: (updateInfo?: { type: 'CREATE' | 'UPDATE'; tournament_id?: string; raceRound_id?: string }) => void;
     onEdit?: () => void;
+    onClose?: () => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -22,13 +23,16 @@ const STATUS_LABEL: Record<string, string> = {
     assigned: "Assigned",
 };
 
-export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: RaceDetailsPanelProps) {
+export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onClose }: RaceDetailsPanelProps) {
     const [isCancelling, setIsCancelling] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-    const [expandedSection, setExpandedSection] = useState<'registrations' | 'referees' | null>('registrations');
+    
+    // Tab State
+    const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'referees'>('overview');
 
     const [detailedParticipants, setDetailedParticipants] = useState<any[]>([]);
     const [detailedReferees, setDetailedReferees] = useState<any[]>([]);
+    const [detailedOverview, setDetailedOverview] = useState<any>(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
     useEffect(() => {
@@ -37,18 +41,31 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
             adminService.getRaceRoundDetail(selectedRace.id)
                 .then(res => {
                     if (res.data) {
-                        const parts = (res.data.Registration || []).map((reg) => ({
+                        // Extract Overview Details
+                        const data: any = res.data;
+                        setDetailedOverview({
+                            location: data.location,
+                            address: data.address,
+                            trackLength: data.trackLength,
+                            raceGround: data.raceGround,
+                            maxParticipants: data.maxParticipants,
+                            raceType: data.RaceType || data.raceType
+                        });
+
+                        const parts = (res.data.Registration || []).map((reg: any) => ({
                             registrationId: reg._id,
-                            ownerName: reg.Owner?.fullName ?? 'Unknown Owner',
+                            ownerName: reg.Owner?.fullName ?? null,
                             horseName: reg.Horse?.horseName ?? null,
                             jockeyName: reg.Jockey?._id?.fullName ?? null,
                             status: reg.registrationStatus ?? 'pending',
+                            sum_prediction: reg.sum_prediction,
+                            raceResult: reg.RaceResult
                         }));
                         setDetailedParticipants(parts);
 
-                        const refs = (res.data.Referee || []).map((ref) => ({
+                        const refs = (res.data.Referee || []).map((ref: any) => ({
                             refereeId: ref.refereeId,
-                            fullName: ref.fullName ?? 'Unknown Referee',
+                            fullName: ref.fullName ?? null,
                             assignmentStatus: ref.assignmentStatus ?? 'pending',
                             fee: ref.fee,
                         }));
@@ -60,6 +77,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
         } else {
             setDetailedParticipants([]);
             setDetailedReferees([]);
+            setDetailedOverview(null);
         }
     }, [selectedRace?.id]);
 
@@ -77,12 +95,18 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
         }
     };
 
+    if (!selectedRace) return null;
+
     return (
-        <aside className="h-full bg-[#161616] border border-white/[0.05] rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20">
-            {selectedRace ? (
-                <div className="flex flex-col h-full">
-                    {/* ── Header ── */}
-                    <div className="px-5 py-6 shrink-0 border-b border-white/[0.05] bg-[#1a1a1a]">
+        <aside 
+            className="h-full bg-[#161616] border border-white/[0.05] rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20"
+            style={{ animation: "panelIn 0.18s ease-out" }}
+        >
+            <style>{`@keyframes panelIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }`}</style>
+            
+            <div className="flex flex-col h-full">
+                {/* ── Header ── */}
+                <div className="px-5 py-6 shrink-0 border-b border-white/[0.05] bg-[#1a1a1a]">
                         <div className="flex flex-col gap-1 mb-4">
                             <div className="flex justify-between items-start w-full gap-4">
                                 <div className="flex flex-col gap-2">
@@ -119,128 +143,156 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit }: Ra
                                             <Ban size={14} />
                                         </button>
                                     )}
+                                    <button
+                                        onClick={onClose}
+                                        className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-white/10 transition-colors ml-1"
+                                        title="Close Panel"
+                                    >
+                                        <X size={14} />
+                                    </button>
                                 </div>
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] font-medium text-gray-400">
                             <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={14} className="text-gray-500" /> {selectedRace.date}</span>
                             <span className="flex items-center gap-1.5 whitespace-nowrap"><Clock size={14} className="text-gray-500" /> {selectedRace.time}</span>
-                            {selectedRace.raceType && <span className="flex items-center gap-1.5 whitespace-nowrap"><Tag size={14} className="text-gray-500" /> {selectedRace.raceType}</span>}
+                            {(detailedOverview?.raceType || selectedRace.raceType) && <span className="flex items-center gap-1.5 whitespace-nowrap"><Tag size={14} className="text-gray-500" /> {detailedOverview?.raceType || selectedRace.raceType}</span>}
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-6">
-
-                        {/* ── Registrations ── */}
-                        <div className="bg-[#181818] border border-white/5 rounded-lg overflow-hidden shrink-0">
+                    {/* ── Tabs ── */}
+                    <div className="flex items-center border-b border-white/[0.05] shrink-0 bg-[#161616]">
+                        {(['overview', 'registrations', 'referees'] as const).map((tab) => (
                             <button
-                                onClick={() => setExpandedSection(prev => prev === 'registrations' ? null : 'registrations')}
-                                className="w-full flex items-center justify-between p-3 bg-[#1c1c1c] hover:bg-[#202020] transition-colors"
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`flex-1 py-3 text-[12px] font-bold uppercase tracking-widest transition-colors border-b-2 ${
+                                    activeTab === tab 
+                                        ? "text-[#f3b2a5] border-[#f3b2a5] bg-[#f3b2a5]/5" 
+                                        : "text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5"
+                                }`}
                             >
-                                <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Registrations</h3>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[11px] font-medium text-gray-500">
-                                        {loadingDetails ? <Loader2 size={12} className="animate-spin inline mr-1" /> : detailedParticipants.filter((p: any) => p.status === 'approved').length}
-                                        {" "}/ {selectedRace.maxSlots} approved
-                                    </span>
-                                    {expandedSection === 'registrations' ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
-                                </div>
+                                {tab}
                             </button>
-                            {expandedSection === 'registrations' && (
-                                <div className="flex flex-col gap-2 p-3 border-t border-white/5 max-h-[300px] overflow-y-auto custom-scrollbar">
-                                    {loadingDetails ? (
-                                        <div className="flex justify-center p-4"><Loader2 size={16} className="animate-spin text-gray-500" /></div>
-                                    ) : (
-                                        <>
-                                            {detailedParticipants.map((p: any) => {
-                                            const colorClass = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending;
-                                            return (
-                                                <div key={p.registrationId ?? p.ownerName} className="p-2.5 rounded bg-[#1f1a1a] border border-white/5 flex flex-col gap-1.5">
-                                                    {/* Row 1: owner + status */}
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-[13px] font-semibold text-white truncate">{p.ownerName}</span>
-                                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${colorClass}`}>
-                                                            {STATUS_LABEL[p.status] ?? p.status}
-                                                        </span>
-                                                    </div>
-                                                    {/* Row 2: horse + jockey */}
-                                                    {(p.horseName || p.jockeyName) && (
-                                                        <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                                                            {p.horseName && <span>🐎 {p.horseName}</span>}
-                                                            {p.jockeyName && <span className="text-[#f3b2a5]">🎽 {p.jockeyName}</span>}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                        {detailedParticipants.length === 0 && (
-                                            <div className="text-[12px] text-gray-500 italic p-2 text-center">No registrations yet.</div>
-                                        )}
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        ))}
+                    </div>
 
-                        {/* ── Referees ── */}
-                        <div className="bg-[#181818] border border-white/5 rounded-lg overflow-hidden shrink-0">
-                            <button
-                                onClick={() => setExpandedSection(prev => prev === 'referees' ? null : 'referees')}
-                                className="w-full flex items-center justify-between p-3 bg-[#1c1c1c] hover:bg-[#202020] transition-colors"
-                            >
-                                <h3 className="text-[12px] font-bold text-white uppercase tracking-widest">Referees</h3>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[11px] font-medium text-gray-500">
-                                        {loadingDetails ? <Loader2 size={12} className="animate-spin inline mr-1" /> : detailedReferees.length} assigned
-                                    </span>
-                                    {expandedSection === 'referees' ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
-                                </div>
-                            </button>
-                            {expandedSection === 'referees' && (
-                                <div className="flex flex-col gap-2 p-3 border-t border-white/5 max-h-[300px] overflow-y-auto custom-scrollbar">
-                                    {loadingDetails ? (
-                                        <div className="flex justify-center p-4"><Loader2 size={16} className="animate-spin text-gray-500" /></div>
-                                    ) : (
-                                        <>
-                                            {detailedReferees.map((ref: any) => {
-                                            const colorClass = STATUS_COLORS[ref.assignmentStatus] ?? STATUS_COLORS.pending;
-                                            return (
-                                                <div key={ref.refereeId ?? ref.fullName} className="flex items-center justify-between p-2.5 rounded bg-[#1f1a1a] border border-white/5">
-                                                    <div className="flex items-center gap-2">
-                                                        <Shield size={12} className="text-gray-500 shrink-0" />
-                                                        <span className="text-[13px] font-semibold text-white truncate">{ref.fullName}</span>
-                                                        {ref.fee !== undefined && (
-                                                            <span className="text-[11px] text-gray-400">(${ref.fee})</span>
-                                                        )}
-                                                    </div>
-                                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${colorClass}`}>
-                                                        {STATUS_LABEL[ref.assignmentStatus] ?? ref.assignmentStatus}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                        {detailedReferees.length === 0 && (
-                                            <div className="text-[12px] text-gray-500 italic p-2 text-center">No referees assigned.</div>
-                                        )}
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                    {/* ── Tab Content ── */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-4 relative">
+                        {loadingDetails && (
+                            <div className="absolute inset-0 z-10 bg-[#161616]/80 backdrop-blur-sm flex items-center justify-center">
+                                <Loader2 size={32} className="animate-spin text-red-500" />
+                            </div>
+                        )}
 
+                        {activeTab === 'overview' && (
+                            <div className="flex flex-col gap-4">
+                                <div className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-4">
+                                    <h3 className="text-[13px] font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-2">
+                                        <Map size={16} className="text-gray-500" /> Location Details
+                                    </h3>
+                                    <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-4 text-[13px]">
+                                        <span className="text-gray-500 font-medium">Location</span>
+                                        <span className="text-white">{detailedOverview?.location || <span className="text-gray-600 italic">N/A</span>}</span>
+                                        
+                                        <span className="text-gray-500 font-medium">Address</span>
+                                        <span className="text-white">{detailedOverview?.address || <span className="text-gray-600 italic">N/A</span>}</span>
+                                        
+                                        <span className="text-gray-500 font-medium">Race Ground</span>
+                                        <span className="text-white">{detailedOverview?.raceGround || <span className="text-gray-600 italic">N/A</span>}</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-4">
+                                    <h3 className="text-[13px] font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-2">
+                                        <Flag size={16} className="text-gray-500" /> Track & Limits
+                                    </h3>
+                                    <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-4 text-[13px]">
+                                        <span className="text-gray-500 font-medium">Track Length</span>
+                                        <span className="text-white">{detailedOverview?.trackLength ? `${detailedOverview.trackLength}m` : <span className="text-gray-600 italic">N/A</span>}</span>
+                                        
+                                        <span className="text-gray-500 font-medium">Max Slots</span>
+                                        <span className="text-white">{detailedOverview?.maxParticipants || selectedRace.maxSlots || <span className="text-gray-600 italic">N/A</span>}</span>
+                                        
+                                        <span className="text-gray-500 font-medium">Race Type</span>
+                                        <span className="text-white">{detailedOverview?.raceType || selectedRace.raceType || <span className="text-gray-600 italic">N/A</span>}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'registrations' && (
+                            <div className="flex flex-col gap-3">
+                                {detailedParticipants.map((p: any, idx: number) => {
+                                    const colorClass = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending;
+                                    return (
+                                        <div key={p.registrationId ?? idx} className="p-4 rounded-xl bg-[#1a1a1a] border border-white/5 flex flex-col gap-4">
+                                            <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Users size={16} className="text-gray-500" />
+                                                    <span className="text-[14px] font-bold text-white truncate">{p.ownerName || <span className="text-gray-600 italic font-medium">No Owner</span>}</span>
+                                                </div>
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${colorClass}`}>
+                                                    {STATUS_LABEL[p.status] ?? p.status}
+                                                </span>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-gray-500 font-medium">Horse</span>
+                                                    <span className="text-gray-300 font-semibold">{p.horseName || <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-gray-500 font-medium">Jockey</span>
+                                                    <span className="text-gray-300 font-semibold">{p.jockeyName || <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12}/> Prediction Pool</span>
+                                                    <span className="text-[#f3b2a5] font-semibold">{p.sum_prediction != null ? `${p.sum_prediction} pts` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-gray-500 font-medium flex items-center gap-1"><Trophy size={12}/> Result Rank</span>
+                                                    <span className="text-amber-400 font-semibold">{p.raceResult?.rank ? `#${p.raceResult.rank}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {detailedParticipants.length === 0 && !loadingDetails && (
+                                    <div className="text-[13px] text-gray-500 italic p-8 text-center bg-[#1a1a1a] rounded-xl border border-white/5">No registrations yet.</div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'referees' && (
+                            <div className="flex flex-col gap-3">
+                                {detailedReferees.map((ref: any, idx: number) => {
+                                    const colorClass = STATUS_COLORS[ref.assignmentStatus] ?? STATUS_COLORS.pending;
+                                    return (
+                                        <div key={ref.refereeId ?? idx} className="flex flex-col gap-3 p-4 rounded-xl bg-[#1a1a1a] border border-white/5">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Shield size={16} className="text-gray-500 shrink-0" />
+                                                    <span className="text-[14px] font-bold text-white truncate">{ref.fullName || <span className="text-gray-600 italic font-medium">Unknown Referee</span>}</span>
+                                                </div>
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${colorClass}`}>
+                                                    {STATUS_LABEL[ref.assignmentStatus] ?? ref.assignmentStatus}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-[12px]">
+                                                <span className="text-gray-500 font-medium">Fee:</span>
+                                                <span className="text-[#f3b2a5] font-semibold">{ref.fee != null ? `$${ref.fee}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {detailedReferees.length === 0 && !loadingDetails && (
+                                    <div className="text-[13px] text-gray-500 italic p-8 text-center bg-[#1a1a1a] rounded-xl border border-white/5">No referees assigned.</div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
-            ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                    <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                        <Search className="text-gray-500" size={20} />
-                    </div>
-                    <h3 className="text-[14px] font-bold text-white mb-1">No Race Selected</h3>
-                    <p className="text-[12px] text-gray-500 leading-relaxed">
-                        Click on a scheduled race from the timeline or table to view registrations and assigned referees.
-                    </p>
-                </div>
-            )}
 
             {/* ── Cancel Confirmation Modal ── */}
             {isCancelModalOpen && (

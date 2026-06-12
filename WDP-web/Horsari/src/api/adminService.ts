@@ -50,6 +50,7 @@ export const adminService = {
   getStatistics: async () => {
     try {
       const response = await api.get('/admin/statistics');
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -61,6 +62,7 @@ export const adminService = {
       const response = await api.get('/admin/horse-owner-invitations', {
         params: { page, limit }
       });
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -72,6 +74,7 @@ export const adminService = {
       const response = await api.get('/admin/referee-invitations', {
         params: { page, limit }
       });
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -83,6 +86,7 @@ export const adminService = {
       const response = await api.get('/admin/jockey-invitations', {
         params: { page, limit }
       });
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -94,6 +98,7 @@ export const adminService = {
       const response = await api.get('/admin/tournaments', {
         params: { page, limit }
       });
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to fetch tournaments' };
@@ -110,6 +115,7 @@ export const adminService = {
         params.raceRound_id = raceRound_id;
       }
       const response = await api.get('/admin/race-rounds', { params });
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to fetch race rounds' };
@@ -119,6 +125,7 @@ export const adminService = {
   getRaceRoundDetail: async (id: string): Promise<{ code: number; data: RaceRoundData; msg: string }> => {
     try {
       const response = await api.get(`/admin/race-rounds/${id}/detail`);
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to fetch race round detail' };
@@ -128,6 +135,7 @@ export const adminService = {
   getCreateRaceMetadata: async () => {
     try {
       const response = await api.get('/admin/create-race-metadata');
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to fetch create race metadata' };
@@ -137,6 +145,7 @@ export const adminService = {
   createRaceRound: async (payload: any) => {
     try {
       const response = await api.post('/raceround', payload);
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -146,6 +155,7 @@ export const adminService = {
   updateRaceRound: async (id: string, payload: any) => {
     try {
       const response = await api.put(`/raceround/${id}`, payload);
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -155,6 +165,7 @@ export const adminService = {
   createTournament: async (data: any) => {
     try {
       const response = await api.post('/tournament', data);
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -164,6 +175,7 @@ export const adminService = {
   updateTournament: async (id: string, data: any) => {
     try {
       const response = await api.put(`/tournament/${id}`, data);
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -173,6 +185,7 @@ export const adminService = {
   deleteTournament: async (id: string) => {
     try {
       const response = await api.delete(`/tournament/${id}`);
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -182,6 +195,7 @@ export const adminService = {
   cancelRaceRound: async (id: string) => {
     try {
       const response = await api.patch(`/raceround/${id}/cancel`);
+      console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;

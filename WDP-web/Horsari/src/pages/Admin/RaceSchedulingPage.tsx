@@ -185,17 +185,10 @@ export default function RaceSchedulingPage() {
         <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
             {/* ── Top Content Area ── */}
-            <div className="flex-1 grid grid-cols-[340px_1fr] gap-8 p-8 min-h-0">
-
-                {/* ── Left Panel (Race Details) ── */}
-                <RaceDetailsPanel 
-                    selectedRace={selectedRace as any} 
-                    onRefresh={handleCacheUpdate} 
-                    onEdit={() => handleEditRace(selectedRace)}
-                />
+            <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
 
                 {/* ── Main Timeline Area ── */}
-                <main className="flex flex-col min-w-0 h-full">
+                <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${selectedRaceId ? "flex-[0_0_50%]" : "flex-1"}`}>
                     {/* Header */}
                     <header className="pb-6 flex items-center justify-between border-b border-white/5 shrink-0">
                         <div>
@@ -269,10 +262,10 @@ export default function RaceSchedulingPage() {
                         )}
                         <div className="h-full w-full overflow-auto bg-[#141414] custom-scrollbar">
                             {viewMode === "timeline" ? (
-                            <div className="min-w-[1600px] border border-white/5 rounded-lg overflow-hidden bg-[#161616]">
+                            <div className="min-w-[1600px] border border-white/5 rounded-lg bg-[#161616]">
                                 {/* Time Headers */}
-                                <div className="sticky top-0 z-30 flex border-b border-white/5 bg-[#1a1a1a]">
-                                    <div className="w-[200px] shrink-0 border-r border-white/5 px-2 py-3 flex items-center justify-between bg-[#151515]">
+                                <div className="sticky top-0 z-40 flex border-b border-white/5 bg-[#1a1a1a]">
+                                    <div className="sticky left-0 z-50 w-[200px] shrink-0 border-r border-white/5 px-2 py-3 flex items-center justify-between bg-[#151515] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                                         <button
                                             onClick={handlePrevDate}
                                             disabled={!uniqueDates.length || selectedDate === uniqueDates[0]}
@@ -309,7 +302,7 @@ export default function RaceSchedulingPage() {
                                         <div key={track.id} className="flex border-b border-white/5 last:border-b-0 min-h-[120px]">
 
                                             {/* Track Info (Y-axis label) */}
-                                            <div className="w-[200px] shrink-0 border-r border-white/5 p-5 bg-[#181818] flex flex-col justify-center gap-1">
+                                            <div className="sticky left-0 z-30 w-[200px] shrink-0 border-r border-white/5 p-5 bg-[#181818] flex flex-col justify-center gap-1 shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                                                 <span className="text-[14px] font-semibold text-white truncate">{track.name}</span>
                                                 <span className="text-[12px] text-gray-500">{track.surface}</span>
                                             </div>
@@ -445,6 +438,18 @@ export default function RaceSchedulingPage() {
                         </div>
                     </div>
                 </main>
+
+                {/* ── Right Panel (Race Details) ── */}
+                {selectedRaceId && (
+                    <div className="flex-1 min-w-[500px] h-full">
+                        <RaceDetailsPanel 
+                            selectedRace={selectedRace as any} 
+                            onRefresh={handleCacheUpdate} 
+                            onEdit={() => handleEditRace(selectedRace)}
+                            onClose={() => setSelectedRaceId(null)}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* ── Global Footer Controls ── */}
