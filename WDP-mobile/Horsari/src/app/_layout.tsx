@@ -1,23 +1,59 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import React from 'react';
-import { useColorScheme } from 'react-native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import React, { useEffect } from 'react';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { AuthProvider, useAuth } from '../auth/AuthContext';
 
 export const unstable_settings = {
   initialRouteName: 'login',
 };
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+// Separate component so it has access to the AuthContext value.
+function RootNavigation() {
+  const { session, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const atLogin = segments[0] === 'login';
+
+    if (!session) {
+      // No active session → go to login
+      if (!atLogin) router.replace('/login');
+      return;
+    }
+
+    // Session exists → route by role
+    const { role } = session.user;
+    if (role === 'jockey') {
+      router.replace('/(tabs)');
+    } else if (role === 'spectator') {
+      router.replace('/(spectator)');
+    } else {
+      // Unknown / unsupported role — clear and return to login
+      router.replace('/login');
+    }
+  }, [session, isLoading]);
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="login" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(spectator)" />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider value={DarkTheme}>
+      <AuthProvider>
+        <AnimatedSplashOverlay />
+        <RootNavigation />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

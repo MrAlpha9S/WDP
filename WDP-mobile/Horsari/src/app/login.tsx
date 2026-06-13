@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,7 +16,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAuth } from '../auth/AuthContext';
+import { loginUser } from '../auth/authService';
 import { Fonts } from '@/constants/theme';
+
 /**
  * Fixed "elite racing" dark palette. This screen intentionally ignores the
  * system color scheme so the brand look is consistent.
@@ -32,6 +35,8 @@ const Palette = {
   textPlaceholder: '#6A6A70',
   red: '#C81E2E',
   redDark: '#8C1620',
+  errorBg: '#2A1215',
+  errorBorder: '#5C1A1F',
   gold: '#C9A24B',
 } as const;
 
@@ -42,20 +47,54 @@ const ROLES: { key: Role; label: string; placeholder: string }[] = [
   { key: 'jockey', label: 'Jockey', placeholder: 'jockey@horsari.com' },
 ];
 
+const ROLE_LABELS: Record<Role, string> = {
+  jockey: 'Jockey',
+  spectator: 'Khán Giả',
+};
+
 export default function LoginScreen() {
   const [role, setRole] = useState<Role>('spectator');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const { saveAndSetSession } = useAuth();
 
   const activeRole = ROLES.find((r) => r.key === role) ?? ROLES[0];
 
-  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
-
-  const handleSubmit = () => {
-    if (role === 'jockey') {
-      router.replace('/(tabs)');
+  const handleSubmit = async () => {
+    if (!email.trim() || !password) {
+      setErrorMsg('Vui lòng nhập email và mật khẩu.');
+      return;
     }
+
+    setIsSubmitting(true);
+    setErrorMsg(null);
+
+    const result = await loginUser({ email: email.trim(), password: password.trim() });
+
+    if (!result.ok) {
+      setErrorMsg(result.message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Client-side role validation: backend does not check the role field.
+    // Reject login if the account's actual role doesn't match the selected one.
+    if (result.session.user.role !== role) {
+      setErrorMsg(
+        `Tài khoản này không phải ${ROLE_LABELS[role]}. Vui lòng chọn đúng vai trò.`
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Saving the session triggers RootNavigation to redirect by role.
+    await saveAndSetSession(result.session);
+    setIsSubmitting(false);
   };
 
   return (
@@ -72,7 +111,6 @@ export default function LoginScreen() {
             <View style={styles.card}>
               {/* Logo */}
               <View style={styles.logoCircle}>
-                {/* <Ionicons name="speedometer" size={34} color={Palette.red} /> */}
                 <Image
                   source={require('@/assets/images/horsari-logo.png')}
                   style={{ width: 50, height: 50 }}
@@ -88,7 +126,10 @@ export default function LoginScreen() {
                     <Pressable
                       key={item.key}
                       style={styles.toggleItem}
-                      onPress={() => setRole(item.key)}>
+                      onPress={() => {
+                        setRole(item.key);
+                        setErrorMsg(null);
+                      }}>
                       {selected ? (
                         <LinearGradient
                           colors={[Palette.redDark, Palette.red]}
@@ -113,14 +154,22 @@ export default function LoginScreen() {
                 Vui lòng đăng nhập để quản lý đội đua của bạn
               </Text>
 
+              {/* Error banner */}
+              {errorMsg && (
+                <View style={styles.errorBanner}>
+                  <Ionicons name="alert-circle-outline" size={16} color="#FF6B6B" />
+                  <Text style={styles.errorText}>{errorMsg}</Text>
+                </View>
+              )}
+
               {/* Email */}
-              <Text style={[styles.fieldLabel]}>Email hoặc Số điện thoại</Text>
+              <Text style={styles.fieldLabel}>Email hoặc Số điện thoại</Text>
               <View style={[styles.inputWrapper, focusedField === 'email' && styles.popUpBorder]}>
                 <Ionicons name="person-outline" size={18} color={Palette.textMuted} />
                 <TextInput
-                  style={[styles.input]}
+                  style={styles.input}
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(v) => { setEmail(v); setErrorMsg(null); }}
                   placeholder={activeRole.placeholder}
                   placeholderTextColor={Palette.textPlaceholder}
                   keyboardType="email-address"
@@ -139,7 +188,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={styles.input}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(v) => { setPassword(v); setErrorMsg(null); }}
                   placeholder="••••••••"
                   placeholderTextColor={Palette.textPlaceholder}
                   secureTextEntry={!showPassword}
@@ -160,7 +209,7 @@ export default function LoginScreen() {
                 </Pressable>
               </View>
 
-              <Pressable hitSlop={8} style={styles.forgotWrapper} onPress={() => { }}>
+              <Pressable hitSlop={8} style={styles.forgotWrapper} onPress={() => {}}>
                 {({ hovered }) => (
                   <Text style={hovered ? styles.forgotTextHovered : styles.forgotText}>
                     Quên mật khẩu?
@@ -169,7 +218,10 @@ export default function LoginScreen() {
               </Pressable>
 
               {/* Submit */}
-              <Pressable style={styles.submitPressable} onPress={handleSubmit}>
+              <Pressable
+                style={[styles.submitPressable, isSubmitting && styles.submitDisabled]}
+                onPress={handleSubmit}
+                disabled={isSubmitting}>
                 {({ pressed, hovered }) => (
                   <LinearGradient
                     colors={[Palette.redDark, Palette.red]}
@@ -180,7 +232,11 @@ export default function LoginScreen() {
                       hovered && styles.submitButtonHovered,
                       pressed && styles.submitButtonPressed,
                     ]}>
-                    <Text style={styles.submitText}>ĐĂNG NHẬP</Text>
+                    {isSubmitting ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text style={styles.submitText}>ĐĂNG NHẬP</Text>
+                    )}
                   </LinearGradient>
                 )}
               </Pressable>
@@ -197,21 +253,14 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View >
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  root: {
-    flex: 1,
-    backgroundColor: Palette.background,
-  },
-  safeArea: {
-    flex: 1,
-  },
+  flex: { flex: 1 },
+  root: { flex: 1, backgroundColor: Palette.background },
+  safeArea: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -272,9 +321,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: Palette.textMuted,
   },
-  toggleLabelActive: {
-    color: Palette.text,
-  },
+  toggleLabelActive: { color: Palette.text },
   title: {
     fontSize: 26,
     fontWeight: '800',
@@ -291,6 +338,25 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 8,
   },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    backgroundColor: Palette.errorBg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Palette.errorBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#FF6B6B',
+    lineHeight: 18,
+  },
   fieldLabel: {
     alignSelf: 'flex-start',
     fontFamily: Fonts.mono,
@@ -303,8 +369,7 @@ const styles = StyleSheet.create({
   popUpBorder: {
     borderColor: '#E6A19C',
     borderWidth: 2,
-  }
-  ,
+  },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -350,11 +415,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
   },
+  submitDisabled: { opacity: 0.7 },
   submitButton: {
     height: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    transform: [{ scale: 1 }],
   },
   submitButtonHovered: {
     opacity: 0.95,

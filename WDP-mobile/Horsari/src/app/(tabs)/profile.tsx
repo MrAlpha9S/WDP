@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
+import { useAuth } from '../../auth/AuthContext';
 import {
   Image,
   Pressable,
@@ -42,6 +43,7 @@ const TROPHIES = [
 export default function ProfileScreen() {
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [biometricOn, setBiometricOn] = useState(false);
+  const { logout, session } = useAuth();
 
   return (
     <View style={styles.root}>
@@ -84,7 +86,7 @@ export default function ProfileScreen() {
                   <Ionicons name="trophy" size={10} color={Palette.gold} />
                 </View>
               </View>
-              <Text style={styles.heroName}>Alexander Thorne</Text>
+              <Text style={styles.heroName}>{session?.user.fullName || session?.user.username || 'Jockey'}</Text>
               <View style={styles.heroMetaRow}>
                 <Text style={styles.heroRank}>JOCKEY ELITE #5</Text>
                 <View style={styles.heroDot} />
@@ -228,10 +230,9 @@ export default function ProfileScreen() {
           </View>
 
           {/* ─── Log out ─── */}
-          <Pressable style={styles.logoutBtn}>
+          <Pressable style={styles.logoutBtn} onPress={logout}>
             <Ionicons name="log-out-outline" size={16} color={Palette.red} />
             <Text style={styles.logoutText}>ĐĂNG XUẤT</Text>
-            
           </Pressable>
 
           <View style={styles.bottomPad} />
