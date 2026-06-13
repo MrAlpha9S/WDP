@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { clearSession, getSession } from '../auth/storage';
+import { Platform } from 'react-native';
 
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL;
+  Platform.OS === "android"
+    ? process.env.EXPO_PUBLIC_API_URL_ANDROID
+    : process.env.EXPO_PUBLIC_API_URL_WEB;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
