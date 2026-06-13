@@ -29,7 +29,8 @@ function RootNavigation() {
     // Session exists → route by role
     const { role } = session.user;
     if (role === 'jockey') {
-      router.replace('/(tabs)');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.replace('/(jockey)' as any);
     } else if (role === 'spectator') {
       router.replace('/(spectator)');
     } else {
@@ -41,7 +42,7 @@ function RootNavigation() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
-      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(jockey)" />
       <Stack.Screen name="(spectator)" />
     </Stack>
   );

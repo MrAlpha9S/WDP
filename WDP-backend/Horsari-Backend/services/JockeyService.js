@@ -191,7 +191,7 @@ class JockeyService {
         try {
             const invitations = await Invitation.find({
                 jockeyId,
-                invitationStatus: { $in: ['pending', 'accepted'] },
+                invitationStatus: { $in: ['pending', 'accepted', 'declined'] },
             }).lean();
 
             const result = await Promise.all(invitations.map(async inv => {
