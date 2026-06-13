@@ -1,3 +1,59 @@
+/**
+ * @swagger
+ * /api/invitations/horseowner/{ownerId}:
+ *   get:
+ *     summary: Get invitations for a horse owner (paginated)
+ *     tags: [Invitation]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: ownerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: skip
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Paginated list of invitations
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     invitations:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Invitation'
+ *                     total:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     skip:
+ *                       type: integer
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not a horse owner
+ */
+
+module.exports = {};
 
 /**
  * @swagger

@@ -14,7 +14,19 @@ class InvitationRepository {
     async findByJockeyId(jockeyId) {
         return await Invitation.find({ jockeyId }).populate('invitationId');
     }
-    async findAll( limit = 10, page = 1) {
+    async findByHorseIds(horseIds, { limit = 10, skip = 0 } = {}) {
+        return await Invitation.find({ horseId: { $in: horseIds } })
+            .populate('horseId')
+            .populate('jockeyId')
+            .populate('registrationId')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+    }
+    async countByHorseIds(horseIds) {
+        return await Invitation.countDocuments({ horseId: { $in: horseIds } });
+    }
+    async findAll(limit = 10, page = 1) {
         const skip = (page - 1) * limit;
         return await Invitation.find()
             .populate('invitationId')

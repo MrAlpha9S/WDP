@@ -10,6 +10,9 @@ router.get('/invitations/:invitationIds/tournaments', authMiddleware, Invitation
 // Create invitation (protected - horse owner)
 router.post('/', authMiddleware, authHorseOwner, InvitationController.createInvitation);
 
+// Get invitations for a horse owner (horse owner only)
+router.get('/horseowner/:ownerId', authMiddleware, authHorseOwner, InvitationController.getInvitationsByOwnerId);
+
 // Get invitation by id
 router.get('/:id', authMiddleware, InvitationController.getInvitationById);
 

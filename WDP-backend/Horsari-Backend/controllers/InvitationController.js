@@ -30,6 +30,17 @@ class InvitationController {
       return next(err);
     }
   }
+  async getInvitationsByOwnerId(req, res, next) {
+    try {
+      const { ownerId } = req.params;
+      const limit = Number.parseInt(req.query.limit, 10) || 10;
+      const skip = Number.parseInt(req.query.skip, 10) || 0;
+      const result = await InvitationService.getInvitationsByOwnerId(ownerId, { limit, skip });
+      return res.status(result.code).json(result);
+    } catch (err) {
+      return next(err);
+    }
+  }
   async toggleInvitationStatus(req, res, next) {
     try {
       const { id } = req.params;
