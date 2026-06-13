@@ -3,6 +3,7 @@ const RaceRoundRepository = require('../repositories/RaceRoundRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
 const Registration = require('../entities/Registration');
 const Invitation = require('../entities/Invitation');
+const HorseRepository = require('../repositories/HorseRepository');
 /**
  * return {
  * code: 200,
@@ -40,6 +41,20 @@ class InvitationService {
             message: "Success",
             data: invitations
         };
+    }
+
+    async getInvitationsByOwnerId(ownerId, { limit = 10, skip = 0 } = {}) {
+        // find horses owned by this owner
+        const horses = await HorseRepository.findByOwnerId(ownerId) || [];
+        const horseIds = horses.map(h => h._id);
+        if (!horseIds || horseIds.length === 0) {
+            return { code: 200, message: 'Success', data: { invitations: [], total: 0, limit, skip } };
+        }
+        const [invitations, total] = await Promise.all([
+            InvitationRepository.findByHorseIds(horseIds, { limit, skip }),
+            InvitationRepository.countByHorseIds(horseIds),
+        ]);
+        return { code: 200, message: 'Success', data: { invitations, total, limit, skip } };
     }
     //jockey confirmation is a boolean field on the invitation that indicates whether the jockey has accepted the invitation or not. This method toggles that status.
     async toggleInvitationStatus(id, newStatus) {
