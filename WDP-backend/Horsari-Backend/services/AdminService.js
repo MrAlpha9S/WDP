@@ -615,11 +615,15 @@ class AdminService {
                     isBackup: false
                 })
                     .populate('horseId')
-                    .populate({
-                        path: 'jockeyId',
-                        populate: { path: '_id', model: 'User', select: 'fullName' }
-                    })
+                    .populate('jockeyId')
                     .lean();
+
+                if (invitation && invitation.jockeyId && invitation.jockeyId._id) {
+                    const jockeyUser = await User.findById(invitation.jockeyId._id).select('fullName').lean();
+                    if (jockeyUser) {
+                        invitation.jockeyId._id = jockeyUser;
+                    }
+                }
 
                 const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
 

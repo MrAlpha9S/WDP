@@ -35,49 +35,54 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const [detailedOverview, setDetailedOverview] = useState<any>(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
+    const fetchDetails = () => {
+        if (!selectedRace?.id) return;
+        setLoadingDetails(true);
+        adminService.getRaceRoundDetail(selectedRace.id)
+            .then(res => {
+                if (res.data) {
+                    // Extract Overview Details
+                    const data: any = res.data;
+                    setDetailedOverview({
+                        location: data.location,
+                        address: data.address,
+                        trackLength: data.trackLength,
+                        raceGround: data.raceGround,
+                        maxParticipants: data.maxParticipants,
+                        raceType: data.RaceType || data.raceType,
+                        firstPlacePrize: data.firstPlacePrize,
+                        secondPlacePrize: data.secondPlacePrize,
+                        thirdPlacePrize: data.thirdPlacePrize,
+                        currencyType: data.currencyType || "USD",
+                    });
+
+                    const parts = (res.data.Registration || []).map((reg: any) => ({
+                        registrationId: reg._id,
+                        ownerName: reg.Owner?.fullName ?? null,
+                        horseName: reg.Horse?.horseName ?? null,
+                        jockeyName: reg.Jockey?._id?.fullName ?? null,
+                        status: reg.registrationStatus ?? 'pending',
+                        sum_prediction: reg.sum_prediction,
+                        raceResult: reg.RaceResult
+                    }));
+                    setDetailedParticipants(parts);
+
+                    const refs = (res.data.Referee || []).map((ref: any) => ({
+                        refereeId: ref.refereeId,
+                        fullName: ref.fullName ?? null,
+                        assignmentStatus: ref.assignmentStatus ?? 'pending',
+                        fee: ref.fee,
+                    }));
+                    setDetailedReferees(refs);
+                }
+            })
+            .catch(err => console.error("Failed to fetch detailed race info", err))
+            .finally(() => setLoadingDetails(false));
+    };
+
     useEffect(() => {
         if (selectedRace?.id) {
-            setLoadingDetails(true);
-            adminService.getRaceRoundDetail(selectedRace.id)
-                .then(res => {
-                    if (res.data) {
-                        // Extract Overview Details
-                        const data: any = res.data;
-                        setDetailedOverview({
-                            location: data.location,
-                            address: data.address,
-                            trackLength: data.trackLength,
-                            raceGround: data.raceGround,
-                            maxParticipants: data.maxParticipants,
-                            raceType: data.RaceType || data.raceType,
-                            firstPlacePrize: data.firstPlacePrize,
-                            secondPlacePrize: data.secondPlacePrize,
-                            thirdPlacePrize: data.thirdPlacePrize,
-                            currencyType: data.currencyType || "USD",
-                        });
-
-                        const parts = (res.data.Registration || []).map((reg: any) => ({
-                            registrationId: reg._id,
-                            ownerName: reg.Owner?.fullName ?? null,
-                            horseName: reg.Horse?.horseName ?? null,
-                            jockeyName: reg.Jockey?._id?.fullName ?? null,
-                            status: reg.registrationStatus ?? 'pending',
-                            sum_prediction: reg.sum_prediction,
-                            raceResult: reg.RaceResult
-                        }));
-                        setDetailedParticipants(parts);
-
-                        const refs = (res.data.Referee || []).map((ref: any) => ({
-                            refereeId: ref.refereeId,
-                            fullName: ref.fullName ?? null,
-                            assignmentStatus: ref.assignmentStatus ?? 'pending',
-                            fee: ref.fee,
-                        }));
-                        setDetailedReferees(refs);
-                    }
-                })
-                .catch(err => console.error("Failed to fetch detailed race info", err))
-                .finally(() => setLoadingDetails(false));
+            fetchDetails();
         } else {
             setDetailedParticipants([]);
             setDetailedReferees([]);
@@ -92,6 +97,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
             await adminService.cancelRaceRound(selectedRace.id);
             setIsCancelModalOpen(false);
             if (onRefresh) onRefresh({ type: 'UPDATE', raceRound_id: selectedRace.id });
+            fetchDetails();
         } catch (error) {
             console.error("Failed to cancel race round:", error);
         } finally {
