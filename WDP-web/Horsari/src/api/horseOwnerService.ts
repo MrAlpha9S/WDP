@@ -74,4 +74,13 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
+  allJockeyInvitations: async () => {
+    try {
+      const response = await api.get(`/horseowner/invitations?limit=10&page=1`);
+      console.log('allJockeyInvitations: ',  response.data)
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
 };
