@@ -53,7 +53,7 @@ function formatViDateTime(dateStr: string | null | undefined): string | null {
 
 function formatFee(minFee: number | undefined, pct: number | undefined): string | null {
   if (minFee && minFee > 0) return `$${minFee.toLocaleString()}`;
-  if (pct && pct > 0) return `${pct}%`;
+  if (pct && pct > 0) return `${pct * 100}%`;
   return null;
 }
 
@@ -252,7 +252,7 @@ function InviteDetailSheet({
             {(invite.percentagePayout ?? 0) > 0 && (
               <SheetRow
                 label="Tỷ lệ thưởng"
-                value={`${invite.percentagePayout}%`}
+                value={`${(invite.percentagePayout || 0) * 100}%`}
                 valueColor={Palette.gold}
               />
             )}
