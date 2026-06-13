@@ -33,8 +33,22 @@ class InvitationController {
   async getInvitationsByOwnerId(req, res, next) {
     try {
       const { ownerId } = req.params;
-      const limit = Number.parseInt(req.query.limit, 10) || 10;
-      const skip = Number.parseInt(req.query.skip, 10) || 0;
+      // Prevent a horse owner from requesting another owner's invitations
+      if (req.user && req.user.role === 'horseowner' && String(req.userId) !== String(ownerId)) {
+        return res.status(403).json({ code: 403, message: 'Forbidden: cannot access other owners invitations' });
+      }
+      // pagination: support either (limit,skip) or (page,pageSize)
+      let limit = Number.parseInt(req.query.limit, 10);
+      let skip = Number.parseInt(req.query.skip, 10);
+      const page = Number.parseInt(req.query.page, 10);
+      const pageSize = Number.parseInt(req.query.pageSize, 10);
+      if (Number.isNaN(limit) || limit <= 0) limit = 10;
+      if (Number.isNaN(skip) || skip < 0) skip = 0;
+      if (!Number.isNaN(page) && page > 0) {
+        const ps = (!Number.isNaN(pageSize) && pageSize > 0) ? pageSize : limit;
+        limit = ps;
+        skip = (page - 1) * ps;
+      }
       const result = await InvitationService.getInvitationsByOwnerId(ownerId, { limit, skip });
       return res.status(result.code).json(result);
     } catch (err) {

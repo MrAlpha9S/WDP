@@ -54,7 +54,9 @@ class InvitationService {
             InvitationRepository.findByHorseIds(horseIds, { limit, skip }),
             InvitationRepository.countByHorseIds(horseIds),
         ]);
-        return { code: 200, message: 'Success', data: { invitations, total, limit, skip } };
+        const pageSize = limit;
+        const page = limit > 0 ? Math.floor(skip / limit) + 1 : 1;
+        return { code: 200, message: 'Success', data: { invitations, total, limit, skip, page, pageSize } };
     }
     //jockey confirmation is a boolean field on the invitation that indicates whether the jockey has accepted the invitation or not. This method toggles that status.
     async toggleInvitationStatus(id, newStatus) {

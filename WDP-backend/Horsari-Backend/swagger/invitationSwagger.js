@@ -13,40 +13,24 @@
  *         schema:
  *           type: string
  *       - in: query
- *         name: limit
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number (1-based)
+ *       - in: query
+ *         name: pageSize
  *         schema:
  *           type: integer
  *           default: 10
- *       - in: query
- *         name: skip
- *         schema:
- *           type: integer
- *           default: 0
+ *         description: Number of items per page
  *     responses:
  *       200:
  *         description: Paginated list of invitations
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 code:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     invitations:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Invitation'
- *                     total:
- *                       type: integer
- *                     limit:
- *                       type: integer
- *                     skip:
- *                       type: integer
+ *               $ref: '#/components/schemas/InvitationListResponse'
  *       401:
  *         description: Unauthorized
  *       403:
