@@ -4,7 +4,7 @@ import { TIME_SLOTS } from "../../shared/data/RaceData";
 import type { ViewMode } from "../../shared/types/RaceTypes";
 import CreateRaceModal from "./modal/CreateRaceModal";
 import RaceDetailsPanel from "./AdminComponents/RaceDetailsPanel";
-import { adminService, type TournamentRaceData } from "../../api/adminService";
+import { adminService, type RaceRoundData } from "../../api/adminService";
 
 export default function RaceSchedulingPage() {
     const [viewMode, setViewMode] = useState<ViewMode>("timeline");
@@ -13,20 +13,21 @@ export default function RaceSchedulingPage() {
     const [raceToEdit, setRaceToEdit] = useState<any>(null);
     const [selectedTournament, setSelectedTournament] = useState<string>("All");
     const [selectedStatus, setSelectedStatus] = useState<string>("All");
+    const [tablePage, setTablePage] = useState(1);
+    const TABLE_ITEMS_PER_PAGE = 5;
 
     const [tournaments, setTournaments] = useState<any[]>([]);
-    const [raceRoundsData, setRaceRoundsData] = useState<TournamentRaceData[]>([]);
+    const [raceRoundsData, setRaceRoundsData] = useState<RaceRoundData[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [tournamentsRes, raceRoundsRes] = await Promise.all([
-                adminService.getTournamentsWithDetails(1, 100),
-                adminService.getRaceRounds()
-            ]);
+            const tournamentsRes = await adminService.getTournamentsWithDetails(1, 100);
             setTournaments(tournamentsRes.data?.items || []);
+            
+            const raceRoundsRes = await adminService.getRaceRounds();
             setRaceRoundsData(raceRoundsRes.data || []);
         } catch (err) {
             console.error("Failed to fetch scheduling data", err);
@@ -35,16 +36,54 @@ export default function RaceSchedulingPage() {
         }
     };
 
+    const handleCacheUpdate = async (updateInfo?: { type: 'CREATE' | 'UPDATE'; tournament_id?: string; raceRound_id?: string }) => {
+        if (!updateInfo) {
+            fetchData();
+            return;
+        }
+
+        try {
+            if (updateInfo.type === 'CREATE' && updateInfo.tournament_id) {
+                const res = await adminService.getRaceRounds(updateInfo.tournament_id, null);
+                setRaceRoundsData(prev => {
+                    const filtered = prev.filter(rr => rr.tournamentId !== updateInfo.tournament_id);
+                    return [...filtered, ...(res.data || [])];
+                });
+            } else if (updateInfo.type === 'UPDATE' && updateInfo.raceRound_id) {
+                const res = await adminService.getRaceRounds(null, updateInfo.raceRound_id);
+                setRaceRoundsData(prev => {
+                    return prev.map(rr => rr._id === updateInfo.raceRound_id ? (res.data?.[0] || rr) : rr);
+                });
+            } else {
+                fetchData();
+            }
+        } catch (err) {
+            console.error("Failed to update cache", err);
+            fetchData(); // fallback
+        }
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
 
-    const handleEditRace = (race: any) => {
+    useEffect(() => {
+        setTablePage(1);
+    }, [selectedTournament, selectedStatus, selectedDate, viewMode]);
+
+    const handleEditRace = async (race: any) => {
         if (!race) return;
-        const rawRace = raceRoundsData.flatMap(t => t.RaceRound).find(r => r._id === race.id);
+        const rawRace = raceRoundsData.find(r => r._id === race.id);
         if (rawRace) {
-            setRaceToEdit(rawRace);
-            setIsCreateModalOpen(true);
+            try {
+                const res = await adminService.getRaceRoundDetail(rawRace._id);
+                if (res.data) {
+                    setRaceToEdit(res.data);
+                    setIsCreateModalOpen(true);
+                }
+            } catch (err) {
+                console.error("Failed to fetch detailed race for edit", err);
+            }
         }
     };
 
@@ -63,43 +102,33 @@ export default function RaceSchedulingPage() {
         };
     };
 
-    const ALL_RACES = raceRoundsData.flatMap(t => {
-        return t.RaceRound.map((rr) => {
-            const dateObj = new Date(rr.raceDate);
-            const timeStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleDateString();
-            const { leftPercent, widthPercent } = getTimelineOffsets(rr.raceDate);
+    const ALL_RACES = raceRoundsData.map((rr) => {
+        const dateObj = new Date(rr.raceDate);
+        const timeStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dateStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleDateString();
+        const { leftPercent, widthPercent } = getTimelineOffsets(rr.raceDate);
 
-            return {
-                id: rr._id,
-                trackId: rr.location || "TBD",
-                title: rr.roundName,
-                tournament: t.Tournaments_name,
-                date: dateStr,
-                time: timeStr,
-                status: rr.status,
-                participants: (rr.Registration || []).map((reg) => ({
-                    registrationId: reg._id,
-                    ownerName: reg.Owner?.fullName ?? 'Unknown Owner',  // Owner is now plain User {_id, fullName}
-                    horseName: reg.Horse?.horseName ?? null,
-                    jockeyName: reg.Jockey?._id?.fullName ?? null,
-                    status: reg.registrationStatus ?? 'pending',
-                })),
-                referees: (rr.Referee || []).map((ref) => ({
-                    refereeId: ref.refereeId,
-                    fullName: ref.fullName ?? 'Unknown Referee',  // fullName is now a top-level field
-                    assignmentStatus: ref.assignmentStatus ?? 'pending',
-                    fee: ref.fee,
-                })),
-                pendingInvites: [],
-                maxSlots: rr.maxParticipants || 0,
-                leftPercent,
-                widthPercent,
-                rawDate: dateObj,
-                trackLength: rr.trackLength || 0,
-                raceType: rr.RaceType || rr.raceType || "Standard"
-            };
-        });
+        const parentTournament = tournaments.find(t => t.tournament._id === rr.tournamentId);
+        const tournamentName = parentTournament ? parentTournament.tournament.tournamentName : "Unknown Tournament";
+
+        return {
+            id: rr._id,
+            trackId: rr.location || "TBD",
+            title: rr.roundName,
+            tournament: tournamentName,
+            date: dateStr,
+            time: timeStr,
+            status: rr.status,
+            participants: [],
+            referees: [],
+            pendingInvites: [],
+            maxSlots: rr.maxParticipants || 0,
+            leftPercent,
+            widthPercent,
+            rawDate: dateObj,
+            trackLength: rr.trackLength || 0,
+            raceType: rr.RaceType || rr.raceType || "Standard"
+        };
     });
 
     // Date computation
@@ -156,17 +185,10 @@ export default function RaceSchedulingPage() {
         <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
             {/* ── Top Content Area ── */}
-            <div className="flex-1 grid grid-cols-[340px_1fr] gap-8 p-8 min-h-0">
-
-                {/* ── Left Panel (Race Details) ── */}
-                <RaceDetailsPanel 
-                    selectedRace={selectedRace as any} 
-                    onRefresh={fetchData} 
-                    onEdit={() => handleEditRace(selectedRace)}
-                />
+            <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
 
                 {/* ── Main Timeline Area ── */}
-                <main className="flex flex-col min-w-0 h-full">
+                <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${selectedRaceId ? "flex-[0_0_50%]" : "flex-1"}`}>
                     {/* Header */}
                     <header className="pb-6 flex items-center justify-between border-b border-white/5 shrink-0">
                         <div>
@@ -240,10 +262,10 @@ export default function RaceSchedulingPage() {
                         )}
                         <div className="h-full w-full overflow-auto bg-[#141414] custom-scrollbar">
                             {viewMode === "timeline" ? (
-                            <div className="min-w-[1600px] border border-white/5 rounded-lg overflow-hidden bg-[#161616]">
+                            <div className="min-w-[1600px] border border-white/5 rounded-lg bg-[#161616]">
                                 {/* Time Headers */}
-                                <div className="sticky top-0 z-30 flex border-b border-white/5 bg-[#1a1a1a]">
-                                    <div className="w-[200px] shrink-0 border-r border-white/5 px-2 py-3 flex items-center justify-between bg-[#151515]">
+                                <div className="sticky top-0 z-40 flex border-b border-white/5 bg-[#1a1a1a]">
+                                    <div className="sticky left-0 z-50 w-[200px] shrink-0 border-r border-white/5 px-2 py-3 flex items-center justify-between bg-[#151515] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                                         <button
                                             onClick={handlePrevDate}
                                             disabled={!uniqueDates.length || selectedDate === uniqueDates[0]}
@@ -280,7 +302,7 @@ export default function RaceSchedulingPage() {
                                         <div key={track.id} className="flex border-b border-white/5 last:border-b-0 min-h-[120px]">
 
                                             {/* Track Info (Y-axis label) */}
-                                            <div className="w-[200px] shrink-0 border-r border-white/5 p-5 bg-[#181818] flex flex-col justify-center gap-1">
+                                            <div className="sticky left-0 z-30 w-[200px] shrink-0 border-r border-white/5 p-5 bg-[#181818] flex flex-col justify-center gap-1 shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                                                 <span className="text-[14px] font-semibold text-white truncate">{track.name}</span>
                                                 <span className="text-[12px] text-gray-500">{track.surface}</span>
                                             </div>
@@ -342,7 +364,7 @@ export default function RaceSchedulingPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {filteredRaces.map(race => {
+                                        {filteredRaces.slice((tablePage - 1) * TABLE_ITEMS_PER_PAGE, tablePage * TABLE_ITEMS_PER_PAGE).map(race => {
                                             const isSelected = selectedRaceId === race.id;
                                             return (
                                                 <tr
@@ -388,11 +410,46 @@ export default function RaceSchedulingPage() {
                                         })}
                                     </tbody>
                                 </table>
+                                {Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE) > 1 && (
+                                    <div className="flex justify-between items-center p-4 border-t border-white/5 bg-[#1a1a1a] mt-4 rounded-lg">
+                                        <span className="text-[12px] text-gray-500">
+                                            Showing {(tablePage - 1) * TABLE_ITEMS_PER_PAGE + 1} to {Math.min(tablePage * TABLE_ITEMS_PER_PAGE, filteredRaces.length)} of {filteredRaces.length} races
+                                        </span>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => setTablePage(p => Math.max(1, p - 1))}
+                                                disabled={tablePage === 1}
+                                                className="px-3 py-1.5 bg-[#222] border border-white/10 rounded text-[12px] text-gray-300 hover:text-white hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                Previous
+                                            </button>
+                                            <button 
+                                                onClick={() => setTablePage(p => Math.min(Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE), p + 1))}
+                                                disabled={tablePage === Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE)}
+                                                className="px-3 py-1.5 bg-[#222] border border-white/10 rounded text-[12px] text-gray-300 hover:text-white hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                         </div>
                     </div>
                 </main>
+
+                {/* ── Right Panel (Race Details) ── */}
+                {selectedRaceId && (
+                    <div className="flex-1 min-w-[500px] h-full">
+                        <RaceDetailsPanel 
+                            selectedRace={selectedRace as any} 
+                            onRefresh={handleCacheUpdate} 
+                            onEdit={() => handleEditRace(selectedRace)}
+                            onClose={() => setSelectedRaceId(null)}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* ── Global Footer Controls ── */}
@@ -414,7 +471,7 @@ export default function RaceSchedulingPage() {
                     setIsCreateModalOpen(false);
                     setRaceToEdit(null);
                 }}
-                onSuccess={fetchData}
+                onSuccess={(updateInfo) => handleCacheUpdate(updateInfo)}
                 raceToEdit={raceToEdit}
             />
         </div>

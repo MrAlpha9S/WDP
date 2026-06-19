@@ -237,21 +237,26 @@ class AdminService {
                         })
                         : 0;
 
-                    // Fetch the first active horse belonging to this owner
-                    const horse = horseOwner
-                        ? await Horse.findOne({ ownerId: horseOwner._id, status: 'active' }).lean()
-                        : null;
+                    const ownerUser = horseOwner ? await User.findById(horseOwner._id).select('fullName').lean() : null;
 
-                    // Fetch only accepted invitations for this registration
+                    // Fetch all invitations for this registration and populate the associated horse
                     const invitations = await Invitation.find({
                         registrationId: reg._id,
-                        invitationStatus: 'accepted',
                     })
-                        .populate({
-                            path: 'jockeyId',
-                            populate: { path: '_id', model: 'User', select: 'fullName' },
-                        })
+                        .populate('horseId')
+                        .populate('jockeyId')
                         .lean();
+
+                    for (let inv of invitations) {
+                        if (inv.jockeyId) {
+                            inv.jockeyUser = await User.findById(inv.jockeyId._id).select('fullName').lean();
+                        }
+                    }
+
+                    // Extract horse from the first invitation (all invitations for a registration share the same horse)
+                    const horse = invitations.length > 0 && invitations[0].horseId 
+                        ? invitations[0].horseId 
+                        : null;
 
                     return {
                         registrationId: reg._id,
@@ -272,14 +277,14 @@ class AdminService {
                             : null,
                         invitations: invitations.map((inv) => ({
                             invitationsId: inv._id,
-                            jockeyName: inv.jockeyId?._id?.fullName ?? 'Unknown',
+                            jockeyName: inv.jockeyUser?.fullName ?? 'Unknown',
                             isBackup: inv.isBackup,
                             status: inv.invitationStatus,
                         })),
                         horseOwner: horseOwner
                             ? {
                                 ownerId: horseOwner._id,
-                                fullName: horseOwner._id?.fullName ?? null,
+                                fullName: ownerUser?.fullName ?? null,
                             }
                             : null,
                     };
@@ -315,20 +320,19 @@ class AdminService {
                 .skip(skip)
                 .limit(limit)
                 .populate('raceRoundId')
-                .populate({
-                    path: 'refereeId',
-                    populate: { path: '_id', model: 'User', select: 'fullName' },
-                })
+                .populate('refereeId')
                 .lean();
 
             const totalItems = await RaceReferee.countDocuments();
             const totalPages = Math.ceil(totalItems / limit);
 
-            const items = raceReferees.map((rr) => {
+            const items = await Promise.all(raceReferees.map(async (rr) => {
                 const raceRound = rr.raceRoundId || null;
                 const referee = rr.refereeId || null;
+                const refereeUser = referee ? await User.findById(referee._id).select('fullName').lean() : null;
 
                 return {
+                    raceRefereeId: rr._id,
                     raceReferee: {
                         status: rr.status,
                     },
@@ -344,12 +348,12 @@ class AdminService {
                         ? {
                             refereeId: referee._id,
                             user: {
-                                fullName: referee._id?.fullName ?? 'Unknown',
+                                fullName: refereeUser?.fullName ?? 'Unknown',
                             },
                         }
                         : null,
                 };
-            });
+            }));
 
             return {
                 code: 200,
@@ -384,10 +388,7 @@ class AdminService {
                     path: 'registrationId',
                     populate: { path: 'raceRoundId' }
                 })
-                .populate({
-                    path: 'jockeyId',
-                    populate: { path: '_id', model: 'User', select: 'fullName' }
-                })
+                .populate('jockeyId')
                 .lean();
 
             const totalItems = await Invitation.countDocuments();
@@ -398,18 +399,21 @@ class AdminService {
             const siblingInvitations = await Invitation.find({
                 registrationId: { $in: registrationIds },
                 invitationStatus: { $in: ['accepted', 'pending'] }
-            }).populate({
-                path: 'jockeyId',
-                populate: { path: '_id', model: 'User', select: 'fullName' }
-            }).lean();
+            }).populate('jockeyId').lean();
 
-            const items = invitations.map(inv => {
+            const items = await Promise.all(invitations.map(async inv => {
                 const reg = inv.registrationId || null;
                 const raceRound = reg?.raceRoundId || null;
                 const horse = inv.horseId || null;
                 const jockey = inv.jockeyId || null;
+                const jockeyUser = jockey ? await User.findById(jockey._id).select('fullName').lean() : null;
 
                 const siblings = siblingInvitations.filter(sib => sib.registrationId?.toString() === reg?._id?.toString());
+                for (let sib of siblings) {
+                    if (sib.jockeyId) {
+                        sib.jockeyUser = await User.findById(sib.jockeyId._id).select('fullName').lean();
+                    }
+                }
 
                 return {
                     registrationId: reg ? reg._id : null,
@@ -429,20 +433,21 @@ class AdminService {
                     } : null,
                     invitations: siblings.map(sib => ({
                         invitationId: sib._id,
-                        jockeyName: sib.jockeyId?._id?.fullName || 'Unknown',
+                        jockeyName: sib.jockeyUser?.fullName || 'Unknown',
                         isBackup: sib.isBackup,
                         invitationStatus: sib.invitationStatus
                     })),
                     jockey: jockey ? {
                         jockeyId: jockey._id,
                         user: {
-                            fullName: jockey._id?.fullName || 'Unknown'
+                            fullName: jockeyUser?.fullName || 'Unknown'
                         }
                     } : null,
                     status: inv.invitationStatus,
-                    invitationId: inv._id
+                    invitationId: inv._id,
+                    isBackup: inv.isBackup
                 };
-            });
+            }));
 
             return {
                 code: 200,
@@ -523,103 +528,34 @@ class AdminService {
         }
     }
 
-    // Get Race Rounds grouped by Tournament
-    async getRaceRounds(tournamentFilter = null) {
+    // Get Race Rounds
+    async getRaceRounds(tournament_id = null, raceRound_id = null) {
         try {
-            // 1. Fetch Tournaments
             let query = {};
-            if (tournamentFilter) {
-                query._id = tournamentFilter;
+            if (tournament_id) {
+                query.tournamentId = tournament_id;
             }
-            const tournaments = await Tournament.find(query).lean();
+            if (raceRound_id) {
+                query._id = raceRound_id;
+            }
 
             const results = [];
+            const raceRounds = await RaceRound.find(query).lean();
 
-            // 2. Loop through tournaments
-            for (const tournament of tournaments) {
-                const tObj = {
-                    T_id: tournament._id,
-                    Tournaments_name: tournament.tournamentName,
-                    Tournament_detail: tournament, // Added tournament detail as requested
-                    RaceRound: []
-                };
-
-                // Fetch RaceRounds for this tournament
-                const raceRounds = await RaceRound.find({ tournamentId: tournament._id }).lean();
-
-                for (const raceRound of raceRounds) {
-                    // Fetch RaceType
-                    let raceType = raceRound.raceType || null;
-                    if (!raceType && raceRound.eligibilityRuleId) {
-                        const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
-                        if (rule && rule.raceType) raceType = rule.raceType;
-                    }
-
-                    const rrObj = {
-                        ...raceRound,
-                        RaceType: raceType,
-                        Referee: [],
-                        Registration: []
-                    };
-
-                    // Fetch Referees (populate Referee then manually fetch User for fullName)
-                    const raceReferees = await RaceReferee.find({ raceRoundId: raceRound._id }).lean();
-                    rrObj.Referee = await Promise.all(
-                        raceReferees.map(async (rr) => {
-                            // Referee._id === User._id, so refereeId IS the User's ObjectId
-                            const refereeUser = rr.refereeId
-                                ? await User.findById(rr.refereeId, 'fullName').lean()
-                                : null;
-                            return {
-                                refereeId: rr.refereeId,
-                                fullName: refereeUser?.fullName ?? null,
-                                assignmentStatus: rr.status,
-                                fee: rr.fee
-                            };
-                        })
-                    );
-
-                    // Fetch Registrations (lean only — manually resolve Owner via User)
-                    const registrations = await Registration.find({ raceRoundId: raceRound._id }).lean();
-
-                    for (const reg of registrations) {
-                        // Sum predictions
-                        const predictions = await Prediction.find({ registrationId: reg._id }).lean();
-                        const sum_prediction = predictions.reduce((sum, p) => sum + (p.rewardPoints || 0), 0);
-                        // Fetch Owner User directly (HorseOwner._id === User._id === horseOwnerId)
-                        const ownerUser = reg.horseOwnerId
-                            ? await User.findById(reg.horseOwnerId, 'fullName').lean()
-                            : null;
-
-                        // Fetch Invitation (for Horse and Jockey + Jockey User fullName)
-                        const invitation = await Invitation.findOne({
-                            registrationId: reg._id,
-                            isBackup: false
-                        })
-                            .populate('horseId')
-                            .populate({
-                                path: 'jockeyId',
-                                populate: { path: '_id', model: 'User', select: 'fullName' }
-                            })
-                            .lean();
-
-                        // Fetch RaceResult
-                        const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
-
-                        rrObj.Registration.push({
-                            ...reg,
-                            sum_prediction,
-                            Horse: invitation ? invitation.horseId : null,
-                            Jockey: invitation ? invitation.jockeyId : null,
-                            Owner: ownerUser,  // { _id, fullName } from User directly
-                            RaceResult: raceResult || null
-                        });
-                    }
-
-                    tObj.RaceRound.push(rrObj);
+            for (const raceRound of raceRounds) {
+                // Fetch RaceType
+                let raceType = raceRound.raceType || null;
+                if (!raceType && raceRound.eligibilityRuleId) {
+                    const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
+                    if (rule && rule.raceType) raceType = rule.raceType;
                 }
 
-                results.push(tObj);
+                const rrObj = {
+                    ...raceRound,
+                    RaceType: raceType
+                };
+
+                results.push(rrObj);
             }
 
             return { code: 200, data: results, msg: 'Race rounds retrieved successfully' };
@@ -629,15 +565,94 @@ class AdminService {
         }
     }
 
+    // Get Race Round Detail
+    async getRaceRoundDetail(raceRound_id) {
+        try {
+            const raceRound = await RaceRound.findById(raceRound_id).lean();
+            if (!raceRound) {
+                return { code: 404, msg: 'Race round not found' };
+            }
+
+            let raceType = raceRound.raceType || null;
+            if (!raceType && raceRound.eligibilityRuleId) {
+                const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
+                if (rule && rule.raceType) raceType = rule.raceType;
+            }
+
+            const rrObj = {
+                ...raceRound,
+                RaceType: raceType,
+                Referee: [],
+                Registration: []
+            };
+
+            const raceReferees = await RaceReferee.find({ raceRoundId: raceRound._id }).lean();
+            rrObj.Referee = await Promise.all(
+                raceReferees.map(async (rr) => {
+                    const refereeUser = rr.refereeId
+                        ? await User.findById(rr.refereeId, 'fullName').lean()
+                        : null;
+                    return {
+                        refereeId: rr.refereeId,
+                        fullName: refereeUser?.fullName ?? null,
+                        assignmentStatus: rr.status,
+                        fee: rr.fee
+                    };
+                })
+            );
+
+            const registrations = await Registration.find({ raceRoundId: raceRound._id }).lean();
+
+            for (const reg of registrations) {
+                const predictions = await Prediction.find({ registrationId: reg._id }).lean();
+                const sum_prediction = predictions.reduce((sum, p) => sum + (p.rewardPoints || 0), 0);
+                const ownerUser = reg.horseOwnerId
+                    ? await User.findById(reg.horseOwnerId, 'fullName').lean()
+                    : null;
+
+                const invitation = await Invitation.findOne({
+                    registrationId: reg._id,
+                    isBackup: false
+                })
+                    .populate('horseId')
+                    .populate('jockeyId')
+                    .lean();
+
+                if (invitation && invitation.jockeyId && invitation.jockeyId._id) {
+                    const jockeyUser = await User.findById(invitation.jockeyId._id).select('fullName').lean();
+                    if (jockeyUser) {
+                        invitation.jockeyId._id = jockeyUser;
+                    }
+                }
+
+                const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
+
+                rrObj.Registration.push({
+                    ...reg,
+                    sum_prediction,
+                    Horse: invitation ? invitation.horseId : null,
+                    Jockey: invitation ? invitation.jockeyId : null,
+                    Owner: ownerUser,
+                    RaceResult: raceResult || null
+                });
+            }
+
+            return { code: 200, data: rrObj, msg: 'Race round detail retrieved successfully' };
+        } catch (error) {
+            console.error('Error fetching race round detail:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
     // Get all metadata required for creating a race
     async getCreateRaceMetadata() {
         try {
             const [previousRaceTracks, activeTournaments, eligibilityRules, referees, ownersRaw] = await Promise.all([
-                // 1. Get unique tracks (locations) and their grounds
+                // 1. Get unique tracks (locations) and their grounds and addresses
                 RaceRound.aggregate([
                     { $match: { location: { $ne: null, $ne: '' } } },
-                    { $group: { _id: "$location", location: { $first: "$location" }, raceGround: { $first: "$raceGround" } } },
-                    { $project: { _id: 0, location: 1, raceGround: 1 } }
+                    { $group: { _id: "$location", location: { $first: "$location" }, raceGround: { $first: "$raceGround" }, address: { $first: "$address" } } },
+                    { $project: { _id: 0, location: 1, raceGround: 1, address: 1 } }
                 ]),
 
                 // 2. Get active/scheduled tournaments
@@ -695,6 +710,99 @@ class AdminService {
             };
         } catch (error) {
             console.error('Error fetching create race metadata:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // --- Race Eligibility Rule CRUD ---
+
+    async getAllRules() {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const rules = await RaceEligibilityRule.find().sort({ create_at: -1 }).lean();
+            return {
+                code: 200,
+                data: rules,
+                msg: 'Race eligibility rules retrieved successfully'
+            };
+        } catch (error) {
+            console.error('Error fetching rules:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async getRuleById(id) {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const rule = await RaceEligibilityRule.findById(id).lean();
+            if (!rule) {
+                return { code: 404, msg: 'Race eligibility rule not found' };
+            }
+            return {
+                code: 200,
+                data: rule,
+                msg: 'Race eligibility rule retrieved successfully'
+            };
+        } catch (error) {
+            console.error('Error fetching rule:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async createRule(ruleData) {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const newRule = new RaceEligibilityRule(ruleData);
+            await newRule.save();
+            return {
+                code: 201,
+                data: newRule,
+                msg: 'Race eligibility rule created successfully'
+            };
+        } catch (error) {
+            console.error('Error creating rule:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async updateRule(id, ruleData) {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const updatedRule = await RaceEligibilityRule.findByIdAndUpdate(
+                id,
+                { $set: ruleData },
+                { new: true, runValidators: true }
+            ).lean();
+            
+            if (!updatedRule) {
+                return { code: 404, msg: 'Race eligibility rule not found' };
+            }
+            return {
+                code: 200,
+                data: updatedRule,
+                msg: 'Race eligibility rule updated successfully'
+            };
+        } catch (error) {
+            console.error('Error updating rule:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async deleteRule(id) {
+        try {
+            const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+            const deletedRule = await RaceEligibilityRule.findByIdAndDelete(id).lean();
+            
+            if (!deletedRule) {
+                return { code: 404, msg: 'Race eligibility rule not found' };
+            }
+            return {
+                code: 200,
+                data: null,
+                msg: 'Race eligibility rule deleted successfully'
+            };
+        } catch (error) {
+            console.error('Error deleting rule:', error);
             return { code: 500, msg: error.message };
         }
     }

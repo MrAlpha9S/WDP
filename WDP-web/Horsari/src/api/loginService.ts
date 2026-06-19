@@ -2,12 +2,19 @@ import api from "./axios";
 
 export const authService = {
     login: async (data: any) => {
-        const response = await api.post("/auth/login", data);
-        return response.data;
+        try {
+            const response = await api.post("/auth/login", data);
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 401) {
+                return "Login credentials are incorrect. Please try again.";
+            } else {
+                return "An error occurred. Please try again later.";
+            }
+        }
     },
     register: async (data: FormData) => {
-        // Delete the default Content-Type so axios/browser can set multipart/form-data
-        // with the correct boundary automatically when given a FormData object
+
         const response = await api.post("/auth/register", data, {
             transformRequest: [(d, headers) => {
                 delete headers['Content-Type'];

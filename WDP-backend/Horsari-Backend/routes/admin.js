@@ -7,7 +7,6 @@ const router = express.Router();
 require('../swagger/adminSwagger');
 
 // Admin-only - create admin profile for existing user
-router.post('/:uid', authMiddleware, authAdmin, AdminController.createAdmin);
 router.get('/profile', authMiddleware, authAdmin, AdminController.getAdminProfile);
 // Admin statistics
 router.get('/statistics', authMiddleware, authAdmin, AdminController.getStatistics);
@@ -32,7 +31,19 @@ router.get('/tournaments', authMiddleware, authAdmin, AdminController.getTournam
 // Get race rounds grouped by tournament with deep nested entities
 router.get('/race-rounds', authMiddleware, authAdmin, AdminController.getRaceRounds);
 
+// Get race round details
+router.get('/race-rounds/:id/detail', authMiddleware, authAdmin, AdminController.getRaceRoundDetail);
+
 // Get all metadata required for creating a race
 router.get('/create-race-metadata', authMiddleware, authAdmin, AdminController.getCreateRaceMetadata);
+
+// --- Race Eligibility Rule Routes ---
+router.get('/rules', authMiddleware, authAdmin, AdminController.getAllRules);
+router.get('/rules/:id', authMiddleware, authAdmin, AdminController.getRuleById);
+router.post('/rules', authMiddleware, authAdmin, AdminController.createRule);
+router.put('/rules/:id', authMiddleware, authAdmin, AdminController.updateRule);
+router.delete('/rules/:id', authMiddleware, authAdmin, AdminController.deleteRule);
+
+router.post('/:uid', authMiddleware, authAdmin, AdminController.createAdmin);
 
 module.exports = router;

@@ -67,9 +67,21 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
     };
 
     const handleStartDateChange = (date: string) => {
+        const today = new Date();
+
+        if (editingTournament && editingTournament.startISO) {
+            const currentStartObj = new Date(editingTournament.startISO);
+            const timeDiff = currentStartObj.getTime() - today.getTime();
+            const daysAway = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+            if (daysAway <= 14) {
+                setError("Cannot change the start date because the tournament is 14 days or less away.");
+                return;
+            }
+        }
+
         setStartDate(date);
         
-        const today = new Date();
         const oneWeekAgo = new Date(today);
         oneWeekAgo.setDate(today.getDate() - 7);
         const oneWeekAgoStr = oneWeekAgo.getFullYear() + "-" + String(oneWeekAgo.getMonth() + 1).padStart(2, '0') + "-" + String(oneWeekAgo.getDate()).padStart(2, '0');
@@ -190,9 +202,13 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                         <select value={status} onChange={e => handleStatusChange(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none">
                             <option value="draft">Draft</option>
                             <option value="scheduled">Scheduled</option>
-                            <option value="ongoing">Ongoing</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
+                            {editingTournament && (
+                                <>
+                                    <option value="ongoing">Ongoing</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </>
+                            )}
                         </select>
                     </div>
                 </div>

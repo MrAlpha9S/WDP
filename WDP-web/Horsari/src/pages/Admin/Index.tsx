@@ -4,8 +4,12 @@ import AdminSidebar from "./AdminComponents/SideBar";
 import SystemDashboardPage from "./SystemDashBoardPage";
 import RaceSchedulingPage from "./RaceSchedulingPage";
 import TournamentManagementPage from "./TournamentManagementPage";
+import AdminUsersPage from "./AdminUsersPage";
+import AdminHorsesPage from "./AdminHorsesPage";
+import AdminRuleManagementPage from "./AdminRuleManagementPage";
 
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { TOKEN_KEY } from "../../utils/constants";
 
 
 // ── Placeholder pages for non-Dashboard tabs ──────────────────────────────────
@@ -32,6 +36,12 @@ function ActiveView({ tab, setActiveTab }: { tab: AdminTab, setActiveTab: (tab: 
             return <RaceSchedulingPage />;
         case "Tournaments":
             return <TournamentManagementPage setActiveTab={setActiveTab} />;
+        case "Users":
+            return <AdminUsersPage />;
+        case "Horses":
+            return <AdminHorsesPage />;
+        case "Rules Managment":
+            return <AdminRuleManagementPage />;
         default:
             return <ComingSoon title={tab} />;
     }
@@ -40,6 +50,14 @@ function ActiveView({ tab, setActiveTab }: { tab: AdminTab, setActiveTab: (tab: 
 // ── Dashboard Page ─────────────────────────────────────────────────────────────
 export default function AdminDashboardPage() {
     const { tabs } = useParams<{ tabs: string }>();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!token) {
+            navigate("/login", { replace: true });
+        }
+    }, [navigate]);
 
     // Support matching both navbar tabs and sidebar tabs from URL
     const allTabs = [
@@ -48,6 +66,7 @@ export default function AdminDashboardPage() {
         "Home", 
         "Roles & Permissions", 
         "Horses", 
+        "Rules Managment",
         "Activity Logs"
     ] as AdminTab[];
 
