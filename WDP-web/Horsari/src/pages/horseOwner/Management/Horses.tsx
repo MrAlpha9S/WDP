@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, ChevronDown, SlidersHorizontal, Plus, MoreVertical } from "lucide-react";
+import { horseOwnerService, type Horse } from "../../../api/horseOwnerService";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type HorseStatus = "Racing" | "Training" | "Resting" | "Injured";
 
 interface HorseCard {
-  id: number;
+  id: string;
   name: string;
   age: number;
   color: string;
@@ -13,7 +14,6 @@ interface HorseCard {
   grade: string;
   status: HorseStatus;
   image: string;
-  // Conditional info based on status
   nextRaceDate?: string;
   nextRaceVenue?: string;
   jockey?: string;
@@ -23,84 +23,47 @@ interface HorseCard {
   statusNote?: string;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-const HORSES: HorseCard[] = [
-  {
-    id: 1,
-    name: "Crimson Velocity",
-    age: 4,
-    color: "Bay",
-    sex: "Colt",
-    grade: "Grade 1",
-    status: "Racing",
-    image: "https://images.unsplash.com/photo-1553284965-5dd67167ac2f?w=600&q=80",
-    nextRaceDate: "Oct 24",
-    nextRaceVenue: "Belmont",
-    jockey: "J. Velazquez",
-  },
-  {
-    id: 2,
-    name: "Midnight Protocol",
-    age: 3,
-    color: "Black",
-    sex: "Filly",
-    grade: "Grade 2",
-    status: "Training",
-    image: "https://images.unsplash.com/photo-1525543907410-b2562b6796b6?w=600&q=80",
-    regimen: "Speed Work",
-    trainer: "C. Brown",
-  },
-  {
-    id: 3,
-    name: "Iron Ledger",
-    age: 5,
-    color: "Gray",
-    sex: "Gelding",
-    grade: "Listed",
-    status: "Resting",
-    image: "https://images.unsplash.com/photo-1567163437983-b0d9a2b5b369?w=600&q=80",
-    returnEst: "Dec 2024",
-    statusNote: "Post-Op Rehab",
-  },
-  {
-    id: 4,
-    name: "Ember Crown",
-    age: 4,
-    color: "Chestnut",
-    sex: "Mare",
-    grade: "Grade 1",
-    status: "Racing",
-    image: "https://images.unsplash.com/photo-1598901847919-b2a5e9e00f64?w=600&q=80",
-    nextRaceDate: "Nov 2",
-    nextRaceVenue: "Churchill",
-    jockey: "F. Dettori",
-  },
-  {
-    id: 5,
-    name: "Storm Cipher",
-    age: 3,
-    color: "Dark Bay",
-    sex: "Colt",
-    grade: "Grade 3",
-    status: "Training",
-    image: "https://images.unsplash.com/photo-1508817628294-5a453fa0b8fb?w=600&q=80",
-    regimen: "Endurance",
-    trainer: "M. Stoute",
-  },
-  {
-    id: 6,
-    name: "Thunderstrike",
-    age: 6,
-    color: "Brown",
-    sex: "Stallion",
-    grade: "Grade 2",
-    status: "Injured",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80",
-    returnEst: "Mar 2025",
-    statusNote: "Medical Review",
-  },
-];
+// ── Mapper ────────────────────────────────────────────────────────────────────
+function mapHorseToCard(h: Horse): HorseCard {
+  const age = Math.floor(
+    (Date.now() - new Date(h.dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365)
+  );
 
+  const mapStatus = (): HorseStatus => {
+    if (h.healthStatus !== "healthy") return "Injured";
+    if (h.status === "active") return "Racing";
+    return "Resting";
+  };
+
+  const status = mapStatus();
+
+  return {
+    id: h._id,
+    name: h.horseName,
+    age,
+    color: h.breed,
+    sex: h.gender === "male" ? "Colt" : "Filly",
+    grade: "Listed",
+    status,
+    image: "https://images.unsplash.com/photo-1553284965-5dd67167ac2f?w=600&q=80",
+    // Populate contextual fields based on mapped status
+    ...(status === "Racing" && {
+      nextRaceDate: "TBD",
+      nextRaceVenue: "TBD",
+      jockey: "TBD",
+    }),
+    ...(status === "Training" && {
+      regimen: "General",
+      trainer: "TBD",
+    }),
+    ...((status === "Resting" || status === "Injured") && {
+      returnEst: "TBD",
+      statusNote: status === "Injured" ? "Medical Review" : "Post-Race Rest",
+    }),
+  };
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 const STATUSES: ("All Statuses" | HorseStatus)[] = [
   "All Statuses",
   "Racing",
@@ -148,16 +111,13 @@ function InfoCell({ label, value }: { label: string; value: string }) {
 function HorseCardItem({ horse }: { horse: HorseCard }) {
   return (
     <div className="bg-[#1a1a1a] rounded-2xl border border-white/8 overflow-hidden flex flex-col group hover:border-white/15 transition-colors duration-200">
-      {/* Image */}
       <div className="relative h-52 overflow-hidden bg-[#111]">
         <img
           src={horse.image}
           alt={horse.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        {/* Dark gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent" />
-        {/* Status badge */}
         <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
           <span className={`w-1.5 h-1.5 rounded-full ${statusDot(horse.status)}`} />
           <span className={`text-[11px] font-semibold tracking-wide ${statusLabel(horse.status)}`}>
@@ -166,9 +126,7 @@ function HorseCardItem({ horse }: { horse: HorseCard }) {
         </div>
       </div>
 
-      {/* Body */}
       <div className="px-5 pt-4 pb-5 flex flex-col gap-4 flex-1">
-        {/* Name + breed */}
         <div>
           <h3
             className="text-[18px] font-bold text-white leading-tight"
@@ -181,7 +139,6 @@ function HorseCardItem({ horse }: { horse: HorseCard }) {
           </p>
         </div>
 
-        {/* Contextual info grid */}
         <div className="grid grid-cols-2 gap-2">
           {horse.status === "Racing" && horse.nextRaceDate && horse.jockey && (
             <>
@@ -205,7 +162,6 @@ function HorseCardItem({ horse }: { horse: HorseCard }) {
             )}
         </div>
 
-        {/* Actions */}
         <div className="flex items-center gap-2 mt-auto">
           <button className="flex-1 py-2.5 rounded-lg border border-red-700/60 text-red-400 text-[12.5px] font-semibold hover:bg-red-700/10 hover:border-red-600 transition-all duration-150 tracking-wide">
             VIEW PROFILE
@@ -224,8 +180,25 @@ export default function HorsesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All Statuses" | HorseStatus>("All Statuses");
   const [classFilter, setClassFilter] = useState("All Classes");
+  const [userHorse, setUserHorse] = useState<Horse[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = HORSES.filter((h) => {
+  useEffect(() => {
+    const fetchHorse = async () => {
+      try {
+        const data = await horseOwnerService.getUserHorse();
+        console.log('Data: ', data.data.horses)
+        setUserHorse(data.data.horses ?? []);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHorse();
+  }, []);
+
+  const horses: HorseCard[] = userHorse.map(mapHorseToCard);
+
+  const filtered = horses.filter((h) => {
     const matchSearch = h.name.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All Statuses" || h.status === statusFilter;
     const matchClass = classFilter === "All Classes" || h.grade === classFilter;
@@ -234,7 +207,6 @@ export default function HorsesPage() {
 
   return (
     <div className="flex-1 px-8 py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div>
           <h1
@@ -253,9 +225,7 @@ export default function HorsesPage() {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="flex items-center gap-3 mt-6 mb-7">
-        {/* Search */}
         <div className="relative flex-1 max-w-xs">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
           <input
@@ -267,7 +237,6 @@ export default function HorsesPage() {
           />
         </div>
 
-        {/* Status filter */}
         <div className="relative">
           <select
             value={statusFilter}
@@ -281,7 +250,6 @@ export default function HorsesPage() {
           <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
         </div>
 
-        {/* Class filter */}
         <div className="relative">
           <select
             value={classFilter}
@@ -295,15 +263,17 @@ export default function HorsesPage() {
           <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
         </div>
 
-        {/* Results count */}
         <div className="ml-auto flex items-center gap-2 text-[12px] text-gray-500 font-medium">
           <SlidersHorizontal size={13} />
           {filtered.length} RESULTS
         </div>
       </div>
 
-      {/* Grid */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24 text-gray-600">
+          <p className="text-[15px] font-medium">Loading horses...</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-gray-600">
           <p className="text-[15px] font-medium">No horses match your filters.</p>
         </div>

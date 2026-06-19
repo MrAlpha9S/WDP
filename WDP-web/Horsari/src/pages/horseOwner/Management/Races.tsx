@@ -1,11 +1,42 @@
-import { Calendar, MapPin, Plus } from "lucide-react";
-import { type MyRace, type RaceStatus, MY_RACES } from "../../../types/Racingtypes";
+import { useState, useEffect } from "react";
+import { Calendar, MapPin, Plus, Loader2, AlertCircle } from "lucide-react";
+import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
+import { horseOwnerService } from "../../../api/horseOwnerService";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function formatDate(iso: string): string {
+  return iso.split("T")[0];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapToMyRace(raw: any, i: number): MyRace {
+  const regStatus = raw?.registration?.registrationStatus ?? "";
+
+  const statusMap: Record<string, RaceStatus> = {
+    approve:  "UPCOMING",
+    live:     "LIVE",
+    finished: "FINISHED",
+    done:     "FINISHED",
+  };
+  const status: RaceStatus = statusMap[regStatus.toLowerCase()] ?? "UPCOMING";
+
+  return {
+    id:     raw._id                                  ?? String(i),
+    name:   raw.raceRound.roundName    ?? raw.name              ?? "Unnamed Race",
+    status,
+    date:   raw.raceRound.raceDate    ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
+    venue:  raw.raceRound.location       ?? raw.location          ?? "TBA",
+    horse:  raw.horseName   ?? raw.horse?.horseName  ?? "TBA",
+    jockey: raw.jockeyName  ?? raw.jockey            ?? "TBA",
+    image:  raw.image       ?? raw.coverImage        ?? "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80",
+  };
+}
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<RaceStatus, { label: string; dot: string; text: string; bg: string }> = {
-  LIVE:     { label: "LIVE",     dot: "bg-red-400 animate-pulse", text: "text-red-400",    bg: "bg-red-500/20 border-red-500/40"  },
-  UPCOMING: { label: "UPCOMING", dot: "bg-yellow-400",            text: "text-yellow-300", bg: "bg-black/50 border-white/15"      },
-  FINISHED: { label: "FINISHED", dot: "bg-gray-500",              text: "text-gray-400",   bg: "bg-black/50 border-white/10"      },
+  LIVE:     { label: "LIVE",     dot: "bg-red-400 animate-pulse", text: "text-red-400",    bg: "bg-red-500/20 border-red-500/40" },
+  UPCOMING: { label: "UPCOMING", dot: "bg-yellow-400",            text: "text-yellow-300", bg: "bg-black/50 border-white/15"     },
+  FINISHED: { label: "FINISHED", dot: "bg-gray-500",              text: "text-gray-400",   bg: "bg-black/50 border-white/10"     },
 };
 
 // ── Race Card ─────────────────────────────────────────────────────────────────
@@ -20,7 +51,6 @@ function RaceCard({ race }: { race: MyRace }) {
         isFinished ? "border-white/5 opacity-70" : "border-white/8 hover:border-white/15"
       }`}
     >
-      {/* Image */}
       <div className="relative h-40 overflow-hidden bg-[#111]">
         <img
           src={race.image}
@@ -36,7 +66,6 @@ function RaceCard({ race }: { race: MyRace }) {
         </div>
       </div>
 
-      {/* Body */}
       <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
         <h3
           className="text-[16px] font-bold text-white leading-tight"
@@ -83,6 +112,27 @@ function RaceCard({ race }: { race: MyRace }) {
   );
 }
 
+// ── Skeleton card ─────────────────────────────────────────────────────────────
+function RaceSkeleton() {
+  return (
+    <div className="bg-[#1a1a1a] rounded-2xl border border-white/5 overflow-hidden flex flex-col animate-pulse">
+      <div className="h-40 bg-white/5" />
+      <div className="px-4 pt-3 pb-4 flex flex-col gap-3">
+        <div className="h-4 w-3/4 bg-white/8 rounded" />
+        <div className="space-y-1.5">
+          <div className="h-3 w-1/2 bg-white/5 rounded" />
+          <div className="h-3 w-2/3 bg-white/5 rounded" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="h-8 bg-white/5 rounded" />
+          <div className="h-8 bg-white/5 rounded" />
+        </div>
+        <div className="h-9 bg-white/5 rounded-lg mt-auto" />
+      </div>
+    </div>
+  );
+}
+
 // ── Register tile ─────────────────────────────────────────────────────────────
 function RegisterTile() {
   return (
@@ -99,6 +149,47 @@ function RegisterTile() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function RacesPage() {
+  const [races,   setRaces]   = useState<MyRace[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchRaces() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await horseOwnerService.getHorseOwnerInvitations();
+        if (cancelled) return;
+
+        const list: unknown[] = data?.data?.invitations ?? data?.data ?? (Array.isArray(data) ? data : []);
+
+        const approved = list.filter(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (r: any) => r?.registration?.registrationStatus === "approved"
+        );
+
+        setRaces(approved.map((r, i) => mapToMyRace(r, i)));
+      } catch (err: unknown) {
+        if (!cancelled) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : typeof err === "object" && err !== null && "message" in err
+                ? String((err as { message: unknown }).message)
+                : "Failed to load races.";
+          setError(message);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchRaces();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div
       className="flex-1 px-8 py-8 min-h-screen bg-[#111111]"
@@ -119,12 +210,41 @@ export default function RacesPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {MY_RACES.map((race) => (
-          <RaceCard key={race.id} race={race} />
-        ))}
-        <RegisterTile />
-      </div>
+      {/* Loading */}
+      {loading && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2">
+            <Loader2 size={13} className="animate-spin" /> Loading races…
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <RaceSkeleton key={i} />)}
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {!loading && error && (
+        <div className="flex items-center gap-2 text-red-400 text-[13px] bg-red-900/10 border border-red-700/30 rounded-xl px-5 py-4">
+          <AlertCircle size={14} className="shrink-0" /> {error}
+        </div>
+      )}
+
+      {/* Empty */}
+      {!loading && !error && races.length === 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <RegisterTile />
+        </div>
+      )}
+
+      {/* Grid */}
+      {!loading && !error && races.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {races.map((race) => (
+            <RaceCard key={race.id} race={race} />
+          ))}
+          <RegisterTile />
+        </div>
+      )}
     </div>
   );
 }

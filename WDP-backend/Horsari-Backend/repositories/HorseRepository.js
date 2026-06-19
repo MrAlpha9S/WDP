@@ -9,7 +9,7 @@ class HorseRepository {
 
     // Read
     async findById(id) {
-        return await Horse.findById(id).populate('ownerid');
+        return await Horse.findById(id).populate('ownerId');
     }
 
     async findByOwnerId(ownerId) {
@@ -38,7 +38,7 @@ class HorseRepository {
     }
 
     async findByBreed(breed) {
-        return await Horse.find({ breed }).populate('ownerid');
+        return await Horse.find({ breed }).populate('ownerId');
     }
 
     // Update

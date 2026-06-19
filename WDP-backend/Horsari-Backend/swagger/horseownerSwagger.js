@@ -141,6 +141,154 @@
  *     responses:
  *       200:
  *         description: Horses with specified health status
+ *
+ * /api/horseowner/jockeys:
+ *   get:
+ *     summary: Get all jockeys (horse owner view)
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: skip
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: List of jockeys with user info
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not a horse owner
+ *
+ * /api/horseowner/race-invitations:
+ *   get:
+ *     summary: Get race invitations for horse owner
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of registrations with raceRound, tournament and eligibleHorseIds
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/RaceInvitation'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not a horse owner
+ *
+ * /api/horseowner/registration/{registrationId}/approve:
+ *   post:
+ *     summary: Approve a registration (horse owner)
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: registrationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Registration approved
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not the owner
+ *
+ * /api/horseowner/registration/{registrationId}/reject:
+ *   post:
+ *     summary: Reject a registration (horse owner)
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: registrationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Registration rejected
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - not the owner
+
+ * components:
+ *   schemas:
+ *     RaceInvitation:
+ *       type: object
+ *       properties:
+ *         registration:
+ *           $ref: '#/components/schemas/Registration'
+ *         raceRound:
+ *           $ref: '#/components/schemas/RaceRound'
+ *         tournament:
+ *           $ref: '#/components/schemas/Tournament'
+ *         eligibleHorseIds:
+ *           type: array
+ *           items:
+ *             type: string
+ *     Registration:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         raceRoundId:
+ *           type: string
+ *         registrationStatus:
+ *           type: string
+ *         registeredAt:
+ *           type: string
+ *         horseOwnerId:
+ *           type: string
+ *     RaceRound:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         roundName:
+ *           type: string
+ *         raceDate:
+ *           type: string
+ *           format: date-time
+ *         trackLength:
+ *           type: number
+ *         location:
+ *           type: string
+ *         raceGround:
+ *           type: string
+ *         eligibilityRuleId:
+ *           type: string
+ *     Tournament:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         tournamentName:
+ *           type: string
  */
 
 module.exports = {};
