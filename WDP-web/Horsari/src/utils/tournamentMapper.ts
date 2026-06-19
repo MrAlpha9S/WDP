@@ -1,4 +1,4 @@
-import type { Tournament, RaceRound, TournamentStatus } from "../shared/types/TournamentTypes";
+import type { Tournament, RaceRound, TournamentStatus, RaceStatus } from "../shared/types/TournamentTypes";
 import type { TournamentWithRounds } from "../api/refereeService";
 
 // Helper to format date as "MMM d, yyyy"
@@ -29,11 +29,18 @@ function getTournamentStatus(startDate: string, endDate: string): TournamentStat
     return "live";
 }
 
-function mapStatus(status: string | undefined): TournamentStatus | undefined {
+function mapTournamentStatus(status: string | undefined): TournamentStatus | undefined {
     if (status === "scheduled" || status === "draft") return "upcoming";
     if (status === "running") return "live";
     if (status === "completed" || status === "cancelled") return "completed";
     return undefined;
+}
+
+function mapRaceStatus(status: string | undefined): RaceStatus {
+    if (status === "running") return "live";
+    if (status === "completed" || status === "cancelled") return "completed";
+    if (status === "prepared") return "prepared";
+    return "upcoming";
 }
 
 // Convert backend Tournament & its RaceRounds to frontend types
@@ -49,7 +56,7 @@ export function mapBackendToTournaments(backendData: TournamentWithRounds[]): { 
         const t: Tournament = {
             id: tData._id,
             name: tData.tournamentName,
-            series: tData.seasonYear || new Date().getFullYear().toString(),
+            series: tData.seasonYear != null ? String(tData.seasonYear) : new Date().getFullYear().toString(),
             country: tData.country || "",
             location: tData.location || "",
             startDate: tData.startDate ? formatDate(tData.startDate) : "",
@@ -59,10 +66,10 @@ export function mapBackendToTournaments(backendData: TournamentWithRounds[]): { 
             totalRaces: tData.totalRaces || assignedRacesCount,
             completedRaces: tData.completedRaces || 0,
             prizePool: tData.totalPrizePool ? `$${(tData.totalPrizePool / 1000000).toFixed(1)}M` : "-",
-            status: mapStatus(tData.status) || getTournamentStatus(tData.startDate, tData.endDate),
+            status: mapTournamentStatus(tData.status) || getTournamentStatus(tData.startDate, tData.endDate),
             assignment: assignedRacesCount > 0 ? "assigned" : "none",
             assignedRaces: assignedRacesCount,
-            grade: tData.gradeLevel || "",
+            grade: (tData.gradeLevel as Tournament["grade"]) || "G1",
             description: tData.description || "",
             color: colors[tIndex % colors.length], // Assign colors round-robin
         };
@@ -88,7 +95,7 @@ export function mapBackendToTournaments(backendData: TournamentWithRounds[]): { 
                     entries: rData.Registration?.length || 0,
                     prizePool: t.prizePool, // Defaulting to tournament pool
                     refereeFee: rData.RaceReferee?.fee || 0,
-                    status: mapStatus(rData.status) || "upcoming",
+                    status: mapRaceStatus(rData.status),
                     violations: 0,
                     tournamentId: t.id
                 };

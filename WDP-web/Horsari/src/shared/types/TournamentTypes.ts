@@ -3,7 +3,7 @@ export type { RaceType, GradeLevel };
 
 export type TournamentStatus = "live" | "upcoming" | "completed";
 export type AssignmentStatus = "assigned" | "partial" | "none";
-export type RaceStatus = "completed" | "live" | "upcoming";
+export type RaceStatus = "completed" | "live" | "upcoming" | "prepared";
 export type ModalTab = "overview" | "races";
 
 export interface Tournament {

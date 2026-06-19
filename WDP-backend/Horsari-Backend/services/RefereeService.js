@@ -10,6 +10,9 @@ const User = require('../entities/User');
 const Invitation = require('../entities/Invitation');
 const RaceResult = require('../entities/RaceResult');
 const Tournament = require('../entities/Tournament');
+const ViolationType = require('../entities/ViolationType');
+const Violation = require('../entities/Violation');
+
 
 class RefereeService {
     // Create referee profile for existing user (public)
@@ -294,7 +297,7 @@ class RefereeService {
                     ? User.find({ _id: { $in: ownerIds } }, 'fullName').lean()
                     : Promise.resolve([]),
                 regIds.length
-                    ? Invitation.find({ registrationId: { $in: regIds }, isBackup: false })
+                    ? Invitation.find({ registrationId: { $in: regIds } })
                         .populate('horseId')
                         .populate({ path: 'jockeyId', populate: { path: '_id', model: 'User', select: 'fullName' } })
                         .lean()
@@ -307,7 +310,12 @@ class RefereeService {
             // ── 5. Build lookup maps ──────────────────────────────────────────
             const eligibilityMap = new Map(eligibilityRules.map(e => [e._id.toString(), e]));
             const ownerMap       = new Map(owners.map(u => [u._id.toString(), u]));
-            const invitationMap  = new Map(invitations.map(i => [i.registrationId.toString(), i]));
+            const invitationsByReg = new Map();
+            for (const inv of invitations) {
+                const key = inv.registrationId.toString();
+                if (!invitationsByReg.has(key)) invitationsByReg.set(key, []);
+                invitationsByReg.get(key).push(inv);
+            }
             const raceResultMap  = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
 
             // Group registrations by raceRoundId
@@ -327,14 +335,13 @@ class RefereeService {
                     || null;
 
                 const registrations = (regsByRound.get(raceRound._id.toString()) || []).map(reg => {
-                    const invitation = invitationMap.get(reg._id.toString()) || null;
+                    const regInvitations = invitationsByReg.get(reg._id.toString()) || [];
                     return {
                         ...reg,
-                        Horse:           invitation?.horseId  || null,
-                        Jockey:          invitation?.jockeyId || null,
-                        isJockeyInRace:  invitation?.isJockeyInRace ?? false,
-                        Owner:           ownerMap.get(reg.horseOwnerId?.toString()) || null,
-                        RaceResult:      raceResultMap.get(reg._id.toString()) || null,
+                        Horse:       regInvitations[0]?.horseId || null,
+                        Invitations: regInvitations,
+                        Owner:       ownerMap.get(reg.horseOwnerId?.toString()) || null,
+                        RaceResult:  raceResultMap.get(reg._id.toString()) || null,
                     };
                 });
 
@@ -373,27 +380,45 @@ class RefereeService {
             // 4. Registrations with Horse, Jockey (name), Owner, RaceResult
             const registrations = await Registration.find({ raceRoundId: raceRound._id }).lean();
             const enriched = await Promise.all(registrations.map(async (reg) => {
-                const invitation = await Invitation.findOne({ registrationId: reg._id, isBackup: false })
+                const invitationFilter = { registrationId: reg._id };
+                if (raceRound.status === 'completed' || raceRound.status === 'running') {
+                    invitationFilter.isJockeyInRace = true;
+                }
+
+                const invitations = await Invitation.find(invitationFilter)
                     .populate('horseId')
                     .populate('jockeyId')
                     .lean();
 
-                if (invitation && invitation.jockeyId && invitation.jockeyId._id) {
-                    const jockeyUser = await User.findById(invitation.jockeyId._id).select('fullName').lean();
-                    if (jockeyUser) invitation.jockeyId._id = jockeyUser;
+                for (const inv of invitations) {
+                    if (inv.jockeyId && inv.jockeyId._id) {
+                        const jockeyUser = await User.findById(inv.jockeyId._id).select('fullName').lean();
+                        if (jockeyUser) inv.jockeyId._id = jockeyUser;
+                    }
                 }
 
                 const ownerUser = reg.horseOwnerId
                     ? await User.findById(reg.horseOwnerId, 'fullName').lean()
                     : null;
 
-                const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
+                // Get race result by matching raceRoundId + same calendar day as raceDate
+                let raceResult = null;
+                if (raceRound.raceDate) {
+                    const dayStart = new Date(raceRound.raceDate);
+                    dayStart.setUTCHours(0, 0, 0, 0);
+                    const dayEnd = new Date(dayStart);
+                    dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+                    raceResult = await RaceResult.findOne({
+                        raceRoundId: raceRound._id,
+                        registrationId: reg._id,
+                        createdAt: { $gte: dayStart, $lt: dayEnd },
+                    }).lean();
+                }
 
                 return {
                     ...reg,
-                    Horse: invitation?.horseId ?? null,
-                    Jockey: invitation?.jockeyId ?? null,
-                    isJockeyInRace: invitation?.isJockeyInRace ?? false,
+                    Horse: invitations[0]?.horseId ?? null,
+                    Invitations: invitations,
                     Owner: ownerUser,
                     RaceResult: raceResult ?? null,
                 };
@@ -410,6 +435,141 @@ class RefereeService {
             };
         } catch (error) {
             console.error('Error fetching race round detail (referee):', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Verify or fail a single registration (referee pre-race checkup)
+    async verifyRegistration(refereeId, raceRoundId, registrationId, body, io) {
+        try {
+            const { status, verificationFailReason, selectedInvitationId, failedChecks = [] } = body || {};
+
+            if (!['verified', 'failed'].includes(status)) {
+                return { code: 400, msg: 'status must be "verified" or "failed"' };
+            }
+            if (status === 'failed' && !verificationFailReason) {
+                return { code: 400, msg: 'verificationFailReason is required when status is "failed"' };
+            }
+            if (status === 'verified' && !selectedInvitationId) {
+                return { code: 400, msg: 'selectedInvitationId is required when status is "verified"' };
+            }
+
+            // 1. Confirm this referee is assigned to the race round
+            const assignment = await RaceReferee.findOne({ raceRoundId, refereeId }).lean();
+            if (!assignment) {
+                return { code: 403, msg: 'You are not assigned to this race round.' };
+            }
+
+            // 2. Load registration and confirm it belongs to this race round
+            const registration = await Registration.findById(registrationId).lean();
+            if (!registration) {
+                return { code: 404, msg: 'Registration not found.' };
+            }
+            if (registration.raceRoundId.toString() !== raceRoundId) {
+                return { code: 400, msg: 'Registration does not belong to this race round.' };
+            }
+            if (!['approved', 'verified', 'failed'].includes(registration.registrationStatus)) {
+                return { code: 422, msg: `Registration is "${registration.registrationStatus}", only "approved", "verified", or "failed" registrations can be reviewed.` };
+            }
+
+            // 3. For verified: validate the selected invitation and confirm jockey confirmed
+            if (status === 'verified') {
+                const selectedInv = await Invitation.findById(selectedInvitationId).lean();
+                if (!selectedInv) {
+                    return { code: 404, msg: 'Selected invitation not found.' };
+                }
+                if (selectedInv.registrationId.toString() !== registrationId) {
+                    return { code: 400, msg: 'Selected invitation does not belong to this registration.' };
+                }
+                if (!selectedInv.jockeyConfirmation) {
+                    return { code: 422, msg: 'The selected jockey has not confirmed participation yet.' };
+                }
+                // Mark the selected jockey as racing, clear all others for this registration
+                await Invitation.updateMany({ registrationId }, { isJockeyInRace: false });
+                await Invitation.findByIdAndUpdate(selectedInvitationId, { isJockeyInRace: true });
+            }
+
+            // 4. Update the registration
+            const updated = await Registration.findByIdAndUpdate(
+                registrationId,
+                {
+                    registrationStatus: status,
+                    verificationFailReason: status === 'failed' ? verificationFailReason : null,
+                },
+                { new: true }
+            ).lean();
+
+            // 5. Sync violations — always clear old ones first (handles re-inspect)
+            await Violation.deleteMany({ registrationId });
+
+            // failedChecks is an array of ViolationType ObjectIds selected by the referee
+            if (status === 'failed' && failedChecks.length > 0) {
+                const uniqueIds = [...new Set(failedChecks)];
+                await Violation.insertMany(uniqueIds.map(vtId => ({
+                    raceRoundId,
+                    registrationId,
+                    raceRefereeId: assignment._id,
+                    violationTypeId: vtId,
+                    violationStatus: 'confirmed',
+                })));
+            }
+
+            // Note: The race status is no longer automatically updated to 'prepared'.
+            // The referee must now explicitly call authorizeRaceStart via the UI.
+
+
+            return { code: 200, data: updated, msg: `Registration marked as "${status}" successfully.` };
+        } catch (error) {
+            console.error('Error verifying registration:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Authorize a race start (set status to prepared)
+    async authorizeRaceStart(refereeId, raceRoundId, io) {
+        try {
+            // 1. Confirm this referee is assigned to the race round
+            const assignment = await RaceReferee.findOne({ raceRoundId, refereeId }).lean();
+            if (!assignment) {
+                return { code: 403, msg: 'You are not assigned to this race round.' };
+            }
+
+            // 2. Load race round
+            const raceRound = await RaceRound.findById(raceRoundId).lean();
+            if (!raceRound) {
+                return { code: 404, msg: 'Race round not found.' };
+            }
+
+            // 3. Verify that there are no pending registrations
+            const remaining = await Registration.countDocuments({
+                raceRoundId,
+                registrationStatus: { $nin: ['verified', 'failed', 'rejected', 'cancelled'] },
+            });
+
+            if (remaining > 0) {
+                return { code: 422, msg: 'Cannot authorize race start: there are still pending registrations to be inspected.' };
+            }
+
+            // 4. Mark race as prepared
+            await RaceRound.findByIdAndUpdate(raceRoundId, { status: 'prepared' });
+
+            if (io) {
+                io.emit('admin_notification', {
+                    id: Date.now().toString(),
+                    type: 'race_prepared',
+                    title: 'Race Pre-Check Complete',
+                    message: `Race round ${raceRoundId} has been authorized to start by the referee.`,
+                    raceRoundId,
+                    timestamp: new Date(),
+                    read: false,
+                    actionLabel: 'View Race',
+                    actionPayload: { raceRoundId },
+                });
+            }
+
+            return { code: 200, msg: 'Race start authorized successfully.' };
+        } catch (error) {
+            console.error('Error authorizing race start:', error);
             return { code: 500, msg: error.message };
         }
     }
@@ -458,7 +618,7 @@ class RefereeService {
                     ? User.find({ _id: { $in: ownerIds } }, 'fullName').lean()
                     : Promise.resolve([]),
                 regIds.length
-                    ? Invitation.find({ registrationId: { $in: regIds }, isBackup: false })
+                    ? Invitation.find({ registrationId: { $in: regIds } })
                         .populate('horseId')
                         .populate({ path: 'jockeyId', populate: { path: '_id', model: 'User', select: 'fullName' } })
                         .lean()
@@ -471,7 +631,12 @@ class RefereeService {
             // ── 5. Build lookup maps ──────────────────────────────────────────
             const eligibilityMap = new Map(eligibilityRules.map(e => [e._id.toString(), e]));
             const ownerMap       = new Map(owners.map(u => [u._id.toString(), u]));
-            const invitationMap  = new Map(invitations.map(i => [i.registrationId.toString(), i]));
+            const invitationsByReg = new Map();
+            for (const inv of invitations) {
+                const key = inv.registrationId.toString();
+                if (!invitationsByReg.has(key)) invitationsByReg.set(key, []);
+                invitationsByReg.get(key).push(inv);
+            }
             const raceResultMap  = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
 
             // Group registrations by raceRoundId
@@ -499,13 +664,13 @@ class RefereeService {
                     const raceType = eligibilityMap.get(r.eligibilityRuleId?.toString()) || null;
 
                     const registrations = (regsByRound.get(r._id.toString()) || []).map(reg => {
-                        const invitation = invitationMap.get(reg._id.toString()) || null;
+                        const regInvitations = invitationsByReg.get(reg._id.toString()) || [];
                         return {
                             ...reg,
-                            Horse:      invitation?.horseId  || null,
-                            Jockey:     invitation?.jockeyId || null,
-                            Owner:      ownerMap.get(reg.horseOwnerId?.toString()) || null,
-                            RaceResult: raceResultMap.get(reg._id.toString()) || null,
+                            Horse:       regInvitations[0]?.horseId || null,
+                            Invitations: regInvitations,
+                            Owner:       ownerMap.get(reg.horseOwnerId?.toString()) || null,
+                            RaceResult:  raceResultMap.get(reg._id.toString()) || null,
                         };
                     });
 
@@ -523,6 +688,85 @@ class RefereeService {
             return { code: 200, data: results, msg: 'Referee tournaments retrieved successfully' };
         } catch (error) {
             console.error('Error fetching referee tournaments:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+    // ── Violation Types ───────────────────────────────────────────────────────
+
+    async getViolationTypes(type) {
+        try {
+            const filter = { isActive: true };
+            if (type) filter.type = type;
+            const data = await ViolationType.find(filter).sort({ severity: 1, violationName: 1 }).lean();
+            return { code: 200, data, msg: 'Violation types retrieved.' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // ── Violations (race-round scoped) ────────────────────────────────────────
+
+    async getRaceRoundViolations(refereeId, raceRoundId) {
+        try {
+            const assignment = await RaceReferee.findOne({ refereeId, raceRoundId }).lean();
+            if (!assignment) return { code: 403, msg: 'You are not assigned to this race round.' };
+
+            const data = await Violation.find({ raceRoundId })
+                .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                .populate('registrationId', '_id registrationStatus')
+                .sort({ created_at: -1 })
+                .lean();
+            return { code: 200, data, msg: 'Violations retrieved.' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async createViolation(refereeId, body) {
+        try {
+            const { raceRoundId, registrationId, violationTypeId, description } = body || {};
+            if (!raceRoundId || !violationTypeId) {
+                return { code: 400, msg: 'raceRoundId and violationTypeId are required.' };
+            }
+            const assignment = await RaceReferee.findOne({ refereeId, raceRoundId }).lean();
+            if (!assignment) return { code: 403, msg: 'You are not assigned to this race round.' };
+
+            const vt = await ViolationType.findById(violationTypeId).lean();
+            if (!vt) return { code: 404, msg: 'ViolationType not found.' };
+
+            const violation = await Violation.create({
+                raceRoundId,
+                registrationId: registrationId || undefined,
+                raceRefereeId: assignment._id,
+                violationTypeId,
+                description,
+                severity: vt.severity,
+                violationStatus: 'pending',
+            });
+            const populated = await Violation.findById(violation._id)
+                .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                .lean();
+            return { code: 201, data: populated, msg: 'Violation created.' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async deleteViolation(refereeId, violationId) {
+        try {
+            const violation = await Violation.findById(violationId).lean();
+            if (!violation) return { code: 404, msg: 'Violation not found.' };
+
+            // Confirm the referee owns this violation via their assignment
+            const assignment = await RaceReferee.findOne({
+                _id: violation.raceRefereeId,
+                refereeId,
+            }).lean();
+            if (!assignment) return { code: 403, msg: 'You do not have permission to delete this violation.' };
+
+            await Violation.findByIdAndDelete(violationId);
+            return { code: 200, msg: 'Violation deleted.' };
+        } catch (error) {
             return { code: 500, msg: error.message };
         }
     }

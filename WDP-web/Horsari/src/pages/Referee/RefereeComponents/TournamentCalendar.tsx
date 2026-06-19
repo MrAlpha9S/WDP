@@ -104,7 +104,7 @@ export default function TournamentCalendar({ tournaments, allRaces, onSelectTour
                                             const tournamentForRace = tournaments.find(t => t.id === r.tournamentId);
                                             const tc = tournamentForRace ? T_COLOR[tournamentForRace.color] : T_COLOR["gray"];
                                             return (
-                                                <span key={ri} className={`w-1.5 h-1.5 rounded-full ${isSel ? "bg-white/70" : tc.dot} ${r.status === "live" ? "ring-1 ring-white/40" : ""}`} />
+                                                <span key={ri} className={`w-1.5 h-1.5 rounded-full ${isSel ? "bg-white/70" : r.status === "prepared" ? "bg-violet-500" : tc.dot} ${r.status === "live" || r.status === "prepared" ? "ring-1 ring-white/40" : ""}`} />
                                             );
                                         })}
                                     </div>

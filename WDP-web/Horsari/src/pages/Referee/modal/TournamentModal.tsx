@@ -62,13 +62,14 @@ export function DayPopup({ iso, tournaments, allRaces, onSelectTournament, onOpe
                         const t = tournaments.find(t => t.id === r.tournamentId);
                         if (!t) return null;
                         const isLive = r.status === "live";
+                        const isPrepared = r.status === "prepared";
                         return (
                             <button
                                 key={r.id}
-                                onClick={() => isLive ? onOpenRaceMonitor(r.id) : onSelectTournament(t)}
+                                onClick={() => onOpenRaceMonitor(r.id)}
                                 className="flex items-center gap-3 text-left hover:bg-white/[0.03] rounded-lg px-2 py-2 transition-colors"
                             >
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${isLive ? "bg-red-700 text-white" : "bg-white/8 text-gray-500"}`}>
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${isLive ? "bg-red-700 text-white" : isPrepared ? "bg-violet-700 text-white" : "bg-white/8 text-gray-500"}`}>
                                     {r.round}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -79,11 +80,16 @@ export function DayPopup({ iso, tournaments, allRaces, onSelectTournament, onOpe
                                                 <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />Live
                                             </span>
                                         )}
+                                        {isPrepared && (
+                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-violet-700/60 text-violet-400 bg-violet-500/10 text-[9px] font-bold">
+                                                <span className="w-1 h-1 rounded-full bg-violet-500" />Prepared
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="text-[11px] text-gray-600">{r.venue} · {r.time}</p>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                    {isLive && <ChevronRight size={12} className="text-red-600" />}
+                                    <ChevronRight size={12} className={isLive ? "text-red-600" : isPrepared ? "text-violet-600" : "text-gray-600"} />
                                 </div>
                             </button>
                         );
@@ -174,7 +180,7 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
                 <div className="mt-4">
                     <div className="flex gap-1">
                         {races.map(r => (
-                            <div key={r.id} className={`flex-1 h-1.5 rounded-full ${r.status === "completed" ? "bg-gray-600" : r.status === "live" ? c.dot : "bg-white/8"}`} />
+                            <div key={r.id} className={`flex-1 h-1.5 rounded-full ${r.status === "completed" ? "bg-gray-600" : r.status === "live" ? c.dot : r.status === "prepared" ? "bg-violet-500/60" : "bg-white/8"}`} />
                         ))}
                     </div>
                     <div className="flex justify-between mt-1.5">
@@ -219,7 +225,6 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
 // ── Races Tab ─────────────────────────────────────────────────────────────────
 
 function RacesTab({ t, allRaces, onOpenRaceMonitor }: { t: Tournament; allRaces: RaceRound[]; onOpenRaceMonitor: (raceId: string) => void }) {
-    const [expandedId, setExpandedId] = useState<string | null>(null);
     const races = allRaces.filter(r => r.tournamentId === t.id);
     const liveRace = races.find(r => r.status === "live");
     const c = T_COLOR[t.color];
@@ -235,23 +240,24 @@ function RacesTab({ t, allRaces, onOpenRaceMonitor }: { t: Tournament; allRaces:
             {races.map(race => {
                 const isLive = race.status === "live";
                 const isCompleted = race.status === "completed";
-                const isExpanded = expandedId === race.id;
+                const isPrepared = race.status === "prepared";
 
                 return (
                     <div key={race.id}>
                         <div
-                            onClick={() => isLive ? onOpenRaceMonitor(race.id) : setExpandedId(prev => prev === race.id ? null : race.id)}
+                            onClick={() => onOpenRaceMonitor(race.id)}
                             className={[
                                 "relative flex items-center gap-3 px-4 py-3.5 rounded-xl border cursor-pointer transition-all duration-150",
                                 isLive
                                     ? "bg-red-500/5 border-red-800/40 hover:bg-red-500/10 hover:border-red-700/60"
-                                    : isExpanded
-                                        ? "bg-white/[0.04] border-white/12"
-                                        : "bg-white/[0.02] border-white/6 hover:bg-white/[0.04] hover:border-white/10",
+                                    : isPrepared
+                                    ? "bg-violet-500/5 border-violet-800/40 hover:bg-violet-500/10 hover:border-violet-700/60"
+                                    : "bg-white/[0.02] border-white/6 hover:bg-white/[0.04] hover:border-white/10",
                             ].join(" ")}
                         >
                             {isLive && <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${c.dot} rounded-l-xl`} />}
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${isLive ? "bg-red-700 text-white" : isCompleted ? "bg-white/8 text-gray-500" : "bg-white/5 text-gray-600"}`}>
+                            {isPrepared && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-violet-500 rounded-l-xl" />}
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${isLive ? "bg-red-700 text-white" : isPrepared ? "bg-violet-700 text-white" : isCompleted ? "bg-white/8 text-gray-500" : "bg-white/5 text-gray-600"}`}>
                                 {race.round}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -265,6 +271,11 @@ function RacesTab({ t, allRaces, onOpenRaceMonitor }: { t: Tournament; allRaces:
                                             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> Live Now
                                         </span>
                                     )}
+                                    {isPrepared && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-violet-700/60 text-violet-400 bg-violet-500/10 text-[10px] font-bold">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-violet-500" /> Prepared
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-x-3 mt-1 flex-wrap">
                                     <span className="text-[11.5px] text-gray-600 flex items-center gap-1"><MapPin size={10} className={isLive ? "text-red-600" : "text-gray-600"} />{race.venue}</span>
@@ -273,13 +284,9 @@ function RacesTab({ t, allRaces, onOpenRaceMonitor }: { t: Tournament; allRaces:
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                                {isLive
-                                    ? <ChevronRight size={13} className="text-red-600" />
-                                    : <ChevronRight size={13} className={`text-gray-600 transition-transform duration-150 ${isExpanded ? "rotate-90" : ""}`} />
-                                }
+                                <ChevronRight size={13} className={isLive ? "text-red-600" : "text-gray-600"} />
                             </div>
                         </div>
-                        {isExpanded && <RaceDetailPanel race={race} onClose={() => setExpandedId(null)} onOpenRaceMonitor={onOpenRaceMonitor} />}
                     </div>
                 );
             })}

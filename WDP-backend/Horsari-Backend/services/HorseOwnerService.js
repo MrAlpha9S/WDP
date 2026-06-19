@@ -5,6 +5,7 @@ const Registration = require('../entities/Registration');
 const RaceRound = require('../entities/RaceRound');
 const Tournament = require('../entities/Tournament');
 const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+const Invitation = require('../entities/Invitation');
 
 class HorseOwnerService {
     // Create horse owner profile for existing user (public)
@@ -218,6 +219,16 @@ class HorseOwnerService {
             const horses = await HorseRepository.findByOwnerId(ownerId);
             const horseIds = horses.map(h => String(h._id));
 
+            // Bulk-fetch first invitation per registration to know which horse is already locked in
+            const regIds = regs.map(r => r._id);
+            const existingInvitations = await Invitation.find({ registrationId: { $in: regIds } }).select('registrationId horseId').lean();
+            const existingHorseMap = new Map();
+            for (const inv of existingInvitations) {
+                if (!existingHorseMap.has(String(inv.registrationId))) {
+                    existingHorseMap.set(String(inv.registrationId), String(inv.horseId));
+                }
+            }
+
             const result = await Promise.all(regs.map(async reg => {
                 const rr = await RaceRound.findById(reg.raceRoundId).populate('eligibilityRuleId').lean();
                 let tournament = null;
@@ -243,6 +254,7 @@ class HorseOwnerService {
                     raceRound: rr || null,
                     tournament: tournament || null,
                     eligibleHorseIds,
+                    existingHorseId: existingHorseMap.get(String(reg._id)) ?? null,
                 };
             }));
 
@@ -298,6 +310,75 @@ class HorseOwnerService {
 
             return { code: 200, data: reg, msg: 'Registration rejected' };
         } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Horse owner requests race start after all registrations are reviewed
+    async confirmRaceStart(ownerId, raceRoundId, io) {
+        try {
+            // 1. Confirm the caller has a registration in this race round
+            const ownerReg = await Registration.findOne({ raceRoundId, horseOwnerId: ownerId }).lean();
+            if (!ownerReg) {
+                return { code: 403, msg: 'You do not have a registration in this race round.' };
+            }
+
+            // 2. Race must be in "prepared" state (all registrations reviewed by referee)
+            const raceRound = await RaceRound.findById(raceRoundId).lean();
+            if (!raceRound) {
+                return { code: 404, msg: 'Race round not found.' };
+            }
+            if (raceRound.status !== 'prepared') {
+                return { code: 422, msg: `Race is currently "${raceRound.status}". Confirm start is only available once the referee has completed all pre-race inspections.` };
+            }
+
+            // 3. All registrations must be verified or failed (no pending/approved remaining)
+            const pending = await Registration.countDocuments({
+                raceRoundId,
+                registrationStatus: { $nin: ['verified', 'failed', 'rejected', 'cancelled'] },
+            });
+            if (pending > 0) {
+                return { code: 422, msg: `${pending} registration(s) are still awaiting referee inspection.` };
+            }
+
+            // 4. At least one registration must be verified (otherwise auto-cancel)
+            const verifiedCount = await Registration.countDocuments({ raceRoundId, registrationStatus: 'verified' });
+            if (verifiedCount === 0) {
+                await RaceRound.findByIdAndUpdate(raceRoundId, { status: 'cancelled' });
+                if (io) {
+                    io.emit('admin_notification', {
+                        id: Date.now().toString(),
+                        type: 'race_cancelled',
+                        title: 'Race Auto-Cancelled',
+                        message: `All registrations for race round failed inspection. Race has been cancelled.`,
+                        raceRoundId,
+                        timestamp: new Date(),
+                        read: false,
+                        actionLabel: 'View Race',
+                        actionPayload: { raceRoundId },
+                    });
+                }
+                return { code: 200, msg: 'All registrations failed. Race has been automatically cancelled.' };
+            }
+
+            // 5. Emit notification to admin
+            if (io) {
+                io.emit('admin_notification', {
+                    id: Date.now().toString(),
+                    type: 'race_ready_to_start',
+                    title: 'Race Ready to Start',
+                    message: `${verifiedCount} verified participant(s) are ready. Awaiting admin to start the race.`,
+                    raceRoundId,
+                    timestamp: new Date(),
+                    read: false,
+                    actionLabel: 'Start Race',
+                    actionPayload: { raceRoundId },
+                });
+            }
+
+            return { code: 200, msg: 'Confirm-start request sent to admin successfully.' };
+        } catch (error) {
+            console.error('Error confirming race start:', error);
             return { code: 500, msg: error.message };
         }
     }

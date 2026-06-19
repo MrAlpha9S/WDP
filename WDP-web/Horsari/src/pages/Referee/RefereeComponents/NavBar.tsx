@@ -10,6 +10,8 @@ export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Inbox"];
 interface NavBarProps {
     activeTab: RefereeTab;
     onTabChange: (tab: RefereeTab) => void;
+    wsConnected?: boolean;
+    unreadCount?: number;
 }
 
 function getInitials(user: { name?: string; email: string }) {
@@ -24,7 +26,7 @@ function getInitials(user: { name?: string; email: string }) {
     return user.email[0].toUpperCase();
 }
 
-export default function RefereeNavBar({ activeTab, onTabChange }: NavBarProps) {
+export default function RefereeNavBar({ activeTab, onTabChange, wsConnected, unreadCount = 0 }: NavBarProps) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
@@ -52,13 +54,21 @@ export default function RefereeNavBar({ activeTab, onTabChange }: NavBarProps) {
             style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
             <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-                {/* Logo */}
-                <span
-                    className="text-[15px] font-bold tracking-widest text-red-500 uppercase"
-                    style={{ fontFamily: "'Playfair Display', serif", letterSpacing: "0.18em" }}
-                >
-                    Horsari
-                </span>
+                {/* Logo + WS dot */}
+                <div className="flex items-center gap-2">
+                    <span
+                        className="text-[15px] font-bold tracking-widest text-red-500 uppercase"
+                        style={{ fontFamily: "'Playfair Display', serif", letterSpacing: "0.18em" }}
+                    >
+                        Horsari
+                    </span>
+                    <span
+                        title={wsConnected ? "Live — connected" : "Disconnected"}
+                        className={["w-1.5 h-1.5 rounded-full transition-colors duration-300",
+                            wsConnected ? "bg-emerald-400 animate-pulse" : "bg-gray-600",
+                        ].join(" ")}
+                    />
+                </div>
 
                 {/* Nav tabs */}
                 <ul className="flex items-center gap-1">
@@ -87,7 +97,11 @@ export default function RefereeNavBar({ activeTab, onTabChange }: NavBarProps) {
                 <div className="flex items-center gap-3">
                     <button className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors duration-150" onClick={() => onTabChange("Inbox")}>
                         <Bell size={17} />
-                        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
+                        {unreadCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center bg-red-600 rounded-full text-[9px] font-black text-white leading-none">
+                                {unreadCount > 99 ? "99+" : unreadCount}
+                            </span>
+                        )}
                     </button>
                     {user && (
                         <div className="relative" ref={menuRef}>

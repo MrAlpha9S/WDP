@@ -29,7 +29,7 @@ const raceRoundSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ['draft', 'scheduled', 'running', 'completed', 'cancelled'],
+            enum: ['draft', 'scheduled', 'running', 'completed', 'cancelled', 'prepared'],
             default: 'draft',
         },
         minimalRidingFees: {
@@ -70,6 +70,11 @@ const raceRoundSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'RaceEligibilityRule',
         },
+        // Mux live-streaming fields (populated when admin starts the race)
+        muxLiveStreamId: { type: String, default: null },
+        muxStreamKey:    { type: String, default: null },
+        muxPlaybackId:   { type: String, default: null },
+        muxVodPlaybackId:{ type: String, default: null },
     },
     { timestamps: true }
 );

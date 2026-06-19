@@ -135,6 +135,50 @@ class AdminController {
         const response = await AdminService.deleteRule(id);
         return res.status(response.code).json(response);
     }
+
+    async setRaceRoundStatus(req, res) {
+        const { id } = req.params;
+        const { status } = req.body;
+        const io = req.app.get('io');
+        const response = await AdminService.setRaceRoundStatus(id, status, io);
+        return res.status(response.code).json(response);
+    }
+
+    async getImportantEvents(req, res) {
+        const response = await AdminService.getImportantEvents();
+        return res.status(response.code).json(response);
+    }
+
+    async getRaceViolations(req, res) {
+        const response = await AdminService.getRaceViolations(req.params.id);
+        return res.status(response.code).json(response);
+    }
+
+    async dismissViolation(req, res) {
+        const response = await AdminService.dismissViolation(req.params.violationId);
+        return res.status(response.code).json(response);
+    }
+
+    async confirmRaceResult(req, res) {
+        const io = req.app.get('io');
+        const response = await AdminService.confirmRaceResult(req.params.id, req.userId, io);
+        return res.status(response.code).json(response);
+    }
+
+    async getSimulationState(req, res) {
+        const response = AdminService.getSimulationState(req.params.id);
+        return res.status(response.code).json(response);
+    }
+
+    async getStreamInfo(req, res) {
+        const response = await AdminService.getStreamInfo(req.params.id);
+        return res.status(response.code).json(response);
+    }
+
+    async getVOD(req, res) {
+        const response = await AdminService.getVOD(req.params.id);
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new AdminController();

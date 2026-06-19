@@ -47,6 +47,36 @@ export interface TournamentWithRounds {
     RaceRound?: RaceRoundEntry[];
 }
 
+export interface ViolationTypeRecord {
+    _id: string;
+    violationName: string;
+    violationDescription?: string;
+    defaultPenalty?: string;
+    type: 'pre-race' | 'during-race' | 'after-race';
+    category?: 'riding' | 'horse-safety' | 'medication' | 'betting' | 'administrative';
+    severity?: number;
+    isActive?: boolean;
+}
+
+export interface ViolationRecord {
+    _id: string;
+    registrationId?: string | { _id: string };
+    raceRoundId?: string;
+    violationTypeId?: {
+        _id: string;
+        violationName: string;
+        type?: 'pre-race' | 'during-race' | 'after-race';
+        category?: string;
+        severity?: number;
+        defaultPenalty?: string;
+    } | null;
+    description?: string;
+    severity?: number;
+    violationStatus?: 'pending' | 'confirmed' | 'dismissed';
+    stewardAction?: string;
+    actualPenalty?: string;
+}
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 export const refereeService = {
@@ -121,6 +151,84 @@ export const refereeService = {
         try {
             const response = await api.get(`/referee/race-rounds/${id}`);
             console.log('getRaceRoundById:', response.data);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
+    verifyRegistration: async (
+        raceRoundId: string,
+        registrationId: string,
+        body: {
+            status: 'verified' | 'failed';
+            verificationFailReason?: string;
+            selectedInvitationId?: string;
+            failedChecks?: string[];
+            selectedViolationTypeId?: string;
+        },
+    ): Promise<{ code: number; data: any; msg: string }> => {
+        try {
+            const response = await api.put(
+                `/referee/race-rounds/${raceRoundId}/registrations/${registrationId}/verify`,
+                body,
+            );
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
+    getViolationTypes: async (type?: 'pre-race' | 'during-race' | 'after-race'): Promise<{ code: number; data: ViolationTypeRecord[]; msg: string }> => {
+        try {
+            const q = type ? `?type=${type}` : '';
+            const response = await api.get(`/referee/violation-types${q}`);
+            console.log('getViolationTypes:', response.data);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
+    getRaceRoundViolations: async (raceRoundId: string): Promise<{ code: number; data: ViolationRecord[]; msg: string }> => {
+        try {
+            const response = await api.get(`/referee/race-rounds/${raceRoundId}/violations`);
+            console.log('getRaceRoundViolations:', response.data);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
+    createViolation: async (body: {
+        raceRoundId: string;
+        registrationId?: string;
+        violationTypeId: string;
+        description?: string;
+    }): Promise<{ code: number; data: ViolationRecord; msg: string }> => {
+        try {
+            const response = await api.post('/referee/violations', body);
+            console.log('createViolation:', response.data);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
+    deleteViolation: async (violationId: string): Promise<{ code: number; msg: string }> => {
+        try {
+            const response = await api.delete(`/referee/violations/${violationId}`);
+            console.log('deleteViolation:', response.data);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
+    confirmRaceResult: async (id: string): Promise<{ code: number; data: any; msg: string }> => {
+        try {
+            const response = await api.post(`/referee/race-rounds/${id}/confirm-result`);
+            console.log('confirmRaceResult:', response.data);
             return response.data;
         } catch (error: any) {
             throw error.response?.data || error;

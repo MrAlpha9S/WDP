@@ -3,6 +3,7 @@ const RaceRoundRepository = require('../repositories/RaceRoundRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
 const Registration = require('../entities/Registration');
 const Invitation = require('../entities/Invitation');
+const Horse = require('../entities/Horse');
 /**
  * return {
  * code: 200,
@@ -11,7 +12,40 @@ const Invitation = require('../entities/Invitation');
  * }
  */
 class InvitationService {
-    async createInvitation(data) {
+    async createInvitation(ownerId, data) {
+        const { registrationId, horseId, jockeyId } = data || {};
+
+        if (!registrationId) return { code: 400, message: 'registrationId is required' };
+        if (!horseId) return { code: 400, message: 'horseId is required' };
+        if (!jockeyId) return { code: 400, message: 'jockeyId is required' };
+
+        const registration = await Registration.findById(registrationId).lean();
+        if (!registration) return { code: 404, message: 'Registration not found' };
+        if (registration.registrationStatus !== 'approved') {
+            return { code: 422, message: `Registration is "${registration.registrationStatus}". Only approved registrations can receive jockey invitations.` };
+        }
+        if (String(registration.horseOwnerId) !== String(ownerId)) {
+            return { code: 403, message: 'You are not authorized to modify this registration.' };
+        }
+
+        const horse = await Horse.findById(horseId).lean();
+        if (!horse) return { code: 404, message: 'Horse not found' };
+        if (String(horse.ownerId) !== String(ownerId)) {
+            return { code: 403, message: 'You do not own this horse.' };
+        }
+
+        // All invitations for a registration must share the same horse
+        const existingInv = await Invitation.findOne({ registrationId }).lean();
+        if (existingInv && String(existingInv.horseId) !== String(horseId)) {
+            return { code: 409, message: 'All invitations for a registration must use the same horse.' };
+        }
+
+        // No duplicate jockey on the same registration
+        const duplicate = await Invitation.findOne({ registrationId, jockeyId }).lean();
+        if (duplicate) {
+            return { code: 409, message: 'This jockey has already been invited to this registration.' };
+        }
+
         const invitation = await InvitationRepository.create(data);
         return {
             code: 201,

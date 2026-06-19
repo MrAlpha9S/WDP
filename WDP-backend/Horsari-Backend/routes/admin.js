@@ -33,6 +33,28 @@ router.get('/race-rounds', authMiddleware, authAdmin, AdminController.getRaceRou
 
 // Get race round details
 router.get('/race-rounds/:id/detail', authMiddleware, authAdmin, AdminController.getRaceRoundDetail);
+// Admin starts or cancels a prepared race round
+router.put('/race-rounds/:id/status', authMiddleware, authAdmin, AdminController.setRaceRoundStatus);
+
+// Live simulation snapshot
+router.get('/race-rounds/:id/simulation', authMiddleware, authAdmin, AdminController.getSimulationState);
+
+// All violations for a race (all referees combined)
+router.get('/race-rounds/:id/violations', authMiddleware, authAdmin, AdminController.getRaceViolations);
+
+// Soft-delete (dismiss) a violation
+router.patch('/violations/:violationId/dismiss', authMiddleware, authAdmin, AdminController.dismissViolation);
+
+// Confirm race results → mark official, close race (Moved to referee)
+
+// Mux live stream info (RTMP URL + stream key for OBS operator)
+router.get('/race-rounds/:id/stream', authMiddleware, authAdmin, AdminController.getStreamInfo);
+
+// Mux VOD playback ID (available after stream ends and Mux processes the recording)
+router.get('/race-rounds/:id/vod', authMiddleware, authAdmin, AdminController.getVOD);
+
+// Important events dashboard feed
+router.get('/important-events', authMiddleware, authAdmin, AdminController.getImportantEvents);
 
 // Get all metadata required for creating a race
 router.get('/create-race-metadata', authMiddleware, authAdmin, AdminController.getCreateRaceMetadata);

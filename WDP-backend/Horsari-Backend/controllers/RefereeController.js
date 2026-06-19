@@ -1,4 +1,5 @@
 const RefereeService = require('../services/RefereeService');
+const AdminService = require('../services/AdminService');
 
 class RefereeController {
     // (admin register removed)
@@ -96,6 +97,45 @@ class RefereeController {
     // Get single race round detail (referee-scoped)
     async getRaceRoundById(req, res) {
         const response = await RefereeService.getRaceRoundById(req.userId, req.params.id);
+        return res.status(response.code).json(response);
+    }
+
+    // Verify or fail a registration after pre-race inspection
+    async verifyRegistration(req, res) {
+        const { raceRoundId, registrationId } = req.params;
+        const io = req.app.get('io');
+        const response = await RefereeService.verifyRegistration(req.userId, raceRoundId, registrationId, req.body, io);
+        return res.status(response.code).json(response);
+    }
+
+    // Get violation types (optionally filtered by type=pre-race|during-race|after-race)
+    async getViolationTypes(req, res) {
+        const response = await RefereeService.getViolationTypes(req.query.type);
+        return res.status(response.code).json(response);
+    }
+
+    // Get all violations for a race round (referee-scoped)
+    async getRaceRoundViolations(req, res) {
+        const response = await RefereeService.getRaceRoundViolations(req.userId, req.params.id);
+        return res.status(response.code).json(response);
+    }
+
+    // Create a violation (used by LivePage for during-race incidents)
+    async createViolation(req, res) {
+        const response = await RefereeService.createViolation(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    // Delete / dismiss a violation
+    async deleteViolation(req, res) {
+        const response = await RefereeService.deleteViolation(req.userId, req.params.violationId);
+        return res.status(response.code).json(response);
+    }
+
+    // Confirm race results (Delegates to AdminService logic)
+    async confirmRaceResult(req, res) {
+        const io = req.app.get('io');
+        const response = await AdminService.confirmRaceResult(req.params.id, req.userId, io);
         return res.status(response.code).json(response);
     }
 }

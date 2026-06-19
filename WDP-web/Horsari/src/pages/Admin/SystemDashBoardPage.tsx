@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { adminService } from "../../api/adminService";
-import { Users, Trophy, ClipboardList, Eye, Settings, CheckSquare, Radio, } from "lucide-react";
+import { Users, Trophy, ClipboardList, Eye, Settings, CheckSquare, Radio } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -115,7 +115,7 @@ export default function SystemDashboardPage() {
                 const mappedRaces: ActiveRace[] = allRounds.map((r: any) => {
                     const statusStr = (r.status || "").toLowerCase();
                     let mappedStatus: RaceStatus = "PRE-RACE";
-                    if (statusStr.includes("ongoing") || statusStr.includes("live")) {
+                    if (statusStr.includes("ongoing") || statusStr.includes("live") || statusStr === "running") {
                         mappedStatus = "LIVE";
                     } else if (statusStr.includes("completed") || statusStr.includes("finished")) {
                         mappedStatus = "POST-RACE";

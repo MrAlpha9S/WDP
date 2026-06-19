@@ -21,6 +21,7 @@ export default function RaceSchedulingPage() {
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -35,6 +36,7 @@ export default function RaceSchedulingPage() {
             setLoading(false);
         }
     };
+
 
     const handleCacheUpdate = async (updateInfo?: { type: 'CREATE' | 'UPDATE'; tournament_id?: string; raceRound_id?: string }) => {
         if (!updateInfo) {
@@ -183,6 +185,7 @@ export default function RaceSchedulingPage() {
 
     return (
         <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
 
             {/* ── Top Content Area ── */}
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
@@ -339,6 +342,7 @@ export default function RaceSchedulingPage() {
                                                                         race.status === 'running' ? 'bg-blue-500' :
                                                                         race.status === 'completed' ? 'bg-gray-500' :
                                                                         race.status === 'scheduled' ? 'bg-emerald-500' :
+                                                                        race.status === 'prepared' ? 'bg-violet-500' :
                                                                         'bg-amber-500'
                                                                     }`}></span>
                                                                 </div>
@@ -379,6 +383,7 @@ export default function RaceSchedulingPage() {
                                                             race.status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
                                                             race.status === 'running' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
                                                             race.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
+                                                            race.status === 'prepared' ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
                                                             'bg-amber-500/15 text-amber-400 border-amber-500/30'
                                                         }`}>{race.status}</div>
                                                     </td>

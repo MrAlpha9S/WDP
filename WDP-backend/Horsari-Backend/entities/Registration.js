@@ -15,6 +15,10 @@ const registrationSchema = new mongoose.Schema(
             enum: ['pending', 'approved', 'rejected', 'verified', 'failed', 'cancelled'],
             default: 'pending',
         },
+        verificationFailReason: {
+            type: String,
+            default: null,
+        },
         registeredAt: {
             type: Date,
             default: Date.now,

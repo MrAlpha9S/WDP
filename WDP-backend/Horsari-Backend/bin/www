@@ -52,54 +52,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// ── TEST: broadcast a growing counter every second (referee) ─────────────────
-let _testCounter = 0;
-setInterval(() => {
-  _testCounter++;
-  io.emit('test_ping', { count: _testCounter });
-}, 1000);
-
-// ── TEST: admin ping counter (independent) ────────────────────────────────────
-let _adminCounter = 0;
-setInterval(() => {
-  _adminCounter++;
-  io.emit('admin_ping', { count: _adminCounter });
-}, 1000);
-
-// ── TEST: admin_notification — cycles through all types every 5s ──────────────
-const _notifTypes = ['race_started', 'race_ended', 'new_registration', 'new_user', 'objection_filed', 'system_alert'];
-const _notifTitles = {
-  race_started:      'Race Round Started',
-  race_ended:        'Race Round Finished',
-  new_registration:  'New Registration Submitted',
-  new_user:          'New User Joined',
-  objection_filed:   'Objection Filed',
-  system_alert:      'System Health Check',
-};
-const _notifMessages = {
-  race_started:      'Race #7 — Thunderstrike Classic has gone live.',
-  race_ended:        'Race #6 — Golden Cup completed. Results pending.',
-  new_registration:  'Horse #14 registered by owner James W.',
-  new_user:          'A new referee account has been created.',
-  objection_filed:   'Horse #3 objection raised by jockey in Race #6.',
-  system_alert:      'All systems operational. DB latency: 12ms.',
-};
-let _notifIdx = 0;
-setInterval(() => {
-  const type = _notifTypes[_notifIdx % _notifTypes.length];
-  _notifIdx++;
-  io.emit('admin_notification', {
-    id: Date.now().toString(),
-    type,
-    title: _notifTitles[type],
-    message: _notifMessages[type],
-    timestamp: new Date(),
-    read: false,
-    actionLabel: type === 'system_alert' ? undefined : 'View',
-    actionPayload: {},
-  });
-}, 5000);
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Listen on provided port, on all network interfaces.

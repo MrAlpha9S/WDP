@@ -4,7 +4,7 @@ class InvitationController {
   async createInvitation(req, res, next) {
     try {
       const data = req.body;
-      const result = await InvitationService.createInvitation(data);
+      const result = await InvitationService.createInvitation(req.userId, data);
       return res.status(result.code).json(result);
     } catch (err) {
       return next(err);

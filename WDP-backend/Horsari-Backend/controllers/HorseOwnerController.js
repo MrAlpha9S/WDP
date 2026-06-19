@@ -66,6 +66,14 @@ class HorseOwnerController {
         const response = await HorseOwnerService.getHorseOwnerByLicense(licenseNumber);
         return res.status(response.code).json(response);
     }
+
+    // Request race start after all registrations reviewed
+    async confirmRaceStart(req, res) {
+        const { raceRoundId } = req.params;
+        const io = req.app.get('io');
+        const response = await HorseOwnerService.confirmRaceStart(req.userId, raceRoundId, io);
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new HorseOwnerController();

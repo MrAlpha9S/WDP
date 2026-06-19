@@ -21,7 +21,8 @@ interface Race {
   date: string;
   venue: string;
   grade: string;
-  eligibleHorseIds: string[];  // ← add this
+  eligibleHorseIds: string[];
+  existingHorseId: string | null;
 }
 
 interface Horse {
@@ -47,7 +48,8 @@ function mapRace(raw: any, i: number): Race {
     date: raw.raceRound.raceDate ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
     venue: raw.raceRound.location ?? raw.location ?? "TBA",
     grade: raw.grade ?? "TBA",
-    eligibleHorseIds: Array.isArray(raw.eligibleHorseIds) ? raw.eligibleHorseIds : [],  // ← add this
+    eligibleHorseIds: Array.isArray(raw.eligibleHorseIds) ? raw.eligibleHorseIds : [],
+    existingHorseId: raw.existingHorseId ?? null,
   };
 }
 
@@ -215,9 +217,15 @@ export default function HireJockeyModal({
       }, 1500);
     } catch (err: any) {
       const detail =
-        err?.response?.data?.message ??
-        err?.message ??
-        "Something went wrong. Please try again.";
+        err?.code === 409 && (err?.message ?? "").includes("same horse")
+          ? "This race already has a horse assigned. Please select the same horse."
+          : err?.code === 409 && (err?.message ?? "").includes("already been invited")
+          ? "This jockey has already been invited to this race."
+          : err?.code === 422
+          ? "This registration is no longer accepting jockey assignments."
+          : err?.code === 403
+          ? "You are not authorized to modify this registration."
+          : err?.message ?? "Something went wrong. Please try again.";
       setToast({ type: "error", message: "Failed to Hire", detail });
     } finally {
       setSubmitting(false);
@@ -394,20 +402,33 @@ export default function HireJockeyModal({
                   !selectedRace ||
                   selectedRace.eligibleHorseIds.length === 0 ||
                   selectedRace.eligibleHorseIds.includes(horse.id);
+                const isLockedOut = !!selectedRace?.existingHorseId && selectedRace.existingHorseId !== horse.id;
+                const isLockedIn  = !!selectedRace?.existingHorseId && selectedRace.existingHorseId === horse.id;
+                const isSelectable = isEligible && !isLockedOut;
 
                 return (
                   <div key={horse.id} className="relative">
                     <SelectCard
                       item={horse}
                       selected={selectedHorse?.id === horse.id}
-                      onSelect={() => { if (isEligible) setSelectedHorse(horse); }}
+                      onSelect={() => { if (isSelectable) setSelectedHorse(horse); }}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <Flag size={11} className={isEligible ? "text-red-400 shrink-0" : "text-gray-600 shrink-0"} />
-                        <span className={`text-[13px] font-bold truncate ${isEligible ? "text-white" : "text-gray-600"}`}>
+                        <Flag size={11} className={isSelectable ? "text-red-400 shrink-0" : "text-gray-600 shrink-0"} />
+                        <span className={`text-[13px] font-bold truncate ${isSelectable ? "text-white" : "text-gray-600"}`}>
                           {horse.name}
                         </span>
-                        {!isEligible && (
+                        {isLockedIn && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-900/20 border border-green-700/30 text-green-400 font-bold shrink-0 tracking-wide uppercase">
+                            Assigned
+                          </span>
+                        )}
+                        {isLockedOut && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/20 border border-red-700/30 text-red-400 font-bold shrink-0 tracking-wide uppercase">
+                            Horse Locked
+                          </span>
+                        )}
+                        {!isLockedOut && !isEligible && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 text-yellow-500 font-bold shrink-0 tracking-wide uppercase">
                             Not Eligible
                           </span>
@@ -424,8 +445,8 @@ export default function HireJockeyModal({
                       </div>
                     </SelectCard>
 
-                    {/* Ineligible overlay — blocks click visually */}
-                    {!isEligible && (
+                    {/* Blocked overlay */}
+                    {!isSelectable && (
                       <div className="absolute inset-0 rounded-xl bg-black/40 cursor-not-allowed" />
                     )}
                   </div>

@@ -245,5 +245,56 @@ export const adminService = {
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to delete rule' };
     }
-  }
+  },
+
+  // --- Race Round Status & Results ---
+
+  setRaceRoundStatus: async (id: string, status: 'running' | 'cancelled') => {
+    try {
+      const response = await api.put(`/admin/race-rounds/${id}/status`, { status });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to update race status' };
+    }
+  },
+
+  confirmRaceResult: async (id: string) => {
+    try {
+      const response = await api.post(`/admin/race-rounds/${id}/confirm-result`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to confirm race result' };
+    }
+  },
+
+  // --- Mux Stream & VOD ---
+
+  getStreamInfo: async (id: string) => {
+    try {
+      const response = await api.get(`/admin/race-rounds/${id}/stream`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch stream info' };
+    }
+  },
+
+  getVOD: async (id: string) => {
+    try {
+      const response = await api.get(`/admin/race-rounds/${id}/vod`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch VOD info' };
+    }
+  },
+
+  // --- Important Events ---
+
+  getImportantEvents: async () => {
+    try {
+      const response = await api.get('/admin/important-events');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch important events' };
+    }
+  },
 };

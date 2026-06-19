@@ -16,6 +16,9 @@ const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
 const RaceResult = require('../entities/RaceResult');
 const HorseOwner = require('../entities/HorseOwner');
 const User = require('../entities/User');
+const Violation = require('../entities/Violation');
+const SimulationService = require('./SimulationService');
+const MuxService = require('./MuxService');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
@@ -613,10 +616,14 @@ class AdminService {
                     ? await User.findById(reg.horseOwnerId, 'fullName').lean()
                     : null;
 
-                const invitation = await Invitation.findOne({
-                    registrationId: reg._id,
-                    isBackup: false
-                })
+                const invitationFilter = { registrationId: reg._id };
+                if (raceRound.status === 'completed' || raceRound.status === 'running') {
+                    invitationFilter.isJockeyInRace = true;
+                } else {
+                    invitationFilter.isBackup = false;
+                }
+
+                const invitation = await Invitation.findOne(invitationFilter)
                     .populate('horseId')
                     .populate('jockeyId')
                     .lean();
@@ -628,7 +635,19 @@ class AdminService {
                     }
                 }
 
-                const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
+                // Get race result by matching raceRoundId + same calendar day as raceDate
+                let raceResult = null;
+                if (raceRound.raceDate) {
+                    const dayStart = new Date(raceRound.raceDate);
+                    dayStart.setUTCHours(0, 0, 0, 0);
+                    const dayEnd = new Date(dayStart);
+                    dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+                    raceResult = await RaceResult.findOne({
+                        raceRoundId: raceRound._id,
+                        registrationId: reg._id,
+                        createdAt: { $gte: dayStart, $lt: dayEnd },
+                    }).lean();
+                }
 
                 rrObj.Registration.push({
                     ...reg,
@@ -817,5 +836,227 @@ async function getRegistrationIdsByRound(raceRoundId) {
     const regs = await require('../entities/Registration').find({ raceRoundId }, '_id').lean();
     return regs.map((r) => r._id);
 }
+
+// Appended to AdminService prototype after class definition
+AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStatus, io) {
+    try {
+        const allowed = ['running', 'cancelled'];
+        if (!allowed.includes(newStatus)) {
+            return { code: 400, msg: `status must be one of: ${allowed.join(', ')}` };
+        }
+
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+        if (!raceRound) {
+            return { code: 404, msg: 'Race round not found.' };
+        }
+        if (raceRound.status !== 'prepared') {
+            return { code: 422, msg: `Race is currently "${raceRound.status}". Only "prepared" races can be started or cancelled by admin.` };
+        }
+
+        const updated = await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus }, { new: true }).lean();
+
+        if (io) {
+            io.to(`race:${raceRoundId}`).emit('race_status_changed', {
+                raceRoundId,
+                status: newStatus,
+                timestamp: new Date(),
+            });
+            io.emit('admin_notification', {
+                id: Date.now().toString(),
+                type: newStatus === 'running' ? 'race_started' : 'race_cancelled',
+                title: newStatus === 'running' ? 'Race Round Started' : 'Race Round Cancelled',
+                message: `Race round "${raceRound.roundName}" is now ${newStatus}.`,
+                raceRoundId,
+                timestamp: new Date(),
+                read: false,
+            });
+        }
+
+        if (newStatus === 'running') {
+            // Start horse simulation
+            SimulationService.initializeSimulation(raceRoundId, io).catch(err => {
+                console.error('[Sim] Failed to start simulation:', err);
+            });
+            // Create Mux live stream for OBS ingestion
+            MuxService.createLiveStream(raceRoundId).catch(err => {
+                console.error('[Mux] Failed to create live stream:', err);
+            });
+        }
+
+        return { code: 200, data: updated, msg: `Race round status updated to "${newStatus}".` };
+    } catch (error) {
+        console.error('Error setting race round status:', error);
+        return { code: 500, msg: error.message };
+    }
+};
+
+// GET all violations for a race round (all referees combined)
+AdminService.prototype.getRaceViolations = async function (raceRoundId) {
+    try {
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+        if (!raceRound) return { code: 404, msg: 'Race round not found.' };
+
+        const violations = await Violation.find({ raceRoundId })
+            .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+            .populate('registrationId', '_id registrationStatus')
+            .populate('raceRefereeId', '_id refereeId')
+            .sort({ created_at: -1 })
+            .lean();
+
+        return { code: 200, data: violations, msg: 'Race violations retrieved.' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// PATCH soft-delete (dismiss) a single violation
+AdminService.prototype.dismissViolation = async function (violationId) {
+    try {
+        const violation = await Violation.findById(violationId).lean();
+        if (!violation) return { code: 404, msg: 'Violation not found.' };
+
+        const updated = await Violation.findByIdAndUpdate(
+            violationId,
+            { violationStatus: 'dismissed' },
+            { new: true }
+        ).lean();
+
+        return { code: 200, data: updated, msg: 'Violation dismissed.' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// POST confirm race results → mark all results official, close race
+AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId, io) {
+    try {
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+        if (!raceRound) return { code: 404, msg: 'Race round not found.' };
+        if (raceRound.status !== 'running' && raceRound.status !== 'completed') {
+            return { code: 422, msg: `Cannot confirm results for a race with status "${raceRound.status}".` };
+        }
+
+        // Mark all pending_confirmation results as official and stamp publishedByAdminId
+        await RaceResult.updateMany(
+            { raceRoundId },
+            { resultStatus: 'official', publishedByAdminId: adminId }
+        );
+
+        // Update race round to completed
+        const updatedRace = await RaceRound.findByIdAndUpdate(
+            raceRoundId,
+            { status: 'completed' },
+            { new: true }
+        ).lean();
+
+        // Fetch enriched results to return
+        const results = await RaceResult.find({ raceRoundId })
+            .populate('registrationId')
+            .sort({ finishPosition: 1 })
+            .lean();
+
+        if (io) {
+            io.to(`race:${raceRoundId}`).emit('race_status_changed', {
+                raceRoundId,
+                status: 'completed',
+                timestamp: new Date(),
+            });
+            io.emit('admin_notification', {
+                id: Date.now().toString(),
+                type: 'race_completed',
+                title: 'Race Results Confirmed',
+                message: `Results for "${raceRound.roundName}" have been officially confirmed.`,
+                raceRoundId,
+                timestamp: new Date(),
+                read: false,
+            });
+        }
+
+        return { code: 200, data: { raceRound: updatedRace, results }, msg: 'Race results confirmed and race marked as completed.' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// GET Mux stream info (RTMP URL + stream key for OBS, playback ID for viewer)
+AdminService.prototype.getStreamInfo = async function (raceRoundId) {
+    try {
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+        if (!raceRound) return { code: 404, msg: 'Race round not found.' };
+        if (raceRound.status !== 'running') {
+            return { code: 422, msg: 'Race is not currently running.' };
+        }
+        const info = await MuxService.getStreamInfo(raceRoundId);
+        if (!info) return { code: 404, msg: 'No live stream found for this race. Start the race first.' };
+        return { code: 200, data: info, msg: 'Stream info retrieved.' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// GET Mux VOD playback ID after the live stream ends
+AdminService.prototype.getVOD = async function (raceRoundId) {
+    try {
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+        if (!raceRound) return { code: 404, msg: 'Race round not found.' };
+
+        // Use cached VOD playback ID from DB first
+        if (raceRound.muxVodPlaybackId) {
+            return { code: 200, data: { vodPlaybackId: raceRound.muxVodPlaybackId }, msg: 'VOD retrieved.' };
+        }
+
+        const vod = await MuxService.getVOD(raceRoundId);
+        if (!vod) return { code: 404, msg: 'VOD not yet available — the stream may still be processing.' };
+        return { code: 200, data: vod, msg: 'VOD retrieved.' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// GET current live simulation snapshot (in-memory state)
+AdminService.prototype.getSimulationState = function (raceRoundId) {
+    try {
+        const SimulationService = require('./SimulationService');
+        const state = SimulationService.getSimulationState(raceRoundId);
+        if (!state) return { code: 404, msg: 'No active simulation for this race round.' };
+        return { code: 200, data: state, msg: 'Simulation state retrieved.' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+AdminService.prototype.getImportantEvents = async function () {
+    try {
+        const [
+            pendingCertifications,
+            racesReadyToStart,
+            activeTournaments,
+            pendingRegistrations,
+        ] = await Promise.all([
+            // Users whose certifications are pending admin review
+            User.find({ certificationStatus: 'pending' }, '_id fullName email createdAt').lean().catch(() => []),
+            // Race rounds fully inspected by referee, awaiting admin action
+            RaceRound.find({ status: 'prepared' }, '_id roundName raceDate location').lean(),
+            // Tournaments currently active
+            Tournament.find({ status: { $in: ['running', 'scheduled'] } }, '_id tournamentName startDate endDate status').lean(),
+            // Registrations awaiting horse owner approval
+            Registration.find({ registrationStatus: 'pending' }, '_id raceRoundId horseOwnerId createdAt').lean(),
+        ]);
+
+        return {
+            code: 200,
+            data: {
+                pendingCertifications,
+                racesReadyToStart,
+                activeTournaments,
+                pendingRegistrations,
+            },
+            msg: 'Important events retrieved successfully.',
+        };
+    } catch (error) {
+        console.error('Error fetching important events:', error);
+        return { code: 500, msg: error.message };
+    }
+};
 
 module.exports = new AdminService();

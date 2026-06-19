@@ -4,7 +4,6 @@ const path = require('path');
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-// Import models
 const User = require('../entities/User');
 const HorseOwner = require('../entities/HorseOwner');
 const Horse = require('../entities/Horse');
@@ -14,217 +13,593 @@ const Spectator = require('../entities/Spectator');
 const Jockey = require('../entities/Jockey');
 const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
 const Tournament = require('../entities/Tournament');
+const RaceRound = require('../entities/RaceRound');
+const Registration = require('../entities/Registration');
+const RaceReferee = require('../entities/RaceReferee');
+const Invitation = require('../entities/Invitation');
+const ViolationType = require('../entities/ViolationType');
+const Violation = require('../entities/Violation');
 
+// Mongodb@1234
 const PASSWORD_HASH = '$2a$12$OXXNUWkz5KBayO.Ei9qMJeiTG.GGqixAHg5eb1ldREdsQApndrYKm';
-//Mongodb@1234
+
 const mockData = async () => {
     try {
         await mongoose.connect(process.env.MONGO_URI);
         console.log('Connected to MongoDB');
 
-        // Clear existing data
         await mongoose.connection.db.dropDatabase();
         console.log('Cleared existing data');
 
-        // Create 3 Horse Owners
+        // ── Horse Owners ──────────────────────────────────────────────────────
+        const ownerNames = ['Alice Chen', 'Bruno Hartmann', 'Celine Dupont'];
         const horseOwners = [];
         const horseOwnerUsers = [];
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 0; i < 3; i++) {
             const user = await User.create({
-                username: `horseowner${i}`,
-                email: `horseowner${i}@horsari.com`,
+                username: `horseowner${i + 1}`,
+                email: `horseowner${i + 1}@horsari.com`,
                 passwordHash: PASSWORD_HASH,
-                fullName: `Horse Owner ${i}`,
+                fullName: ownerNames[i],
                 dateOfBirth: new Date('1985-01-15'),
-                phoneNumber: `555000${i}`,
+                phoneNumber: `555000${i + 1}`,
                 role: 'horseowner',
                 status: 'active',
             });
             horseOwnerUsers.push(user);
-
             const owner = await HorseOwner.create({
                 _id: user._id,
-                address: `${i}00 Farm Lane, Horse City, HC 12345`,
-                licenseNumber: `HO-LIC-${1000 + i}`,
-                certificationFilePath: '',
+                address: `${(i + 1) * 100} Stable Lane, Horseville HC 1000${i + 1}`,
+                licenseLink: `https://horsari.com/licenses/owner-${i + 1}.pdf`,
+                licenseStatus: 'approved',
             });
             horseOwners.push(owner);
         }
         console.log('✅ Created 3 horse owners');
 
-        // Create 2 horses for each horse owner
-        const horsesCreated = [];
-        let ownerIndex = 0;
-        for (const owner of horseOwners) {
-            ownerIndex++;
-            for (let j = 1; j <= 2; j++) {
-                let status = 'active';
-                let age = Math.floor(Math.random() * 15) + 2; // 2 to 16
-
-                // Make Owner 3 have no eligible horses for Maiden
-                if (ownerIndex === 3) {
-                    if (j === 1) {
-                        status = 'retired'; // Eligible age, but retired
-                        age = 5;
-                    } else {
-                        status = 'active';
-                        age = 1; // Active, but too young (minAge is 2)
-                    }
-                }
-
-                const horse = await Horse.create({
-                    ownerId: owner._id,
-                    horseName: `Horse ${owner._id.toString().slice(-3)}-${j}`,
-                    breed: ['Thoroughbred', 'Arabian', 'Quarter Horse', 'Standardbred'][Math.floor(Math.random() * 4)],
-                    dateOfBirth: new Date(new Date().getFullYear() - age, 0, 1),
-                    gender: j % 2 === 0 ? 'male' : 'female',
-                    healthStatus: 'healthy',
-                    status: status,
-                    registrationDate: new Date(),
-                });
-                horsesCreated.push(horse);
-            }
-        }
-        console.log(`✅ Created ${horsesCreated.length} horses (2 per owner)`);
-
-        // Create 3 Admins
+        // ── Admins ────────────────────────────────────────────────────────────
         const adminUsers = [];
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 0; i < 3; i++) {
             const user = await User.create({
-                username: `admin${i}`,
-                email: `admin${i}@horsari.com`,
+                username: `admin${i + 1}`,
+                email: `admin${i + 1}@horsari.com`,
                 passwordHash: PASSWORD_HASH,
-                fullName: `Admin User ${i}`,
+                fullName: `Admin User ${i + 1}`,
                 dateOfBirth: new Date('1980-05-20'),
-                phoneNumber: `555100${i}`,
+                phoneNumber: `555100${i + 1}`,
                 role: 'admin',
                 status: 'active',
             });
             adminUsers.push(user);
-
-            await Admin.create({
-                _id: user._id,
-            });
+            await Admin.create({ _id: user._id });
         }
         console.log('✅ Created 3 admins');
 
-        // Create 3 Referees
+        // ── Referees ──────────────────────────────────────────────────────────
+        const refereeNames = ['David Park', 'Elena Vasquez', 'Frank Müller'];
         const refereeUsers = [];
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 0; i < 3; i++) {
             const user = await User.create({
-                username: `referee${i}`,
-                email: `referee${i}@horsari.com`,
+                username: `referee${i + 1}`,
+                email: `referee${i + 1}@horsari.com`,
                 passwordHash: PASSWORD_HASH,
-                fullName: `Referee ${i}`,
+                fullName: refereeNames[i],
                 dateOfBirth: new Date('1990-03-10'),
-                phoneNumber: `555200${i}`,
+                phoneNumber: `555200${i + 1}`,
                 role: 'referee',
                 status: 'active',
             });
             refereeUsers.push(user);
-
             await Referee.create({
                 _id: user._id,
-                certificationNumber: `CERT-REF-${2000 + i}`,
-                licenseNumber: `REF-LIC-${2000 + i}`,
+                licenseLink: `https://horsari.com/licenses/ref-${i + 1}.pdf`,
+                licenseStatus: 'approved',
             });
         }
         console.log('✅ Created 3 referees');
 
-        // Create 3 Spectators
-        const spectatorUsers = [];
-        for (let i = 1; i <= 3; i++) {
-            const user = await User.create({
-                username: `spectator${i}`,
-                email: `spectator${i}@horsari.com`,
-                passwordHash: PASSWORD_HASH,
-                fullName: `Spectator ${i}`,
-                dateOfBirth: new Date('1995-07-22'),
-                phoneNumber: `555300${i}`,
-                role: 'spectator',
-                status: 'active',
-            });
-            spectatorUsers.push(user);
-
-            await Spectator.create({
-                _id: user._id,
-                rewardPoints: Math.floor(Math.random() * 1000) + 100,
-            });
-        }
-        console.log('✅ Created 3 spectators');
-
-        // Create 3 Jockeys
+        // ── Jockeys ───────────────────────────────────────────────────────────
+        const jockeyNames = ['Marco Rossi', 'Luca Moretti', 'Yuki Tanaka'];
         const jockeyUsers = [];
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 0; i < 3; i++) {
             const user = await User.create({
-                username: `jockey${i}`,
-                email: `jockey${i}@horsari.com`,
+                username: `jockey${i + 1}`,
+                email: `jockey${i + 1}@horsari.com`,
                 passwordHash: PASSWORD_HASH,
-                fullName: `Jockey ${i}`,
+                fullName: jockeyNames[i],
                 dateOfBirth: new Date('2000-11-08'),
-                phoneNumber: `555400${i}`,
+                phoneNumber: `555400${i + 1}`,
                 role: 'jockey',
                 status: 'active',
             });
             jockeyUsers.push(user);
-
             await Jockey.create({
                 _id: user._id,
-                height: 170 + Math.floor(Math.random() * 10),
-                weight: 50 + Math.floor(Math.random() * 15),
-                matchesRaced: Math.floor(Math.random() * 50) + 5,
-                totalWins: Math.floor(Math.random() * 20) + 1,
-                ranking: Math.floor(Math.random() * 100) + 1,
+                height: 166 + i * 2,
+                weight: 52 + i * 3,
+                matchesRaced: 20 + i * 10,
+                totalWins: 5 + i * 3,
+                ranking: 10 + i * 5,
+                licenseLink: `https://horsari.com/licenses/jockey-${i + 1}.pdf`,
+                licenseStatus: 'approved',
                 status: 'active',
             });
         }
         console.log('✅ Created 3 jockeys');
 
-        // Create 2 Race Eligibility Rules
-        await RaceEligibilityRule.create({
-            raceType: 'Claiming',
-            licenseRequired: true,
-            isActive: true,
-        });
+        // ── Spectators ────────────────────────────────────────────────────────
+        for (let i = 0; i < 3; i++) {
+            const user = await User.create({
+                username: `spectator${i + 1}`,
+                email: `spectator${i + 1}@horsari.com`,
+                passwordHash: PASSWORD_HASH,
+                fullName: `Spectator ${i + 1}`,
+                dateOfBirth: new Date('1995-07-22'),
+                phoneNumber: `555300${i + 1}`,
+                role: 'spectator',
+                status: 'active',
+            });
+            await Spectator.create({ _id: user._id, rewardPoints: 100 + i * 200 });
+        }
+        console.log('✅ Created 3 spectators');
 
-        await RaceEligibilityRule.create({
+        // ── Horses (2 per owner) ──────────────────────────────────────────────
+        //   [0] Thunderbolt  — owner1   [1] Silver Comet  — owner1
+        //   [2] Desert Wind  — owner2   [3] Midnight Star — owner2
+        //   [4] Golden Flash — owner3   [5] Iron Duchess  — owner3
+        const horseData = [
+            { name: 'Thunderbolt',   breed: 'Thoroughbred',  gender: 'male',   age: 4 },
+            { name: 'Silver Comet',  breed: 'Arabian',       gender: 'female', age: 5 },
+            { name: 'Desert Wind',   breed: 'Quarter Horse', gender: 'male',   age: 3 },
+            { name: 'Midnight Star', breed: 'Thoroughbred',  gender: 'female', age: 6 },
+            { name: 'Golden Flash',  breed: 'Standardbred',  gender: 'male',   age: 4 },
+            { name: 'Iron Duchess',  breed: 'Arabian',       gender: 'female', age: 5 },
+        ];
+        const horses = [];
+        for (let i = 0; i < horseData.length; i++) {
+            const d = horseData[i];
+            const horse = await Horse.create({
+                ownerId: horseOwners[Math.floor(i / 2)]._id,
+                horseName: d.name,
+                breed: d.breed,
+                gender: d.gender,
+                dateOfBirth: new Date(new Date().getFullYear() - d.age, 0, 1),
+                healthStatus: 'healthy',
+                status: 'active',
+                registrationDate: new Date(),
+            });
+            horses.push(horse);
+        }
+        console.log('✅ Created 6 horses');
+
+        // ── Race Eligibility Rules ─────────────────────────────────────────────
+        const maidenRule = await RaceEligibilityRule.create({
             raceType: 'Maiden',
-            minRacesWon: 0,
             minAge: 2,
             licenseRequired: true,
             isActive: true,
         });
-        console.log('✅ Created 2 Race Eligibility Rules');
+        const claimingRule = await RaceEligibilityRule.create({
+            raceType: 'Claiming',
+            licenseRequired: true,
+            isActive: true,
+        });
+        console.log('✅ Created 2 eligibility rules');
 
-        // Create Non-tournament
-        await Tournament.create({
+        // ── Tournaments ───────────────────────────────────────────────────────
+        const nonTournament = await Tournament.create({
+            createdByAdminId: adminUsers[0]._id,
             tournamentName: 'Non-tournament',
-            description: 'Standalone races that are not part of any tournament',
+            description: 'Standalone races not part of any tournament',
             startDate: null,
             endDate: null,
-            location: 'Various',
             status: 'ongoing',
         });
-        console.log('✅ Created Non-tournament');
 
-        console.log('\n✅ Mock data generation completed!');
-        console.log('====================================');
-        console.log('Summary:');
-        console.log('- 3 Horse Owners (with 2 horses each = 6 horses)');
-        console.log('- 3 Admins');
-        console.log('- 3 Referees');
-        console.log('- 3 Spectators');
-        console.log('- 3 Jockeys');
-        console.log('- 2 Race Eligibility Rules');
-        console.log('- 1 Tournament (Non-tournament)');
-        console.log('====================================');
-        console.log('Password for all users: $2a$12$vqdvnyFFBmhSkDSX/2Eu1eNVHviElpS6X23QbvA5rjoRliEb8zZw.');
-        console.log('\nLogin examples:');
-        console.log('- horseowner1 / horseowner1@horsari.com');
-        console.log('- admin1 / admin1@horsari.com');
-        console.log('- jockey1 / jockey1@horsari.com');
-        console.log('- referee1 / referee1@horsari.com');
-        console.log('- spectator1 / spectator1@horsari.com');
+        const springTournament = await Tournament.create({
+            createdByAdminId: adminUsers[0]._id,
+            tournamentName: 'Spring Classic 2026',
+            description: 'Premier flat race championship — Grade II & III runners',
+            startDate: new Date('2026-06-01'),
+            endDate: new Date('2026-06-30'),
+            status: 'ongoing',
+        });
+        console.log('✅ Created 2 tournaments');
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ROUND 1 — Morning Sprint                          [STATUS: prepared]
+        // All registrations settled. Admin can now start or cancel the race.
+        //   • owner1 (Alice)  → verified   (Thunderbolt / Marco Rossi ✓)
+        //   • owner2 (Bruno)  → verified   (Desert Wind / Luca Moretti ✓)
+        //   • owner3 (Celine) → failed     (Golden Flash — soundness issue)
+        // ══════════════════════════════════════════════════════════════════════
+        const round1 = await RaceRound.create({
+            tournamentId: springTournament._id,
+            createdByAdminId: adminUsers[0]._id,
+            roundName: 'Morning Sprint',
+            raceDate: new Date('2026-06-25T08:00:00Z'),
+            trackLength: 1200,
+            maxParticipants: 8,
+            status: 'prepared',
+            minimalRidingFees: 500,
+            raceGround: 'Turf',
+            requireEntranceFees: true,
+            firstPlacePrize: 50000,
+            secondPlacePrize: 20000,
+            thirdPlacePrize: 10000,
+            currencyType: 'USD',
+            location: 'Horsari Racecourse',
+            address: '1 Race Blvd, Horseville HC 10001',
+            eligibilityRuleId: maidenRule._id,
+        });
+
+        // referee1 (David Park) accepts the assignment
+        const raceRef1 = await RaceReferee.create({
+            raceRoundId: round1._id,
+            refereeId: refereeUsers[0]._id,
+            assignedByAdminId: adminUsers[0]._id,
+            status: 'assigned',
+            fee: 1500,
+            paymentStatus: 'unpaid',
+        });
+
+        // owner1 → verified (Thunderbolt / Marco Rossi — main; Luca Moretti — backup confirmed)
+        const reg1a = await Registration.create({
+            raceRoundId: round1._id,
+            horseOwnerId: horseOwners[0]._id,
+            approvedByAdminId: adminUsers[0]._id,
+            registrationStatus: 'verified',
+            registeredAt: new Date('2026-06-10T09:00:00Z'),
+        });
+        await Invitation.create({
+            horseId: horses[0]._id,
+            jockeyId: jockeyUsers[0]._id,
+            registrationId: reg1a._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: false,
+            isJockeyInRace: true,
+            percentagePayout: 10,
+        });
+        await Invitation.create({
+            horseId: horses[0]._id,
+            jockeyId: jockeyUsers[1]._id,
+            registrationId: reg1a._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: true,
+            isJockeyInRace: false,
+            percentagePayout: 8,
+        });
+
+        // owner2 → verified (Desert Wind / Luca Moretti)
+        const reg1b = await Registration.create({
+            raceRoundId: round1._id,
+            horseOwnerId: horseOwners[1]._id,
+            approvedByAdminId: adminUsers[0]._id,
+            registrationStatus: 'verified',
+            registeredAt: new Date('2026-06-10T10:00:00Z'),
+        });
+        await Invitation.create({
+            horseId: horses[2]._id,
+            jockeyId: jockeyUsers[1]._id,
+            registrationId: reg1b._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: false,
+            isJockeyInRace: true,
+            percentagePayout: 12,
+        });
+
+        // owner3 → failed (Golden Flash — soundness issue)
+        const reg1c = await Registration.create({
+            raceRoundId: round1._id,
+            horseOwnerId: horseOwners[2]._id,
+            approvedByAdminId: adminUsers[0]._id,
+            registrationStatus: 'failed',
+            verificationFailReason: 'Horse failed pre-race soundness check — elevated heart rate and lameness detected in left foreleg',
+            registeredAt: new Date('2026-06-10T11:00:00Z'),
+        });
+        await Invitation.create({
+            horseId: horses[4]._id,
+            jockeyId: jockeyUsers[2]._id,
+            registrationId: reg1c._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: false,
+            isJockeyInRace: false,
+            percentagePayout: 10,
+        });
+
+        console.log('✅ Round 1 (prepared) — Morning Sprint');
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ROUND 2 — Evening Classic                        [STATUS: scheduled]
+        // Referee assigned and accepted. Pre-race inspection in progress.
+        //   • owner1 (Alice)  → approved   (Silver Comet / Yuki Tanaka ✓)
+        //   • owner2 (Bruno)  → approved   (Midnight Star / Marco Rossi — jockey NOT confirmed yet)
+        //   • owner3 (Celine) → pending    (no horse or jockey assigned yet)
+        // ══════════════════════════════════════════════════════════════════════
+        const round2 = await RaceRound.create({
+            tournamentId: springTournament._id,
+            createdByAdminId: adminUsers[0]._id,
+            roundName: 'Evening Classic',
+            raceDate: new Date('2026-06-25T17:00:00Z'),
+            trackLength: 1600,
+            maxParticipants: 10,
+            status: 'scheduled',
+            minimalRidingFees: 800,
+            raceGround: 'Dirt',
+            requireEntranceFees: false,
+            firstPlacePrize: 100000,
+            secondPlacePrize: 40000,
+            thirdPlacePrize: 20000,
+            currencyType: 'USD',
+            location: 'Horsari Racecourse',
+            address: '1 Race Blvd, Horseville HC 10001',
+            eligibilityRuleId: claimingRule._id,
+        });
+
+        // referee1 (David Park) also assigned to round2
+        await RaceReferee.create({
+            raceRoundId: round2._id,
+            refereeId: refereeUsers[0]._id,
+            assignedByAdminId: adminUsers[0]._id,
+            status: 'assigned',
+            fee: 2000,
+            paymentStatus: 'unpaid',
+        });
+
+        // owner1 → approved (Silver Comet / Yuki Tanaka — main confirmed; Marco Rossi — backup pending)
+        const reg2a = await Registration.create({
+            raceRoundId: round2._id,
+            horseOwnerId: horseOwners[0]._id,
+            approvedByAdminId: adminUsers[0]._id,
+            registrationStatus: 'approved',
+            registeredAt: new Date('2026-06-12T09:00:00Z'),
+        });
+        await Invitation.create({
+            horseId: horses[1]._id,
+            jockeyId: jockeyUsers[2]._id,
+            registrationId: reg2a._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: false,
+            isJockeyInRace: false,
+            percentagePayout: 15,
+        });
+        await Invitation.create({
+            horseId: horses[1]._id,
+            jockeyId: jockeyUsers[0]._id,
+            registrationId: reg2a._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: false,
+            invitationStatus: 'pending',
+            isBackup: true,
+            isJockeyInRace: false,
+            percentagePayout: 10,
+        });
+
+        // owner2 → approved (Midnight Star / Marco Rossi — jockey pending confirmation)
+        const reg2b = await Registration.create({
+            raceRoundId: round2._id,
+            horseOwnerId: horseOwners[1]._id,
+            approvedByAdminId: adminUsers[0]._id,
+            registrationStatus: 'approved',
+            registeredAt: new Date('2026-06-12T10:00:00Z'),
+        });
+        await Invitation.create({
+            horseId: horses[3]._id,
+            jockeyId: jockeyUsers[0]._id,
+            registrationId: reg2b._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: false,
+            invitationStatus: 'pending',
+            isBackup: false,
+            isJockeyInRace: false,
+            percentagePayout: 10,
+        });
+
+        // owner3 → pending (owner has not responded, no horse or jockey yet)
+        await Registration.create({
+            raceRoundId: round2._id,
+            horseOwnerId: horseOwners[2]._id,
+            registrationStatus: 'pending',
+            registeredAt: new Date('2026-06-13T08:00:00Z'),
+        });
+
+        console.log('✅ Round 2 (scheduled) — Evening Classic');
+
+        // ══════════════════════════════════════════════════════════════════════
+        // ROUND 3 — Standalone Night Race       [STATUS: running] (non-tournament)
+        // Admin has started the race. Live monitoring active.
+        //   • owner1 (Alice) → verified  (Thunderbolt / Luca Moretti ✓)
+        //   • owner2 (Bruno) → verified  (Desert Wind / Yuki Tanaka ✓)
+        // ══════════════════════════════════════════════════════════════════════
+        const round3 = await RaceRound.create({
+            tournamentId: nonTournament._id,
+            createdByAdminId: adminUsers[1]._id,
+            roundName: 'Standalone Night Race',
+            raceDate: new Date('2026-06-20T20:00:00Z'),
+            trackLength: 1000,
+            maxParticipants: 6,
+            status: 'running',
+            minimalRidingFees: 300,
+            raceGround: 'Synthetic',
+            requireEntranceFees: false,
+            firstPlacePrize: 25000,
+            secondPlacePrize: 10000,
+            thirdPlacePrize: 5000,
+            currencyType: 'USD',
+            location: 'City Downs Arena',
+            address: '99 Night Track Rd, Horseville HC 20002',
+            eligibilityRuleId: maidenRule._id,
+        });
+
+        // referee2 (Elena Vasquez) assigned and accepted
+        await RaceReferee.create({
+            raceRoundId: round3._id,
+            refereeId: refereeUsers[1]._id,
+            assignedByAdminId: adminUsers[1]._id,
+            status: 'assigned',
+            fee: 1000,
+            paymentStatus: 'paid',
+        });
+
+        // owner1 → verified (Thunderbolt / Luca Moretti)
+        const reg3a = await Registration.create({
+            raceRoundId: round3._id,
+            horseOwnerId: horseOwners[0]._id,
+            approvedByAdminId: adminUsers[1]._id,
+            registrationStatus: 'verified',
+            registeredAt: new Date('2026-06-15T09:00:00Z'),
+        });
+        await Invitation.create({
+            horseId: horses[0]._id,
+            jockeyId: jockeyUsers[1]._id,
+            registrationId: reg3a._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: false,
+            isJockeyInRace: true,
+            percentagePayout: 10,
+        });
+
+        // owner2 → verified (Desert Wind / Yuki Tanaka)
+        const reg3b = await Registration.create({
+            raceRoundId: round3._id,
+            horseOwnerId: horseOwners[1]._id,
+            approvedByAdminId: adminUsers[1]._id,
+            registrationStatus: 'verified',
+            registeredAt: new Date('2026-06-15T10:00:00Z'),
+        });
+        await Invitation.create({
+            horseId: horses[2]._id,
+            jockeyId: jockeyUsers[2]._id,
+            registrationId: reg3b._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: false,
+            isJockeyInRace: true,
+            percentagePayout: 12,
+        });
+
+        console.log('✅ Round 3 (running) — Standalone Night Race');
+
+        // ══════════════════════════════════════════════════════════════════════
+        // VIOLATION TYPES  (from SRS violation catalogue)
+        // ══════════════════════════════════════════════════════════════════════
+        const vtDefs = [
+            // ── pre-race — horse safety ───────────────────────────────────────
+            { violationName: 'Unfit Horse',              violationDescription: 'Horse is unsafe or unhealthy to race.',                              type: 'pre-race',    category: 'horse-safety',   severity: 3, defaultPenalty: 'Horse scratched' },
+            { violationName: 'Unauthorized Equipment',   violationDescription: 'Illegal or undeclared racing tack detected.',                        type: 'pre-race',    category: 'horse-safety',   severity: 3, defaultPenalty: 'Disqualification' },
+            { violationName: 'Injury Non-Disclosure',    violationDescription: 'Failure to report a known injury before race.',                      type: 'pre-race',    category: 'horse-safety',   severity: 2, defaultPenalty: 'Fine' },
+            { violationName: 'Improper Treatment',       violationDescription: 'Unauthorized veterinary treatment administered pre-race.',            type: 'pre-race',    category: 'horse-safety',   severity: 3, defaultPenalty: 'Suspension' },
+            { violationName: 'Horse Abuse',              violationDescription: 'Abuse, neglect, or unsafe handling of the horse in stable/paddock.', type: 'pre-race',    category: 'horse-safety',   severity: 4, defaultPenalty: 'Major suspension' },
+            // ── pre-race — medication ─────────────────────────────────────────
+            { violationName: 'Race-Day Medication',      violationDescription: 'Prohibited medication administered within race-day window.',          type: 'pre-race',    category: 'medication',     severity: 4, defaultPenalty: 'Fine or DQ' },
+            // ── pre-race — administrative ─────────────────────────────────────
+            { violationName: 'False Documentation',      violationDescription: 'Fake records or fraudulent registration documents submitted.',        type: 'pre-race',    category: 'administrative', severity: 4, defaultPenalty: 'Suspension' },
+            { violationName: 'Unlicensed Participation', violationDescription: 'Participant racing without valid authorization or license.',          type: 'pre-race',    category: 'administrative', severity: 4, defaultPenalty: 'Removal' },
+            { violationName: 'Restricted Area Access',   violationDescription: 'Unauthorized access to stable, paddock, or restricted zones.',       type: 'pre-race',    category: 'administrative', severity: 2, defaultPenalty: 'Removal' },
+            { violationName: 'Failure to Comply',        violationDescription: 'Ignoring official steward or referee instructions.',                  type: 'pre-race',    category: 'administrative', severity: 2, defaultPenalty: 'Fine' },
+            // ── during-race — riding ──────────────────────────────────────────
+            { violationName: 'Interference',             violationDescription: 'Blocking or impeding another horse during the race.',                 type: 'during-race', category: 'riding',         severity: 2, defaultPenalty: 'Warning or demotion' },
+            { violationName: 'Careless Riding',          violationDescription: 'Unsafe riding without reckless intent.',                             type: 'during-race', category: 'riding',         severity: 2, defaultPenalty: 'Fine or suspension' },
+            { violationName: 'Dangerous Riding',         violationDescription: 'Reckless riding causing serious danger to others.',                  type: 'during-race', category: 'riding',         severity: 3, defaultPenalty: 'Suspension' },
+            { violationName: 'Course Deviation',         violationDescription: 'Failure to maintain the prescribed racing line.',                    type: 'during-race', category: 'riding',         severity: 1, defaultPenalty: 'Warning' },
+            { violationName: 'Excessive Whip Use',       violationDescription: 'Whip usage exceeds permitted limits.',                              type: 'during-race', category: 'riding',         severity: 2, defaultPenalty: 'Fine' },
+            { violationName: 'False Start',              violationDescription: 'Horse leaves the gate before the official start signal.',            type: 'during-race', category: 'riding',         severity: 2, defaultPenalty: 'Declared non-starter' },
+            { violationName: 'Non-Competitive Riding',   violationDescription: 'Jockey fails to make a full, genuine racing effort.',               type: 'during-race', category: 'riding',         severity: 2, defaultPenalty: 'Investigation' },
+            // ── during-race — betting ─────────────────────────────────────────
+            { violationName: 'Race Fixing',              violationDescription: 'Deliberate manipulation of the race outcome.',                       type: 'during-race', category: 'betting',        severity: 5, defaultPenalty: 'Permanent ban' },
+            { violationName: 'Collusion',                violationDescription: 'Coordinated manipulation between parties to affect the result.',     type: 'during-race', category: 'betting',        severity: 5, defaultPenalty: 'Ban' },
+            { violationName: 'Insider Betting',          violationDescription: 'Restricted individual placing bets using non-public race information.', type: 'during-race', category: 'betting',    severity: 3, defaultPenalty: 'Account suspension' },
+            { violationName: 'Betting Fraud',            violationDescription: 'Fraudulent betting activity to gain unlawful advantage.',            type: 'during-race', category: 'betting',        severity: 4, defaultPenalty: 'Account closure' },
+            { violationName: 'Odds Manipulation',        violationDescription: 'Artificially manipulating market odds.',                             type: 'during-race', category: 'betting',        severity: 3, defaultPenalty: 'Investigation' },
+            // ── after-race — riding ───────────────────────────────────────────
+            { violationName: 'Weigh-In Violation',       violationDescription: 'Incorrect rider weight recorded after the race.',                    type: 'after-race',  category: 'riding',         severity: 3, defaultPenalty: 'Disqualification' },
+            // ── after-race — medication ───────────────────────────────────────
+            { violationName: 'Positive Drug Test',       violationDescription: 'Prohibited substance detected in post-race sample.',                 type: 'after-race',  category: 'medication',     severity: 4, defaultPenalty: 'Disqualification' },
+            { violationName: 'Banned Substance',         violationDescription: 'Possession of an illegal substance confirmed post-race.',            type: 'after-race',  category: 'medication',     severity: 4, defaultPenalty: 'Suspension' },
+            { violationName: 'Sample Tampering',         violationDescription: 'Interfering with or adulterating drug test samples.',               type: 'after-race',  category: 'medication',     severity: 5, defaultPenalty: 'Severe suspension' },
+            { violationName: 'Test Refusal',             violationDescription: 'Refusing to participate in mandatory post-race testing.',            type: 'after-race',  category: 'medication',     severity: 4, defaultPenalty: 'Automatic violation' },
+            // ── after-race — administrative ───────────────────────────────────
+            { violationName: 'Failure to Attend Inquiry',violationDescription: 'Ignoring or failing to appear at a mandatory steward inquiry.',     type: 'after-race',  category: 'administrative', severity: 2, defaultPenalty: 'Fine' },
+        ];
+
+        const violationTypes = {};
+        for (const def of vtDefs) {
+            const vt = await ViolationType.create({ ...def, isActive: true });
+            violationTypes[def.violationName] = vt;
+        }
+        console.log(`✅ Created ${vtDefs.length} violation types`);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // SAMPLE VIOLATIONS — Round 1 / reg1c (Celine's failed Golden Flash)
+        // ══════════════════════════════════════════════════════════════════════
+        await Violation.create({
+            raceRoundId: round1._id,
+            registrationId: reg1c._id,
+            raceRefereeId: raceRef1._id,
+            violationTypeId: violationTypes['Unfit Horse']._id,
+            description: 'Elevated heart rate and lameness detected in left foreleg during pre-race soundness check.',
+            severity: 3,
+            stewardAction: 'no-action',
+            violationStatus: 'confirmed',
+        });
+        await Violation.create({
+            raceRoundId: round1._id,
+            registrationId: reg1c._id,
+            raceRefereeId: raceRef1._id,
+            violationTypeId: violationTypes['Unauthorized Equipment']._id,
+            description: 'Non-declared blinker cup found during gear inspection.',
+            severity: 3,
+            stewardAction: 'no-action',
+            violationStatus: 'confirmed',
+        });
+        console.log('✅ Created 2 sample violations for Round 1 / Golden Flash (reg1c)');
+
+        // ── Summary ───────────────────────────────────────────────────────────
+        console.log('\n✅ Seed completed!');
+        console.log('════════════════════════════════════════════════════════════');
+        console.log('Password for all accounts: Mongodb@1234');
+        console.log('');
+        console.log('ACCOUNTS');
+        console.log('  Horse Owners  horseowner1@horsari.com  Alice Chen');
+        console.log('                horseowner2@horsari.com  Bruno Hartmann');
+        console.log('                horseowner3@horsari.com  Celine Dupont');
+        console.log('  Admins        admin1@horsari.com');
+        console.log('  Referees      referee1@horsari.com     David Park  (Round 1 & 2)');
+        console.log('                referee2@horsari.com     Elena Vasquez (Round 3)');
+        console.log('  Jockeys       jockey1@horsari.com      Marco Rossi');
+        console.log('                jockey2@horsari.com      Luca Moretti');
+        console.log('                jockey3@horsari.com      Yuki Tanaka');
+        console.log('');
+        console.log('RACE STATE SNAPSHOT');
+        console.log('  Spring Classic 2026');
+        console.log('    Round 1 — Morning Sprint   [prepared]   ← admin: start or cancel');
+        console.log('      owner1 Alice  → verified   Thunderbolt  / Marco Rossi ✓ (main, racing)');
+        console.log('                                              Luca Moretti   (backup, confirmed)');
+        console.log('      owner2 Bruno  → verified   Desert Wind  / Luca Moretti ✓');
+        console.log('      owner3 Celine → failed     Golden Flash (soundness issue)');
+        console.log('    Round 2 — Evening Classic  [scheduled]  ← referee: inspect');
+        console.log('      owner1 Alice  → approved   Silver Comet  / Yuki Tanaka ✓ (main, confirmed)');
+        console.log('                                               Marco Rossi   (backup, pending)');
+        console.log('      owner2 Bruno  → approved   Midnight Star / Marco Rossi ⌛ (jockey pending)');
+        console.log('      owner3 Celine → pending    (no horse or jockey assigned)');
+        console.log('  Non-tournament');
+        console.log('    Round 3 — Standalone Night Race [running] ← live now');
+        console.log('      owner1 Alice  → verified   Thunderbolt  / Luca Moretti ✓');
+        console.log('      owner2 Bruno  → verified   Desert Wind  / Yuki Tanaka ✓');
+        console.log('════════════════════════════════════════════════════════════');
 
         process.exit(0);
     } catch (error) {

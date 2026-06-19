@@ -9,7 +9,12 @@ import PreRacePage from "./Preracepage";
 import LivePage from "./LivePage.tsx";
 import PostRacePage from "./Postracepage.tsx";
 import { RaceSocketContext } from "../../providers/useRaceSocket";
-import type { RaceRoundDetail, RegistrationDetail } from "../../providers/useRaceSocket";
+import type {
+    RaceRoundDetail,
+    RegistrationDetail,
+    RaceUpdate,
+    RaceFinishedPayload,
+} from "../../providers/useRaceSocket";
 import { refereeService } from "../../api/refereeService";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -19,12 +24,23 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 function derivePhase(status?: string): RacePhase {
     if (status === "running") return "live";
     if (status === "completed") return "post";
+    if (status === "prepared") return "pre";
     return "pre";
 }
 
 function mapHorses(registrations: RegistrationDetail[] = []): HorseEntry[] {
     return registrations.map((reg, idx) => {
-        const jockeyName = (reg.Jockey?._id as any)?.fullName ?? "Unknown Jockey";
+        // Mirror PreRacePage: jockey comes from the Invitations array, not reg.Jockey
+        const confirmedInv = reg.Invitations?.find(inv => inv.isJockeyInRace)
+            ?? reg.Invitations?.find(inv => inv.jockeyConfirmation);
+        const jockeyName = (confirmedInv?.jockeyId?._id as any)?.fullName
+            ?? (reg.Jockey?._id as any)?.fullName  // secondary fallback
+            ?? "No Jockey";
+        const jockeyId = String(
+            (confirmedInv?.jockeyId?._id as any)?._id
+            ?? (reg.Jockey?._id as any)?._id
+            ?? ""
+        );
         return {
             number: idx + 1,
             name: reg.Horse?.horseName ?? `Horse #${idx + 1}`,
@@ -34,7 +50,7 @@ function mapHorses(registrations: RegistrationDetail[] = []): HorseEntry[] {
             microchipId: "",
             photo: "",
             mainJockey: {
-                id: String((reg.Jockey?._id as any)?._id ?? ""),
+                id: jockeyId,
                 name: jockeyName,
                 license: "",
                 role: "main",
@@ -130,6 +146,10 @@ export default function RaceMonitorIndex() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Live simulation state from socket
+    const [liveUpdate, setLiveUpdate] = useState<RaceUpdate | null>(null);
+    const [raceFinished, setRaceFinished] = useState<RaceFinishedPayload | null>(null);
+
     // Fetch race round on mount
     useEffect(() => {
         if (!raceRoundId) {
@@ -164,11 +184,41 @@ export default function RaceMonitorIndex() {
     useEffect(() => {
         const socket = io(SOCKET_URL, { withCredentials: true });
         socketRef.current = socket;
+
         socket.on('connect', () => setWsConnected(true));
         socket.on('disconnect', () => setWsConnected(false));
         socket.on('test_ping', ({ count }: { count: number }) => setWsCount(count));
+
+        // Join the race-specific room so the server can push targeted events
+        if (raceRoundId) {
+            socket.on('connect', () => {
+                socket.emit('join_race', { raceRoundId });
+            });
+            // Also join immediately if already connected
+            if (socket.connected) {
+                socket.emit('join_race', { raceRoundId });
+            }
+        }
+
+        // Real-time simulation tick
+        socket.on('race_update', (payload: RaceUpdate) => {
+            setLiveUpdate(payload);
+            setPhase('live');
+        });
+
+        // Race simulation finished
+        socket.on('race_finished', (payload: RaceFinishedPayload) => {
+            setRaceFinished(payload);
+            setPhase('post');
+        });
+
+        // Admin started / cancelled the race
+        socket.on('race_status_changed', ({ status }: { status: string }) => {
+            setPhase(derivePhase(status));
+        });
+
         return () => { socket.disconnect(); };
-    }, []);
+    }, [raceRoundId]);
 
     if (loading) {
         return (
@@ -209,7 +259,15 @@ export default function RaceMonitorIndex() {
     }
 
     return (
-        <RaceSocketContext.Provider value={{ socket: socketRef.current, wsConnected, wsCount, raceRound, horses }}>
+        <RaceSocketContext.Provider value={{
+            socket: socketRef.current,
+            wsConnected,
+            wsCount,
+            raceRound,
+            horses,
+            liveUpdate,
+            raceFinished,
+        }}>
             <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                 <div className="max-w-5xl mx-auto px-5 py-8">
                     <PageHeader phase={phase} raceRound={raceRound} onBack={() => navigate("/referee/tournaments")} />

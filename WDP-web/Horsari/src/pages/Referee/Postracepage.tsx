@@ -1,22 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { AlertTriangle, Camera, ChevronLeft, ChevronRight, Flag, Medal, Play, Pause, SkipBack, SkipForward, Trophy, Video } from "lucide-react";
-import { RACE, HORSES, LOGGED_INCIDENTS, ordinal } from "../../shared/data/RaceData";
+import { ordinal } from "../../shared/data/RaceData";
 import { useRaceSocket } from "../../providers/useRaceSocket";
+import { refereeService } from "../../api/refereeService";
+import MuxPlayer from "@mux/mux-player-react";
 
-// ── Race video clips ──────────────────────────────────────────────────────────
-
-const RACE_CLIPS = [
-    { id: 1, label: "Main Broadcast", timestamp: "0:00 – 1:48", src: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80", duration: "1:48" },
-    { id: 2, label: "Head-On View", timestamp: "0:00 – 1:48", src: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=900&q=80", duration: "1:48" },
-    { id: 3, label: "Drone Cam", timestamp: "0:00 – 1:48", src: "https://images.unsplash.com/photo-1566033117334-c8a4f80c8df4?w=900&q=80", duration: "1:48" },
-    { id: 4, label: "Finish Line Cam", timestamp: "1:42 – 1:50", src: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=900&q=80", duration: "0:08" },
-    { id: 5, label: "Jockey Cam #1", timestamp: "0:00 – 1:48", src: "https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=900&q=80", duration: "1:48" },
-];
-
-function VideoReviewPanel() {
-    const [activeClip, setActiveClip] = useState(RACE_CLIPS[0]);
-    const [playing, setPlaying] = useState(false);
-    const activeIdx = RACE_CLIPS.findIndex(c => c.id === activeClip.id);
+function VideoReviewPanel({ raceRound }: { raceRound: any }) {
+    const playbackId = raceRound?.muxVodPlaybackId || raceRound?.muxPlaybackId;
 
     return (
         <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
@@ -24,125 +15,89 @@ function VideoReviewPanel() {
                 <h2 className="text-[13px] font-bold text-white flex items-center gap-2" style={{ fontFamily: "'Playfair Display', serif" }}>
                     <Video size={14} className="text-blue-400" /> Race Video Review
                 </h2>
-                <span className="text-[11px] text-gray-600 font-medium">{RACE_CLIPS.length} clips</span>
+                {playbackId && <span className="text-[11px] text-gray-600 font-medium">VOD Playback</span>}
             </div>
 
             {/* Video player */}
-            <div className="relative mx-4 mt-4 rounded-xl overflow-hidden aspect-video bg-black">
-                <img src={activeClip.src} alt={activeClip.label} className="w-full h-full object-cover opacity-80 transition-all duration-300" />
-
-                {/* Clip label overlay */}
-                <div className="absolute top-2.5 left-2.5 bg-black/70 backdrop-blur px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                    <Video size={10} className="text-blue-400" />
-                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">{activeClip.label}</span>
-                </div>
-
-                {/* Duration badge */}
-                <div className="absolute top-2.5 right-2.5 bg-black/70 backdrop-blur px-2 py-0.5 rounded-lg">
-                    <span className="text-[10px] font-mono text-gray-300">{activeClip.duration}</span>
-                </div>
-
-                {/* Timestamp */}
-                <div className="absolute bottom-2.5 left-2.5 bg-black/70 backdrop-blur px-2.5 py-1 rounded-lg">
-                    <span className="text-[10px] text-gray-400 font-mono">{activeClip.timestamp}</span>
-                </div>
-
-                {/* Play/pause overlay */}
-                <button
-                    onClick={() => setPlaying(p => !p)}
-                    className="absolute inset-0 flex items-center justify-center group"
-                >
-                    <div className={["w-12 h-12 rounded-full flex items-center justify-center transition-all duration-150 backdrop-blur",
-                        playing ? "bg-white/10 opacity-0 group-hover:opacity-100" : "bg-black/60 group-hover:bg-black/80",
-                    ].join(" ")}>
-                        {playing
-                            ? <Pause size={20} className="text-white" />
-                            : <Play size={20} className="text-white ml-0.5" />
-                        }
+            <div className="relative mx-4 mt-4 mb-4 rounded-xl overflow-hidden aspect-video bg-black">
+                {playbackId ? (
+                    <MuxPlayer
+                        playbackId={playbackId}
+                        className="w-full h-full"
+                        style={{ aspectRatio: "16/9" }}
+                    />
+                ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-full text-gray-500">
+                        <Video size={32} className="mb-2 opacity-50" />
+                        <p className="text-[12px] font-medium">Recording is being processed...</p>
+                        <p className="text-[10px] text-gray-600 mt-1">Check back shortly.</p>
                     </div>
-                </button>
-            </div>
-
-            {/* Playback controls */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/6">
-                <div className="flex items-center gap-1">
-                    <button onClick={() => setActiveClip(RACE_CLIPS[Math.max(0, activeIdx - 1)])}
-                        disabled={activeIdx === 0}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-200 hover:bg-white/8 disabled:opacity-30 transition-all">
-                        <SkipBack size={13} />
-                    </button>
-                    <button onClick={() => setPlaying(p => !p)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/8 text-white hover:bg-white/12 transition-all">
-                        {playing ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
-                    </button>
-                    <button onClick={() => setActiveClip(RACE_CLIPS[Math.min(RACE_CLIPS.length - 1, activeIdx + 1)])}
-                        disabled={activeIdx === RACE_CLIPS.length - 1}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-200 hover:bg-white/8 disabled:opacity-30 transition-all">
-                        <SkipForward size={13} />
-                    </button>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-gray-600">
-                    <span>{activeIdx + 1}</span><span>/</span><span>{RACE_CLIPS.length}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <button onClick={() => setActiveClip(RACE_CLIPS[Math.max(0, activeIdx - 1)])}
-                        className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors flex items-center gap-0.5">
-                        <ChevronLeft size={11} /> Prev
-                    </button>
-                    <span className="text-gray-700 mx-1">·</span>
-                    <button onClick={() => setActiveClip(RACE_CLIPS[Math.min(RACE_CLIPS.length - 1, activeIdx + 1)])}
-                        className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors flex items-center gap-0.5">
-                        Next <ChevronRight size={11} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Clip list */}
-            <div className="p-3 flex flex-col gap-1.5">
-                {RACE_CLIPS.map((clip, i) => (
-                    <button key={clip.id} onClick={() => { setActiveClip(clip); setPlaying(false); }}
-                        className={["w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all",
-                            activeClip.id === clip.id
-                                ? "bg-blue-500/10 border border-blue-700/40"
-                                : "bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10",
-                        ].join(" ")}
-                    >
-                        <div className={["w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-bold",
-                            activeClip.id === clip.id ? "bg-blue-600 text-white" : "bg-white/8 text-gray-500"].join(" ")}>
-                            {i + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className={["text-[12px] font-semibold truncate",
-                                activeClip.id === clip.id ? "text-blue-300" : "text-white"].join(" ")}>
-                                {clip.label}
-                            </p>
-                            <p className="text-[10.5px] text-gray-600 mt-0.5">{clip.timestamp}</p>
-                        </div>
-                        <span className="text-[10px] font-mono text-gray-600 shrink-0">{clip.duration}</span>
-                        {activeClip.id === clip.id && playing && (
-                            <span className="flex items-center gap-0.5 shrink-0">
-                                {[0, 1, 2].map(b => (
-                                    <span key={b} className="w-0.5 bg-blue-400 rounded-full animate-pulse"
-                                        style={{ height: 8 + b * 4, animationDelay: `${b * 0.15}s` }} />
-                                ))}
-                            </span>
-                        )}
-                    </button>
-                ))}
+                )}
             </div>
         </div>
     );
 }
 
 export default function PostRacePage() {
+    const { raceRoundId } = useParams<{ raceRoundId: string }>();
     const [objectionResolved] = useState(false);
     const [published, setPublished] = useState(false);
-    const sorted = [...HORSES].sort((a, b) => (a.finishPosition ?? 9) - (b.finishPosition ?? 9));
-    const hasObjection = sorted.some(h => h.objection) && !objectionResolved;
+    const [isPublishing, setIsPublishing] = useState(false);
+
+    const [raceRound, setRaceRound] = useState<any>(null);
+    const [violations, setViolations] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
     // ── Shared WS connection ───────────────────────────────────────────────
     const { wsConnected, wsCount } = useRaceSocket();
     // ────────────────────────────────────────────────────────
+
+    useEffect(() => {
+        if (!raceRoundId) return;
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [raceRes, violRes] = await Promise.all([
+                    refereeService.getRaceRoundById(raceRoundId),
+                    refereeService.getRaceRoundViolations(raceRoundId)
+                ]);
+                setRaceRound(raceRes.data);
+                setViolations(violRes.data || []);
+            } catch (err) {
+                console.error("Error fetching post-race data:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [raceRoundId]);
+
+    const registrations = (raceRound?.Registration || []).filter((r: any) => r.registrationStatus === 'verified');
+    const sorted = [...registrations].sort((a: any, b: any) => {
+        const posA = a.RaceResult?.finishPosition ?? 999;
+        const posB = b.RaceResult?.finishPosition ?? 999;
+        return posA - posB;
+    });
+
+    const hasObjection = violations.some(v => v.violationStatus === 'pending') && !objectionResolved;
+
+    const handlePublish = async () => {
+        if (hasObjection || published || !raceRoundId || isPublishing) return;
+        try {
+            setIsPublishing(true);
+            await refereeService.confirmRaceResult(raceRoundId);
+            setPublished(true);
+        } catch (err) {
+            console.error("Error publishing results:", err);
+            alert("Failed to publish results");
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
+    if (loading) {
+        return <div className="text-white p-5 flex items-center gap-3"><div className="w-5 h-5 border-2 border-t-blue-500 border-white/20 rounded-full animate-spin"/> Loading race results...</div>;
+    }
 
     return (
         <div className="flex flex-col gap-5">
@@ -173,30 +128,40 @@ export default function PostRacePage() {
                         )}
                     </div>
                     <div className="p-3 flex flex-col gap-2">
-                        {sorted.map(horse => {
-                            const pos = horse.finishPosition ?? 0;
+                        {sorted.map(reg => {
+                            const horse = reg.Horse || {};
+                            const confirmedInv = reg.Invitations?.[0];
+                            const jockey = confirmedInv?.jockeyId?._id || confirmedInv?.jockeyId || {};
+                            const result = reg.RaceResult || {};
+                            const pos = result.finishPosition ?? 0;
                             const posColor = pos === 1 ? "text-yellow-400" : pos === 2 ? "text-gray-300" : pos === 3 ? "text-amber-500" : "text-gray-600";
                             const posBg = pos === 1 ? "bg-yellow-600" : pos === 2 ? "bg-gray-500" : pos === 3 ? "bg-amber-700" : "bg-white/8";
+                            
+                            const hasHorseObjection = violations.some(v => 
+                                (v.registrationId === reg._id || v.registrationId?._id === reg._id) && 
+                                v.violationStatus === 'pending'
+                            );
+
                             return (
-                                <div key={horse.number} className={["rounded-xl border px-4 py-3 flex items-center gap-3",
-                                    horse.objection && !objectionResolved ? "border-red-800/60 bg-red-500/5"
-                                        : pos <= 3 ? "border-white/10 bg-white/[0.03]"
+                                <div key={reg._id} className={["rounded-xl border px-4 py-3 flex items-center gap-3",
+                                    hasHorseObjection && !objectionResolved ? "border-red-800/60 bg-red-500/5"
+                                        : pos > 0 && pos <= 3 ? "border-white/10 bg-white/[0.03]"
                                             : "border-white/6 bg-white/[0.02]"].join(" ")}
                                 >
-                                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-black shrink-0 text-white ${posBg}`}>{pos}</span>
-                                    <span className="w-6 h-6 rounded-full bg-white/8 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">{horse.number}</span>
+                                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-black shrink-0 text-white ${posBg}`}>{pos || "-"}</span>
+                                    <span className="w-6 h-6 rounded-full bg-white/8 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">{horse.horseNumber || "?"}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className={["text-[13.5px] font-bold",
-                                            horse.objection && !objectionResolved ? "text-red-400" : pos <= 3 ? "text-white" : "text-gray-400"].join(" ")}>
-                                            {horse.name}
+                                            hasHorseObjection && !objectionResolved ? "text-red-400" : pos > 0 && pos <= 3 ? "text-white" : "text-gray-400"].join(" ")}>
+                                            {horse.horseName || "Unknown Horse"}
                                         </p>
-                                        <p className="text-[11.5px] text-gray-500 mt-0.5">{horse.jockey}</p>
+                                        <p className="text-[11.5px] text-gray-500 mt-0.5">{jockey.fullName || "Unknown Jockey"}</p>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <p className={`text-[13px] font-bold font-mono ${posColor}`}>{horse.finishTime}</p>
-                                        <p className={`text-[10px] font-bold uppercase mt-0.5 ${posColor}`}>{ordinal(pos)}</p>
+                                        <p className={`text-[13px] font-bold font-mono ${posColor}`}>{result.finishTime || "--:--"}</p>
+                                        <p className={`text-[10px] font-bold uppercase mt-0.5 ${posColor}`}>{pos > 0 ? ordinal(pos) : "N/A"}</p>
                                     </div>
-                                    {horse.objection && !objectionResolved && (
+                                    {hasHorseObjection && !objectionResolved && (
                                         <span className="flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-2 py-0.5 rounded-full ml-1 shrink-0">
                                             <Flag size={9} /> Objection
                                         </span>
@@ -208,7 +173,7 @@ export default function PostRacePage() {
                 </div>
 
                 {/* Video review */}
-                <VideoReviewPanel />
+                <VideoReviewPanel raceRound={raceRound} />
 
                 {/* Incident review */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
@@ -216,20 +181,32 @@ export default function PostRacePage() {
                         <h2 className="text-[13px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>Incident Review</h2>
                     </div>
                     <div className="p-3 flex flex-col gap-2">
-                        {LOGGED_INCIDENTS.map(inc => (
-                            <div key={inc.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/6">
-                                <AlertTriangle size={13} className="text-red-500 shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[13px] font-semibold text-white">{inc.label}</p>
-                                    <p className="text-[11.5px] text-gray-500 mt-0.5">{inc.horse} &nbsp;·&nbsp; at {inc.time}</p>
+                        {violations.map(inc => {
+                            const regId = typeof inc.registrationId === 'string' ? inc.registrationId : inc.registrationId?._id;
+                            const reg = registrations.find((r: any) => r._id === regId);
+                            const horseName = reg?.Horse?.horseName || "Unknown Horse";
+
+                            return (
+                                <div key={inc._id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/6">
+                                    <AlertTriangle size={13} className="text-red-500 shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[13px] font-semibold text-white">{inc.violationTypeId?.violationName || "Unknown Violation"}</p>
+                                        <p className="text-[11.5px] text-gray-500 mt-0.5">{horseName} &nbsp;·&nbsp; {inc.description || "No description"}</p>
+                                    </div>
+                                    <div className="flex gap-2 shrink-0">
+                                        {inc.violationStatus === 'pending' ? (
+                                            <>
+                                                <button className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-green-700/50 text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-all">Dismiss</button>
+                                                <button className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-red-700/50 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all">Penalize</button>
+                                            </>
+                                        ) : (
+                                            <span className="text-[11px] font-bold text-gray-500 capitalize">{inc.violationStatus}</span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex gap-2 shrink-0">
-                                    <button className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-green-700/50 text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-all">Dismiss</button>
-                                    <button className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-red-700/50 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all">Penalize</button>
-                                </div>
-                            </div>
-                        ))}
-                        {LOGGED_INCIDENTS.length === 0 && (
+                            );
+                        })}
+                        {violations.length === 0 && (
                             <p className="text-[12.5px] text-gray-600 text-center py-4">No incidents recorded</p>
                         )}
                     </div>
@@ -258,10 +235,10 @@ export default function PostRacePage() {
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
                     <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Summary</h2>
                     {[
-                        { label: "Winner", value: "Thunderstrike" },
-                        { label: "Time", value: RACE.officialTime },
-                        { label: "Incidents", value: `${LOGGED_INCIDENTS.length}` },
-                        { label: "Objections", value: objectionResolved ? "1 (resolved)" : "1 (pending)" },
+                        { label: "Winner", value: sorted.length > 0 && sorted[0].RaceResult?.finishPosition === 1 ? sorted[0].Horse?.horseName : "Pending" },
+                        { label: "Time", value: sorted.length > 0 && sorted[0].RaceResult?.finishPosition === 1 ? sorted[0].RaceResult?.finishTime : "--:--" },
+                        { label: "Incidents", value: `${violations.length}` },
+                        { label: "Objections", value: objectionResolved ? `${violations.length} (resolved)` : `${violations.filter(v => v.violationStatus === 'pending').length} (pending)` },
                     ].map(item => (
                         <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                             <span className="text-[12px] text-gray-500">{item.label}</span>
@@ -276,7 +253,8 @@ export default function PostRacePage() {
                         <Camera size={14} /> Review Finish Photo
                     </button>
                     <button
-                        onClick={() => !hasObjection && setPublished(true)}
+                        onClick={handlePublish}
+                        disabled={hasObjection || published || isPublishing}
                         className={["w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
                             published ? "bg-green-700 text-white cursor-default"
                                 : hasObjection ? "bg-white/5 border border-white/8 text-gray-600 cursor-not-allowed"
@@ -284,7 +262,7 @@ export default function PostRacePage() {
                         ].join(" ")}
                     >
                         <Trophy size={14} />
-                        {published ? "Results Published ✓" : hasObjection ? "Awaiting Objection" : "Publish Official Results"}
+                        {isPublishing ? "Publishing..." : published ? "Results Published ✓" : hasObjection ? "Awaiting Objection" : "Publish Official Results"}
                     </button>
                 </div>
             </div>
