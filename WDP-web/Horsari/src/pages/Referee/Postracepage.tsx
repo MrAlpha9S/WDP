@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, Camera, ChevronLeft, ChevronRight, Flag, Medal, Play, Pause, SkipBack, SkipForward, Trophy, Video } from "lucide-react";
 import { RACE, HORSES, LOGGED_INCIDENTS, ordinal } from "../../shared/data/RaceData";
+import { useRaceSocket } from "../../providers/useRaceSocket";
 
 // ── Race video clips ──────────────────────────────────────────────────────────
 
@@ -139,8 +140,24 @@ export default function PostRacePage() {
     const sorted = [...HORSES].sort((a, b) => (a.finishPosition ?? 9) - (b.finishPosition ?? 9));
     const hasObjection = sorted.some(h => h.objection) && !objectionResolved;
 
+    // ── Shared WS connection ───────────────────────────────────────────────
+    const { wsConnected, wsCount } = useRaceSocket();
+    // ────────────────────────────────────────────────────────
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
+        <div className="flex flex-col gap-5">
+            {/* ─ WS status badge ───────────────────────────────────────────────────────────── */}
+            <div className={[
+                "flex items-center gap-2.5 self-start px-3 py-1.5 rounded-xl border text-[11px] font-bold font-mono transition-all duration-300",
+                wsConnected
+                    ? "border-emerald-700/60 bg-emerald-500/10 text-emerald-400"
+                    : "border-red-800/50 bg-red-500/10 text-red-500 animate-pulse",
+            ].join(" ")}>
+                <span className={["w-2 h-2 rounded-full", wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"].join(" ")} />
+                {wsConnected ? <>WS Connected &nbsp;·&nbsp; ping #{wsCount ?? "…"}</> : <>WS Disconnected</>}
+            </div>
+            {/* ──────────────────────────────────────────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
             <div className="flex flex-col gap-5">
 
                 {/* Finish order */}
@@ -271,6 +288,7 @@ export default function PostRacePage() {
                     </button>
                 </div>
             </div>
+            </div>{/* end grid */}
         </div>
     );
 }

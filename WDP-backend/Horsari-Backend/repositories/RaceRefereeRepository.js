@@ -18,13 +18,14 @@ class RaceRefereeRepository {
         return await RaceReferee.find({ refereeId });
     }
 
-    async findInvitationsByRefereeId(refereeId, limit, skip) {
-        return await RaceReferee.find({ refereeId })
+    async findInvitationsByFilter(filter, limit, skip) {
+        return await RaceReferee.find(filter)
             .populate({
                 path: 'raceRoundId',
+                select: 'roundName raceDate location address minimalRidingFees eligibilityRuleId tournamentId',
                 populate: [
-                    { path: 'tournamentId' },
-                    { path: 'eligibilityRuleId' }
+                    { path: 'tournamentId', select: 'tournamentName' },
+                    { path: 'eligibilityRuleId', select: 'raceType gradeLevel' }
                 ]
             })
             .sort({ createdAt: -1 })
@@ -33,8 +34,8 @@ class RaceRefereeRepository {
             .lean();
     }
 
-    async countInvitationsByRefereeId(refereeId) {
-        return await RaceReferee.countDocuments({ refereeId });
+    async countInvitationsByFilter(filter) {
+        return await RaceReferee.countDocuments(filter);
     }
 
     async findAll(limit = 10, page = 1) {

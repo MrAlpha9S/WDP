@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Calendar, MapPin, Flag, Check, X,
-  Info, Ruler, Loader2, Users,
+  Info, Ruler, Loader2, Users, Trophy,
 } from "lucide-react";
 import { type Invitation, type InviteStatus } from "../../../types/Racingtypes";
 import { horseOwnerService } from "../../../api/horseOwnerService";
@@ -36,20 +36,24 @@ function normalizeInviteStatus(value: unknown): InviteStatus {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapApiToInvitation(raw: any): Invitation {
   return {
-    id:       raw.registration._id          ?? "Unknown",
-    name:     raw.raceRound?.roundName      ?? raw.name      ?? "Unnamed Race",
-    type:     raw.raceRound?.raceDate       ?? raw.type      ?? "Race",
-    status:   normalizeInviteStatus(raw.registration?.registrationStatus),
-    date:     raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : "TBA",
-    venue:    raw.raceRound?.location       ?? raw.location  ?? "TBA",
-    prize:    raw.prizePool                 ?? raw.prize     ?? "TBA",
-    grade:    raw.grade                                      ?? "TBA",
-    distance: raw.raceRound?.trackLength    ?? "TBA",
-    horse:    raw.horseName                 ?? raw.horse?.horseName ?? "TBA",
-    jockey:   raw.jockeyName                ?? raw.jockey    ?? "TBA",
-    sentBy:   raw.sentBy                    ?? raw.organizer ?? "Organizer",
-    sentAt:   raw.sentAt                    ?? raw.createdAt ?? "",
-    image:    raw.image                     ?? raw.coverImage ?? "/placeholder-race.jpg",
+    id:          raw.registration._id                                                                                        ?? "Unknown",
+    name:        raw.raceRound?.roundName                ?? raw.name                                                        ?? "Unnamed Race",
+    type:        raw.tournament?.name                    ? "Tournament"                                                     : "Race",
+    status:      normalizeInviteStatus(raw.registration?.registrationStatus),
+    date:        raw.raceRound?.raceDate                 ? formatDate(raw.raceRound.raceDate)                               : "TBA",
+    venue:       raw.raceRound?.location                 ?? raw.location                                                    ?? "TBA",
+    prize:       raw.raceRound?.firstPlacePrize != null  ? `${raw.raceRound?.currencyType ?? "USD"} ${raw.raceRound.firstPlacePrize.toLocaleString()}` : "TBA",
+    grade:       raw.raceRound?.eligibilityRuleId?.gradeLevel                                                              ?? "TBA",
+    distance:    raw.raceRound?.trackLength != null      ? `${raw.raceRound.trackLength}m`                                 : "TBA",
+    horse:       raw.horseName                           ?? raw.horse?.horseName                                           ?? "TBA",
+    jockey:      raw.jockeyName                          ?? raw.jockey                                                     ?? "TBA",
+    sentBy:      raw.sentBy                              ?? raw.organizer                                                   ?? "Organizer",
+    sentAt:      raw.sentAt                              ?? raw.createdAt                                                   ?? "",
+    image:       raw.image                               ?? raw.coverImage                                                  ?? "/placeholder-race.jpg",
+    prize1st:    raw.raceRound?.firstPlacePrize          ?? null,
+    prize2nd:    raw.raceRound?.secondPlacePrize         ?? null,
+    prize3rd:    raw.raceRound?.thirdPlacePrize          ?? null,
+    currencyType: raw.raceRound?.currencyType            ?? "USD",
   };
 }
 
@@ -139,6 +143,30 @@ function InvitationDetailModal({
               </div>
             ))}
           </div>
+
+          {/* Prize breakdown */}
+          {(inv.prize1st != null || inv.prize2nd != null || inv.prize3rd != null) && (
+            <div className="bg-[#141414] rounded-xl border border-white/6 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/6">
+                <Trophy size={13} className="text-yellow-500" />
+                <p className="text-[10px] font-semibold tracking-widest text-gray-500 uppercase">Prize Pool</p>
+              </div>
+              <div className="divide-y divide-white/5">
+                {[
+                  { label: "1st Place", value: inv.prize1st, color: "text-yellow-400" },
+                  { label: "2nd Place", value: inv.prize2nd, color: "text-gray-300"   },
+                  { label: "3rd Place", value: inv.prize3rd, color: "text-amber-700"  },
+                ].map(({ label, value, color }) => value != null && (
+                  <div key={label} className="flex items-center justify-between px-4 py-2.5">
+                    <span className="text-[12px] text-gray-500">{label}</span>
+                    <span className={`text-[13px] font-bold ${color}`}>
+                      {inv.currencyType} {value.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-4 border-t border-white/8 bg-[#1a1a1a] shrink-0 flex gap-3">

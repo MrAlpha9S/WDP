@@ -20,7 +20,6 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
         requiredGender: "any",
         requiredBreed: "",
         licenseRequired: false,
-        licenseRequired: false,
         isActive: true,
     });
 
@@ -35,7 +34,6 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                 requiredGender: rule.requiredGender || "any",
                 requiredBreed: rule.requiredBreed || "",
                 licenseRequired: rule.licenseRequired || false,
-                licenseRequired: rule.licenseRequired || false,
                 isActive: rule.isActive ?? true,
             });
         } else {
@@ -47,7 +45,6 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                 minRacesWon: 0,
                 requiredGender: "any",
                 requiredBreed: "",
-                licenseRequired: false,
                 licenseRequired: false,
                 isActive: true,
             });
@@ -85,9 +82,9 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style={{ animation: "fadeIn 0.15s ease-out" }}>
             <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
-            
+
             <div className="w-full max-w-2xl bg-[#141414] border border-white/[0.07] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                
+
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.07] shrink-0">
                     <h2 className="text-[18px] font-semibold text-white">
@@ -100,7 +97,7 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
 
                 {/* Form Body */}
                 <form id="rule-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-                    
+
                     {/* Core Info */}
                     <div className="space-y-4">
                         <div>

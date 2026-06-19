@@ -24,16 +24,29 @@ export default function InboxPage() {
     const [invites, setInvites] = useState<RaceInvite[]>([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<TabFilter>("all");
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ total: 0, totalPages: 1, limit: 5 });
+
+    // Reset page to 1 when tab changes
+    useEffect(() => {
+        setPage(1);
+    }, [tab]);
 
     useEffect(() => {
         const fetchInvitations = async () => {
+            setLoading(true);
             try {
-                const res = await refereeService.getRefereeInvitations(50, 1);
+                const STATUS_TO_DB: Partial<Record<TabFilter, string>> = {
+                    accepted: "assigned",
+                    declined: "rejected",
+                };
+                const statusParam = tab === "all" ? undefined : (STATUS_TO_DB[tab] ?? tab);
+                const res = await refereeService.getRefereeInvitations(5, page, statusParam);
                 if (res.code === 200 && res.data) {
                     const mappedInvites = res.data.map((inv: any) => {
                         const round = inv.raceRoundId || {};
                         const dateObj = new Date(round.raceDate || new Date());
-                        
+
                         let mappedStatus = inv.status;
                         if (inv.status === 'assigned') mappedStatus = 'accepted';
                         if (inv.status === 'rejected') mappedStatus = 'declined';
@@ -63,6 +76,9 @@ export default function InboxPage() {
                         };
                     });
                     setInvites(mappedInvites);
+                    if (res.pagination) {
+                        setPagination(res.pagination);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch invitations", error);
@@ -71,17 +87,7 @@ export default function InboxPage() {
             }
         };
         fetchInvitations();
-    }, []);
-
-    const counts = {
-        all: invites.length,
-        pending: invites.filter(i => i.status === "pending").length,
-        accepted: invites.filter(i => i.status === "accepted").length,
-        declined: invites.filter(i => i.status === "declined").length,
-        cancelled: invites.filter(i => i.status === "cancelled").length,
-    };
-
-    const filtered = tab === "all" ? invites : invites.filter(i => i.status === tab);
+    }, [tab, page]);
 
     const handleAccept = async (id: string) => {
         try {
@@ -147,9 +153,11 @@ export default function InboxPage() {
                             ].join(" ")}
                         >
                             {label}
-                            <span className={["text-[11px] font-bold px-1.5 py-0.5 rounded-full", tab === key ? "bg-white/20 text-white" : "bg-white/8 text-gray-500"].join(" ")}>
-                                {counts[key]}
-                            </span>
+                            {tab === key && (
+                                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-white/20 text-white">
+                                    {pagination.total}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -160,13 +168,13 @@ export default function InboxPage() {
                         <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-4" />
                         <span className="text-[13px] font-medium text-gray-400">Loading invitations...</span>
                     </div>
-                ) : filtered.length === 0 ? (
+                ) : invites.length === 0 ? (
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/8 px-5 py-14 text-center">
                         <p className="text-[13px] text-gray-600">No invitations in this category.</p>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
-                        {filtered.map(invite => (
+                        {invites.map(invite => (
                             <InviteCard
                                 key={invite.id}
                                 invite={invite}
@@ -177,15 +185,39 @@ export default function InboxPage() {
                     </div>
                 )}
 
-                {/* Footer */}
-                <div className="flex items-center justify-between mt-5 px-1">
-                    <span className="text-[12px] text-gray-600">
-                        Showing {filtered.length} of {invites.length} invitations
-                    </span>
-                    <button className="flex items-center gap-1 text-[13px] text-red-500 font-medium hover:text-red-400 transition-colors">
-                        View all <ChevronRight size={14} />
-                    </button>
-                </div>
+                {/* Footer / Pagination */}
+                {!loading && pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-5 px-1">
+                        <span className="text-[12px] text-gray-500">
+                            Page <strong className="text-white">{page}</strong> of <strong className="text-white">{pagination.totalPages}</strong>
+                            <span className="mx-2">·</span>
+                            {pagination.total} total
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white/5 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Prev
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                disabled={page === pagination.totalPages}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white/5 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Next <ChevronRight size={14} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {!loading && pagination.totalPages <= 1 && invites.length > 0 && (
+                    <div className="flex items-center justify-between mt-5 px-1">
+                        <span className="text-[12px] text-gray-600">
+                            Showing all {invites.length} invitations
+                        </span>
+                    </div>
+                )}
             </div>
         </div>
     );

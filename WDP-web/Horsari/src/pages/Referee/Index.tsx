@@ -19,6 +19,8 @@ function ActiveView({ tab }: { tab: RefereeTab }) {
             return <InboxPage />
         case "Tournaments":
             return <TournamentListPage />
+        default:
+            return <RefereeDashboard />;
     }
 }
 

@@ -38,4 +38,6 @@ const raceRefereeSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+raceRefereeSchema.index({ refereeId: 1, createdAt: -1 });
+
 module.exports = mongoose.model('RaceReferee', raceRefereeSchema);

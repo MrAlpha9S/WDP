@@ -1,5 +1,6 @@
 const RefereeRepository = require('../repositories/RefereeRepository');
 const UserRepository = require('../repositories/UserRepository');
+const RaceRefereeRepository = require('../repositories/RaceRefereeRepository');
 
 const RaceReferee = require('../entities/RaceReferee');
 const RaceRound = require('../entities/RaceRound');
@@ -67,13 +68,22 @@ class RefereeService {
     }
 
     // Get referee invitations (assigned race rounds)
-    async getRefereeInvitations(userId, limit = 10, page = 1) {
+    async getRefereeInvitations(userId, limit = 10, page = 1, status = null) {
         try {
             const skip = (page - 1) * limit;
             
+            const filter = { refereeId: userId };
+            if (status) {
+                if (status.includes(',')) {
+                    filter.status = { $in: status.split(',') };
+                } else {
+                    filter.status = status;
+                }
+            }
+
             const [invitations, total] = await Promise.all([
-                require('../repositories/RaceRefereeRepository').findInvitationsByRefereeId(userId, limit, skip),
-                require('../repositories/RaceRefereeRepository').countInvitationsByRefereeId(userId)
+                RaceRefereeRepository.findInvitationsByFilter(filter, limit, skip),
+                RaceRefereeRepository.countInvitationsByFilter(filter)
             ]);
 
             const totalPages = Math.ceil(total / limit);
@@ -249,9 +259,10 @@ class RefereeService {
     }
 
     // Get Race Rounds assigned to the referee
+    // Optimised: 7 fixed bulk queries instead of N+1 sequential loops
     async getRefereeRaceRounds(refereeId) {
         try {
-            // 1. Fetch assignments for this referee
+            // ── 1. Assignments ────────────────────────────────────────────────
             const assignments = await RaceReferee.find({ refereeId }).lean();
             if (!assignments.length) {
                 return { code: 200, data: [], msg: 'No race rounds assigned to this referee.' };
@@ -259,60 +270,76 @@ class RefereeService {
 
             const raceRoundIds = assignments.map(a => a.raceRoundId);
 
-            // 2. Fetch the corresponding RaceRounds
-            const raceRounds = await RaceRound.find({ _id: { $in: raceRoundIds } }).lean();
+            // ── 2. Bulk fetch all required collections in parallel ─────────────
+            const [raceRounds, registrationsAll] = await Promise.all([
+                RaceRound.find({ _id: { $in: raceRoundIds } }).lean(),
+                Registration.find({ raceRoundId: { $in: raceRoundIds } }).lean(),
+            ]);
 
-            const results = [];
+            // ── 3. Collect IDs for secondary bulk fetches ─────────────────────
+            const eligibilityIds = [...new Set(
+                raceRounds.filter(r => r.eligibilityRuleId).map(r => r.eligibilityRuleId.toString())
+            )];
+            const regIds = registrationsAll.map(r => r._id);
+            const ownerIds = [...new Set(
+                registrationsAll.filter(r => r.horseOwnerId).map(r => r.horseOwnerId.toString())
+            )];
 
-            for (const raceRound of raceRounds) {
-                // Fetch RaceType
-                let raceType = raceRound.raceType || null;
-                if (!raceType && raceRound.eligibilityRuleId) {
-                    const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
-                    if (rule && rule.raceType) raceType = rule.raceType;
-                }
-
-                const rrObj = {
-                    ...raceRound,
-                    RaceType: raceType,
-                    Registration: []
-                };
-
-                // Fetch Registrations
-                const registrations = await Registration.find({ raceRoundId: raceRound._id }).lean();
-
-                for (const reg of registrations) {
-                    // Fetch Owner User directly
-                    const ownerUser = reg.horseOwnerId
-                        ? await User.findById(reg.horseOwnerId, 'fullName').lean()
-                        : null;
-
-                    // Fetch Invitation (for Horse and Jockey)
-                    const invitation = await Invitation.findOne({
-                        registrationId: reg._id,
-                        isBackup: false
-                    })
+            // ── 4. Bulk fetch secondary data in parallel ──────────────────────
+            const [eligibilityRules, owners, invitations, raceResults] = await Promise.all([
+                eligibilityIds.length
+                    ? RaceEligibilityRule.find({ _id: { $in: eligibilityIds } }).lean()
+                    : Promise.resolve([]),
+                ownerIds.length
+                    ? User.find({ _id: { $in: ownerIds } }, 'fullName').lean()
+                    : Promise.resolve([]),
+                regIds.length
+                    ? Invitation.find({ registrationId: { $in: regIds }, isBackup: false })
                         .populate('horseId')
-                        .populate({
-                            path: 'jockeyId',
-                            populate: { path: '_id', model: 'User', select: 'fullName' }
-                        })
-                        .lean();
+                        .populate({ path: 'jockeyId', populate: { path: '_id', model: 'User', select: 'fullName' } })
+                        .lean()
+                    : Promise.resolve([]),
+                regIds.length
+                    ? RaceResult.find({ registrationId: { $in: regIds } }).lean()
+                    : Promise.resolve([]),
+            ]);
 
-                    // Fetch RaceResult
-                    const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
+            // ── 5. Build lookup maps ──────────────────────────────────────────
+            const eligibilityMap = new Map(eligibilityRules.map(e => [e._id.toString(), e]));
+            const ownerMap       = new Map(owners.map(u => [u._id.toString(), u]));
+            const invitationMap  = new Map(invitations.map(i => [i.registrationId.toString(), i]));
+            const raceResultMap  = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
 
-                    rrObj.Registration.push({
-                        ...reg,
-                        Horse: invitation ? invitation.horseId : null,
-                        Jockey: invitation ? invitation.jockeyId : null,
-                        Owner: ownerUser,
-                        RaceResult: raceResult || null
-                    });
-                }
-
-                results.push(rrObj);
+            // Group registrations by raceRoundId
+            const regsByRound = new Map();
+            for (const reg of registrationsAll) {
+                const key = reg.raceRoundId.toString();
+                if (!regsByRound.has(key)) regsByRound.set(key, []);
+                regsByRound.get(key).push(reg);
             }
+
+            // ── 6. Assemble results in memory ─────────────────────────────────
+            const results = raceRounds.map(raceRound => {
+                const raceType = raceRound.raceType
+                    || (raceRound.eligibilityRuleId
+                        ? eligibilityMap.get(raceRound.eligibilityRuleId.toString())?.raceType
+                        : null)
+                    || null;
+
+                const registrations = (regsByRound.get(raceRound._id.toString()) || []).map(reg => {
+                    const invitation = invitationMap.get(reg._id.toString()) || null;
+                    return {
+                        ...reg,
+                        Horse:           invitation?.horseId  || null,
+                        Jockey:          invitation?.jockeyId || null,
+                        isJockeyInRace:  invitation?.isJockeyInRace ?? false,
+                        Owner:           ownerMap.get(reg.horseOwnerId?.toString()) || null,
+                        RaceResult:      raceResultMap.get(reg._id.toString()) || null,
+                    };
+                });
+
+                return { ...raceRound, RaceType: raceType, Registration: registrations };
+            });
 
             return { code: 200, data: results, msg: 'Referee race rounds retrieved successfully' };
         } catch (error) {
@@ -321,89 +348,177 @@ class RefereeService {
         }
     }
 
+    // Get single Race Round detail (referee-scoped, no other referee info)
+    async getRaceRoundById(userId, raceRoundId) {
+        try {
+            // 1. Verify this referee is assigned to the round
+            const assignment = await RaceReferee.findOne({ raceRoundId, refereeId: userId }).lean();
+            if (!assignment) {
+                return { code: 403, msg: 'You are not assigned to this race round.' };
+            }
+
+            // 2. Fetch the race round itself
+            const raceRound = await RaceRound.findById(raceRoundId).lean();
+            if (!raceRound) {
+                return { code: 404, msg: 'Race round not found.' };
+            }
+
+            // 3. Eligibility rule (for raceType / gradeLevel)
+            let raceType = null;
+            if (raceRound.eligibilityRuleId) {
+                const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
+                if (rule) raceType = rule;
+            }
+
+            // 4. Registrations with Horse, Jockey (name), Owner, RaceResult
+            const registrations = await Registration.find({ raceRoundId: raceRound._id }).lean();
+            const enriched = await Promise.all(registrations.map(async (reg) => {
+                const invitation = await Invitation.findOne({ registrationId: reg._id, isBackup: false })
+                    .populate('horseId')
+                    .populate('jockeyId')
+                    .lean();
+
+                if (invitation && invitation.jockeyId && invitation.jockeyId._id) {
+                    const jockeyUser = await User.findById(invitation.jockeyId._id).select('fullName').lean();
+                    if (jockeyUser) invitation.jockeyId._id = jockeyUser;
+                }
+
+                const ownerUser = reg.horseOwnerId
+                    ? await User.findById(reg.horseOwnerId, 'fullName').lean()
+                    : null;
+
+                const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
+
+                return {
+                    ...reg,
+                    Horse: invitation?.horseId ?? null,
+                    Jockey: invitation?.jockeyId ?? null,
+                    isJockeyInRace: invitation?.isJockeyInRace ?? false,
+                    Owner: ownerUser,
+                    RaceResult: raceResult ?? null,
+                };
+            }));
+
+            return {
+                code: 200,
+                data: {
+                    ...raceRound,
+                    RaceType: raceType,
+                    Registration: enriched,
+                },
+                msg: 'Race round detail retrieved successfully.',
+            };
+        } catch (error) {
+            console.error('Error fetching race round detail (referee):', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
     // Get Tournaments assigned to the referee
+    // Optimised: 8 fixed bulk queries instead of N+1 sequential loops
     async getRefereeTournaments(refereeId) {
         try {
-            // 1. Fetch assignments for this referee
+            // ── 1. Assignments ────────────────────────────────────────────────
             const assignments = await RaceReferee.find({ refereeId }).lean();
             if (!assignments.length) {
                 return { code: 200, data: [], msg: 'No tournaments found.' };
             }
 
             const raceRoundIds = assignments.map(a => a.raceRoundId);
+            const assignmentMap = new Map(assignments.map(a => [a.raceRoundId.toString(), a]));
 
-            // 2. Fetch the corresponding RaceRounds
-            const raceRounds = await RaceRound.find({ _id: { $in: raceRoundIds } })
-                .lean();
+            // ── 2. Bulk fetch all required collections in parallel ─────────────
+            const [raceRounds, tournaments] = await Promise.all([
+                RaceRound.find({ _id: { $in: raceRoundIds } }).lean(),
+                (async () => {
+                    const rounds = await RaceRound.find({ _id: { $in: raceRoundIds } }, 'tournamentId').lean();
+                    const tIds = [...new Set(rounds.map(r => r.tournamentId?.toString()).filter(Boolean))];
+                    return Tournament.find({ _id: { $in: tIds } }).lean();
+                })(),
+            ]);
 
-            const tournamentIds = [...new Set(raceRounds.map(r => r.tournamentId.toString()))];
+            const tournamentIds = [...new Set(raceRounds.map(r => r.tournamentId?.toString()).filter(Boolean))];
 
-            // 3. Fetch Tournaments
-            const tournaments = await Tournament.find({ _id: { $in: tournamentIds } }).lean();
+            // ── 3. Collect IDs for secondary bulk fetches ─────────────────────
+            const eligibilityIds = [...new Set(
+                raceRounds.filter(r => r.eligibilityRuleId).map(r => r.eligibilityRuleId.toString())
+            )];
+            const registrationsAll = await Registration.find({ raceRoundId: { $in: raceRoundIds } }).lean();
+            const regIds   = registrationsAll.map(r => r._id);
+            const ownerIds = [...new Set(
+                registrationsAll.filter(r => r.horseOwnerId).map(r => r.horseOwnerId.toString())
+            )];
 
-            // 4. Assemble the response
-            const results = [];
+            // ── 4. Bulk fetch secondary data in parallel ──────────────────────
+            const [eligibilityRules, owners, invitations, raceResults] = await Promise.all([
+                eligibilityIds.length
+                    ? RaceEligibilityRule.find({ _id: { $in: eligibilityIds } }).lean()
+                    : Promise.resolve([]),
+                ownerIds.length
+                    ? User.find({ _id: { $in: ownerIds } }, 'fullName').lean()
+                    : Promise.resolve([]),
+                regIds.length
+                    ? Invitation.find({ registrationId: { $in: regIds }, isBackup: false })
+                        .populate('horseId')
+                        .populate({ path: 'jockeyId', populate: { path: '_id', model: 'User', select: 'fullName' } })
+                        .lean()
+                    : Promise.resolve([]),
+                regIds.length
+                    ? RaceResult.find({ registrationId: { $in: regIds } }).lean()
+                    : Promise.resolve([]),
+            ]);
 
-            for (const t of tournaments) {
-                const tRounds = raceRounds.filter(r => r.tournamentId.toString() === t._id.toString());
-                const mappedRounds = [];
+            // ── 5. Build lookup maps ──────────────────────────────────────────
+            const eligibilityMap = new Map(eligibilityRules.map(e => [e._id.toString(), e]));
+            const ownerMap       = new Map(owners.map(u => [u._id.toString(), u]));
+            const invitationMap  = new Map(invitations.map(i => [i.registrationId.toString(), i]));
+            const raceResultMap  = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
 
-                for (const r of tRounds) {
-                    const assignment = assignments.find(a => a.raceRoundId.toString() === r._id.toString());
-                    
-                    // Fetch RaceType directly as the populated rule
-                    let raceType = null;
-                    if (r.eligibilityRuleId) {
-                        raceType = await RaceEligibilityRule.findById(r.eligibilityRuleId).lean();
-                    }
-
-                    const rrObj = {
-                        ...r,
-                        RaceType: raceType,
-                        RaceReferee: assignment || null,
-                        Registration: []
-                    };
-
-                    // Fetch Registrations
-                    const registrations = await Registration.find({ raceRoundId: r._id }).lean();
-
-                    for (const reg of registrations) {
-                        // Fetch Owner User directly
-                        const ownerUser = reg.horseOwnerId
-                            ? await User.findById(reg.horseOwnerId, 'fullName').lean()
-                            : null;
-
-                        // Fetch Invitation (for Horse and Jockey)
-                        const invitation = await Invitation.findOne({
-                            registrationId: reg._id,
-                            isBackup: false
-                        })
-                            .populate('horseId')
-                            .populate({
-                                path: 'jockeyId',
-                                populate: { path: '_id', model: 'User', select: 'fullName' }
-                            })
-                            .lean();
-
-                        // Fetch RaceResult
-                        const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
-
-                        rrObj.Registration.push({
-                            ...reg,
-                            Horse: invitation ? invitation.horseId : null,
-                            Jockey: invitation ? invitation.jockeyId : null,
-                            Owner: ownerUser,
-                            RaceResult: raceResult || null
-                        });
-                    }
-                    mappedRounds.push(rrObj);
-                }
-
-                results.push({
-                    ...t,
-                    RaceRound: mappedRounds
-                });
+            // Group registrations by raceRoundId
+            const regsByRound = new Map();
+            for (const reg of registrationsAll) {
+                const key = reg.raceRoundId.toString();
+                if (!regsByRound.has(key)) regsByRound.set(key, []);
+                regsByRound.get(key).push(reg);
             }
+
+            // Group raceRounds by tournamentId
+            const roundsByTournament = new Map();
+            for (const r of raceRounds) {
+                const key = r.tournamentId?.toString();
+                if (!key) continue;
+                if (!roundsByTournament.has(key)) roundsByTournament.set(key, []);
+                roundsByTournament.get(key).push(r);
+            }
+
+            // ── 6. Assemble results in memory ─────────────────────────────────
+            const results = tournaments.map(t => {
+                const tRounds = roundsByTournament.get(t._id.toString()) || [];
+
+                const mappedRounds = tRounds.map(r => {
+                    const raceType = eligibilityMap.get(r.eligibilityRuleId?.toString()) || null;
+
+                    const registrations = (regsByRound.get(r._id.toString()) || []).map(reg => {
+                        const invitation = invitationMap.get(reg._id.toString()) || null;
+                        return {
+                            ...reg,
+                            Horse:      invitation?.horseId  || null,
+                            Jockey:     invitation?.jockeyId || null,
+                            Owner:      ownerMap.get(reg.horseOwnerId?.toString()) || null,
+                            RaceResult: raceResultMap.get(reg._id.toString()) || null,
+                        };
+                    });
+
+                    return {
+                        ...r,
+                        RaceType:     raceType,
+                        RaceReferee:  assignmentMap.get(r._id.toString()) || null,
+                        Registration: registrations,
+                    };
+                });
+
+                return { ...t, RaceRound: mappedRounds };
+            });
 
             return { code: 200, data: results, msg: 'Referee tournaments retrieved successfully' };
         } catch (error) {

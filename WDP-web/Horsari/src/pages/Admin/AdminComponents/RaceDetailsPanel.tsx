@@ -61,6 +61,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         ownerName: reg.Owner?.fullName ?? null,
                         horseName: reg.Horse?.horseName ?? null,
                         jockeyName: reg.Jockey?._id?.fullName ?? null,
+                        isJockeyInRace: reg.isJockeyInRace ?? false,
                         status: reg.registrationStatus ?? 'pending',
                         sum_prediction: reg.sum_prediction,
                         raceResult: reg.RaceResult
@@ -269,8 +270,17 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                     <span className="text-gray-300 font-semibold">{p.horseName || <span className="text-gray-600 italic font-normal">N/A</span>}</span>
                                                 </div>
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-gray-500 font-medium">Jockey</span>
-                                                    <span className="text-gray-300 font-semibold">{p.jockeyName || <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                                    <span className="text-gray-500 font-medium flex items-center gap-1.5">
+                                                        Jockey
+                                                        {p.isJockeyInRace && (
+                                                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                                                Racing
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    <span className={`font-semibold ${p.isJockeyInRace ? 'text-emerald-300' : 'text-gray-300'}`}>
+                                                        {p.jockeyName || <span className="text-gray-600 italic font-normal">N/A</span>}
+                                                    </span>
                                                 </div>
                                                 <div className="flex flex-col gap-1">
                                                     <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12}/> Prediction Pool</span>

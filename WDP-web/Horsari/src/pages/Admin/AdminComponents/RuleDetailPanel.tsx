@@ -15,13 +15,13 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
     );
 }
 
-export default function RuleDetailPanel({ 
-    rule, 
-    onClose, 
-    onEdit, 
-    onToggleActive 
-}: { 
-    rule: RaceEligibilityRule; 
+export default function RuleDetailPanel({
+    rule,
+    onClose,
+    onEdit,
+    onToggleActive
+}: {
+    rule: RaceEligibilityRule;
     onClose: () => void;
     onEdit: (rule: RaceEligibilityRule) => void;
     onToggleActive: (rule: RaceEligibilityRule) => void;
@@ -101,7 +101,7 @@ export default function RuleDetailPanel({
                         <DetailRow label="Required Gender" value={rule.requiredGender ? <span className="capitalize">{rule.requiredGender}</span> : null} />
                     </div>
                 </div>
-                
+
                 {/* System info */}
                 <div className="mt-4">
                     <div className="flex items-center gap-2 mb-2">

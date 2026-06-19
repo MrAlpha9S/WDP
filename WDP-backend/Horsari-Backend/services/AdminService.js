@@ -279,6 +279,7 @@ class AdminService {
                             invitationsId: inv._id,
                             jockeyName: inv.jockeyUser?.fullName ?? 'Unknown',
                             isBackup: inv.isBackup,
+                            isJockeyInRace: inv.isJockeyInRace,
                             status: inv.invitationStatus,
                         })),
                         horseOwner: horseOwner
@@ -435,6 +436,7 @@ class AdminService {
                         invitationId: sib._id,
                         jockeyName: sib.jockeyUser?.fullName || 'Unknown',
                         isBackup: sib.isBackup,
+                        isJockeyInRace: sib.isJockeyInRace,
                         invitationStatus: sib.invitationStatus
                     })),
                     jockey: jockey ? {
@@ -445,7 +447,8 @@ class AdminService {
                     } : null,
                     status: inv.invitationStatus,
                     invitationId: inv._id,
-                    isBackup: inv.isBackup
+                    isBackup: inv.isBackup,
+                    isJockeyInRace: inv.isJockeyInRace
                 };
             }));
 
@@ -632,6 +635,7 @@ class AdminService {
                     sum_prediction,
                     Horse: invitation ? invitation.horseId : null,
                     Jockey: invitation ? invitation.jockeyId : null,
+                    isJockeyInRace: invitation?.isJockeyInRace ?? false,
                     Owner: ownerUser,
                     RaceResult: raceResult || null
                 });

@@ -29,7 +29,8 @@ export interface hireJockey {
   jockeyId: string,
   registrationId: string,
   percentagePayout: number,
-  isBackup: boolean
+  isBackup: boolean,
+  isJockeyInRace?: boolean,
 }
 
 export const horseOwnerService = {

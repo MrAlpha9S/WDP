@@ -561,6 +561,7 @@ class JockeyService {
             ownerConfirmation: inv.ownerConfirmation,
             jockeyConfirmation: inv.jockeyConfirmation,
             isBackup: inv.isBackup,
+            isJockeyInRace: inv.isJockeyInRace,
             percentagePayout: inv.percentagePayout,
             horse: horse
               ? {

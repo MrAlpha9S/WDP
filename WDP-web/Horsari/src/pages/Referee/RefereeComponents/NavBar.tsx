@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 export type RefereeTab = "Dashboard" | "Tournaments" | "Inbox" | "Management";
 
-export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Management"];
+export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Inbox"];
 
 interface NavBarProps {
     activeTab: RefereeTab;
@@ -13,15 +13,15 @@ interface NavBarProps {
 }
 
 function getInitials(user: { name?: string; email: string }) {
-  if (user.name) {
-    return user.name
-      .split(" ")
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  }
-  return user.email[0].toUpperCase();
+    if (user.name) {
+        return user.name
+            .split(" ")
+            .map((w) => w[0])
+            .slice(0, 2)
+            .join("")
+            .toUpperCase();
+    }
+    return user.email[0].toUpperCase();
 }
 
 export default function RefereeNavBar({ activeTab, onTabChange }: NavBarProps) {

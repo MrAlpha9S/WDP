@@ -20,7 +20,8 @@ class RefereeController {
     async getRefereeInvitations(req, res) {
         const limit = parseInt(req.query.limit) || 10;
         const page = parseInt(req.query.page) || 1;
-        const response = await RefereeService.getRefereeInvitations(req.userId, limit, page);
+        const status = req.query.status;
+        const response = await RefereeService.getRefereeInvitations(req.userId, limit, page, status);
         return res.status(response.code).json(response);
     }
 
@@ -89,6 +90,12 @@ class RefereeController {
     // Get referee tournaments
     async getRefereeTournaments(req, res) {
         const response = await RefereeService.getRefereeTournaments(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    // Get single race round detail (referee-scoped)
+    async getRaceRoundById(req, res) {
+        const response = await RefereeService.getRaceRoundById(req.userId, req.params.id);
         return res.status(response.code).json(response);
     }
 }

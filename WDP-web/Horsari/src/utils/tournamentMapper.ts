@@ -1,4 +1,5 @@
 import type { Tournament, RaceRound, TournamentStatus } from "../shared/types/TournamentTypes";
+import type { TournamentWithRounds } from "../api/refereeService";
 
 // Helper to format date as "MMM d, yyyy"
 function formatDate(dateStr: string): string {
@@ -36,7 +37,7 @@ function mapStatus(status: string | undefined): TournamentStatus | undefined {
 }
 
 // Convert backend Tournament & its RaceRounds to frontend types
-export function mapBackendToTournaments(backendData: any[]): { tournaments: Tournament[], allRaces: RaceRound[] } {
+export function mapBackendToTournaments(backendData: TournamentWithRounds[]): { tournaments: Tournament[], allRaces: RaceRound[] } {
     const tournaments: Tournament[] = [];
     const allRaces: RaceRound[] = [];
 

@@ -4,12 +4,13 @@ import type { InviteStatus, PaymentStatus, RaceType } from "../../../shared/type
 
 export function StatusPill({ status }: { status: InviteStatus }) {
     const cfg = {
-        pending:  "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
-        accepted: "border-green-700/60 text-green-400 bg-green-500/10",
-        declined: "border-white/10 text-gray-600 bg-transparent",
-    }[status];
-    const dot   = { pending: "bg-yellow-500", accepted: "bg-green-500", declined: "bg-gray-600" }[status];
-    const label = { pending: "Pending", accepted: "Accepted", declined: "Declined" }[status];
+        pending:   "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
+        accepted:  "border-green-700/60 text-green-400 bg-green-500/10",
+        declined:  "border-white/10 text-gray-600 bg-transparent",
+        cancelled: "border-white/10 text-gray-500 bg-white/5",
+    }[status] ?? "border-white/10 text-gray-600 bg-transparent";
+    const dot   = { pending: "bg-yellow-500", accepted: "bg-green-500", declined: "bg-gray-600", cancelled: "bg-gray-500" }[status] ?? "bg-gray-600";
+    const label = { pending: "Pending", accepted: "Accepted", declined: "Declined", cancelled: "Cancelled" }[status] ?? status;
     return (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold ${cfg}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />

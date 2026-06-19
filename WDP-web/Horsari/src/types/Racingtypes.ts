@@ -28,5 +28,9 @@ export interface Invitation {
   sentBy: string;
   sentAt: string;
   status: InviteStatus;
+  prize1st?: number | null;
+  prize2nd?: number | null;
+  prize3rd?: number | null;
+  currencyType?: string;
 }
 

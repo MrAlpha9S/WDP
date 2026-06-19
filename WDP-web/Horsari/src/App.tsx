@@ -39,7 +39,7 @@ export default function App() {
               </ProtectedRoute>
             } />
           <Route
-            path="/referee/race-monitor" //add id later
+            path="/referee/race-monitor/:raceRoundId"
             element={
               <ProtectedRoute allowedRoles={["referee", "admin"]}>
                 <RaceMonitorPage />

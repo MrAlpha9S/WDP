@@ -12,14 +12,16 @@ router.get('/credentials/:certificationNumber', RefereeController.getRefereeByCr
 router.get('/license/:licenseNumber', RefereeController.getRefereeByLicense);
 
 // Public - create referee profile for existing user
-router.post('/:uid',RefereeController.createReferee);
+router.post('/:uid', RefereeController.createReferee);
 
 // Protected routes - Referee only
 router.get('/profile', authMiddleware, authReferee, RefereeController.getRefereeProfile);
 router.put('/profile', authMiddleware, authReferee, RefereeController.updateRefereeProfile);
 router.post('/verify-credentials', authMiddleware, authReferee, RefereeController.verifyRefereeCredentials);
 router.post('/renew-certification', authMiddleware, authReferee, RefereeController.renewCertification);
+
 router.get('/race-rounds', authMiddleware, authReferee, RefereeController.getRefereeRaceRounds);
+router.get('/race-rounds/:id', authMiddleware, authReferee, RefereeController.getRaceRoundById);
 router.get('/tournaments', authMiddleware, authReferee, RefereeController.getRefereeTournaments);
 router.get('/invitations', authMiddleware, authReferee, RefereeController.getRefereeInvitations);
 router.put('/invitations/:id/accept', authMiddleware, authReferee, RefereeController.acceptInvitation);

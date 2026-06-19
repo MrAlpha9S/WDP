@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AdminNavBar, { ADMIN_TABS, type AdminTab } from "./AdminComponents/NavBar";
 import AdminSidebar from "./AdminComponents/SideBar";
 import SystemDashboardPage from "./SystemDashBoardPage";
@@ -7,9 +7,14 @@ import TournamentManagementPage from "./TournamentManagementPage";
 import AdminUsersPage from "./AdminUsersPage";
 import AdminHorsesPage from "./AdminHorsesPage";
 import AdminRuleManagementPage from "./AdminRuleManagementPage";
-
+import { io } from "socket.io-client";
+import type { Socket } from "socket.io-client";
+import { AdminSocketContext } from "../../providers/useAdminSocket";
+import type { AdminNotification } from "../../types/AdminNotification";
 import { useParams, useNavigate } from "react-router-dom";
 import { TOKEN_KEY } from "../../utils/constants";
+
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 
 // ── Placeholder pages for non-Dashboard tabs ──────────────────────────────────
@@ -59,13 +64,42 @@ export default function AdminDashboardPage() {
         }
     }, [navigate]);
 
+    // ── Shared WebSocket connection ───────────────────────────────────────────
+    const socketRef = useRef<Socket | null>(null);
+    const [wsConnected, setWsConnected] = useState(false);
+    const [wsCount, setWsCount] = useState<number | null>(null);
+    const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+
+    useEffect(() => {
+        const socket = io(SOCKET_URL, { withCredentials: true });
+        socketRef.current = socket;
+        socket.on('connect', () => setWsConnected(true));
+        socket.on('disconnect', () => setWsConnected(false));
+        socket.on('admin_ping', ({ count }: { count: number }) => setWsCount(count));
+        socket.on('admin_notification', (notif: AdminNotification) => {
+            setNotifications(prev => [
+                { ...notif, read: false, timestamp: new Date(notif.timestamp) },
+                ...prev,
+            ]);
+        });
+        return () => { socket.disconnect(); };
+    }, []);
+
+    const dismissNotification = (id: string) =>
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    const clearAllNotifications = () => setNotifications([]);
+    const markAllRead = () =>
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    const unreadCount = notifications.filter(n => !n.read).length;
+    // ─────────────────────────────────────────────────────────────────
+
     // Support matching both navbar tabs and sidebar tabs from URL
     const allTabs = [
-        ...ADMIN_TABS, 
-        "Inbox", 
-        "Home", 
-        "Roles & Permissions", 
-        "Horses", 
+        ...ADMIN_TABS,
+        "Inbox",
+        "Home",
+        "Roles & Permissions",
+        "Horses",
         "Rules Managment",
         "Activity Logs"
     ] as AdminTab[];
@@ -86,12 +120,38 @@ export default function AdminDashboardPage() {
     }, [tabs]);
 
     return (
+        <AdminSocketContext.Provider value={{
+            socket: socketRef.current,
+            wsConnected,
+            wsCount,
+            notifications,
+            unreadCount,
+            dismissNotification,
+            clearAllNotifications,
+            markAllRead,
+        }}>
         <div
             className="min-h-screen bg-[#111111] text-white flex flex-col"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
             <AdminNavBar activeTab={activeTab} onTabChange={setActiveTab} />
-            
+
+            {/* ─ WS status badge ───────────────────────────────────────────── */}
+            <div className="px-6 pt-2 pb-0">
+                <div className={[
+                    "inline-flex items-center gap-2 px-3 py-1 rounded-lg border text-[11px] font-bold font-mono transition-all duration-300",
+                    wsConnected
+                        ? "border-emerald-700/60 bg-emerald-500/10 text-emerald-400"
+                        : "border-red-800/50 bg-red-500/10 text-red-500 animate-pulse",
+                ].join(" ")}>
+                    <span className={["w-1.5 h-1.5 rounded-full", wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"].join(" ")} />
+                    {wsConnected
+                        ? <>Admin WS Connected &nbsp;·&nbsp; ping #{wsCount ?? "…"}</>
+                        : <>Admin WS Disconnected</>}
+                </div>
+            </div>
+            {/* ─────────────────────────────────────────────────────────────────── */}
+
             <div className="flex-1 flex min-h-0">
                 <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
                 <div className="flex-1 overflow-auto">
@@ -99,5 +159,6 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
         </div>
+        </AdminSocketContext.Provider>
     );
 }

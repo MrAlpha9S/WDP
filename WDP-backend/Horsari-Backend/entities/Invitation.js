@@ -28,6 +28,10 @@ const invitationSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        isJockeyInRace: {
+            type: Boolean,
+            default: false,
+        },
         registrationId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Registration',
