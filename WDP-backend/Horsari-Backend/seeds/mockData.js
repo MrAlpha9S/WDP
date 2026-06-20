@@ -533,6 +533,7 @@ const mockData = async () => {
             { violationName: 'Test Refusal',             violationDescription: 'Refusing to participate in mandatory post-race testing.',            type: 'after-race',  category: 'medication',     severity: 4, defaultPenalty: 'Automatic violation' },
             // ── after-race — administrative ───────────────────────────────────
             { violationName: 'Failure to Attend Inquiry',violationDescription: 'Ignoring or failing to appear at a mandatory steward inquiry.',     type: 'after-race',  category: 'administrative', severity: 2, defaultPenalty: 'Fine' },
+            { violationName: 'Does not response to invitation', violationDescription: 'Participant failed to respond to a race invitation within the required timeframe.', type: 'pre-race', category: 'administrative', severity: 1, defaultPenalty: 'None' },
         ];
 
         const violationTypes = {};

@@ -108,6 +108,21 @@ class RefereeController {
         return res.status(response.code).json(response);
     }
 
+    // Cancel a pending registration as no-show
+    async cancelRegistration(req, res) {
+        const { raceRoundId, registrationId } = req.params;
+        const response = await RefereeService.cancelRegistration(req.userId, raceRoundId, registrationId);
+        return res.status(response.code).json(response);
+    }
+
+    // Finalize a race round — sets status to prepared or cancelled based on inspection results
+    async finalizeRaceRound(req, res) {
+        const { id } = req.params;
+        const io = req.app.get('io');
+        const response = await RefereeService.finalizeRaceRound(req.userId, id, io);
+        return res.status(response.code).json(response);
+    }
+
     // Get violation types (optionally filtered by type=pre-race|during-race|after-race)
     async getViolationTypes(req, res) {
         const response = await RefereeService.getViolationTypes(req.query.type);

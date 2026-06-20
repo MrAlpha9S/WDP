@@ -179,6 +179,31 @@ export const refereeService = {
         }
     },
 
+    cancelRegistration: async (
+        raceRoundId: string,
+        registrationId: string,
+    ): Promise<{ code: number; data: any; msg: string }> => {
+        try {
+            const response = await api.put(
+                `/referee/race-rounds/${raceRoundId}/registrations/${registrationId}/cancel`,
+            );
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
+    finalizeRaceRound: async (
+        raceRoundId: string,
+    ): Promise<{ code: number; data: { status: 'prepared' | 'cancelled' }; msg: string }> => {
+        try {
+            const response = await api.post(`/referee/race-rounds/${raceRoundId}/finalize`);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
     getViolationTypes: async (type?: 'pre-race' | 'during-race' | 'after-race'): Promise<{ code: number; data: ViolationTypeRecord[]; msg: string }> => {
         try {
             const q = type ? `?type=${type}` : '';

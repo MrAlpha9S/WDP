@@ -525,40 +525,78 @@ class RefereeService {
         }
     }
 
-    // Authorize a race start (set status to prepared)
-    async authorizeRaceStart(refereeId, raceRoundId, io) {
+    async cancelRegistration(refereeId, raceRoundId, registrationId) {
         try {
-            // 1. Confirm this referee is assigned to the race round
             const assignment = await RaceReferee.findOne({ raceRoundId, refereeId }).lean();
             if (!assignment) {
                 return { code: 403, msg: 'You are not assigned to this race round.' };
             }
 
-            // 2. Load race round
+            const registration = await Registration.findById(registrationId).lean();
+            if (!registration) {
+                return { code: 404, msg: 'Registration not found.' };
+            }
+            if (registration.raceRoundId.toString() !== raceRoundId) {
+                return { code: 400, msg: 'Registration does not belong to this race round.' };
+            }
+            if (registration.registrationStatus !== 'pending') {
+                return { code: 422, msg: `Only "pending" registrations can be cancelled as no-show. Current status: "${registration.registrationStatus}".` };
+            }
+
+            const updated = await Registration.findByIdAndUpdate(
+                registrationId,
+                { registrationStatus: 'cancelled' },
+                { new: true }
+            ).lean();
+
+            return { code: 200, data: updated, msg: 'Registration cancelled (no-show) successfully.' };
+        } catch (error) {
+            console.error('Error cancelling registration:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Finalize a race round after all registrations are inspected.
+    // Sets status to "prepared" if at least one registration is verified,
+    // or "cancelled" if all registrations ended up failed/cancelled/rejected.
+    async finalizeRaceRound(refereeId, raceRoundId, io) {
+        try {
+            const assignment = await RaceReferee.findOne({ raceRoundId, refereeId }).lean();
+            if (!assignment) {
+                return { code: 403, msg: 'You are not assigned to this race round.' };
+            }
+
             const raceRound = await RaceRound.findById(raceRoundId).lean();
             if (!raceRound) {
                 return { code: 404, msg: 'Race round not found.' };
             }
 
-            // 3. Verify that there are no pending registrations
-            const remaining = await Registration.countDocuments({
-                raceRoundId,
-                registrationStatus: { $nin: ['verified', 'failed', 'rejected', 'cancelled'] },
-            });
+            const TERMINAL = ['verified', 'failed', 'rejected', 'cancelled'];
 
-            if (remaining > 0) {
-                return { code: 422, msg: 'Cannot authorize race start: there are still pending registrations to be inspected.' };
+            const unresolved = await Registration.countDocuments({
+                raceRoundId,
+                registrationStatus: { $nin: TERMINAL },
+            });
+            if (unresolved > 0) {
+                return { code: 422, msg: 'Cannot finalize: there are still registrations that have not been inspected.' };
             }
 
-            // 4. Mark race as prepared
-            await RaceRound.findByIdAndUpdate(raceRoundId, { status: 'prepared' });
+            const verifiedCount = await Registration.countDocuments({
+                raceRoundId,
+                registrationStatus: 'verified',
+            });
+
+            const newStatus = verifiedCount > 0 ? 'prepared' : 'cancelled';
+            await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus });
 
             if (io) {
                 io.emit('admin_notification', {
                     id: Date.now().toString(),
-                    type: 'race_prepared',
-                    title: 'Race Pre-Check Complete',
-                    message: `Race round ${raceRoundId} has been authorized to start by the referee.`,
+                    type: newStatus === 'prepared' ? 'race_prepared' : 'race_cancelled',
+                    title: newStatus === 'prepared' ? 'Race Pre-Check Complete' : 'Race Cancelled — No Eligible Entries',
+                    message: newStatus === 'prepared'
+                        ? `Race round has been cleared and is ready to start.`
+                        : `Race round has been cancelled — all entries failed or were withdrawn.`,
                     raceRoundId,
                     timestamp: new Date(),
                     read: false,
@@ -567,9 +605,15 @@ class RefereeService {
                 });
             }
 
-            return { code: 200, msg: 'Race start authorized successfully.' };
+            return {
+                code: 200,
+                data: { status: newStatus },
+                msg: newStatus === 'prepared'
+                    ? 'Race round finalized — status set to prepared.'
+                    : 'Race round finalized — status set to cancelled (no eligible entries).',
+            };
         } catch (error) {
-            console.error('Error authorizing race start:', error);
+            console.error('Error finalizing race round:', error);
             return { code: 500, msg: error.message };
         }
     }

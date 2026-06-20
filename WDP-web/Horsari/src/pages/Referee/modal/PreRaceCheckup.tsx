@@ -101,6 +101,8 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
     // checks: violationTypeId → PassFail  (absent = not yet reviewed)
     const [checks, setChecks] = useState<Map<string, PassFail>>(new Map());
 
+    const isPending = registration.registrationStatus === 'pending';
+
     const activeReg = freshRegistration ?? registration;
     const horse = activeReg.Horse;
     const invitations = activeReg.Invitations ?? [];
@@ -159,7 +161,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
     ].filter(Boolean).join('; ');
 
     // canSubmit: jockey situation resolved + violation types loaded
-    const canSubmit = (!!selectedInvitationId || noJockeyFail) && violationTypes.length > 0 && !submitting;
+    const canSubmit = (hasFails || !!selectedInvitationId) && violationTypes.length > 0 && !submitting;
 
     const handleSubmit = async () => {
         if (!canSubmit) return;
@@ -182,6 +184,19 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
             onClose();
         } catch (err: any) {
             setSubmitError(err?.msg || 'Failed to submit inspection. Please try again.');
+            setSubmitting(false);
+        }
+    };
+
+    const handleCancelNoShow = async () => {
+        setSubmitting(true);
+        setSubmitError(null);
+        try {
+            await refereeService.cancelRegistration(raceRoundId, registration._id);
+            onVerified(registration._id, 'failed');
+            onClose();
+        } catch (err: any) {
+            setSubmitError(err?.msg || 'Failed to cancel registration. Please try again.');
             setSubmitting(false);
         }
     };
@@ -220,6 +235,27 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
 
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5 min-h-0">
+
+                    {isPending ? (
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2 rounded-xl border border-amber-700/50 bg-amber-500/8 px-4 py-4">
+                                <p className="text-[12px] font-bold text-amber-400 flex items-center gap-1.5">
+                                    <AlertTriangle size={13} /> Owner Has Not Responded
+                                </p>
+                                <p className="text-[11.5px] text-amber-600">
+                                    This registration is still pending — the owner has not assigned a horse or jockey.
+                                    You can cancel it as a no-show to clear it from the inspection queue.
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-white/8 px-4 py-3">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Owner</p>
+                                <p className="text-[13px] font-semibold text-gray-300 mt-0.5">
+                                    {registration.Owner?.fullName ?? <span className="text-gray-600">—</span>}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                    <>
 
                     {loadingFresh && (
                         <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/8 bg-white/[0.02]">
@@ -406,9 +442,29 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                             <p className="text-[12px] text-red-400">{submitError}</p>
                         </div>
                     )}
+                    </>
+                    )}
                 </div>
 
                 {/* Footer */}
+                {isPending ? (
+                    <div className="shrink-0 px-5 py-3.5 border-t border-amber-900/60 bg-amber-500/5 flex items-center justify-between gap-3">
+                        <span className="text-[12px] text-amber-600 font-medium">Owner did not respond — no horse or jockey assigned</span>
+                        <button
+                            onClick={handleCancelNoShow}
+                            disabled={submitting}
+                            className={["flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-wider transition-all duration-150",
+                                submitting
+                                    ? "bg-white/5 text-gray-600 border border-white/8 cursor-not-allowed"
+                                    : "bg-amber-700 text-white hover:bg-amber-600 shadow-lg shadow-amber-900/40",
+                            ].join(" ")}
+                        >
+                            {submitting
+                                ? <span className="animate-pulse">Cancelling…</span>
+                                : <><AlertTriangle size={13} />Cancel — No Show</>}
+                        </button>
+                    </div>
+                ) : (
                 <div className={["shrink-0 px-5 py-3.5 border-t flex items-center justify-between gap-3",
                     hasFails ? "border-red-900/60 bg-red-500/5" : "border-white/8 bg-transparent",
                 ].join(" ")}>
@@ -438,6 +494,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                 : <><CheckCircle2 size={13} />Submit Inspection</>}
                     </button>
                 </div>
+                )}
             </div>
         </div>
     );

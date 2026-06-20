@@ -295,10 +295,8 @@ function PositionTrack({
 
 export default function LivePage() {
     const { wsConnected, wsCount, horses, raceRound, liveUpdate } = useRaceSocket();
-    const cleared = horses.filter(h => h.gearStatus === "cleared").length;
-    const hasReview = horses.some(h => h.gearStatus === "review");
-
-    const [verificationOpen, setVerificationOpen] = useState(false);
+const [verificationOpen, setVerificationOpen] = useState(false);
+    const [selectedHorseRegId, setSelectedHorseRegId] = useState<string | null>(null);
     const [activeCam, setActiveCam] = useState(1);
     const [showTrackOnStream, setShowTrackOnStream] = useState(false);
     const cam = CAMERAS.find(c => c.id === activeCam)!;
@@ -352,19 +350,22 @@ export default function LivePage() {
             name: h.horseName,
             jockey: h.jockeyName,
         }))
-        : (raceRound?.Registration ?? []).map((reg, i) => {
-            const confirmedInv = reg.Invitations?.find((inv: any) => inv.isJockeyInRace)
-                ?? reg.Invitations?.find((inv: any) => inv.jockeyConfirmation);
-            const jockeyName = (confirmedInv?.jockeyId?._id as any)?.fullName
-                ?? (reg.Jockey?._id as any)?.fullName
-                ?? 'No Jockey';
-            return {
-                registrationId: reg._id,
-                number: i + 1,
-                name: reg.Horse?.horseName ?? `Horse #${i + 1}`,
-                jockey: jockeyName,
-            };
-        });
+        : (raceRound?.Registration ?? [])
+            .filter((reg: any) => reg.registrationStatus === 'verified')
+            .map((reg: any, i: number) => {
+                const confirmedInv = reg.Invitations?.find((inv: any) => inv.isJockeyInRace);
+                const jockeyName = (confirmedInv?.jockeyId?._id as any)?.fullName
+                    ?? (reg.Jockey?._id as any)?.fullName
+                    ?? 'No Jockey';
+                return {
+                    registrationId: reg._id,
+                    number: i + 1,
+                    name: reg.Horse?.horseName ?? `Horse #${i + 1}`,
+                    jockey: jockeyName,
+                };
+            });
+
+    const sortedByDist = liveHorses ? [...liveHorses].sort((a, b) => b.currentDistance - a.currentDistance) : [];
 
     const handleConfirmViolation = async (registrationId: string | null) => {
         if (!raceRound?._id || !pendingVt) return;
@@ -630,21 +631,23 @@ export default function LivePage() {
                         <h2 className="text-[12px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
                             <Shield size={13} className="text-red-500" /> Verification
                         </h2>
-                        <div className="flex items-center gap-2">
-                            <span className={["text-[11px] font-bold px-2.5 py-0.5 rounded-full border",
-                                hasReview ? "text-red-400 bg-red-500/10 border-red-700/60" : "text-green-400 bg-green-500/10 border-green-700/60"].join(" ")}>
-                                {cleared}/{horses.length} Cleared
-                            </span>
-                            <ChevronDown size={13} className={`text-gray-600 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
-                        </div>
+                        <ChevronDown size={13} className={`text-gray-600 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
                     </button>
                     {verificationOpen && (
                         <div className="p-3 flex flex-col gap-2 border-t border-white/8">
-                            {horses.map(horse => {
-                                const isReview = horse.gearStatus === "review";
+                            {horseOptions.map(horse => {
+                                const isReview = horses.find(h => h.number === horse.number)?.gearStatus === "review";
+                                const isSelected = selectedHorseRegId === horse.registrationId;
+                                const liveData = liveHorses?.find(h => h.registrationId === horse.registrationId);
+                                const position = liveData
+                                    ? sortedByDist.findIndex(h => h.registrationId === horse.registrationId) + 1
+                                    : null;
                                 return (
-                                    <div key={horse.number} className={["rounded-xl border", isReview ? "border-red-800/60 bg-red-500/5" : "border-white/8 bg-white/[0.03]"].join(" ")}>
-                                        <div className="px-3 py-2.5 flex items-center gap-2.5">
+                                    <div key={horse.registrationId} className={["rounded-xl border overflow-hidden", isReview ? "border-red-800/60 bg-red-500/5" : "border-white/8 bg-white/[0.03]"].join(" ")}>
+                                        <button
+                                            onClick={() => setSelectedHorseRegId(id => id === horse.registrationId ? null : horse.registrationId)}
+                                            className="w-full px-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-white/[0.03] transition-colors"
+                                        >
                                             <span className={["w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
                                                 isReview ? "bg-red-700 text-white" : "bg-white/8 text-gray-400"].join(" ")}>
                                                 {horse.number}
@@ -653,11 +656,59 @@ export default function LivePage() {
                                                 <p className={["text-[12.5px] font-semibold truncate", isReview ? "text-red-400" : "text-white"].join(" ")}>{horse.name}</p>
                                                 <p className={["text-[11px]", isReview ? "text-red-600" : "text-gray-500"].join(" ")}>{horse.jockey}</p>
                                             </div>
-                                            {isReview
-                                                ? <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-lg border border-red-800/60 text-red-400 bg-red-500/10">Review</span>
-                                                : <CheckCircle2 size={16} className="text-green-500 shrink-0" />
-                                            }
-                                        </div>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                {isReview
+                                                    ? <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-lg border border-red-800/60 text-red-400 bg-red-500/10">Review</span>
+                                                    : <CheckCircle2 size={16} className="text-green-500" />
+                                                }
+                                                <ChevronDown size={11} className={`text-gray-600 transition-transform duration-150 ${isSelected ? "rotate-180" : ""}`} />
+                                            </div>
+                                        </button>
+
+                                        {isSelected && (
+                                            <div className="px-3 pb-3 pt-2 border-t border-white/6 flex flex-col gap-1.5">
+                                                {liveData ? (
+                                                    <>
+                                                        {position !== null && (
+                                                            <div className="flex justify-between">
+                                                                <span className="text-[10px] text-gray-600">Position</span>
+                                                                <span className="text-[10px] font-bold text-yellow-400">#{position}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex justify-between">
+                                                            <span className="text-[10px] text-gray-600">Distance</span>
+                                                            <span className="text-[10px] font-mono text-white">{liveData.currentDistance.toFixed(0)} m</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-[10px] text-gray-600">Speed</span>
+                                                            <span className="text-[10px] font-mono text-white">{liveData.currentSpeed.toFixed(1)} m/s</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-[10px] text-gray-600">Style</span>
+                                                            <span className="text-[10px] font-semibold text-gray-400">{liveData.raceStyle}</span>
+                                                        </div>
+                                                        {liveData.isFinished && (
+                                                            <>
+                                                                <div className="mt-0.5 border-t border-white/6 pt-1.5 flex justify-between">
+                                                                    <span className="text-[10px] text-gray-600">Finish</span>
+                                                                    <span className="text-[10px] font-bold text-green-400">
+                                                                        {liveData.finishPosition === 1 ? "1st" : liveData.finishPosition === 2 ? "2nd" : liveData.finishPosition === 3 ? "3rd" : `#${liveData.finishPosition}`}
+                                                                    </span>
+                                                                </div>
+                                                                {liveData.finishTime !== null && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-[10px] text-gray-600">Time</span>
+                                                                        <span className="text-[10px] font-mono text-white">{formatElapsed(Number(liveData.finishTime))}</span>
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <p className="text-[10px] text-gray-600 text-center py-1">No live data yet</p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}

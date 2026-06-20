@@ -56,9 +56,27 @@ export default function PreRacePage() {
     };
 
     const registrations = localRegistrations ?? raceRound?.Registration ?? [];
-    const allReviewed = registrations.length > 0 &&
-        registrations.every(r => r.registrationStatus === "verified" || r.registrationStatus === "failed");
-    const allClear = allReviewed && registrations.some(r => r.registrationStatus === "verified");
+
+    const TERMINAL = ["verified", "failed", "cancelled", "rejected"];
+    const allResolved = registrations.length > 0 && registrations.every(r => TERMINAL.includes(r.registrationStatus ?? ""));
+    const hasVerified = registrations.some(r => r.registrationStatus === "verified");
+
+    const [finalizing, setFinalizing] = useState(false);
+    const [finalizeError, setFinalizeError] = useState<string | null>(null);
+
+    const handleFinalize = async () => {
+        if (!raceRound?._id || !allResolved || finalizing) return;
+        setFinalizing(true);
+        setFinalizeError(null);
+        try {
+            await refereeService.finalizeRaceRound(raceRound._id);
+            await refetchRegistrations();
+        } catch (err: any) {
+            setFinalizeError(err?.msg || 'Failed to finalize race. Please try again.');
+        } finally {
+            setFinalizing(false);
+        }
+    };
 
     const postTime = raceRound?.raceDate
         ? new Date(raceRound.raceDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -263,37 +281,63 @@ export default function PreRacePage() {
                         ))}
                     </div>
 
-                    {/* Status Display */
-                        (() => {
-                            const currentStatus = localStatus ?? raceRound?.status;
-                            const isPrepared = currentStatus === "prepared";
+                    {/* Finalize button / status */}
+                    {(() => {
+                        const currentStatus = localStatus ?? raceRound?.status;
 
-                            if (isPrepared) {
-                                return (
-                                    <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 border border-green-700/50 text-green-400 text-[13px] font-bold uppercase tracking-widest">
-                                        <CheckCircle2 size={14} />
-                                        Race Has Been Prepared
-                                    </div>
-                                );
-                            }
-
-                            if (allReviewed && !allClear) {
-                                return (
-                                    <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 border border-red-700/50 text-red-400 text-[13px] font-bold uppercase tracking-widest">
-                                        <Flag size={14} />
-                                        All Failed — Cannot Start
-                                    </div>
-                                );
-                            }
-
+                        if (currentStatus === "prepared") {
                             return (
-                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 text-gray-500 border border-white/8 text-[13px] font-bold uppercase tracking-widest">
-                                    <Clock size={14} />
-                                    Awaiting Clearance
+                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 border border-green-700/50 text-green-400 text-[13px] font-bold uppercase tracking-widest">
+                                    <CheckCircle2 size={14} /> Race Has Been Prepared
                                 </div>
                             );
-                        })()
-                    }
+                        }
+
+                        if (currentStatus === "cancelled") {
+                            return (
+                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 border border-red-700/50 text-red-400 text-[13px] font-bold uppercase tracking-widest">
+                                    <Flag size={14} /> Race Cancelled
+                                </div>
+                            );
+                        }
+
+                        if (!allResolved) {
+                            return (
+                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 text-gray-500 border border-white/8 text-[13px] font-bold uppercase tracking-widest">
+                                    <Clock size={14} /> Awaiting Clearance
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <div className="flex flex-col gap-2">
+                                {finalizeError && (
+                                    <p className="text-[11.5px] text-red-400 flex items-center gap-1.5 px-1">
+                                        <AlertTriangle size={11} /> {finalizeError}
+                                    </p>
+                                )}
+                                <button
+                                    onClick={handleFinalize}
+                                    disabled={finalizing}
+                                    className={[
+                                        "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
+                                        finalizing
+                                            ? "bg-white/5 text-gray-600 border border-white/8 cursor-not-allowed"
+                                            : hasVerified
+                                                ? "bg-green-700 text-white hover:bg-green-600 shadow-lg shadow-green-900/30"
+                                                : "bg-red-700 text-white hover:bg-red-600 shadow-lg shadow-red-900/30",
+                                    ].join(" ")}
+                                >
+                                    {finalizing
+                                        ? <><Clock size={14} className="animate-spin" /> Finalizing…</>
+                                        : hasVerified
+                                            ? <><CheckCircle2 size={14} /> Prepare Race</>
+                                            : <><Flag size={14} /> Cancel Race — No Eligible Entries</>
+                                    }
+                                </button>
+                            </div>
+                        );
+                    })()}
                 </div>
             </div>
 
