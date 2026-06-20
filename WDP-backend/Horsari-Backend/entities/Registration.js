@@ -6,9 +6,17 @@ const registrationSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'RaceRound',
         },
+        horseId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Horse',
+            required: true,
+        },
         approvedByAdminId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Admin',
+        },
+        laneNumber: {
+            type: Number,
         },
         registrationStatus: {
             type: String,

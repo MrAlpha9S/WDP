@@ -15,11 +15,18 @@
  *             required:
  *               - raceRoundId
  *               - horseOwnerId
+ *               - horseId
  *             properties:
  *               raceRoundId:
  *                 type: string
  *               horseOwnerId:
  *                 type: string
+ *               horseId:
+ *                 type: string
+ *                 description: The specific horse being registered for this race round
+ *               laneNumber:
+ *                 type: integer
+ *                 description: Lane number assigned to this registration
  *               registrationStatus:
  *                 type: string
  *                 enum: [pending, approved, rejected]
@@ -64,9 +71,15 @@
  *           schema:
  *             type: object
  *             properties:
+ *               horseId:
+ *                 type: string
+ *                 description: The specific horse being registered for this race round
+ *               laneNumber:
+ *                 type: integer
+ *                 description: Lane number assigned to this registration
  *               registrationStatus:
  *                 type: string
- *                 enum: [pending, approved, rejected]
+ *                 enum: [pending, approved, rejected, verified, failed, cancelled]
  *     responses:
  *       200:
  *         description: Registration updated

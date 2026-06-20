@@ -204,6 +204,7 @@ const mockData = async () => {
             endDate: null,
             location: 'Various',
             status: 'ongoing',
+            prizePool: 0,
         });
         console.log('✅ Created Non-tournament');
 
