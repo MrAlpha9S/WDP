@@ -23,7 +23,7 @@ class RegistrationController {
 
     async getRegistrationsByOwnerId(req, res, next) {
         try {
-            const { ownerId } = req.params;
+            const ownerId = req.userId; // Assuming authMiddleware sets req.user
             const page = parseInt(req.query.page, 10) || 1;
             const limit = parseInt(req.query.limit, 10) || 10;
             const result = await RegistrationService.getRegistrationsByOwnerId(ownerId, page, limit);
