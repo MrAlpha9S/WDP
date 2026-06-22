@@ -19,7 +19,6 @@ const User = require('../entities/User');
 const Violation = require('../entities/Violation');
 const SimulationService = require('./SimulationService');
 const MuxService = require('./MuxService');
-const UserRole = require('../entities/UserRole');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
