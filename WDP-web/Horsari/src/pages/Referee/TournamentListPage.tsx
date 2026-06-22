@@ -36,7 +36,7 @@ export default function TournamentListPage({ onSelect, onOpenRaceMonitor }: Tour
         const fetchTournaments = async () => {
             try {
                 const response = await refereeService.getRefereeTournaments();
-                const { tournaments: t, allRaces: r } = mapBackendToTournaments(response.data);
+                const { tournaments: t, allRaces: r } = mapBackendToTournaments(response.data.items);
                 setTournaments(t);
                 setAllRaces(r);
             } catch (error) {
