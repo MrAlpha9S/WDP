@@ -943,7 +943,7 @@ class AdminService {
 
     // --- Certification Verification ---
 
-    async verifyCertification(userId, action) {
+    async verifyCertification(userId, action, io) {
         try {
             if (!['approve', 'reject'].includes(action)) {
                 return { code: 400, msg: "Action must be 'approve' or 'reject'" };
@@ -966,6 +966,23 @@ class AdminService {
                     break;
                 default:
                     return { code: 400, msg: 'This role does not support certification verification' };
+            }
+
+            if (io) {
+                try {
+                    const result = await this.getImportantEvents();
+                    if (result.code === 200) {
+                        const d = result.data;
+                        io.to('admin').emit('admin:events_update', {
+                            pendingCertifications: (d.pendingCertifications ?? []).length,
+                            racesReadyToStart:     (d.racesReadyToStart     ?? []).length,
+                            activeTournaments:     (d.activeTournaments     ?? []).length,
+                            pendingRegistrations:  (d.pendingRegistrations  ?? []).length,
+                        });
+                    }
+                } catch (err) {
+                    console.error('Failed to trigger ImportantEvent Service via WS:', err);
+                }
             }
 
             return { code: 200, msg: `Certification ${newStatus} successfully`, data: { licenseStatus: newStatus } };

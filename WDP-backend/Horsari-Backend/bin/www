@@ -44,47 +44,66 @@ io.on('connection', (socket) => {
 
   // Admin dashboard joins this room to receive admin_notification + admin:events_update.
   // Requires a valid admin JWT passed as socket.auth.token on the client.
-  socket.on('join_admin', ({ token } = {}) => {
+  socket.on('join_admin', async ({ token } = {}) => {
     try {
       const raw = (token ?? '').replace(/^Bearer\s+/i, '');
       const payload = jwt.verify(raw, process.env.JWT_SECRET);
-      if (payload.role !== 'admin') {
+      
+      const UserRepository = require('../repositories/UserRepository');
+      const user = await UserRepository.findById(payload.userId);
+
+      if (!user || user.role !== 'admin') {
         socket.emit('join_admin_error', { msg: 'Forbidden' });
         return;
       }
       socket.join('admin');
-      console.log(`[WS] ${socket.id} (uid=${payload.id}) joined admin room`);
-    } catch {
+      console.log(`[WS] ${socket.id} (uid=${payload.userId}) joined admin room`);
+    } catch (err) {
+      console.error('[WS] join_admin error:', err.message);
       socket.emit('join_admin_error', { msg: 'Invalid or expired token' });
     }
   });
 
   // Referee dashboard joins their personal room for targeted notifications.
   // Requires a valid referee JWT passed as { token }.
-  socket.on('join_referee', ({ token } = {}) => {
+  socket.on('join_referee', async ({ token } = {}) => {
     try {
       const raw = (token ?? '').replace(/^Bearer\s+/i, '');
       const payload = jwt.verify(raw, process.env.JWT_SECRET);
-      if (payload.role !== 'referee') {
+      
+      const UserRepository = require('../repositories/UserRepository');
+      const user = await UserRepository.findById(payload.userId);
+
+      if (!user || user.role !== 'referee') {
         socket.emit('join_referee_error', { msg: 'Forbidden' });
         return;
       }
-      socket.join(`referee:${payload.id}`);
-      console.log(`[WS] ${socket.id} (uid=${payload.id}) joined referee room`);
-    } catch {
+      socket.join(`referee:${payload.userId}`);
+      console.log(`[WS] ${socket.id} (uid=${payload.userId}) joined referee room`);
+    } catch (err) {
+      console.error('[WS] join_referee error:', err.message);
       socket.emit('join_referee_error', { msg: 'Invalid or expired token' });
     }
   });
 
   // Client joins a specific race room for live simulation events.
   // Requires any valid JWT — spectators, referees, and admins can all watch.
-  socket.on('join_race', ({ raceRoundId, token } = {}) => {
+  socket.on('join_race', async ({ raceRoundId, token } = {}) => {
     try {
       const raw = (token ?? '').replace(/^Bearer\s+/i, '');
-      jwt.verify(raw, process.env.JWT_SECRET);
+      const payload = jwt.verify(raw, process.env.JWT_SECRET);
+      
+      const UserRepository = require('../repositories/UserRepository');
+      const user = await UserRepository.findById(payload.userId);
+
+      if (!user || user.status !== 'active') {
+        socket.emit('join_race_error', { msg: 'User not found or inactive' });
+        return;
+      }
       socket.join(`race:${raceRoundId}`);
-      console.log(`[WS] ${socket.id} joined race:${raceRoundId}`);
-    } catch {
+      console.log(`[WS] ${socket.id} (uid=${payload.userId}) joined race:${raceRoundId}`);
+    } catch (err) {
+      console.error('[WS] join_race error:', err.message);
       socket.emit('join_race_error', { msg: 'Invalid or expired token' });
     }
   });

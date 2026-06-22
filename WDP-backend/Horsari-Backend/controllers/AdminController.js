@@ -116,7 +116,8 @@ class AdminController {
     async verifyCertification(req, res) {
         const { userId } = req.params;
         const { action } = req.body;
-        const response = await AdminService.verifyCertification(userId, action);
+        const io = req.app.get('io');
+        const response = await AdminService.verifyCertification(userId, action, io);
         if (response.code === 200) {
             const label = action === 'approve' ? 'Approved' : 'Rejected';
             broadcastAdminEvent(req.app.get('io'), 'system_alert',
