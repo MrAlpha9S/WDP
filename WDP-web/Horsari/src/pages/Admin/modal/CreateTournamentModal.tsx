@@ -21,6 +21,7 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
         editingTournament?.status === "live" ? "ongoing" :
         editingTournament?.status || "draft"
     );
+    const [prizePool, setPrizePool] = useState(editingTournament?.prizePool?.toString().replace(/\D/g, '') || "");
 
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -32,16 +33,18 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
             setStartDate(editingTournament.startISO || "");
             setEndDate(editingTournament.endISO || "");
             setStatus(
-                editingTournament.status === 'upcoming' ? 'scheduled' : 
-                editingTournament.status === 'live' ? 'ongoing' : 
+                editingTournament.status === 'upcoming' ? 'scheduled' :
+                editingTournament.status === 'live' ? 'ongoing' :
                 editingTournament.status || 'draft'
             );
+            setPrizePool(editingTournament.prizePool?.toString().replace(/\D/g, '') || "");
         } else {
             setName("");
             setDescription("");
             setStartDate("");
             setEndDate("");
             setStatus("draft");
+            setPrizePool("");
         }
         setError("");
     }, [editingTournament, isOpen]);
@@ -122,7 +125,8 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                 description,
                 startDate,
                 endDate,
-                status
+                status,
+                prizePool: prizePool ? Number(prizePool) : 0
             };
 
             if (!editingTournament) {
@@ -139,6 +143,7 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
             setStartDate("");
             setEndDate("");
             setStatus("draft");
+            setPrizePool("");
         } catch (err: any) {
             setError(err.msg || "Failed to save tournament");
         } finally {
@@ -194,6 +199,23 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                             <option value="completed">Completed</option>
                             <option value="cancelled">Cancelled</option>
                         </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Prize Pool (VND)</label>
+                        <input
+                            value={prizePool}
+                            onChange={e => setPrizePool(e.target.value.replace(/\D/g, ''))}
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="e.g. 500000000"
+                            className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
+                        />
+                        {prizePool && (
+                            <p className="mt-1 text-[11px] text-gray-500">
+                                {Number(prizePool).toLocaleString('vi-VN')} VND
+                            </p>
+                        )}
                     </div>
                 </div>
 

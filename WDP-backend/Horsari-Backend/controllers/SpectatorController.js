@@ -1,22 +1,26 @@
 const SpectatorService = require('../services/SpectatorService');
 
 class SpectatorController {
-    // (admin register removed)
-
-    // Create spectator profile for existing user (public)
     async createSpectator(req, res) {
-        const { uid } = req.params;
-        const response = await SpectatorService.createSpectator(uid, req.body);
+        const response = await SpectatorService.createSpectator(req.params.uid, req.body);
         return res.status(response.code).json(response);
     }
 
-    // Get spectator profile
     async getSpectatorProfile(req, res) {
         const response = await SpectatorService.getSpectatorProfile(req.userId);
         return res.status(response.code).json(response);
     }
 
-    // Get all spectators
+    async updateSpectatorProfile(req, res) {
+        const response = await SpectatorService.updateSpectatorProfile(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    async changePassword(req, res) {
+        const response = await SpectatorService.changePassword(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
     async getAllSpectators(req, res) {
         const limit = parseInt(req.query.limit) || 10;
         const skip = parseInt(req.query.skip) || 0;
@@ -24,36 +28,89 @@ class SpectatorController {
         return res.status(response.code).json(response);
     }
 
-    // Get reward points
     async getRewardPoints(req, res) {
         const response = await SpectatorService.getRewardPoints(req.userId);
         return res.status(response.code).json(response);
     }
 
-    // Add reward points
     async addRewardPoints(req, res) {
-        const { points } = req.body;
-        const response = await SpectatorService.addRewardPoints(req.userId, points);
+        const response = await SpectatorService.addRewardPoints(req.userId, req.body.points);
         return res.status(response.code).json(response);
     }
 
-    // Deduct reward points
     async deductRewardPoints(req, res) {
-        const { points } = req.body;
-        const response = await SpectatorService.deductRewardPoints(req.userId, points);
+        const response = await SpectatorService.deductRewardPoints(req.userId, req.body.points);
         return res.status(response.code).json(response);
     }
 
-    // Get top spectators
     async getTopSpectators(req, res) {
         const limit = parseInt(req.query.limit) || 10;
         const response = await SpectatorService.getTopSpectators(limit);
         return res.status(response.code).json(response);
     }
 
-    // Update spectator profile
-    async updateSpectatorProfile(req, res) {
-        const response = await SpectatorService.updateSpectatorProfile(req.userId, req.body);
+    async getWalletInfo(req, res) {
+        const response = await SpectatorService.getWalletInfo(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    async getTransactionHistory(req, res) {
+        const response = await SpectatorService.getTransactionHistory(req.userId, req.query);
+        return res.status(response.code).json(response);
+    }
+
+    async depositPoints(req, res) {
+        const response = await SpectatorService.depositPoints(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    async withdrawPoints(req, res) {
+        const response = await SpectatorService.withdrawPoints(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    async getHomeFeed(req, res) {
+        const response = await SpectatorService.getHomeFeed(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    async getRaceSchedule(req, res) {
+        const response = await SpectatorService.getRaceSchedule(req.userId, req.query);
+        return res.status(response.code).json(response);
+    }
+
+    async getLiveRaceDetail(req, res) {
+        const response = await SpectatorService.getLiveRaceDetail(req.userId, req.params.raceRoundId);
+        return res.status(response.code).json(response);
+    }
+
+    async getRaceResult(req, res) {
+        const response = await SpectatorService.getRaceResult(req.params.raceRoundId);
+        return res.status(response.code).json(response);
+    }
+
+    async getRaceLeaderboard(req, res) {
+        const response = await SpectatorService.getRaceLeaderboard(req.params.raceRoundId);
+        return res.status(response.code).json(response);
+    }
+
+    async getAvailablePredictionMethods(req, res) {
+        const response = await SpectatorService.getAvailablePredictionMethods(req.userId, req.params.raceRoundId);
+        return res.status(response.code).json(response);
+    }
+
+    async createPrediction(req, res) {
+        const response = await SpectatorService.createPrediction(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    async getMyPredictions(req, res) {
+        const response = await SpectatorService.getMyPredictions(req.userId, req.query);
+        return res.status(response.code).json(response);
+    }
+
+    async getPredictionDetail(req, res) {
+        const response = await SpectatorService.getPredictionDetail(req.userId, req.params.predictionId);
         return res.status(response.code).json(response);
     }
 }

@@ -22,6 +22,7 @@ const predictionSchema = new mongoose.Schema(
         },
         predictionStatus: {
             type: String,
+            enum: ['pending', 'correct', 'incorrect', 'cancelled', 'refunded'],
             default: 'pending',
         },
         rewardPoints: {

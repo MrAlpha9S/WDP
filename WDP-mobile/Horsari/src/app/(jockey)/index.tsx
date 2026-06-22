@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +14,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { getMyRaceSchedule, ScheduleItem } from '../../api/jockeyApi';
+import { useAuth } from '../../auth/AuthContext';
 import { Fonts } from '@/constants/theme';
 
 const Palette = {
@@ -24,24 +29,167 @@ const Palette = {
   gold: '#C9A24B',
 } as const;
 
-const CHART_MAX_H = 90;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const CHART_DATA = [
-  { month: 'Th4', ratio: 0.65 },
-  { month: 'Th5', ratio: 0.78 },
-  { month: 'Th6', ratio: 0.55 },
-  { month: 'Th7', ratio: 1.0 },
-  { month: 'Th8', ratio: 0.72 },
-];
+function dayStart(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
 
-const ACHIEVEMENTS = [
-  { iconName: 'trophy-outline' as const, label: 'Cúp Vàng Derby', year: '2023' },
-  { iconName: 'speedometer-outline' as const, label: 'Ký Lục Tốc Độ', year: '2024' },
-  { iconName: 'star-outline' as const, label: 'Jockey Của Năm', year: '2023' },
-  { iconName: 'ribbon-outline' as const, label: '100 Trận Thắng', year: '2022' },
-];
+function buildCountdown(dateStr: string): string {
+  const now = Date.now();
+  const target = new Date(dateStr).getTime();
+  const diff = target - now;
+  if (diff <= 0) return 'Đang diễn ra';
+  const days = Math.floor(diff / 86_400_000);
+  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
+  const mins = Math.floor((diff % 3_600_000) / 60_000);
+  if (days > 0) return `${days}n ${hours}g`;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+function formatDateTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm} — ${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
+}
+
+function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const today = dayStart(new Date());
+  const ds = dayStart(d);
+  if (ds === today) return 'Hôm nay';
+  if (ds === today + 86_400_000) return 'Ngày mai';
+  return `${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// ─── Next Race Card ───────────────────────────────────────────────────────────
+
+function NextRaceCard({ item }: { item: ScheduleItem }) {
+  const [countdown, setCountdown] = useState(
+    item.raceRound?.raceDate ? buildCountdown(item.raceRound.raceDate) : '—'
+  );
+
+  useEffect(() => {
+    if (!item.raceRound?.raceDate) return;
+    const id = setInterval(() => {
+      setCountdown(buildCountdown(item.raceRound!.raceDate));
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [item.raceRound?.raceDate]);
+
+  const title =
+    item.tournament?.tournamentName ?? item.raceRound?.roundName ?? 'Vòng đua tiếp theo';
+  const horse = item.horse?.horseName ?? '—';
+  const location = item.raceRound?.location ?? '—';
+
+  return (
+    <View style={styles.nextRaceCard}>
+      <LinearGradient
+        colors={['#2A1215', '#1C1A10', '#0E1018']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.nextRaceGradient}>
+        <View style={styles.nextRaceBadge}>
+          <Text style={styles.nextRaceBadgeText}>TRẬN ĐẤU TIẾP THEO</Text>
+        </View>
+        <View style={styles.nextRaceBody}>
+          <View style={styles.nextRaceLeft}>
+            <Text style={styles.nextRaceTitle} numberOfLines={2}>{title}</Text>
+            <View style={styles.nextRaceHorseRow}>
+              <Ionicons name="ribbon-outline" size={12} color={Palette.redLight} />
+              <Text style={styles.nextRaceHorse} numberOfLines={1}>{horse}</Text>
+              {item.isBackup && (
+                <View style={styles.backupTag}>
+                  <Text style={styles.backupTagText}>DỰ PHÒNG</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.nextRaceLocationRow}>
+              <Ionicons name="location-outline" size={12} color={Palette.textMuted} />
+              <Text style={styles.nextRaceLocation} numberOfLines={1}>{location}</Text>
+            </View>
+          </View>
+          <View style={styles.nextRaceRight}>
+            <Text style={styles.countdownLabel}>KHỞI TRANH TRONG</Text>
+            <Text style={styles.countdown}>{countdown}</Text>
+            {item.raceRound?.raceDate && (
+              <Text style={styles.nextRaceDate}>
+                {formatShortDate(item.raceRound.raceDate)}
+              </Text>
+            )}
+          </View>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+}
+
+// ─── Upcoming Race Row ────────────────────────────────────────────────────────
+
+function UpcomingRow({ item }: { item: ScheduleItem }) {
+  const title =
+    item.tournament?.tournamentName ?? item.raceRound?.roundName ?? 'Vòng đua';
+  const date = item.raceRound?.raceDate ? formatDateTime(item.raceRound.raceDate) : '—';
+  const horse = item.horse?.horseName ?? '—';
+
+  return (
+    <View style={styles.upcomingRow}>
+      <View style={styles.upcomingTimeCol}>
+        <Text style={styles.upcomingDate}>
+          {item.raceRound?.raceDate ? formatShortDate(item.raceRound.raceDate) : '—'}
+        </Text>
+      </View>
+      <View style={styles.upcomingInfo}>
+        <Text style={styles.upcomingTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.upcomingMeta} numberOfLines={1}>
+          {horse} · {item.raceRound?.location ?? '—'}
+        </Text>
+      </View>
+      {item.isBackup && (
+        <View style={styles.backupTag}>
+          <Text style={styles.backupTagText}>DỰ PHÒNG</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function DashboardScreen() {
+  const { session } = useAuth();
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const load = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    const data = await getMyRaceSchedule();
+    const sorted = [...data].sort((a, b) => {
+      const ta = a.raceRound?.raceDate ? new Date(a.raceRound.raceDate).getTime() : Infinity;
+      const tb = b.raceRound?.raceDate ? new Date(b.raceRound.raceDate).getTime() : Infinity;
+      return ta - tb;
+    });
+    setSchedule(sorted);
+    setIsLoading(false);
+    setIsRefreshing(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const onRefresh = () => {
+    setIsRefreshing(true);
+    load(true);
+  };
+
+  const nextRace = schedule[0] ?? null;
+  const upcomingRest = schedule.slice(1, 4);
+
+  const confirmedCount = schedule.length;
+  const officialCount = schedule.filter((i) => !i.isBackup).length;
+  const backupCount = schedule.filter((i) => i.isBackup).length;
+
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
@@ -64,133 +212,124 @@ export default function DashboardScreen() {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scroll}>
+          contentContainerStyle={styles.scroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={Palette.red}
+            />
+          }>
 
           {/* ─── Welcome ─── */}
           <Text style={styles.welcomeSub}>CHÀO MỪNG TRỞ LẠI,</Text>
-          <Text style={styles.welcomeTitle}>Bảng Điều Khiển</Text>
+          <Text style={styles.welcomeTitle}>
+            {session?.user.fullName || session?.user.username || 'Tay đua'}
+          </Text>
 
           {/* ─── Stats Grid ─── */}
           <View style={styles.statsGrid}>
             <View style={styles.statsRow}>
               <View style={[styles.statCard, styles.statAccentRed]}>
-                <Text style={styles.statLabel}>TỶ LỆ THẮNG</Text>
-                <Text style={[styles.statValue, { color: Palette.redLight }]}>78%</Text>
+                <Text style={styles.statLabel}>TỔNG TRẬN ĐÃ XÁC NHẬN</Text>
+                <Text style={[styles.statValue, { color: Palette.redLight }]}>
+                  {isLoading ? '—' : confirmedCount}
+                </Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statLabel}>TỔNG SỐ TRẬN</Text>
-                <Text style={styles.statValue}>142</Text>
+                <Text style={styles.statLabel}>VAI CHÍNH THỨC</Text>
+                <Text style={styles.statValue}>
+                  {isLoading ? '—' : officialCount}
+                </Text>
               </View>
             </View>
             <View style={styles.statsRow}>
               <View style={styles.statCard}>
-                <Text style={styles.statLabel}>THU NHẬP</Text>
-                <Text style={[styles.statValue, { color: Palette.gold }]}>$1.2M</Text>
+                <Text style={styles.statLabel}>VAI DỰ PHÒNG</Text>
+                <Text style={[styles.statValue, { color: Palette.gold }]}>
+                  {isLoading ? '—' : backupCount}
+                </Text>
               </View>
               <View style={[styles.statCard, styles.statAccentGold]}>
-                <Text style={styles.statLabel}>XẾP HẠNG</Text>
-                <Text style={[styles.statValue, { color: Palette.gold }]}>#5 ELITE</Text>
+                <Text style={styles.statLabel}>TRẬN TIẾP THEO</Text>
+                <Text style={[styles.statValue, { color: Palette.gold, fontSize: 14 }]}>
+                  {isLoading
+                    ? '—'
+                    : nextRace?.raceRound?.raceDate
+                      ? formatShortDate(nextRace.raceRound.raceDate)
+                      : 'Chưa có'}
+                </Text>
               </View>
             </View>
           </View>
 
           {/* ─── Next Race ─── */}
-          <View style={styles.raceCard}>
-            <LinearGradient
-              colors={['#2A1215', '#1C1A10', '#0E1018']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.raceGradient}>
-              <View style={styles.raceBadge}>
-                <Text style={styles.raceBadgeText}>TRẬN ĐẤU TIẾP THEO</Text>
+          {isLoading ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator color={Palette.red} />
+            </View>
+          ) : nextRace ? (
+            <NextRaceCard item={nextRace} />
+          ) : (
+            <View style={styles.noRaceCard}>
+              <LinearGradient
+                colors={['#1A1215', '#0E100C']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Ionicons name="calendar-outline" size={28} color={Palette.textMuted} />
+              <Text style={styles.noRaceText}>Chưa có lịch thi đấu nào được xác nhận</Text>
+              <Text style={styles.noRaceSubText}>
+                Kiểm tra lại trang Lời mời để nhận thêm lịch thi đấu
+              </Text>
+            </View>
+          )}
+
+          {/* ─── Upcoming races ─── */}
+          {upcomingRest.length > 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleRow}>
+                  <View style={styles.sectionAccent} />
+                  <Text style={styles.sectionTitle}>Lịch sắp tới</Text>
+                </View>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>
+                    {confirmedCount} TRẬN
+                  </Text>
+                </View>
               </View>
-              <View style={styles.raceBody}>
-                <View style={styles.raceLeft}>
-                  <Text style={styles.raceName}>MIDNIGHT{'\n'}STORM</Text>
-                  <View style={styles.raceLocationRow}>
-                    <Ionicons name="location-outline" size={12} color={Palette.textMuted} />
-                    <Text style={styles.raceLocationText} numberOfLines={1}>
-                      Trường đua Churchill Downs, Louisville
+
+              <View style={styles.upcomingList}>
+                {upcomingRest.map((item) => (
+                  <UpcomingRow key={item.invitationId} item={item} />
+                ))}
+                {confirmedCount > 4 && (
+                  <View style={styles.moreRow}>
+                    <Text style={styles.moreText}>
+                      +{confirmedCount - 4} trận khác · Xem tất cả ở tab SCHEDULE
                     </Text>
                   </View>
-                </View>
-                <View style={styles.raceRight}>
-                  <Text style={styles.raceTimerLabel}>KHỞI TRANH TRONG</Text>
-                  <Text style={styles.raceTimer}>02:45:10</Text>
-                </View>
+                )}
               </View>
-            </LinearGradient>
-          </View>
+            </>
+          )}
 
-          {/* ─── Performance Chart ─── */}
-          <View style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>Xu Hướng Hiệu Suất</Text>
-              <View style={styles.legendRow}>
-                <View style={styles.legendDot} />
-                <Text style={styles.legendLabel}>Thu Nhập Hàng Tháng</Text>
-              </View>
+          {/* ─── Info notice ─── */}
+          {schedule.length > 0 && (
+            <View style={styles.infoNotice}>
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color={Palette.redLight}
+              />
+              <Text style={styles.infoText}>
+                Hãy đảm bảo bạn có mặt tại trường đua ít nhất 2 tiếng trước khi bắt đầu
+                để kiểm tra sức khỏe và thiết bị.
+              </Text>
             </View>
-
-            <View style={styles.chartArea}>
-              {CHART_DATA.map((item) => (
-                <View key={item.month} style={styles.barCol}>
-                  <View style={styles.barTrack}>
-                    <View
-                      style={[
-                        styles.bar,
-                        {
-                          height: item.ratio * CHART_MAX_H,
-                          backgroundColor: item.ratio >= 1 ? Palette.redLight : '#6B3840',
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.barLabel}>{item.month}</Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.chartDivider} />
-
-            <View style={styles.chartSummary}>
-              <View>
-                <Text style={styles.summaryLabel}>Tốt nhất</Text>
-                <Text style={styles.summaryValue}>+$240K</Text>
-              </View>
-              <View>
-                <Text style={styles.summaryLabel}>Trung bình</Text>
-                <Text style={styles.summaryValue}>+$185K</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* ─── Recent Achievements ─── */}
-          <View style={styles.achievementsSection}>
-            <View style={styles.achievementsHeader}>
-              <Text style={styles.achievementsTitle}>THÀNH TỰU GẦN ĐÂY</Text>
-              <Pressable hitSlop={8}>
-                <Text style={styles.seeAllLink}>XEM TẤT CẢ</Text>
-              </Pressable>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.achievementsList}>
-              {ACHIEVEMENTS.map((item, i) => (
-                <View key={i} style={styles.achievementItem}>
-                  <View style={styles.achievementIconBg}>
-                    <Ionicons name={item.iconName} size={26} color={Palette.gold} />
-                  </View>
-                  <Text style={styles.achievementLabel} numberOfLines={2}>
-                    {item.label}
-                  </Text>
-                  <Text style={styles.achievementYear}>{item.year}</Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
+          )}
 
           <View style={styles.bottomPad} />
         </ScrollView>
@@ -199,11 +338,12 @@ export default function DashboardScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Palette.background },
   safeArea: { flex: 1 },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -231,10 +371,8 @@ const styles = StyleSheet.create({
     color: Palette.red,
   },
 
-  // Scroll
   scroll: { paddingHorizontal: 20, paddingTop: 4 },
 
-  // Welcome
   welcomeSub: {
     fontFamily: Fonts.mono,
     fontSize: 11,
@@ -262,13 +400,8 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 6,
   },
-  statAccentRed: {
-    borderLeftWidth: 3,
-    borderLeftColor: Palette.red,
-  },
-  statAccentGold: {
-    borderColor: Palette.gold,
-  },
+  statAccentRed: { borderLeftWidth: 3, borderLeftColor: Palette.red },
+  statAccentGold: { borderColor: Palette.gold },
   statLabel: {
     fontFamily: Fonts.mono,
     fontSize: 10,
@@ -276,23 +409,18 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: Palette.textMuted,
   },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: Palette.text,
-    letterSpacing: 0.5,
-  },
+  statValue: { fontSize: 22, fontWeight: '800', color: Palette.text, letterSpacing: 0.5 },
 
-  // Race Card
-  raceCard: {
+  // Next Race Card
+  nextRaceCard: {
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Palette.cardBorder,
     marginBottom: 20,
   },
-  raceGradient: { padding: 20 },
-  raceBadge: {
+  nextRaceGradient: { padding: 20 },
+  nextRaceBadge: {
     alignSelf: 'flex-start',
     backgroundColor: Palette.redLight,
     borderRadius: 6,
@@ -300,159 +428,185 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginBottom: 14,
   },
-  raceBadgeText: {
+  nextRaceBadgeText: {
     fontFamily: Fonts.mono,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1,
     color: '#1A0608',
   },
-  raceBody: {
+  nextRaceBody: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 12,
   },
-  raceLeft: { flex: 1 },
-  raceName: {
-    fontSize: 22,
+  nextRaceLeft: { flex: 1, gap: 8 },
+  nextRaceTitle: {
+    fontSize: 20,
     fontWeight: '900',
     color: Palette.text,
-    letterSpacing: 1,
-    lineHeight: 26,
-    marginBottom: 10,
+    letterSpacing: 0.5,
+    lineHeight: 25,
   },
-  raceLocationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  raceLocationText: {
-    fontSize: 11,
-    color: Palette.textMuted,
-    flex: 1,
-  },
-  raceRight: { alignItems: 'flex-end' },
-  raceTimerLabel: {
+  nextRaceHorseRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  nextRaceHorse: { fontSize: 13, color: Palette.redLight, fontWeight: '600', flex: 1 },
+  nextRaceLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  nextRaceLocation: { fontSize: 11, color: Palette.textMuted, flex: 1 },
+  nextRaceRight: { alignItems: 'flex-end', gap: 4 },
+  countdownLabel: {
     fontFamily: Fonts.mono,
     fontSize: 9,
     fontWeight: '600',
     letterSpacing: 1,
     color: Palette.textMuted,
-    marginBottom: 4,
   },
-  raceTimer: {
+  countdown: {
     fontFamily: Fonts.mono,
     fontSize: 22,
     fontWeight: '800',
     color: Palette.text,
     letterSpacing: 1,
   },
+  nextRaceDate: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    color: Palette.gold,
+    letterSpacing: 0.5,
+  },
 
-  // Chart
-  chartCard: {
+  // No race / loading placeholders
+  loadingCard: {
+    height: 120,
     backgroundColor: Palette.card,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Palette.cardBorder,
-    padding: 20,
-    marginBottom: 20,
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chartTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Palette.text,
-  },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Palette.redLight,
-  },
-  legendLabel: { fontSize: 11, color: Palette.textMuted },
-  chartArea: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: CHART_MAX_H + 24,
-    gap: 8,
-  },
-  barCol: { flex: 1, alignItems: 'center' },
-  barTrack: {
-    height: CHART_MAX_H,
-    width: '100%',
-    justifyContent: 'flex-end',
-  },
-  bar: { width: '100%', borderRadius: 4 },
-  barLabel: {
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    color: Palette.textMuted,
-    marginTop: 6,
-  },
-  chartDivider: {
-    height: 1,
-    backgroundColor: Palette.cardBorder,
-    marginVertical: 16,
-  },
-  chartSummary: { flexDirection: 'row', gap: 32 },
-  summaryLabel: { fontSize: 12, color: Palette.textMuted, marginBottom: 2 },
-  summaryValue: {
-    fontFamily: Fonts.mono,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6CBA7A',
-  },
-
-  // Achievements
-  achievementsSection: { marginBottom: 8 },
-  achievementsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  achievementsTitle: {
-    fontFamily: Fonts.mono,
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    color: Palette.text,
-  },
-  seeAllLink: {
-    fontFamily: Fonts.mono,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    color: Palette.gold,
-  },
-  achievementsList: { gap: 12, paddingRight: 4 },
-  achievementItem: { width: 100, alignItems: 'center', gap: 8 },
-  achievementIconBg: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Palette.card,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 20,
   },
-  achievementLabel: {
-    fontSize: 11,
+  noRaceCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+    padding: 24,
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+  },
+  noRaceText: {
+    fontSize: 14,
     fontWeight: '600',
     color: Palette.text,
     textAlign: 'center',
-    lineHeight: 15,
   },
-  achievementYear: { fontSize: 11, color: Palette.textMuted },
+  noRaceSubText: {
+    fontSize: 12,
+    color: Palette.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+
+  // Upcoming list
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionAccent: {
+    width: 4,
+    height: 22,
+    borderRadius: 2,
+    backgroundColor: Palette.gold,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Palette.text },
+  countBadge: {
+    backgroundColor: '#1E1E22',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  countBadgeText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: Palette.textMuted,
+  },
+
+  upcomingList: {
+    backgroundColor: Palette.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  upcomingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Palette.cardBorder,
+    gap: 12,
+  },
+  upcomingTimeCol: { minWidth: 56 },
+  upcomingDate: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    fontWeight: '700',
+    color: Palette.gold,
+    letterSpacing: 0.3,
+  },
+  upcomingInfo: { flex: 1, gap: 3 },
+  upcomingTitle: { fontSize: 14, fontWeight: '700', color: Palette.text },
+  upcomingMeta: { fontSize: 12, color: Palette.textMuted },
+  moreRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  moreText: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    color: Palette.textMuted,
+    letterSpacing: 0.3,
+  },
+
+  backupTag: {
+    backgroundColor: '#1A1A2A',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#2A2A4A',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  backupTagText: {
+    fontFamily: Fonts.mono,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: '#8888CC',
+  },
+
+  // Info notice
+  infoNotice: {
+    flexDirection: 'row',
+    backgroundColor: '#1A1214',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A1A1C',
+    padding: 16,
+    gap: 12,
+    marginBottom: 4,
+  },
+  infoText: { flex: 1, fontSize: 13, lineHeight: 20, color: Palette.textMuted },
 
   bottomPad: { height: 20 },
 });

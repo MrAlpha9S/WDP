@@ -31,11 +31,8 @@
  *           schema:
  *             type: object
  *             required:
- *               - horseId
  *               - registrationId
  *             properties:
- *               horseId:
- *                 type: string
  *               jockeyId:
  *                 type: string
  *               registrationId:

@@ -33,6 +33,9 @@
  *               status:
  *                 type: string
  *                 enum: [draft, scheduled, ongoing, completed, cancelled]
+ *               prizePool:
+ *                 type: number
+ *                 description: Total prize pool amount
  *     responses:
  *       201:
  *         description: Tournament created
@@ -104,6 +107,9 @@
  *                 type: string
  *               status:
  *                 type: string
+ *               prizePool:
+ *                 type: number
+ *                 description: Total prize pool amount
  *     responses:
  *       200:
  *         description: Tournament updated

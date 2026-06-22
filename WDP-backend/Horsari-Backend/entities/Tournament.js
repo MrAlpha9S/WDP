@@ -26,6 +26,10 @@ const tournamentSchema = new mongoose.Schema(
             enum: ['draft', 'scheduled', 'ongoing', 'completed', 'cancelled'],
             default: 'draft',
         },
+        prizePool: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );

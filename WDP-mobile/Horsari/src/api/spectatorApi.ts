@@ -1,0 +1,267 @@
+import apiClient from './axios';
+
+// ─── Profile ──────────────────────────────────────────────────────────────────
+
+export interface SpectatorProfile {
+  spectator: { _id: string; rewardPoints: number };
+  user: {
+    fullName: string;
+    username: string;
+    email: string;
+    dateOfBirth: string | null;
+    phoneNumber: string | null;
+    image: string | null;
+    address: string | null;
+    status: string;
+  };
+  stats: { totalPredictions: number; totalCorrectPredictions: number; winRate: number };
+}
+
+// ─── Home Feed ────────────────────────────────────────────────────────────────
+
+export interface LiveRaceRegistration {
+  _id: string;
+  laneNumber: number | null;
+  horse: { _id: string; horseName: string; img: string | null } | null;
+}
+
+export interface HomeFeedLiveRace {
+  _id: string;
+  roundName: string;
+  raceDate: string;
+  location: string;
+  status: string;
+  livestreamUrl: string | null;
+  tournament: { _id: string; tournamentName: string } | null;
+  registrations: LiveRaceRegistration[];
+}
+
+export interface HomeFeedUpcomingRace {
+  _id: string;
+  roundName: string;
+  raceDate: string;
+  location: string;
+  address: string | null;
+  status: string;
+  tournament: { _id: string; tournamentName: string; prizePool: number | null } | null;
+}
+
+export interface HomeFeedHorse {
+  _id: string;
+  horseName: string;
+  img: string | null;
+  healthStatus: string | null;
+  totalRaces: number;
+  totalWins: number;
+  winRate: number;
+}
+
+export interface HomeFeed {
+  liveRace: HomeFeedLiveRace | null;
+  upcomingRaces: HomeFeedUpcomingRace[];
+  featuredHorses: HomeFeedHorse[];
+  spectator: { rewardPoints: number } | null;
+}
+
+// ─── Race Schedule ────────────────────────────────────────────────────────────
+
+export interface RaceScheduleItem {
+  _id: string;
+  roundName: string;
+  raceDate: string;
+  trackLength: number | null;
+  location: string;
+  address: string | null;
+  raceGround: string | null;
+  status: string;
+  maxParticipants: number | null;
+  requireEntranceFees: number | null;
+  minimalRidingFees: number | null;
+  currentParticipants: number;
+  tournament: {
+    _id: string;
+    tournamentName: string;
+    startDate: string;
+    endDate: string;
+    prizePool: number | null;
+  } | null;
+}
+
+export type ScheduleFilter = 'running' | 'scheduled' | 'completed';
+
+// ─── Predictions ──────────────────────────────────────────────────────────────
+
+export type PredictionStatus = 'pending' | 'correct' | 'incorrect' | 'cancelled' | 'refunded';
+
+export interface PredictionItem {
+  _id: string;
+  predictedRank: number;
+  predictionStatus: PredictionStatus;
+  rewardPoints: number;
+  created_at: string;
+  predictionMethod: {
+    _id: string;
+    methodName: string;
+    methodDescription: string;
+  } | null;
+  registration: {
+    _id: string;
+    laneNumber: number | null;
+    horse: { _id: string; horseName: string; img: string | null } | null;
+    raceRound: {
+      _id: string;
+      roundName: string;
+      raceDate: string;
+      location: string;
+      status: string;
+      tournament: { _id: string; tournamentName: string } | null;
+    } | null;
+  } | null;
+}
+
+// ─── Wallet ───────────────────────────────────────────────────────────────────
+
+export interface WalletInfo {
+  spectator: { _id: string; rewardPoints: number };
+  stats: { totalEarned: number };
+}
+
+export interface TransactionItem {
+  _id: string;
+  transactionType: 'reward' | 'deposit' | 'withdrawal' | 'refund';
+  amount: number;
+  date: string;
+  status: 'pending' | 'completed' | 'failed';
+  description: string | null;
+  createdAt: string;
+}
+
+// ─── API functions ────────────────────────────────────────────────────────────
+
+export async function getSpectatorProfile(): Promise<SpectatorProfile | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: SpectatorProfile; msg: string }>(
+      '/api/spectator/profile'
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getHomeFeed(): Promise<HomeFeed | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: HomeFeed; msg: string }>(
+      '/api/spectator/home-feed'
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getRaceSchedule(
+  filter: ScheduleFilter = 'scheduled',
+  page = 1,
+  limit = 20
+): Promise<{ raceRounds: RaceScheduleItem[]; meta: { total: number; hasMore: boolean } }> {
+  try {
+    const res = await apiClient.get<{
+      code: number;
+      data: {
+        raceRounds: RaceScheduleItem[];
+        meta: { total: number; hasMore: boolean; page: number; limit: number };
+      };
+      msg: string;
+    }>('/api/spectator/race-schedule', { params: { filter, page, limit } });
+    if (res.data.code === 200) return res.data.data;
+    return { raceRounds: [], meta: { total: 0, hasMore: false } };
+  } catch {
+    return { raceRounds: [], meta: { total: 0, hasMore: false } };
+  }
+}
+
+export async function getMyPredictions(
+  predictionStatus = 'all',
+  page = 1,
+  limit = 20
+): Promise<{ predictions: PredictionItem[]; meta: { total: number; hasMore: boolean } }> {
+  try {
+    const res = await apiClient.get<{
+      code: number;
+      data: {
+        predictions: PredictionItem[];
+        meta: { total: number; hasMore: boolean; page: number; limit: number };
+      };
+      msg: string;
+    }>('/api/spectator/predictions', { params: { predictionStatus, page, limit } });
+    if (res.data.code === 200) return res.data.data;
+    return { predictions: [], meta: { total: 0, hasMore: false } };
+  } catch {
+    return { predictions: [], meta: { total: 0, hasMore: false } };
+  }
+}
+
+export async function getWalletInfo(): Promise<WalletInfo | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: WalletInfo; msg: string }>(
+      '/api/spectator/wallet'
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getTransactionHistory(
+  page = 1,
+  limit = 20,
+  transactionType?: TransactionItem['transactionType'],
+): Promise<{ transactions: TransactionItem[]; meta: { total: number; hasMore: boolean } }> {
+  try {
+    const res = await apiClient.get<{
+      code: number;
+      data: {
+        transactions: TransactionItem[];
+        meta: { total: number; hasMore: boolean; page: number; limit: number };
+      };
+      msg: string;
+    }>('/api/spectator/transactions', {
+      params: { page, limit, ...(transactionType ? { transactionType } : {}) },
+    });
+    if (res.data.code === 200) return res.data.data;
+    return { transactions: [], meta: { total: 0, hasMore: false } };
+  } catch {
+    return { transactions: [], meta: { total: 0, hasMore: false } };
+  }
+}
+
+export async function depositPoints(
+  amount: number,
+  description?: string,
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await apiClient.post<{ code: number; msg: string }>(
+      '/api/spectator/transactions/deposit',
+      { amount, description },
+    );
+    return { ok: res.data.code === 201, message: res.data.msg };
+  } catch (err: any) {
+    return { ok: false, message: err?.response?.data?.msg ?? 'Lỗi kết nối.' };
+  }
+}
+
+export async function withdrawPoints(
+  amount: number,
+  description?: string,
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await apiClient.post<{ code: number; msg: string }>(
+      '/api/spectator/transactions/withdraw',
+      { amount, description },
+    );
+    return { ok: res.data.code === 201, message: res.data.msg };
+  } catch (err: any) {
+    return { ok: false, message: err?.response?.data?.msg ?? 'Lỗi kết nối.' };
+  }
+}

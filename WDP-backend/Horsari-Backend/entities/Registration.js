@@ -32,6 +32,11 @@ const registrationSchema = new mongoose.Schema(
             ref: 'HorseOwner',
             required: true,
         },
+        confirmedJockeyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Jockey',
+            default: null,
+        },
     },
     { timestamps: true }
 );

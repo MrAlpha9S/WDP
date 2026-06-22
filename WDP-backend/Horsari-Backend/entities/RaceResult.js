@@ -28,6 +28,7 @@ const raceResultSchema = new mongoose.Schema(
         },
         resultStatus: {
             type: String,
+            enum: ['official', 'cancelled'],
             default: 'official',
         },
     },

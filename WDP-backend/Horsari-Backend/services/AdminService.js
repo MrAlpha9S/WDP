@@ -379,10 +379,12 @@ class AdminService {
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
-                .populate('horseId')
                 .populate({
                     path: 'registrationId',
-                    populate: { path: 'raceRoundId' }
+                    populate: [
+                        { path: 'raceRoundId' },
+                        { path: 'horseId' }
+                    ]
                 })
                 .populate({
                     path: 'jockeyId',
@@ -406,7 +408,7 @@ class AdminService {
             const items = invitations.map(inv => {
                 const reg = inv.registrationId || null;
                 const raceRound = reg?.raceRoundId || null;
-                const horse = inv.horseId || null;
+                const horse = reg?.horseId || null;
                 const jockey = inv.jockeyId || null;
 
                 const siblings = siblingInvitations.filter(sib => sib.registrationId?.toString() === reg?._id?.toString());
@@ -591,17 +593,19 @@ class AdminService {
                             ? await User.findById(reg.horseOwnerId, 'fullName').lean()
                             : null;
 
-                        // Fetch Invitation (for Horse and Jockey + Jockey User fullName)
+                        // Fetch Invitation (for Jockey + Jockey User fullName)
                         const invitation = await Invitation.findOne({
                             registrationId: reg._id,
                             isBackup: false
                         })
-                            .populate('horseId')
                             .populate({
                                 path: 'jockeyId',
                                 populate: { path: '_id', model: 'User', select: 'fullName' }
                             })
                             .lean();
+
+                        // Fetch horse from Registration (horseId moved from Invitation to Registration)
+                        const horse = reg.horseId ? await Horse.findById(reg.horseId).lean() : null;
 
                         // Fetch RaceResult
                         const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
@@ -609,7 +613,7 @@ class AdminService {
                         rrObj.Registration.push({
                             ...reg,
                             sum_prediction,
-                            Horse: invitation ? invitation.horseId : null,
+                            Horse: horse || null,
                             Jockey: invitation ? invitation.jockeyId : null,
                             Owner: ownerUser,  // { _id, fullName } from User directly
                             RaceResult: raceResult || null
@@ -660,9 +664,9 @@ class AdminService {
 
                     const horses = await Promise.all(
                         activeHorsesRaw.map(async (horse) => {
-                            // Find all invitations where this horse participated
-                            const invitations = await Invitation.find({ horseId: horse._id, registrationId: { $ne: null } }).lean();
-                            const registrationIds = invitations.map(inv => inv.registrationId);
+                            // Find all registrations where this horse participated
+                            const registrations = await Registration.find({ horseId: horse._id }).lean();
+                            const registrationIds = registrations.map(reg => reg._id);
 
                             // Find all race results for those registrations
                             const raceResults = await RaceResult.find({ registrationId: { $in: registrationIds } }).lean();

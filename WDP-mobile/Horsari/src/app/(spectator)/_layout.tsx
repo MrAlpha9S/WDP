@@ -1,5 +1,1 @@
-import { Stack } from 'expo-router';
-
-export default function SpectatorLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
-}
+export { default } from '@/components/spectator-tabs';

@@ -2,11 +2,6 @@ const mongoose = require('mongoose');
 
 const invitationSchema = new mongoose.Schema(
     {
-        horseId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Horse',
-            required: true,
-        },
         jockeyId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Jockey',

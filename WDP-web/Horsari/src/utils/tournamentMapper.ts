@@ -57,7 +57,7 @@ export function mapBackendToTournaments(backendData: any[]): { tournaments: Tour
             endISO: tData.endDate ? new Date(tData.endDate).toISOString().split('T')[0] : "",
             totalRaces: tData.totalRaces || assignedRacesCount,
             completedRaces: tData.completedRaces || 0,
-            prizePool: tData.totalPrizePool ? `$${(tData.totalPrizePool / 1000000).toFixed(1)}M` : "-",
+            prizePool: tData.prizePool != null ? tData.prizePool.toLocaleString('vi-VN') + ' VND' : "-",
             status: mapStatus(tData.status) || getTournamentStatus(tData.startDate, tData.endDate),
             assignment: assignedRacesCount > 0 ? "assigned" : "none",
             assignedRaces: assignedRacesCount,

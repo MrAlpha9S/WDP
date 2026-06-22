@@ -54,6 +54,10 @@ const raceRoundSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'RaceEligibilityRule',
         },
+        livestreamUrl: {
+            type: String,
+            default: null,
+        },
     },
     { timestamps: true }
 );

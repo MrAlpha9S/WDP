@@ -9,6 +9,7 @@ const transactionSchema = new mongoose.Schema(
         },
         transactionType: {
             type: String,
+            enum: ['reward', 'deposit', 'withdrawal', 'refund'],
             required: true,
         },
         date: {
@@ -17,11 +18,25 @@ const transactionSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            default: 'completed',
+            enum: ['pending', 'completed', 'failed'],
+            default: 'pending',
         },
         amount: {
             type: Number,
             required: true,
+        },
+        description: {
+            type: String,
+            default: null,
+        },
+        referenceId: {
+            type: String,
+            default: null,
+        },
+        referenceType: {
+            type: String,
+            enum: ['prediction', 'payment'],
+            default: null,
         },
     },
     { timestamps: true }

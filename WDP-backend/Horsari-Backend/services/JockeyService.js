@@ -195,10 +195,8 @@ class JockeyService {
             }).lean();
 
             const result = await Promise.all(invitations.map(async inv => {
-                const [horse, registration] = await Promise.all([
-                    inv.horseId ? Horse.findById(inv.horseId).lean() : null,
-                    inv.registrationId ? Registration.findById(inv.registrationId).lean() : null,
-                ]);
+                const registration = inv.registrationId ? await Registration.findById(inv.registrationId).lean() : null;
+                const horse = registration?.horseId ? await Horse.findById(registration.horseId).lean() : null;
 
                 let ownerData = null;
                 let raceRoundData = null;
@@ -327,10 +325,8 @@ class JockeyService {
             }).lean();
 
             const result = await Promise.all(invitations.map(async inv => {
-                const [horse, registration] = await Promise.all([
-                    inv.horseId ? Horse.findById(inv.horseId).lean() : null,
-                    inv.registrationId ? Registration.findById(inv.registrationId).lean() : null,
-                ]);
+                const registration = inv.registrationId ? await Registration.findById(inv.registrationId).lean() : null;
+                const horse = registration?.horseId ? await Horse.findById(registration.horseId).lean() : null;
 
                 let ownerData = null;
                 let raceRoundData = null;
@@ -435,10 +431,11 @@ class JockeyService {
             }
 
             const registrationIds = invitations.map(inv => inv.registrationId).filter(Boolean);
+            const registrationsWithHorse = await Registration.find({ _id: { $in: registrationIds } }).lean();
             const horseByRegistration = {};
-            invitations.forEach(inv => {
-                if (inv.registrationId) {
-                    horseByRegistration[String(inv.registrationId)] = inv.horseId;
+            registrationsWithHorse.forEach(reg => {
+                if (reg.horseId) {
+                    horseByRegistration[String(reg._id)] = reg.horseId;
                 }
             });
 
