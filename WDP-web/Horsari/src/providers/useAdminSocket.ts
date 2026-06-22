@@ -2,6 +2,13 @@ import { createContext, useContext } from "react";
 import type { Socket } from "socket.io-client";
 import type { AdminNotification } from "../types/AdminNotification";
 
+export interface AdminEventCounts {
+    pendingCertifications: number;
+    racesReadyToStart: number;
+    activeTournaments: number;
+    pendingRegistrations: number;
+}
+
 // ── Shape of values shared across all admin pages ─────────────────────────────
 
 export interface AdminSocketContextValue {
@@ -15,6 +22,8 @@ export interface AdminSocketContextValue {
     notifications: AdminNotification[];
     /** Number of unread notifications — drives the bell badge */
     unreadCount: number;
+    /** Live counts pushed via admin:events_update — drives sidebar badges */
+    eventCounts: AdminEventCounts;
     /** Remove a single notification by id */
     dismissNotification: (id: string) => void;
     /** Remove all notifications */
@@ -22,6 +31,13 @@ export interface AdminSocketContextValue {
     /** Mark all notifications as read (clears the badge) */
     markAllRead: () => void;
 }
+
+const DEFAULT_COUNTS: AdminEventCounts = {
+    pendingCertifications: 0,
+    racesReadyToStart: 0,
+    activeTournaments: 0,
+    pendingRegistrations: 0,
+};
 
 // ── Context (created once, provided by AdminDashboardPage) ────────────────────
 
@@ -31,6 +47,7 @@ export const AdminSocketContext = createContext<AdminSocketContextValue>({
     wsCount: null,
     notifications: [],
     unreadCount: 0,
+    eventCounts: DEFAULT_COUNTS,
     dismissNotification: () => {},
     clearAllNotifications: () => {},
     markAllRead: () => {},
@@ -38,14 +55,6 @@ export const AdminSocketContext = createContext<AdminSocketContextValue>({
 
 // ── Consumer hook ─────────────────────────────────────────────────────────────
 
-/**
- * Access the shared WebSocket connection and notification state owned by AdminDashboardPage.
- * Must be used inside a component that is a descendant of AdminDashboardPage.
- *
- * @example
- * const { socket, wsConnected, notifications, dismissNotification } = useAdminSocket();
- * socket?.emit('admin_action', { ... });
- */
 export function useAdminSocket(): AdminSocketContextValue {
     return useContext(AdminSocketContext);
 }

@@ -13,6 +13,7 @@ import { AdminSocketContext } from "../../providers/useAdminSocket";
 import type { AdminNotification } from "../../types/AdminNotification";
 import { useParams, useNavigate } from "react-router-dom";
 import { TOKEN_KEY } from "../../utils/constants";
+import { adminService } from "../../api/adminService";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -69,11 +70,31 @@ export default function AdminDashboardPage() {
     const [wsConnected, setWsConnected] = useState(false);
     const [wsCount, setWsCount] = useState<number | null>(null);
     const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+    const [eventCounts, setEventCounts] = useState({ pendingCertifications: 0, racesReadyToStart: 0, activeTournaments: 0, pendingRegistrations: 0 });
+
+    // Seed counts immediately on mount so badges are populated before the first WS push
+    useEffect(() => {
+        adminService.getImportantEvents().then((res: any) => {
+            const d = res?.data ?? {};
+            setEventCounts({
+                pendingCertifications: (d.pendingCertifications ?? []).length,
+                racesReadyToStart:     (d.racesReadyToStart     ?? []).length,
+                activeTournaments:     (d.activeTournaments     ?? []).length,
+                pendingRegistrations:  (d.pendingRegistrations  ?? []).length,
+            });
+        }).catch(() => {});
+    }, []);
 
     useEffect(() => {
+        const token = localStorage.getItem(TOKEN_KEY) ?? '';
         const socket = io(SOCKET_URL, { withCredentials: true });
         socketRef.current = socket;
-        socket.on('connect', () => setWsConnected(true));
+
+        socket.on('connect', () => {
+            setWsConnected(true);
+            // Authenticate into the admin room
+            socket.emit('join_admin', { token });
+        });
         socket.on('disconnect', () => setWsConnected(false));
         socket.on('admin_ping', ({ count }: { count: number }) => setWsCount(count));
         socket.on('admin_notification', (notif: AdminNotification) => {
@@ -82,6 +103,10 @@ export default function AdminDashboardPage() {
                 ...prev,
             ]);
         });
+        socket.on('admin:events_update', (counts: typeof eventCounts) => {
+            setEventCounts(counts);
+        });
+
         return () => { socket.disconnect(); };
     }, []);
 
@@ -126,6 +151,7 @@ export default function AdminDashboardPage() {
             wsCount,
             notifications,
             unreadCount,
+            eventCounts,
             dismissNotification,
             clearAllNotifications,
             markAllRead,

@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { X, CheckCircle, Clock, ExternalLink, FileText, Image as ImageIcon, Star, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, CheckCircle, XCircle, Clock, ExternalLink, FileText, Image as ImageIcon, Star, Shield, Loader2, AlertTriangle } from "lucide-react";
 import { ROLE_STYLES, STATUS_STYLES, accentClass, Avatar } from "../AdminUsersPage";
-import type { FullUser } from "../AdminUsersPage";
+import type { FullUser, ViolationData } from "../AdminUsersPage";
 
 // ── Clickable avatar for panel header (opens lightbox if image exists) ────────
 
@@ -66,22 +66,108 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 }
 
 function FileLink({ label, href, type }: { label: string; href: string; type: "pdf" | "image" }) {
+    const [confirming, setConfirming] = useState(false);
     if (!href) return <DetailRow label={label} value={null} />;
 
     return (
-        <a
-            href={href} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.08] hover:border-white/[0.14] transition-all group"
-        >
-            <div className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 ${type === "pdf" ? "bg-red-500/15 text-red-400" : "bg-blue-500/15 text-blue-400"}`}>
-                {type === "pdf" ? <FileText size={13} /> : <ImageIcon size={13} />}
+        <>
+            <button
+                onClick={() => setConfirming(true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.08] hover:border-white/[0.14] transition-all group text-left"
+            >
+                <div className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 ${type === "pdf" ? "bg-red-500/15 text-red-400" : "bg-blue-500/15 text-blue-400"}`}>
+                    {type === "pdf" ? <FileText size={13} /> : <ImageIcon size={13} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[12px] text-gray-200 font-medium truncate">{label}</p>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-wider mt-0.5">{type === "pdf" ? "PDF Document" : "Image File"}</p>
+                </div>
+                <ExternalLink size={12} className="text-gray-600 group-hover:text-gray-400 transition-colors flex-shrink-0" />
+            </button>
+
+            {confirming && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setConfirming(false)}>
+                    <div className="bg-[#1a1a1a] border border-white/[0.1] rounded-xl shadow-2xl w-[320px] p-5" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${type === "pdf" ? "bg-red-500/15 text-red-400" : "bg-blue-500/15 text-blue-400"}`}>
+                                {type === "pdf" ? <FileText size={16} /> : <ImageIcon size={16} />}
+                            </div>
+                            <div>
+                                <p className="text-[13px] font-semibold text-white">Open file?</p>
+                                <p className="text-[11px] text-gray-500">{label}</p>
+                            </div>
+                        </div>
+                        <p className="text-[12px] text-gray-400 mb-4">
+                            This will open the document in a new tab. Are you sure you want to continue?
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setConfirming(false)}
+                                className="flex-1 py-2 rounded-lg text-[12px] font-semibold bg-white/[0.05] hover:bg-white/[0.09] text-gray-300 border border-white/[0.07] transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => { window.open(href, '_blank', 'noopener,noreferrer'); setConfirming(false); }}
+                                className="flex-1 py-2 rounded-lg text-[12px] font-semibold bg-[#ab3030] hover:bg-[#8f2828] text-white transition-colors"
+                            >
+                                Open
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
+
+function ViolationList({ violations }: { violations: ViolationData[] }) {
+    if (!violations || violations.length === 0) return null;
+
+    const statusStyle = (s: string) => {
+        if (s === 'confirmed') return 'bg-red-500/15 text-red-400';
+        if (s === 'dismissed') return 'bg-white/[0.05] text-gray-500';
+        return 'bg-amber-500/15 text-amber-400';
+    };
+    const severityColor = (n: number | null) => {
+        if (!n) return 'text-gray-500';
+        if (n >= 4) return 'text-red-400';
+        if (n === 3) return 'text-amber-400';
+        return 'text-emerald-400';
+    };
+
+    return (
+        <div className="mt-2 rounded-md border border-red-500/[0.15] bg-red-500/[0.03] overflow-hidden">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-red-500/[0.12]">
+                <AlertTriangle size={11} className="text-red-400/70" />
+                <span className="text-[10px] font-bold text-red-400/70 uppercase tracking-wider">
+                    {violations.length} Violation{violations.length !== 1 ? 's' : ''}
+                </span>
             </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-[12px] text-gray-200 font-medium truncate">{label}</p>
-                <p className="text-[10px] text-gray-600 uppercase tracking-wider mt-0.5">{type === "pdf" ? "PDF Document" : "Image File"}</p>
+            <div className="divide-y divide-white/[0.04]">
+                {violations.map((v) => (
+                    <div key={v.violationId} className="px-3 py-2 flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[12px] text-gray-300 font-medium truncate">{v.typeName || 'Unknown Type'}</p>
+                            {v.description && <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{v.description}</p>}
+                            {v.stewardAction && v.stewardAction !== 'no-action' && (
+                                <p className="text-[10px] text-gray-500 mt-0.5 capitalize">{v.stewardAction.replace('-', ' ')}</p>
+                            )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusStyle(v.violationStatus)}`}>
+                                {v.violationStatus}
+                            </span>
+                            {v.severity && (
+                                <span className={`text-[10px] font-semibold ${severityColor(v.severity)}`}>
+                                    Sev {v.severity}/5
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                ))}
             </div>
-            <ExternalLink size={12} className="text-gray-600 group-hover:text-gray-400 transition-colors flex-shrink-0" />
-        </a>
+        </div>
     );
 }
 
@@ -114,8 +200,13 @@ function RoleDetails({ user }: { user: FullUser }) {
                     <div className="py-2"><FileLink label="Jockey License" href={user.data?.licenseLink} type="pdf" /></div>
                 </>)}
                 {user.role === "Referee" && (<>
-                    <DetailRow label="Certification No." value={user.data?.certificationNumber} />
-                    <DetailRow label="License No." value={user.data?.licenseNumber} />
+                    <DetailRow label="License Status" value={
+                        user.data?.licenseStatus ? <span className={user.data.licenseStatus === "approved" ? "text-emerald-400" : user.data.licenseStatus === "rejected" ? "text-red-400" : "text-amber-400"}>{user.data.licenseStatus}</span> : null
+                    } />
+                    <DetailRow label="Total Assignments" value={
+                        <span className="text-white font-semibold">{user.data?.totalAssignments ?? 0}</span>
+                    } />
+                    <div className="py-2"><FileLink label="Referee License" href={user.data?.licenseLink} type="pdf" /></div>
                 </>)}
                 {user.role === "Spectator" && (
                     <DetailRow label="Reward Points" value={
@@ -134,15 +225,26 @@ function RoleDetails({ user }: { user: FullUser }) {
 
 // ── Inline Detail Panel ───────────────────────────────────────────────────────
 
-export default function UserDetailPanel({ user, onClose }: { user: FullUser; onClose: () => void }) {
+export default function UserDetailPanel({ user, onClose, detailLoading = false, onVerify }: {
+    user: FullUser;
+    onClose: () => void;
+    detailLoading?: boolean;
+    onVerify?: (action: 'approve' | 'reject') => Promise<void>;
+}) {
     const [activeTab, setActiveTab] = useState<"Overview" | "Role Info" | "History">("Overview");
+    const [verifyLoading, setVerifyLoading] = useState<'approve' | 'reject' | null>(null);
     const style = ROLE_STYLES[user.role];
     const statusStyle = STATUS_STYLES[user.status];
 
-    // Reset tab when user changes
-    useState(() => {
+    const handleVerify = async (action: 'approve' | 'reject') => {
+        if (!onVerify) return;
+        setVerifyLoading(action);
+        try { await onVerify(action); } finally { setVerifyLoading(null); }
+    };
+
+    useEffect(() => {
         setActiveTab("Overview");
-    });
+    }, [user.userId]);
 
     return (
         <div
@@ -197,12 +299,12 @@ export default function UserDetailPanel({ user, onClose }: { user: FullUser; onC
                     >
                         Role Info
                     </button>
-                    {["Jockey", "HorseOwner"].includes(user.role) && (
-                        <button 
+                    {["Jockey", "HorseOwner", "Referee"].includes(user.role) && (
+                        <button
                             className={`flex-1 pb-2 text-[12px] font-semibold transition-colors ${activeTab === "History" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
                             onClick={() => setActiveTab("History")}
                         >
-                            {user.role === "HorseOwner" ? "Stables" : "History"}
+                            {user.role === "HorseOwner" ? "Stables" : user.role === "Referee" ? "Assignments" : "History"}
                         </button>
                     )}
                 </div>
@@ -224,41 +326,99 @@ export default function UserDetailPanel({ user, onClose }: { user: FullUser; onC
                     )}
 
                     {activeTab === "Role Info" && (
-                        <RoleDetails user={user} />
+                        detailLoading
+                            ? <div className="flex items-center justify-center py-8 gap-2 text-gray-500"><Loader2 size={16} className="animate-spin" /><span className="text-[12px]">Loading…</span></div>
+                            : <>
+                                <RoleDetails user={user} />
+                                {onVerify && ['HorseOwner', 'Jockey', 'Referee'].includes(user.role) && (user.data as any)?.licenseStatus === 'pending' && (
+                                    <div className="mt-3 flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+                                            <span className="text-[11px] text-amber-400/90 font-medium">License pending review</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                                            <button
+                                                onClick={() => handleVerify('approve')}
+                                                disabled={verifyLoading !== null}
+                                                className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                {verifyLoading === 'approve' ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle size={10} />}
+                                                Approve
+                                            </button>
+                                            <button
+                                                onClick={() => handleVerify('reject')}
+                                                disabled={verifyLoading !== null}
+                                                className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                {verifyLoading === 'reject' ? <Loader2 size={10} className="animate-spin" /> : <XCircle size={10} />}
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                     )}
 
                     {activeTab === "History" && user.role === "Jockey" && user.data && 'raceHistory' in user.data && (
                         <div className="flex flex-col gap-2">
-                            {user.data.raceHistory?.map((race: any) => (
-                                <div key={race.id} className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[13px] font-semibold text-white">{race.raceName}</p>
-                                        <p className="text-[11px] text-gray-500">{race.date}</p>
+                            {user.data.raceHistory?.length ? user.data.raceHistory.map((race: any) => (
+                                <div key={race.id} className="rounded-lg bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+                                    <div className="p-3 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[13px] font-semibold text-white">{race.raceName}</p>
+                                            <p className="text-[11px] text-gray-500">{race.date}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[13px] font-bold text-amber-400">{race.position === 1 ? '1st' : race.position === 2 ? '2nd' : race.position === 3 ? '3rd' : race.position ? `${race.position}th` : '—'}</p>
+                                            <p className="text-[11px] text-emerald-400 font-medium">{race.prize ? `${race.prize.toLocaleString()} pts` : '—'}</p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-[13px] font-bold text-amber-400">{race.position === 1 ? '1st Place' : race.position === 2 ? '2nd Place' : race.position === 3 ? '3rd Place' : `${race.position}th Place`}</p>
-                                        <p className="text-[11px] text-emerald-400 font-medium">${race.prize.toLocaleString()}</p>
-                                    </div>
+                                    <ViolationList violations={race.violations ?? []} />
                                 </div>
-                            )) || <p className="text-[12px] text-gray-500 text-center py-4">No race history available.</p>}
+                            )) : <p className="text-[12px] text-gray-500 text-center py-4">No race history available.</p>}
                         </div>
                     )}
 
                     {activeTab === "History" && user.role === "HorseOwner" && user.data && 'horses' in user.data && (
                         <div className="flex flex-col gap-2">
-                            {user.data.horses?.map((horse: any) => (
-                                <div key={horse.id} className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[13px] font-semibold text-white">{horse.name}</p>
-                                        <p className="text-[11px] text-gray-500">{horse.breed} • {horse.age} yrs</p>
-                                    </div>
-                                    <div className="text-right">
+                            {user.data.horses?.length ? user.data.horses.map((horse: any) => (
+                                <div key={horse.id} className="rounded-lg bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+                                    <div className="p-3 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[13px] font-semibold text-white">{horse.name}</p>
+                                            <p className="text-[11px] text-gray-500">{horse.breed} • {horse.age} yrs</p>
+                                        </div>
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${horse.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
                                             {horse.status}
                                         </span>
                                     </div>
+                                    <ViolationList violations={horse.violations ?? []} />
                                 </div>
-                            )) || <p className="text-[12px] text-gray-500 text-center py-4">No horses registered.</p>}
+                            )) : <p className="text-[12px] text-gray-500 text-center py-4">No horses registered.</p>}
+                        </div>
+                    )}
+
+                    {activeTab === "History" && user.role === "Referee" && user.data && 'assignments' in user.data && (
+                        <div className="flex flex-col gap-2">
+                            {user.data.assignments?.length ? user.data.assignments.map((a: any) => (
+                                <div key={a.assignmentId} className="rounded-lg bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+                                    <div className="p-3">
+                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                            <p className="text-[13px] font-semibold text-white">{a.roundName || 'Unknown Race'}</p>
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${a.assignmentStatus === 'assigned' ? 'bg-emerald-500/15 text-emerald-400' : a.assignmentStatus === 'rejected' || a.assignmentStatus === 'cancelled' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                                                {a.assignmentStatus}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                                            <span>{a.raceDate || 'TBD'}</span>
+                                            <span className={`${a.paymentStatus === 'paid' ? 'text-emerald-400' : 'text-gray-500'}`}>
+                                                {a.fee > 0 ? `${a.fee.toLocaleString()} pts · ${a.paymentStatus}` : 'No fee'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <ViolationList violations={a.violations ?? []} />
+                                </div>
+                            )) : <p className="text-[12px] text-gray-500 text-center py-4">No assignments found.</p>}
                         </div>
                     )}
                 </div>

@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-    Search, User, CheckCircle, XCircle, Clock
+    Search, User, CheckCircle, XCircle, Clock, Loader2
 } from "lucide-react";
 import UserDetailPanel from "./AdminComponents/UserDetailPanel";
+import { adminService } from "../../api/adminService";
+import { Pagination } from "../../components/Pagination";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -15,11 +17,24 @@ export interface BaseUser {
     role: UserRole; confirm: boolean; updatedAt: string; status: UserStatus;
 }
 
-export interface HorseData { id: string; name: string; breed: string; age: number; status: string; }
+export interface ViolationData {
+    violationId: string;
+    typeName: string | null;
+    description: string | null;
+    severity: number | null;
+    stewardAction: string | null;
+    violationStatus: string;
+    reportedAt: string | null;
+    raceRoundId?: string | null;
+    roundName?: string | null;
+    raceDate?: string | null;
+}
+export interface HorseData { id: string; name: string; breed: string; age: number; status: string; violations?: ViolationData[]; }
 export interface HorseOwnerData { address: string; licenseStatus: string; licenseLink: string; horses?: HorseData[]; }
-export interface RaceHistoryData { id: string; raceName: string; date: string; position: number; prize: number; }
+export interface RaceHistoryData { id: string; raceName: string; date: string; position: number; prize: number; violations?: ViolationData[]; }
 export interface JockeyData { height: number; weight: number; matchesRaced: number; totalWins: number; ranking: number; status: string; licenseLink: string; licenseStatus: string; raceHistory?: RaceHistoryData[]; }
-export interface RefereeData { certificationNumber: string; licenseNumber: string; }
+export interface RefereeAssignmentData { assignmentId: string; raceRoundId: string | null; roundName: string | null; raceDate: string | null; raceStatus: string | null; assignmentStatus: string; paymentStatus: string; fee: number; violations?: ViolationData[]; }
+export interface RefereeData { licenseLink: string; licenseStatus: string; totalAssignments: number; assignments?: RefereeAssignmentData[]; }
 export interface SpectatorData { rewardPoints: number; }
 export interface AdminData { adminLevel: number; }
 
@@ -34,71 +49,124 @@ export type FullUser = BaseUser & RoleData;
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
-const USERS: FullUser[] = [
-    {
-        userId: "u1", userName: "jweston", email: "james@horsari.com", fullName: "James Weston",
-        dateOfBirth: "1985-03-12", phoneNumber: "+1 555 0101",
-        image: "https://i.pravatar.cc/150?img=11",
-        role: "HorseOwner", confirm: true, updatedAt: "2024-10-24", status: "active",
-        data: { 
-            address: "14 Paddock Lane, Dubai", licenseStatus: "Valid", licenseLink: "https://cdn.horsari.com/licenses/jweston.pdf",
-            horses: [
-                { id: "h1", name: "Desert Storm", breed: "Arabian", age: 4, status: "Active" },
-                { id: "h2", name: "Midnight Runner", breed: "Thoroughbred", age: 3, status: "Injured" }
-            ]
-        }
-    },
-    {
-        userId: "u2", userName: "smiller", email: "sarah@horsari.com", fullName: "Sarah Miller",
-        dateOfBirth: "1994-07-22", phoneNumber: "+1 555 0202",
-        image: "https://i.pravatar.cc/150?img=5",
-        role: "Jockey", confirm: true, updatedAt: "2024-10-23", status: "active",
-        data: { 
-            height: 162, weight: 54, matchesRaced: 48, totalWins: 19, ranking: 3, status: "Professional", licenseLink: "https://cdn.horsari.com/licenses/smiller.pdf", licenseStatus: "Valid",
-            raceHistory: [
-                { id: "r1", raceName: "Dubai World Cup", date: "2024-03-30", position: 1, prize: 5000000 },
-                { id: "r2", raceName: "Epsom Derby", date: "2024-06-01", position: 3, prize: 150000 }
-            ]
-        }
-    },
-    {
-        userId: "u3", userName: "dross", email: "david@horsari.com", fullName: "David Ross",
-        dateOfBirth: "1979-11-05", phoneNumber: "+1 555 0303", image: "",
-        role: "Referee", confirm: true, updatedAt: "2024-10-23", status: "active",
-        data: { certificationNumber: "REF-2024-0391", licenseNumber: "LIC-UK-7821" }
-    },
-    {
-        userId: "u4", userName: "akowalski", email: "anna@horsari.com", fullName: "Anna Kowalski",
-        dateOfBirth: "2000-01-30", phoneNumber: "+1 555 0404", image: "",
-        role: "Spectator", confirm: true, updatedAt: "2024-10-20", status: "active",
-        data: { rewardPoints: 1240 }
-    },
-    {
-        userId: "u5", userName: "rbrown", email: "ryan@horsari.com", fullName: "Ryan Brown",
-        dateOfBirth: "1991-06-18", phoneNumber: "+1 555 0505", image: "",
-        role: "HorseOwner", confirm: false, updatedAt: "2024-10-19", status: "pending",
-        data: { address: "88 Stables Road, Ascot", licenseStatus: "Pending", licenseLink: "https://cdn.horsari.com/licenses/rbrown.pdf" }
-    },
-    {
-        userId: "u6", userName: "lchang", email: "lily@horsari.com", fullName: "Lily Chang",
-        dateOfBirth: "1996-09-14", phoneNumber: "+1 555 0606",
-        image: "https://i.pravatar.cc/150?img=9",
-        role: "Jockey", confirm: true, updatedAt: "2024-10-18", status: "suspended",
-        data: { 
-            height: 158, weight: 51, matchesRaced: 22, totalWins: 7, ranking: 11, status: "Amateur", licenseLink: "https://cdn.horsari.com/licenses/lchang.pdf", licenseStatus: "Suspended",
-            raceHistory: [
-                { id: "r3", raceName: "Local Maiden", date: "2024-09-12", position: 1, prize: 5000 },
-                { id: "r4", raceName: "Autumn Stakes", date: "2024-10-05", position: 8, prize: 0 }
-            ]
-        }
-    },
-    {
-        userId: "u7", userName: "admin01", email: "admin@horsari.com", fullName: "System Admin",
-        dateOfBirth: "1980-01-01", phoneNumber: "+1 555 0001", image: "",
-        role: "Admin", confirm: true, updatedAt: "2024-10-01", status: "active",
-        data: { adminLevel: 1 }
-    },
-];
+function mapRole(backendRole: string): UserRole {
+    switch (backendRole) {
+        case 'horseowner': return 'HorseOwner';
+        case 'jockey': return 'Jockey';
+        case 'referee': return 'Referee';
+        case 'admin': return 'Admin';
+        default: return 'Spectator';
+    }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapViolation(v: any): ViolationData {
+    return {
+        violationId: String(v.violationId ?? v._id),
+        typeName: v.typeName ?? null,
+        description: v.description ?? null,
+        severity: v.severity ?? null,
+        stewardAction: v.stewardAction ?? null,
+        violationStatus: v.violationStatus ?? 'pending',
+        reportedAt: v.reportedAt ?? null,
+        raceRoundId: v.raceRoundId ? String(v.raceRoundId) : null,
+        roundName: v.roundName ?? null,
+        raceDate: v.raceDate ?? null,
+    };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mergeRoleDetail(base: FullUser, detail: any): FullUser {
+    const rp = detail?.roleProfile || {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let data: any = base.data;
+    if (base.role === 'HorseOwner') {
+        data = {
+            address: rp.address || 'N/A',
+            licenseStatus: rp.licenseStatus || 'N/A',
+            licenseLink: rp.licenseLink || '',
+            horses: (rp.horses || []).map((h: any) => ({
+                id: String(h._id),
+                name: h.horseName,
+                breed: h.breed || 'Unknown',
+                age: h.dateOfBirth
+                    ? Math.floor((Date.now() - new Date(h.dateOfBirth).getTime()) / (365.25 * 24 * 3600 * 1000))
+                    : 0,
+                status: h.status ? (h.status.charAt(0).toUpperCase() + h.status.slice(1)) : 'Unknown',
+                violations: (h.violations || []).map(mapViolation),
+            })),
+        };
+    } else if (base.role === 'Jockey') {
+        data = {
+            height: rp.height ?? 0,
+            weight: rp.weight ?? 0,
+            matchesRaced: rp.matchesRaced ?? 0,
+            totalWins: rp.totalWins ?? 0,
+            ranking: rp.ranking ?? 0,
+            status: rp.status || 'N/A',
+            licenseLink: rp.licenseLink || '',
+            licenseStatus: rp.licenseStatus || 'N/A',
+            raceHistory: (rp.raceHistory || []).map((r: any) => ({
+                id: String(r.raceRoundId),
+                raceName: r.roundName || 'Unknown Race',
+                date: r.raceDate ? r.raceDate.split('T')[0] : 'N/A',
+                position: r.finishPosition ?? 0,
+                prize: r.prizeMoney ?? 0,
+                violations: (r.violations || []).map(mapViolation),
+            })),
+        };
+    } else if (base.role === 'Referee') {
+        data = {
+            licenseLink: rp.licenseLink || '',
+            licenseStatus: rp.licenseStatus || 'N/A',
+            totalAssignments: rp.totalAssignments ?? 0,
+            assignments: (rp.assignments || []).map((a: any) => ({
+                assignmentId: String(a.assignmentId),
+                raceRoundId: a.raceRoundId ? String(a.raceRoundId) : null,
+                roundName: a.roundName ?? null,
+                raceDate: a.raceDate ? a.raceDate.split('T')[0] : null,
+                raceStatus: a.raceStatus ?? null,
+                assignmentStatus: a.assignmentStatus ?? 'pending',
+                paymentStatus: a.paymentStatus ?? 'unpaid',
+                fee: a.fee ?? 0,
+                violations: (a.violations || []).map(mapViolation),
+            })),
+        };
+    } else if (base.role === 'Spectator') {
+        data = { rewardPoints: rp.rewardPoints ?? 0 };
+    } else if (base.role === 'Admin') {
+        data = { adminLevel: 1 };
+    }
+    return { ...base, data } as FullUser;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapUser(backendUser: any): FullUser {
+    const role = mapRole(backendUser.role);
+    const base: BaseUser = {
+        userId: backendUser._id,
+        userName: backendUser.username || "Unknown",
+        email: backendUser.email || "",
+        fullName: backendUser.fullName || backendUser.username || "Unknown",
+        dateOfBirth: backendUser.dateOfBirth ? backendUser.dateOfBirth.split('T')[0] : "N/A",
+        phoneNumber: backendUser.phoneNumber || "N/A",
+        image: backendUser.image || "",
+        role: role,
+        confirm: backendUser.status === 'active',
+        updatedAt: backendUser.updatedAt ? backendUser.updatedAt.split('T')[0] : "N/A",
+        status: backendUser.status === 'inactive' ? 'pending' : backendUser.status as UserStatus || 'active',
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let data: any = {};
+    if (role === 'HorseOwner') data = { address: "N/A", licenseStatus: "N/A", licenseLink: "" };
+    else if (role === 'Jockey') data = { height: 0, weight: 0, matchesRaced: 0, totalWins: 0, ranking: 0, status: "N/A", licenseLink: "", licenseStatus: "N/A" };
+    else if (role === 'Referee') data = { certificationNumber: "N/A", licenseNumber: "N/A" };
+    else if (role === 'Spectator') data = { rewardPoints: 0 };
+    else if (role === 'Admin') data = { adminLevel: 1 };
+
+    return { ...base, data } as FullUser;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -173,16 +241,58 @@ export function Avatar({
 export default function AdminUsersPage() {
     const [search, setSearch] = useState("");
     const [roleFilter, setRoleFilter] = useState<UserRole | "All">("All");
+    const [limit, setLimit] = useState<number>(10);
     const [selectedUser, setSelectedUser] = useState<FullUser | null>(null);
+    const [users, setUsers] = useState<FullUser[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [page, setPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const totalPages = Math.ceil(totalItems / limit) || 1;
 
-    const filtered = USERS.filter(u => {
-        const matchSearch =
-            u.fullName.toLowerCase().includes(search.toLowerCase()) ||
-            u.email.toLowerCase().includes(search.toLowerCase()) ||
-            u.userName.toLowerCase().includes(search.toLowerCase());
-        const matchRole = roleFilter === "All" || u.role === roleFilter;
-        return matchSearch && matchRole;
-    });
+    // Reset to page 1 when filters change
+    useEffect(() => { setPage(1); }, [roleFilter, search, limit]);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                setLoading(true);
+                const skip = (page - 1) * limit;
+                const res = await adminService.getAllUsers(roleFilter, search, limit, skip);
+                const mapped = (res?.data?.items || []).map(mapUser);
+                setUsers(mapped);
+                setTotalItems(res?.data?.pagination?.totalItems ?? mapped.length);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        const timer = setTimeout(fetchUsers, 300);
+        return () => clearTimeout(timer);
+    }, [roleFilter, search, limit, page]);
+
+    useEffect(() => {
+        if (!selectedUser) return;
+        let cancelled = false;
+        const fetchDetail = async () => {
+            setDetailLoading(true);
+            try {
+                const res = await adminService.getUsersDetail(selectedUser.userId);
+                if (!cancelled && res?.data) {
+                    setSelectedUser(prev => prev ? mergeRoleDetail(prev, res.data) : prev);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                if (!cancelled) setDetailLoading(false);
+            }
+        };
+        fetchDetail();
+        return () => { cancelled = true; };
+    }, [selectedUser?.userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const filtered = users;
 
     const panelOpen = selectedUser !== null;
 
@@ -201,7 +311,7 @@ export default function AdminUsersPage() {
                                 <span className="text-[11px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase">
                                     All Registered Users
                                 </span>
-                                <span className="text-[13px] text-gray-500">· {filtered.length} user{filtered.length !== 1 ? "s" : ""}</span>
+                                <span className="text-[13px] text-gray-500">· {totalItems} user{totalItems !== 1 ? "s" : ""}</span>
                             </div>
                         </div>
 
@@ -216,6 +326,17 @@ export default function AdminUsersPage() {
                                     className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-8 pr-3 text-[12px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[34px] transition-colors"
                                 />
                             </div>
+
+                            <select
+                                value={limit}
+                                onChange={(e) => setLimit(Number(e.target.value))}
+                                className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer"
+                            >
+                                <option value={10}>10 per page</option>
+                                <option value={25}>25 per page</option>
+                                <option value={50}>50 per page</option>
+                                <option value={100}>100 per page</option>
+                            </select>
 
                             <select
                                 value={roleFilter}
@@ -251,58 +372,16 @@ export default function AdminUsersPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {filtered.map(user => {
-                                        const style = ROLE_STYLES[user.role];
-                                        const statusStyle = STATUS_STYLES[user.status];
-                                        const isSelected = selectedUser?.userId === user.userId;
-
-                                        return (
-                                            <tr
-                                                key={user.userId}
-                                                onClick={() => setSelectedUser(isSelected ? null : user)}
-                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}
-                                            >
-                                                <td className="p-4">
-                                                    <div className="flex items-center gap-2.5 min-w-0">
-                                                        <Avatar src={user.image} name={user.fullName} id={user.userId} size="sm" />
-                                                        <div className="min-w-0">
-                                                            <p className="text-[13px] text-white font-medium truncate">{user.fullName}</p>
-                                                            {!panelOpen && <p className="text-[11px] text-gray-600 truncate">@{user.userName}</p>}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                {!panelOpen && (
-                                                    <td className="p-4">
-                                                        <p className="text-[12px] text-gray-400 truncate">{user.email}</p>
-                                                    </td>
-                                                )}
-                                                <td className="p-4">
-                                                    <span className={`inline-flex w-fit text-[11px] font-semibold px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
-                                                        {style.label}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4">
-                                                    <span className={`flex items-center gap-1 text-[12px] font-medium ${statusStyle.color}`}>
-                                                        {statusStyle.icon}
-                                                        {!panelOpen && <span className="hidden xl:inline">{statusStyle.text}</span>}
-                                                    </span>
-                                                </td>
-                                                {!panelOpen && (
-                                                    <td className="p-4">
-                                                        <span className={user.confirm ? "text-emerald-400" : "text-amber-400"}>
-                                                            {user.confirm ? <CheckCircle size={14} /> : <Clock size={14} />}
-                                                        </span>
-                                                    </td>
-                                                )}
-                                                {!panelOpen && (
-                                                    <td className="p-4">
-                                                        <p className="text-[11px] text-gray-600">{user.updatedAt}</p>
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        );
-                                    })}
-                                    {filtered.length === 0 && (
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan={6}>
+                                                <div className="py-10 text-center flex flex-col items-center justify-center">
+                                                    <Loader2 size={22} className="text-gray-500 animate-spin mb-2" />
+                                                    <p className="text-[12px] text-gray-600">Loading users...</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : filtered.length === 0 ? (
                                         <tr>
                                             <td colSpan={6}>
                                                 <div className="py-10 text-center">
@@ -311,17 +390,88 @@ export default function AdminUsersPage() {
                                                 </div>
                                             </td>
                                         </tr>
+                                    ) : (
+                                        filtered.map(user => {
+                                            const style = ROLE_STYLES[user.role];
+                                            const statusStyle = STATUS_STYLES[user.status] || STATUS_STYLES.active;
+                                            const isSelected = selectedUser?.userId === user.userId;
+
+                                            return (
+                                                <tr
+                                                    key={user.userId}
+                                                    onClick={() => setSelectedUser(isSelected ? null : user)}
+                                                    className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}
+                                                >
+                                                    <td className="p-4">
+                                                        <div className="flex items-center gap-2.5 min-w-0">
+                                                            <Avatar src={user.image} name={user.fullName} id={user.userId} size="sm" />
+                                                            <div className="min-w-0">
+                                                                <p className="text-[13px] text-white font-medium truncate">{user.fullName}</p>
+                                                                {!panelOpen && <p className="text-[11px] text-gray-600 truncate">@{user.userName}</p>}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    {!panelOpen && (
+                                                        <td className="p-4">
+                                                            <p className="text-[12px] text-gray-400 truncate">{user.email}</p>
+                                                        </td>
+                                                    )}
+                                                    <td className="p-4">
+                                                        <span className={`inline-flex w-fit text-[11px] font-semibold px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}>
+                                                            {style.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <span className={`flex items-center gap-1 text-[12px] font-medium ${statusStyle.color}`}>
+                                                            {statusStyle.icon}
+                                                            {!panelOpen && <span className="hidden xl:inline">{statusStyle.text}</span>}
+                                                        </span>
+                                                    </td>
+                                                    {!panelOpen && (
+                                                        <td className="p-4">
+                                                            <span className={user.confirm ? "text-emerald-400" : "text-amber-400"}>
+                                                                {user.confirm ? <CheckCircle size={14} /> : <Clock size={14} />}
+                                                            </span>
+                                                        </td>
+                                                    )}
+                                                    {!panelOpen && (
+                                                        <td className="p-4">
+                                                            <p className="text-[11px] text-gray-600">{user.updatedAt}</p>
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination
+                            page={page}
+                            totalPages={totalPages}
+                            totalItems={totalItems}
+                            limit={limit}
+                            onPageChange={setPage}
+                        />
                     </div>
                 </main>
 
                 {/* Detail panel */}
                 {panelOpen && (
                     <div className="flex-1 min-w-[500px] h-full">
-                        <UserDetailPanel user={selectedUser!} onClose={() => setSelectedUser(null)} />
+                        <UserDetailPanel
+                            user={selectedUser!}
+                            onClose={() => setSelectedUser(null)}
+                            detailLoading={detailLoading}
+                            onVerify={async (action) => {
+                                await adminService.verifyCertification(selectedUser!.userId, action);
+                                const newStatus = action === 'approve' ? 'approved' : 'rejected';
+                                setSelectedUser(prev => prev
+                                    ? { ...prev, data: { ...(prev.data as any), licenseStatus: newStatus } } as typeof prev
+                                    : prev
+                                );
+                            }}
+                        />
                     </div>
                 )}
             </div>

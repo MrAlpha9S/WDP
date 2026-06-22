@@ -3,8 +3,12 @@
 export type NotificationEventType =
     | 'race_started'       // A race round has gone live
     | 'race_ended'         // A race round has finished
+    | 'race_prepared'      // Referee completed pre-race inspection; race ready to start
+    | 'race_cancelled'     // Race cancelled — no eligible entries after inspection
     | 'new_registration'   // A new horse/jockey registration submitted
     | 'new_user'           // A new user account created
+    | 'new_horse'          // A new horse registered
+    | 'new_invitation'     // A horse owner sent a jockey invitation
     | 'objection_filed'    // An objection was filed post-race
     | 'system_alert';      // Generic system message
 

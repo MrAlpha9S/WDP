@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, ClipboardList, Flag, Info, Trophy, UserPlus, X, ChevronRight } from "lucide-react";
+import { AlertTriangle, CheckCircle, ClipboardList, Flag, Info, Mail, Trophy, UserPlus, X, XCircle, ChevronRight, Zap } from "lucide-react";
 import type { AdminNotification, NotificationEventType } from "../../../types/AdminNotification";
 
 // ── Per-type visual config ─────────────────────────────────────────────────────
@@ -45,6 +45,38 @@ const TYPE_CONFIG: Record<NotificationEventType, TypeConfig> = {
         badgeColor: "bg-blue-500/15 text-blue-400 border-blue-700/40",
         badgeText: "New User",
         icon: <UserPlus size={13} />,
+    },
+    race_prepared: {
+        borderColor: "border-l-emerald-500",
+        bgColor: "hover:bg-emerald-500/5",
+        iconColor: "text-emerald-400",
+        badgeColor: "bg-emerald-500/15 text-emerald-400 border-emerald-700/40",
+        badgeText: "Race Ready",
+        icon: <CheckCircle size={13} />,
+    },
+    race_cancelled: {
+        borderColor: "border-l-red-800",
+        bgColor: "hover:bg-red-900/10",
+        iconColor: "text-red-500",
+        badgeColor: "bg-red-900/20 text-red-500 border-red-800/40",
+        badgeText: "Cancelled",
+        icon: <XCircle size={13} />,
+    },
+    new_horse: {
+        borderColor: "border-l-purple-500",
+        bgColor: "hover:bg-purple-500/5",
+        iconColor: "text-purple-400",
+        badgeColor: "bg-purple-500/15 text-purple-400 border-purple-700/40",
+        badgeText: "New Horse",
+        icon: <Zap size={13} />,
+    },
+    new_invitation: {
+        borderColor: "border-l-cyan-500",
+        bgColor: "hover:bg-cyan-500/5",
+        iconColor: "text-cyan-400",
+        badgeColor: "bg-cyan-500/15 text-cyan-400 border-cyan-700/40",
+        badgeText: "Invitation",
+        icon: <Mail size={13} />,
     },
     objection_filed: {
         borderColor: "border-l-orange-500",

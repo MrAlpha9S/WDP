@@ -62,6 +62,28 @@ export const adminService = {
     }
   },
 
+  getAllUsers: async (role?: string, search?: string, limit: number = 10, skip: number = 0) => {
+    try {
+      const params: any = { limit, skip };
+      if (role && role !== 'All') params.role = role;
+      if (search) params.search = search;
+      const response = await api.get('/admin/users/all', { params });
+      console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch users' };
+    }
+  },
+
+  getUsersDetail: async (userId: string) => {
+    try {
+      const response = await api.get(`/admin/users/${userId}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch user detail' };
+    }
+  },
+
   getHorseOwnerInvitations: async (page: number = 1, limit: number = 5) => {
     try {
       const response = await api.get('/admin/horse-owner-invitations', {
@@ -260,6 +282,17 @@ export const adminService = {
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to delete rule' };
+    }
+  },
+
+  // --- Certification Verification ---
+
+  verifyCertification: async (userId: string, action: 'approve' | 'reject') => {
+    try {
+      const response = await api.patch(`/admin/users/${userId}/certification`, { action });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to update certification status' };
     }
   },
 

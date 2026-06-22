@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
+import { TOKEN_KEY } from "../../utils/constants";
 import RefereeNavBar, { REFEREE_TABS, type RefereeTab } from "./RefereeComponents/NavBar";
 import RefereeDashboard from "./Homepage";
 import ManagementPage from "./ManagementPage";
@@ -47,14 +48,18 @@ export default function RefereeDashboardPage() {
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
+        const token = localStorage.getItem(TOKEN_KEY) ?? '';
         const socket = io(SOCKET_URL, { withCredentials: true });
         socketRef.current = socket;
 
-        socket.on('connect',    () => setWsConnected(true));
+        socket.on('connect', () => {
+            setWsConnected(true);
+            socket.emit('join_referee', { token });
+        });
         socket.on('disconnect', () => setWsConnected(false));
 
-        // General platform notifications
-        socket.on('admin_notification', () => {
+        // Notifications sent to this referee's personal room (referee:${userId})
+        socket.on('referee_notification', () => {
             setUnreadCount(prev => prev + 1);
         });
 
@@ -62,8 +67,6 @@ export default function RefereeDashboardPage() {
         socket.on('race_status_update', () => {
             setUnreadCount(prev => prev + 1);
         });
-
-        console.log('Referee WS: connecting to', SOCKET_URL);
 
         return () => {
             socket.disconnect();
