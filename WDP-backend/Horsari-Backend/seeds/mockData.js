@@ -251,7 +251,7 @@ const mockData = async () => {
             registrationStatus: 'verified',
             registeredAt: new Date('2026-06-10T09:00:00Z'),
         });
-        await Invitation.create({
+        const inv1a_main = await Invitation.create({
             horseId: horses[0]._id,
             jockeyId: jockeyUsers[0]._id,
             registrationId: reg1a._id,
@@ -259,7 +259,6 @@ const mockData = async () => {
             jockeyConfirmation: true,
             invitationStatus: 'accepted',
             isBackup: false,
-            isJockeyInRace: true,
             percentagePayout: 10,
         });
         await Invitation.create({
@@ -270,9 +269,9 @@ const mockData = async () => {
             jockeyConfirmation: true,
             invitationStatus: 'accepted',
             isBackup: true,
-            isJockeyInRace: false,
             percentagePayout: 8,
         });
+        await Registration.findByIdAndUpdate(reg1a._id, { jockeyInRaceId: inv1a_main._id });
 
         // owner2 → verified (Desert Wind / Luca Moretti)
         const reg1b = await Registration.create({
@@ -282,7 +281,7 @@ const mockData = async () => {
             registrationStatus: 'verified',
             registeredAt: new Date('2026-06-10T10:00:00Z'),
         });
-        await Invitation.create({
+        const inv1b_main = await Invitation.create({
             horseId: horses[2]._id,
             jockeyId: jockeyUsers[1]._id,
             registrationId: reg1b._id,
@@ -290,9 +289,9 @@ const mockData = async () => {
             jockeyConfirmation: true,
             invitationStatus: 'accepted',
             isBackup: false,
-            isJockeyInRace: true,
             percentagePayout: 12,
         });
+        await Registration.findByIdAndUpdate(reg1b._id, { jockeyInRaceId: inv1b_main._id });
 
         // owner3 → failed (Golden Flash — soundness issue)
         const reg1c = await Registration.create({
@@ -311,7 +310,6 @@ const mockData = async () => {
             jockeyConfirmation: true,
             invitationStatus: 'accepted',
             isBackup: false,
-            isJockeyInRace: false,
             percentagePayout: 10,
         });
 
@@ -370,7 +368,6 @@ const mockData = async () => {
             jockeyConfirmation: true,
             invitationStatus: 'accepted',
             isBackup: false,
-            isJockeyInRace: false,
             percentagePayout: 15,
         });
         await Invitation.create({
@@ -381,7 +378,6 @@ const mockData = async () => {
             jockeyConfirmation: false,
             invitationStatus: 'pending',
             isBackup: true,
-            isJockeyInRace: false,
             percentagePayout: 10,
         });
 
@@ -401,7 +397,6 @@ const mockData = async () => {
             jockeyConfirmation: false,
             invitationStatus: 'pending',
             isBackup: false,
-            isJockeyInRace: false,
             percentagePayout: 10,
         });
 
@@ -459,7 +454,7 @@ const mockData = async () => {
             registrationStatus: 'verified',
             registeredAt: new Date('2026-06-15T09:00:00Z'),
         });
-        await Invitation.create({
+        const inv3a_main = await Invitation.create({
             horseId: horses[0]._id,
             jockeyId: jockeyUsers[1]._id,
             registrationId: reg3a._id,
@@ -467,9 +462,9 @@ const mockData = async () => {
             jockeyConfirmation: true,
             invitationStatus: 'accepted',
             isBackup: false,
-            isJockeyInRace: true,
             percentagePayout: 10,
         });
+        await Registration.findByIdAndUpdate(reg3a._id, { jockeyInRaceId: inv3a_main._id });
 
         // owner2 → verified (Desert Wind / Yuki Tanaka)
         const reg3b = await Registration.create({
@@ -479,7 +474,7 @@ const mockData = async () => {
             registrationStatus: 'verified',
             registeredAt: new Date('2026-06-15T10:00:00Z'),
         });
-        await Invitation.create({
+        const inv3b_main = await Invitation.create({
             horseId: horses[2]._id,
             jockeyId: jockeyUsers[2]._id,
             registrationId: reg3b._id,
@@ -487,9 +482,9 @@ const mockData = async () => {
             jockeyConfirmation: true,
             invitationStatus: 'accepted',
             isBackup: false,
-            isJockeyInRace: true,
             percentagePayout: 12,
         });
+        await Registration.findByIdAndUpdate(reg3b._id, { jockeyInRaceId: inv3b_main._id });
 
         console.log('✅ Round 3 (running) — Standalone Night Race');
 
