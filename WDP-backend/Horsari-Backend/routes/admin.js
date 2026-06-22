@@ -61,6 +61,11 @@ router.get('/important-events', authMiddleware, authAdmin, AdminController.getIm
 // Get all metadata required for creating a race
 router.get('/create-race-metadata', authMiddleware, authAdmin, AdminController.getCreateRaceMetadata);
 
+// --- Horse Management Routes ---
+router.get('/horses',                   authMiddleware, authAdmin, AdminController.getAllHorses);
+router.get('/horses/:horseId',          authMiddleware, authAdmin, AdminController.getHorseDetail);
+router.patch('/horses/:horseId/status', authMiddleware, authAdmin, AdminController.updateHorseStatus);
+
 // --- Race Eligibility Rule Routes ---
 router.get('/rules', authMiddleware, authAdmin, AdminController.getAllRules);
 router.get('/rules/:id', authMiddleware, authAdmin, AdminController.getRuleById);

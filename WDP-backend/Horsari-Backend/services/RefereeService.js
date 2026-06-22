@@ -425,19 +425,7 @@ class RefereeService {
                     ? await User.findById(reg.horseOwnerId, 'fullName').lean()
                     : null;
 
-                // Get race result by matching raceRoundId + same calendar day as raceDate
-                let raceResult = null;
-                if (raceRound.raceDate) {
-                    const dayStart = new Date(raceRound.raceDate);
-                    dayStart.setUTCHours(0, 0, 0, 0);
-                    const dayEnd = new Date(dayStart);
-                    dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
-                    raceResult = await RaceResult.findOne({
-                        raceRoundId: raceRound._id,
-                        registrationId: reg._id,
-                        createdAt: { $gte: dayStart, $lt: dayEnd },
-                    }).lean();
-                }
+                const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
 
                 return {
                     ...reg,

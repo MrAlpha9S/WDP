@@ -201,6 +201,31 @@ class AdminController {
         const response = await AdminService.getVOD(req.params.id);
         return res.status(response.code).json(response);
     }
+
+    // ── Horse Management ────────────────────────────────────────────────────────
+
+    async getAllHorses(req, res) {
+        const { page = 1, limit = 10, search, status, sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await AdminService.getAllHorses(+page, +limit, search, status, sortBy, order);
+        return res.status(response.code).json(response);
+    }
+
+    async getHorseDetail(req, res) {
+        const response = await AdminService.getHorseDetail(req.params.horseId);
+        return res.status(response.code).json(response);
+    }
+
+    async updateHorseStatus(req, res) {
+        const { horseId } = req.params;
+        const { status } = req.body;
+        const response = await AdminService.updateHorseStatus(horseId, status);
+        if (response.code === 200) {
+            broadcastAdminEvent(req.app.get('io'), 'system_alert',
+                'Horse Status Updated',
+                `A horse has been marked as ${status}.`);
+        }
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new AdminController();
