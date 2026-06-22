@@ -336,6 +336,45 @@ export const adminService = {
     }
   },
 
+  // --- Horse Management ---
+
+  getAllHorses: async (
+    page = 1,
+    limit = 10,
+    search?: string,
+    status?: string,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ) => {
+    try {
+      const params: any = { page, limit, sortBy, order };
+      if (search) params.search = search;
+      if (status) params.status = status;
+      const response = await api.get('/admin/horses', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch horses' };
+    }
+  },
+
+  getHorseDetail: async (horseId: string) => {
+    try {
+      const response = await api.get(`/admin/horses/${horseId}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch horse detail' };
+    }
+  },
+
+  updateHorseStatus: async (horseId: string, status: 'active' | 'inactive' | 'retired') => {
+    try {
+      const response = await api.patch(`/admin/horses/${horseId}/status`, { status });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to update horse status' };
+    }
+  },
+
   // --- Important Events ---
 
   getImportantEvents: async () => {
