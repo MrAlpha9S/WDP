@@ -191,45 +191,55 @@ export default function RaceSchedulingPage() {
 
 
             {/* ── Top Content Area ── */}
-            <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
+            <div className="flex-1 flex gap-4 px-6 py-5 min-h-0">
 
                 {/* ── Main Timeline Area ── */}
-                <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${selectedRaceId ? "flex-[0_0_50%]" : "flex-1"}`}>
-                    {/* Header */}
-                    <header className="pb-6 flex items-center justify-between border-b border-white/5 shrink-0">
-                        <div>
-                            <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-                                Master Race Schedule
-                            </h1>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[11px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase">
-                                    All Scheduled Races
-                                </span>
-                                <span className="text-[13px] text-gray-500">· {selectedTournament === "All" ? "Across All Tournaments" : selectedTournament}</span>
+                <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${selectedRaceId ? "flex-[0_0_55%]" : "flex-1"}`}>
+                    {/* Header — row 1: title + actions, row 2: view toggle + filters */}
+                    <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+                        {/* Row 1 */}
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                    Master Race Schedule
+                                </h1>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                                        All Scheduled Races
+                                    </span>
+                                    <span className="text-[12px] text-gray-500 truncate">· {selectedTournament === "All" ? "Across All Tournaments" : selectedTournament}</span>
+                                </div>
                             </div>
-                        </div>
-
-                        {/* View Mode Toggle */}
-                        <div className="flex bg-[#1a1a1a] p-1 rounded-lg border border-white/5 mx-auto">
                             <button
-                                onClick={() => setViewMode("timeline")}
-                                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-[12px] font-medium transition-colors ${viewMode === "timeline" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
                             >
-                                <LayoutGrid size={14} /> Timeline
-                            </button>
-                            <button
-                                onClick={() => setViewMode("table")}
-                                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-[12px] font-medium transition-colors ${viewMode === "table" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
-                            >
-                                <List size={14} /> Table
+                                <Plus size={13} /> Create Race
                             </button>
                         </div>
 
-                        <div className="flex gap-3 items-center">
+                        {/* Row 2 */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            {/* View Mode Toggle */}
+                            <div className="flex bg-[#1a1a1a] p-1 rounded-lg border border-white/5 shrink-0">
+                                <button
+                                    onClick={() => setViewMode("timeline")}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "timeline" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                                >
+                                    <LayoutGrid size={13} /> Timeline
+                                </button>
+                                <button
+                                    onClick={() => setViewMode("table")}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "table" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                                >
+                                    <List size={13} /> Table
+                                </button>
+                            </div>
+
                             <select
                                 value={selectedTournament}
                                 onChange={(e) => setSelectedTournament(e.target.value)}
-                                className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer"
+                                className="flex-1 min-w-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Tournaments</option>
                                 {tournaments.map(t => (
@@ -240,22 +250,13 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={selectedStatus}
                                 onChange={(e) => setSelectedStatus(e.target.value)}
-                                className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer capitalize"
+                                className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer capitalize"
                             >
                                 <option value="All">All Statuses</option>
                                 {uniqueStatuses.map(status => (
-                                    <option key={status} value={status}>
-                                        {status}
-                                    </option>
+                                    <option key={status} value={status}>{status}</option>
                                 ))}
                             </select>
-
-                            <button
-                                onClick={() => setIsCreateModalOpen(true)}
-                                className="flex items-center gap-2 px-5 text-[13px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[34px]"
-                            >
-                                <Plus size={14} /> Create Race
-                            </button>
                         </div>
                     </header>
 
@@ -433,7 +434,7 @@ export default function RaceSchedulingPage() {
 
                 {/* ── Right Panel (Race Details) ── */}
                 {selectedRaceId && (
-                    <div className="flex-1 min-w-[500px] h-full">
+                    <div className="flex-1 min-w-[380px] min-h-0">
                         <RaceDetailsPanel 
                             selectedRace={selectedRace as any} 
                             onRefresh={handleCacheUpdate} 

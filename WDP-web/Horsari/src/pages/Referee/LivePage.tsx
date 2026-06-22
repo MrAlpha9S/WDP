@@ -228,12 +228,43 @@ function PositionTrack({
                 </div>
             </div>
 
-            {/* Track bar */}
-            <div className="relative h-10 bg-white/[0.03] rounded-full border border-white/6 overflow-visible mx-2">
-                <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase tracking-widest text-gray-700">Start</div>
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase tracking-widest text-gray-700">
-                    {trackLength} m
-                </div>
+            {/* Track bar — one lane per horse, separated vertically by horse number */}
+            <div
+                className="relative bg-white/[0.03] rounded-2xl border border-white/6 overflow-visible mx-2"
+                style={{ height: `${Math.max(80, displayHorses.length * 30)}px` }}
+            >
+                {/* Corner labels */}
+                <div className="absolute left-10 top-2 text-[8px] font-black uppercase tracking-widest text-gray-700">Start</div>
+                <div className="absolute right-3 top-2 text-[8px] font-black uppercase tracking-widest text-gray-700">{trackLength} m</div>
+
+                {/* Lane guide lines */}
+                {displayHorses.map(horse => {
+                    const n = displayHorses.length;
+                    const topPct = n <= 1 ? 50 : 8 + ((horse.number - 1) / (n - 1)) * 84;
+                    const color = HORSE_COLORS[horse.number] ?? '#374151';
+                    return (
+                        <div key={`gl-${horse.registrationId}`}
+                            className="absolute pointer-events-none"
+                            style={{ left: 38, right: 8, top: `${topPct}%`, height: 1, marginTop: -0.5, background: `${color}20` }}
+                        />
+                    );
+                })}
+
+                {/* Lane labels */}
+                {displayHorses.map(horse => {
+                    const n = displayHorses.length;
+                    const topPct = n <= 1 ? 50 : 8 + ((horse.number - 1) / (n - 1)) * 84;
+                    const color = HORSE_COLORS[horse.number] ?? '#6b7280';
+                    return (
+                        <div key={`lbl-${horse.registrationId}`}
+                            className="absolute left-2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
+                            style={{ top: `${topPct}%` }}
+                        >
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                            <span className="text-[8px] font-bold text-gray-700">#{horse.number}</span>
+                        </div>
+                    );
+                })}
 
                 {/* Next line mark */}
                 {lineMark !== null && lineMark < trackLength && (
@@ -248,42 +279,49 @@ function PositionTrack({
                     </div>
                 )}
 
+                {/* Horse markers */}
                 {displayHorses.map(horse => {
                     const pct = trackLength > 0 ? (horse.currentDistance / trackLength) * 100 : 0;
+                    const n = displayHorses.length;
+                    const topPct = n <= 1 ? 50 : 8 + ((horse.number - 1) / (n - 1)) * 84;
                     const color = HORSE_COLORS[horse.number] ?? "#6b7280";
                     const isLeader = leader?.registrationId === horse.registrationId;
                     return (
                         <div key={horse.registrationId}
-                            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5 transition-all duration-700"
-                            style={{ left: `${pct}%` }}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-700"
+                            style={{ left: `${pct}%`, top: `${topPct}%` }}
                         >
-                            {horse.isFinished && (
-                                <span className="text-[8px] text-green-400 font-black leading-none">✓</span>
-                            )}
-                            <div className="flex items-center justify-center text-[10px] font-black text-white shadow-lg"
+                            <div className="flex items-center justify-center text-[10px] font-black text-white shadow-lg relative"
                                 style={{
                                     width: isLeader ? 26 : 22, height: isLeader ? 26 : 22,
                                     borderRadius: "50%", background: color,
-                                    boxShadow: isLeader ? `0 0 10px ${color}80` : undefined,
-                                    border: `2px solid ${color}60`,
+                                    boxShadow: isLeader ? `0 0 12px ${color}90` : undefined,
+                                    border: `2px solid ${color}80`,
                                 }}
-                            >{horse.number}</div>
-                            {isLeader && <span className="text-[7px] font-black text-yellow-400 leading-none">▲</span>}
+                            >
+                                {horse.number}
+                                {horse.isFinished && (
+                                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[7px] text-green-400 font-black leading-none">✓</span>
+                                )}
+                                {isLeader && (
+                                    <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[7px] font-black text-yellow-400 leading-none">▲</span>
+                                )}
+                            </div>
                         </div>
                     );
                 })}
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-3 mt-3 flex-wrap">
+            <div className="flex items-center gap-4 mt-4 flex-wrap">
                 {[...displayHorses].sort((a, b) => b.currentDistance - a.currentDistance).map(h => (
-                    <div key={h.registrationId} className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: HORSE_COLORS[h.number] ?? "#6b7280" }} />
-                        <span className="text-[10px] text-gray-500">{h.horseName.split(" ")[0]}</span>
+                    <div key={h.registrationId} className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: HORSE_COLORS[h.number] ?? "#6b7280" }} />
+                        <span className="text-[10px] text-gray-400 font-medium">#{h.number} {h.horseName.split(" ")[0]}</span>
                         {h.finishPosition === 1 && <span className="text-[9px] text-yellow-400 font-black">1st</span>}
-                        {h.finishPosition === 2 && <span className="text-[9px] text-gray-400 font-black">2nd</span>}
+                        {h.finishPosition === 2 && <span className="text-[9px] text-gray-300 font-black">2nd</span>}
                         {h.finishPosition === 3 && <span className="text-[9px] text-amber-600 font-black">3rd</span>}
-                        <span className="text-[9px] text-gray-600 font-mono uppercase">{h.raceStyle[0]}</span>
+                        <span className="text-[9px] text-gray-600 font-mono">{h.raceStyle[0]}</span>
                     </div>
                 ))}
             </div>
@@ -498,20 +536,29 @@ const [verificationOpen, setVerificationOpen] = useState(false);
 
                         {showTrackOnStream && (
                             <div className="absolute bottom-10 left-2.5 right-2.5 bg-black/75 backdrop-blur rounded-xl px-3 py-2 border border-white/10">
-                                <div className="relative h-7 bg-white/[0.06] rounded-full overflow-visible">
-                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 text-[7px] font-black uppercase tracking-widest text-gray-600">S</div>
-                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[7px] font-black uppercase tracking-widest text-gray-600">F</div>
+                                <div
+                                    className="relative bg-white/[0.06] rounded-xl overflow-visible"
+                                    style={{ height: `${Math.max(40, (liveHorses?.length ?? 0) * 18)}px` }}
+                                >
+                                    <div className="absolute left-1 top-1 text-[6px] font-black uppercase tracking-widest text-gray-600">S</div>
+                                    <div className="absolute right-1 top-1 text-[6px] font-black uppercase tracking-widest text-gray-600">F</div>
                                     {(liveHorses ?? []).map(horse => {
                                         const pct = trackLength > 0 ? (horse.currentDistance / trackLength) * 100 : 0;
+                                        const total = liveHorses?.length ?? 1;
+                                        const topPct = total <= 1 ? 50 : 10 + ((horse.number - 1) / (total - 1)) * 80;
                                         const color = HORSE_COLORS[horse.number] ?? "#6b7280";
                                         const isLeader = leader?.registrationId === horse.registrationId;
                                         return (
-                                            <div key={horse.registrationId} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-700" style={{ left: `${pct}%` }}>
-                                                <div className="flex items-center justify-center text-[9px] font-black text-white"
+                                            <div key={horse.registrationId}
+                                                className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-700"
+                                                style={{ left: `${pct}%`, top: `${topPct}%` }}
+                                            >
+                                                <div className="flex items-center justify-center text-[8px] font-black text-white"
                                                     style={{
-                                                        width: isLeader ? 22 : 18, height: isLeader ? 22 : 18,
+                                                        width: isLeader ? 18 : 14, height: isLeader ? 18 : 14,
                                                         borderRadius: "50%", background: color,
-                                                        boxShadow: isLeader ? `0 0 8px ${color}` : undefined,
+                                                        boxShadow: isLeader ? `0 0 6px ${color}` : undefined,
+                                                        border: `1.5px solid ${color}80`,
                                                     }}
                                                 >{horse.number}</div>
                                             </div>
@@ -714,7 +761,7 @@ const [verificationOpen, setVerificationOpen] = useState(false);
                                                                 {liveData.finishTime !== null && (
                                                                     <div className="flex justify-between">
                                                                         <span className="text-[10px] text-gray-600">Time</span>
-                                                                        <span className="text-[10px] font-mono text-white">{formatElapsed(Number(liveData.finishTime))}</span>
+                                                                        <span className="text-[10px] font-mono text-white">{liveData.finishTime}</span>
                                                                     </div>
                                                                 )}
                                                             </>

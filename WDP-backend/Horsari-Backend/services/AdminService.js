@@ -1107,6 +1107,10 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
             return { code: 422, msg: `Race is currently "${raceRound.status}". Only "prepared" races can be started or cancelled by admin.` };
         }
 
+        if (newStatus === 'running' && !raceRound.muxLiveStreamId) {
+            return { code: 422, msg: 'A stream key must be created before starting the race. Use the "Create Stream Key" button first.' };
+        }
+
         const updated = await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus }, { new: true }).lean();
 
         if (io) {
@@ -1127,13 +1131,9 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
         }
 
         if (newStatus === 'running') {
-            // Start horse simulation
+            // Start horse simulation (stream was already provisioned in prepared state)
             SimulationService.initializeSimulation(raceRoundId, io).catch(err => {
                 console.error('[Sim] Failed to start simulation:', err);
-            });
-            // Create Mux live stream for OBS ingestion
-            MuxService.createLiveStream(raceRoundId).catch(err => {
-                console.error('[Mux] Failed to create live stream:', err);
             });
         }
 
@@ -1232,16 +1232,47 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
     }
 };
 
+// POST provision a Mux live stream for a prepared race (idempotent — returns existing if already created)
+AdminService.prototype.createStreamForRace = async function (raceRoundId) {
+    try {
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+        if (!raceRound) return { code: 404, msg: 'Race round not found.' };
+        if (raceRound.status !== 'prepared') {
+            return { code: 422, msg: 'A stream can only be created for races in "prepared" status.' };
+        }
+        // Idempotent: return existing stream info if already provisioned
+        if (raceRound.muxLiveStreamId) {
+            const info = await MuxService.getStreamInfo(raceRoundId);
+            return { code: 200, data: info, msg: 'Stream already exists.' };
+        }
+        const info = await MuxService.createLiveStream(raceRoundId);
+        return {
+            code: 201,
+            data: {
+                rtmpUrl:    'rtmps://global-live.mux.com:443/app',
+                streamKey:  info.streamKey,
+                playbackId: info.livePlaybackId,
+            },
+            msg: 'Live stream created successfully.',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
 // GET Mux stream info (RTMP URL + stream key for OBS, playback ID for viewer)
 AdminService.prototype.getStreamInfo = async function (raceRoundId) {
     try {
         const raceRound = await RaceRound.findById(raceRoundId).lean();
         if (!raceRound) return { code: 404, msg: 'Race round not found.' };
-        if (raceRound.status !== 'running') {
-            return { code: 422, msg: 'Race is not currently running.' };
+        if (raceRound.status !== 'running' && raceRound.status !== 'prepared') {
+            return { code: 422, msg: 'Stream info is only available for prepared or running races.' };
+        }
+        if (!raceRound.muxLiveStreamId) {
+            return { code: 404, msg: 'No stream has been created for this race yet.' };
         }
         const info = await MuxService.getStreamInfo(raceRoundId);
-        if (!info) return { code: 404, msg: 'No live stream found for this race. Start the race first.' };
+        if (!info) return { code: 404, msg: 'No live stream found for this race.' };
         return { code: 200, data: info, msg: 'Stream info retrieved.' };
     } catch (error) {
         return { code: 500, msg: error.message };

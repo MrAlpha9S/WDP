@@ -51,6 +51,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const [isCancelling, setIsCancelling] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
+    const [isCreatingStream, setIsCreatingStream] = useState(false);
     const [isConfirming, setIsConfirming] = useState(false);
     const [isConfirmResultModalOpen, setIsConfirmResultModalOpen] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
@@ -145,6 +146,10 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
             setVodError(null);
             setActionError(null);
             setActiveTab('overview');
+            // Pre-load stream key for prepared races so the UI shows existing credentials
+            if (selectedRace.status === 'prepared') {
+                fetchStreamInfo();
+            }
         } else {
             setDetailedParticipants([]);
             setDetailedReferees([]);
@@ -165,6 +170,20 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     }, [activeTab]);
 
     // ── Action Handlers ────────────────────────────────────────────────────────
+
+    const handleCreateStream = async () => {
+        if (!selectedRace) return;
+        setIsCreatingStream(true);
+        setStreamError(null);
+        try {
+            const res = await adminService.createStream(selectedRace.id);
+            if (res.data) setStreamInfo(res.data);
+        } catch (error: any) {
+            setStreamError(error?.msg || 'Failed to create stream key');
+        } finally {
+            setIsCreatingStream(false);
+        }
+    };
 
     const handleStartRace = async () => {
         if (!selectedRace) return;
@@ -237,7 +256,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         >
             <style>{`@keyframes panelIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }`}</style>
 
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col flex-1 min-h-0">
                 {/* ── Header ── */}
                 <div className="px-5 py-5 shrink-0 border-b border-white/[0.05] bg-[#1a1a1a]">
                     <div className="flex flex-col gap-1 mb-3">
@@ -302,10 +321,77 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     {/* ── Action Buttons ── */}
                     {(isPrepared || isRunning) && (
                         <div className="mt-4 flex flex-col gap-2">
+                            {/* Stream setup — required before starting */}
+                            {isPrepared && (
+                                <div className="rounded-xl border border-blue-500/20 bg-[#111] p-3 flex flex-col gap-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                                            <Radio size={12} className={streamInfo ? 'text-emerald-400' : 'text-blue-400'} />
+                                            Stream Setup
+                                        </span>
+                                        {streamInfo && (
+                                            <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                                                <CheckCircle2 size={11} /> Ready
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Loading state while checking for existing stream */}
+                                    {streamLoading && !streamInfo && (
+                                        <div className="flex items-center gap-2 text-[12px] text-gray-400">
+                                            <Loader2 size={13} className="animate-spin" /> Checking stream…
+                                        </div>
+                                    )}
+
+                                    {/* No stream yet */}
+                                    {!streamInfo && !streamLoading && (
+                                        <div className="flex flex-col gap-1.5">
+                                            <p className="text-[11px] text-gray-500">
+                                                Create a stream key so OBS can broadcast before the race starts.
+                                            </p>
+                                            <button
+                                                onClick={handleCreateStream}
+                                                disabled={isCreatingStream}
+                                                className="flex items-center justify-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                            >
+                                                {isCreatingStream ? <Loader2 size={13} className="animate-spin" /> : <Video size={13} />}
+                                                {isCreatingStream ? 'Creating…' : 'Create Stream Key'}
+                                            </button>
+                                            {streamError && (
+                                                <p className="text-[11px] text-red-400 flex items-center gap-1">
+                                                    <TriangleAlert size={11} className="shrink-0" /> {streamError}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Stream key ready — show credentials */}
+                                    {streamInfo && !streamLoading && (
+                                        <div className="flex flex-col gap-1.5 text-[11px]">
+                                            {streamInfo.rtmpUrl && (
+                                                <div className="flex items-center gap-2 bg-[#0d0d0d] rounded-lg px-2 py-1.5 border border-white/5">
+                                                    <span className="text-gray-500 shrink-0">RTMP</span>
+                                                    <span className="text-gray-300 font-mono truncate flex-1">{streamInfo.rtmpUrl}</span>
+                                                    <CopyButton text={streamInfo.rtmpUrl} />
+                                                </div>
+                                            )}
+                                            {streamInfo.streamKey && (
+                                                <div className="flex items-center gap-2 bg-[#0d0d0d] rounded-lg px-2 py-1.5 border border-white/5">
+                                                    <span className="text-gray-500 shrink-0">Key</span>
+                                                    <span className="text-gray-300 font-mono truncate flex-1 select-all">{streamInfo.streamKey}</span>
+                                                    <CopyButton text={streamInfo.streamKey} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {isPrepared && (
                                 <button
                                     onClick={handleStartRace}
-                                    disabled={isStarting}
+                                    disabled={isStarting || !streamInfo}
+                                    title={!streamInfo ? 'Create a stream key first' : undefined}
                                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
                                 >
                                     {isStarting ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} fill="white" />}

@@ -4,21 +4,40 @@ const RaceRound = require('../entities/RaceRound');
 const RaceResult = require('../entities/RaceResult');
 const User = require('../entities/User');
 
-// In-memory store: raceRoundId (string) → { horses, interval, startTime, finishCount, trackLength }
+// In-memory store: raceRoundId → { horses, interval, startTime, finishCount, trackLength, intensity }
 const activeRaces = new Map();
 
+// ── Intensity levels: assigned once per race, set the stat floor/ceiling ───────
+const INTENSITY_LEVELS = [
+    { name: 'low',    statMin: 15, statMax: 48  }, // maiden / entry-level
+    { name: 'medium', statMin: 38, statMax: 70  }, // claiming / allowance
+    { name: 'high',   statMin: 60, statMax: 87  }, // stakes
+    { name: 'elite',  statMin: 80, statMax: 100 }, // championship
+];
+
+function pickIntensity() {
+    return INTENSITY_LEVELS[Math.floor(Math.random() * INTENSITY_LEVELS.length)];
+}
+
+function randomStat(min, max) {
+    return Math.round(min + Math.random() * (max - min));
+}
+
 // ── Stat → physics conversions ─────────────────────────────────────────────────
-// speed  100 → 15 m/s,  1 → ~1 m/s
+// speed   100 → 17 m/s,   1 → ~6 m/s  (real thoroughbred: 14-17 m/s)
 function statToMaxSpeed(speed) {
-    return 1 + (speed / 100) * 14;
+    return 6 + (speed / 100) * 11;
 }
-// stamina 100 → 2000 m,  1 → 20 m
+
+// stamina pool: resource a horse spends each tick to sustain speed — 300 (stat 1) to 2000 (stat 100)
+// Each style drains this pool at a different rate; when the pool runs low, speed is capped.
 function statToStamina(stamina) {
-    return (stamina / 100) * 2000;
+    return 300 + (stamina / 100) * 1700;
 }
-// accel   100 → ±1 m/s variance,  1 → ±0.01 m/s
-function statToAccel(accel) {
-    return accel / 100;
+
+// accel → per-tick speed variance (m/s), ranges 0.10 – 1.55
+function statToAccelRange(accel) {
+    return 0.10 + (accel / 100) * 1.45;
 }
 
 function randomBetween(min, max) {
@@ -26,60 +45,96 @@ function randomBetween(min, max) {
 }
 
 // Next 100 m line mark ahead of the leader.
-// Leader at 170 → 200.  Leader at 200 or 220 → 300.
 function computeLineMark(highestDistance) {
     return (Math.floor(highestDistance / 100) + 1) * 100;
 }
 
-// ── Per-tick physics ───────────────────────────────────────────────────────────
+// ── Per-tick physics (resource-based stamina) ──────────────────────────────────
+//
+// Each style targets a speed and pays a stamina drain proportional to
+// (actualSpeed / maxSpeed)^1.8 × styleRate. When the pool drops below 25 %
+// the horse gets a hard speed cap that tightens to minSpeed at 0 % pool.
+// Drain is calculated on the ACTUAL (possibly capped) speed so a tired horse
+// that is already slow drains less — no runaway death spiral.
+//
+// Style drain rates:
+//   Runner      1.30  — sprints hard, pays the most
+//   Pace        1.00  — balanced baseline
+//   Late        0.75 early / 1.10 after kick
+//   LateSurger  0.38 early / 1.35 during surge — huge reserve funds the burst
+//   Closer      0.65 → 1.10 ramping across the race
+//
 function simulateTick(horse, trackLength) {
     const maxSpeed   = statToMaxSpeed(horse.speed);
-    const stamDist   = statToStamina(horse.stamina);
-    const accelRange = statToAccel(horse.accel);
-    const minSpeed   = maxSpeed * 0.4;
+    const accelRange = statToAccelRange(horse.accel);
+    const minSpeed   = maxSpeed * 0.35;           // lower floor = stamina failure hurts
+    const baseDrain  = 10 + (horse.speed / 100) * 5; // 10–15 units/tick at full speed
 
-    const pastStamina = horse.currentDistance >= stamDist;
-    let target;
+    let intended;   // what the horse wants to run this tick
+    let drainRate;
 
     if (horse.raceStyle === 'Runner') {
-        if (!pastStamina) {
-            // All-out sprint — vary ±(2 + accel) around maxSpeed each second
-            target = maxSpeed + (Math.random() - 0.5) * 2 * (2 + accelRange);
-        } else {
-            // Fade proportionally past stamina distance
-            const distPast = horse.currentDistance - stamDist;
-            const fade = Math.min(maxSpeed - minSpeed, (distPast / 500) * 2);
-            target = maxSpeed - fade + (Math.random() - 0.5) * accelRange;
-        }
+        // Capped at 93 % so variance can push both directions; drain rate 1.30
+        intended  = maxSpeed * 0.93 + (Math.random() - 0.5) * accelRange;
+        drainRate = 1.30;
+
     } else if (horse.raceStyle === 'Pace') {
-        const paceBase = maxSpeed * 0.8;
-        if (pastStamina) {
-            const distPast = horse.currentDistance - stamDist;
-            const fade = Math.min(paceBase - minSpeed, (distPast / 800) * 1.5);
-            target = paceBase - fade + (Math.random() - 0.5) * accelRange;
-        } else {
-            target = paceBase + (Math.random() - 0.5) * accelRange;
-        }
-    } else {
-        // Late — conserve until 60 % of track, then kick
-        const kickPoint = trackLength * 0.6;
+        intended  = maxSpeed * 0.82 + (Math.random() - 0.5) * accelRange;
+        drainRate = 1.00;
+
+    } else if (horse.raceStyle === 'Late') {
+        const kickPoint = trackLength * 0.58;
         if (horse.currentDistance < kickPoint) {
-            target = maxSpeed * 0.62 + (Math.random() - 0.5) * accelRange;
+            intended  = maxSpeed * 0.65 + (Math.random() - 0.5) * accelRange * 0.7;
+            drainRate = 0.75;
         } else {
-            target = maxSpeed + (Math.random() - 0.5) * accelRange * 0.5;
+            intended  = maxSpeed * 0.97 + (Math.random() - 0.5) * accelRange * 0.55;
+            drainRate = 1.10;
         }
+
+    } else if (horse.raceStyle === 'LateSurger') {
+        // Conservative until 65 % of track; the saved pool then funds the surge.
+        const kickPoint = trackLength * 0.65;
+        if (horse.currentDistance < kickPoint) {
+            intended  = maxSpeed * 0.60 + (Math.random() - 0.5) * accelRange * 0.45;
+            drainRate = 0.38;
+        } else {
+            // Surge escalates: 102 % → 112 % of maxSpeed as horse approaches wire
+            const surgeFraction = (horse.currentDistance - kickPoint) / (trackLength - kickPoint);
+            intended  = maxSpeed * (1.02 + surgeFraction * 0.10) + (Math.random() - 0.5) * accelRange * 0.5;
+            drainRate = 1.35;
+        }
+
+    } else {
+        // Closer — smooth progressive ramp 60 % → 95 % of maxSpeed
+        const progress = Math.min(1, horse.currentDistance / trackLength);
+        intended  = maxSpeed * (0.60 + progress * 0.35) + (Math.random() - 0.5) * accelRange * 0.8;
+        drainRate = 0.65 + progress * 0.45; // 0.65 early → 1.10 at wire
     }
 
-    // Clamp to [minSpeed, maxSpeed + small burst allowance]
-    target = Math.max(minSpeed, Math.min(maxSpeed + 0.5, target));
+    // ── Stamina speed cap ─────────────────────────────────────────────────────
+    // Below 25 % pool: linearly cap speed from 90 % maxSpeed (at 25 %) down to minSpeed (at 0 %)
+    const staminaRatio = horse.staminaPool / horse.initialStaminaPool;
+    if (staminaRatio < 0.25) {
+        const cap = minSpeed + (staminaRatio / 0.25) * (maxSpeed * 0.90 - minSpeed);
+        intended = Math.min(intended, cap);
+    }
 
+    const hardCap = horse.raceStyle === 'LateSurger' ? maxSpeed + 1.5 : maxSpeed + 0.5;
+    const target  = Math.max(minSpeed, Math.min(hardCap, intended));
+
+    // ── Drain on actual speed (not intended) so forced-slow horse drains less ─
+    const speedFraction = Math.min(1.0, target / maxSpeed);
+    const drain = baseDrain * drainRate * Math.pow(speedFraction, 1.8);
+    horse.staminaPool = Math.max(0, horse.staminaPool - drain);
+
+    // ── Distance & finish ─────────────────────────────────────────────────────
     const newDist    = horse.currentDistance + target;
     const isFinished = newDist >= trackLength;
 
     let finishFraction = 0;
     if (isFinished) {
-        const distNeeded = trackLength - horse.currentDistance;
-        finishFraction = distNeeded / target; // fraction of the 1-second tick
+        finishFraction = (trackLength - horse.currentDistance) / target;
     }
 
     return {
@@ -99,13 +154,13 @@ function formatTime(ms) {
 }
 
 // ── Build initial horse states from verified registrations ─────────────────────
-async function buildHorses(raceRoundId) {
+async function buildHorses(raceRoundId, intensity) {
     const registrations = await Registration.find({
         raceRoundId,
         registrationStatus: 'verified',
     }).lean();
 
-    const STYLES = ['Runner', 'Pace', 'Late'];
+    const STYLES = ['Runner', 'Pace', 'Late', 'LateSurger', 'Closer'];
 
     return Promise.all(registrations.map(async (reg, idx) => {
         const invitation = await Invitation.findById(reg.jockeyInRaceId)
@@ -125,35 +180,41 @@ async function buildHorses(raceRoundId) {
         }
 
         const style   = STYLES[Math.floor(Math.random() * STYLES.length)];
-        const speed   = Math.ceil(Math.random() * 100);
-        const stamina = Math.ceil(Math.random() * 100);
-        const accel   = Math.ceil(Math.random() * 100);
+        // Stats are drawn from the race's intensity band, not the full 1-100 range
+        const speed   = randomStat(intensity.statMin, intensity.statMax);
+        const stamina = randomStat(intensity.statMin, intensity.statMax);
+        const accel   = randomStat(intensity.statMin, intensity.statMax);
 
         const maxSpeed = statToMaxSpeed(speed);
         let initialSpeed;
-        if (style === 'Runner')    initialSpeed = randomBetween(maxSpeed * 0.85, maxSpeed);
-        else if (style === 'Pace') initialSpeed = randomBetween(maxSpeed * 0.75, maxSpeed * 0.85);
-        else                       initialSpeed = randomBetween(maxSpeed * 0.55, maxSpeed * 0.70);
+        if      (style === 'Runner')     initialSpeed = randomBetween(maxSpeed * 0.88, maxSpeed);
+        else if (style === 'Pace')       initialSpeed = randomBetween(maxSpeed * 0.78, maxSpeed * 0.88);
+        else if (style === 'Late')       initialSpeed = randomBetween(maxSpeed * 0.60, maxSpeed * 0.75);
+        else if (style === 'LateSurger') initialSpeed = randomBetween(maxSpeed * 0.42, maxSpeed * 0.55); // starts very slow
+        else                             initialSpeed = randomBetween(maxSpeed * 0.54, maxSpeed * 0.68); // Closer: moderate start
 
+        const initialStaminaPool = statToStamina(stamina);
         return {
-            registrationId:  reg._id.toString(),
-            number:          idx + 1,
+            registrationId:      reg._id.toString(),
+            number:              idx + 1,
             horseName,
             jockeyName,
             speed,
             stamina,
             accel,
-            raceStyle:       style,
-            currentDistance: 0,
-            currentSpeed:    initialSpeed,
-            isFinished:      false,
-            finishPosition:  null,
-            finishTime:      null,
+            raceStyle:           style,
+            currentDistance:     0,
+            currentSpeed:        initialSpeed,
+            staminaPool:         initialStaminaPool,
+            initialStaminaPool:  initialStaminaPool,
+            isFinished:          false,
+            finishPosition:      null,
+            finishTime:          null,
         };
     }));
 }
 
-// ── Persist individual horse result immediately ─────────────────────────────
+// ── Persist individual horse result immediately ────────────────────────────────
 async function saveHorseResult(raceRound, horse) {
     try {
         const prizes = [
@@ -166,16 +227,16 @@ async function saveHorseResult(raceRound, horse) {
             ? prizes[horse.finishPosition - 1]
             : 0;
 
-        const raceDate   = raceRound.raceDate ?? new Date();
+        const raceDate = raceRound.raceDate ?? new Date();
         const payload = {
-            raceRoundId:     new (require('mongoose').Types.ObjectId)(raceRound._id),
-            registrationId:  new (require('mongoose').Types.ObjectId)(horse.registrationId),
-            finishPosition:  horse.finishPosition,
-            finishTime:      horse.finishTime,
-            prizeMoney:      prize,
-            resultStatus:    'pending_confirmation',
-            createdAt:       new Date(raceDate),
-            updatedAt:       new Date(),
+            raceRoundId:    new (require('mongoose').Types.ObjectId)(raceRound._id),
+            registrationId: new (require('mongoose').Types.ObjectId)(horse.registrationId),
+            finishPosition: horse.finishPosition,
+            finishTime:     horse.finishTime,
+            prizeMoney:     prize,
+            resultStatus:   'pending_confirmation',
+            createdAt:      new Date(raceDate),
+            updatedAt:      new Date(),
         };
 
         const existing = await RaceResult.findOne({ registrationId: horse.registrationId }).lean();
@@ -192,11 +253,12 @@ async function saveHorseResult(raceRound, horse) {
     }
 }
 
-// ── Notify clients when all horses finish ───────────────────────────────────
-async function finalizeRace(raceRoundId, horses, io) {
+// ── Notify clients when all horses finish ──────────────────────────────────────
+async function finalizeRace(raceRoundId, horses, intensity, io) {
     try {
         io.to(`race:${raceRoundId}`).emit('race_finished', {
             raceRoundId,
+            intensity: intensity.name,
             results: horses
                 .slice()
                 .sort((a, b) => (a.finishPosition ?? 999) - (b.finishPosition ?? 999))
@@ -223,7 +285,10 @@ async function initializeSimulation(raceRoundId, io) {
     const raceRound = await RaceRound.findById(raceRoundId).lean();
     if (!raceRound) throw new Error(`Race round ${raceRoundId} not found`);
 
-    const horses = await buildHorses(raceRoundId);
+    const intensity = pickIntensity();
+    console.log(`[Sim] Race ${raceRoundId} — intensity: ${intensity.name} (stats ${intensity.statMin}–${intensity.statMax})`);
+
+    const horses = await buildHorses(raceRoundId, intensity);
     if (horses.length === 0) {
         console.warn(`[Sim] No verified registrations for race ${raceRoundId} — skipping`);
         return;
@@ -231,14 +296,14 @@ async function initializeSimulation(raceRoundId, io) {
 
     const trackLength = raceRound.trackLength;
     const startTime   = Date.now();
-    const state       = { horses, trackLength, startTime, finishCount: 0, interval: null };
+    const state       = { horses, trackLength, startTime, finishCount: 0, intensity, interval: null };
 
     const interval = setInterval(async () => {
         const currentMs = Date.now() - startTime;
-        const elapsed = Math.floor(currentMs / 1000);
-        let highest   = 0;
+        const elapsed   = Math.floor(currentMs / 1000);
+        let highest     = 0;
 
-        let finishedThisTick = [];
+        const finishedThisTick = [];
 
         for (const horse of state.horses) {
             if (horse.isFinished) {
@@ -252,8 +317,6 @@ async function initializeSimulation(raceRoundId, io) {
 
             if (tick.isFinished) {
                 horse.isFinished = true;
-                // currentMs is roughly the end of this tick. 
-                // We subtract 1000ms to get the start of the tick, then add the fractional time.
                 const exactMs = Math.max(0, (currentMs - 1000) + (tick.finishFraction * 1000));
                 finishedThisTick.push({ horse, exactMs });
             }
@@ -262,14 +325,11 @@ async function initializeSimulation(raceRoundId, io) {
         }
 
         if (finishedThisTick.length > 0) {
-            // Sort horses that finished in this same tick by their exact fractional finish time
             finishedThisTick.sort((a, b) => a.exactMs - b.exactMs);
             for (const { horse, exactMs } of finishedThisTick) {
                 state.finishCount += 1;
                 horse.finishPosition = state.finishCount;
                 horse.finishTime = formatTime(exactMs);
-                
-                // Save this individual horse's result immediately without awaiting
                 saveHorseResult(raceRound, horse);
             }
         }
@@ -278,6 +338,7 @@ async function initializeSimulation(raceRoundId, io) {
 
         io.to(`race:${raceRoundId}`).emit('race_update', {
             raceRoundId,
+            intensity:      intensity.name,
             elapsedSeconds: elapsed,
             lineMark,
             trackLength,
@@ -289,6 +350,7 @@ async function initializeSimulation(raceRoundId, io) {
                 raceStyle:       h.raceStyle,
                 currentDistance: parseFloat(h.currentDistance.toFixed(2)),
                 currentSpeed:    parseFloat(h.currentSpeed.toFixed(2)),
+                staminaRatio:    parseFloat((h.staminaPool / h.initialStaminaPool).toFixed(3)),
                 isFinished:      h.isFinished,
                 finishPosition:  h.finishPosition,
                 finishTime:      h.finishTime,
@@ -298,7 +360,7 @@ async function initializeSimulation(raceRoundId, io) {
         if (state.finishCount >= state.horses.length) {
             clearInterval(state.interval);
             activeRaces.delete(raceRoundId);
-            await finalizeRace(raceRoundId, state.horses, io);
+            await finalizeRace(raceRoundId, state.horses, intensity, io);
         }
     }, 1000);
 
@@ -319,6 +381,7 @@ function getSimulationState(raceRoundId) {
     const state = activeRaces.get(raceRoundId);
     if (!state) return null;
     return {
+        intensity:      state.intensity.name,
         trackLength:    state.trackLength,
         elapsedSeconds: Math.floor((Date.now() - state.startTime) / 1000),
         finishCount:    state.finishCount,
@@ -329,6 +392,7 @@ function getSimulationState(raceRoundId) {
             raceStyle:       h.raceStyle,
             currentDistance: parseFloat(h.currentDistance.toFixed(2)),
             currentSpeed:    parseFloat(h.currentSpeed.toFixed(2)),
+            staminaRatio:    parseFloat((h.staminaPool / h.initialStaminaPool).toFixed(3)),
             isFinished:      h.isFinished,
             finishPosition:  h.finishPosition,
             finishTime:      h.finishTime,

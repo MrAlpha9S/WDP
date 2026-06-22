@@ -157,7 +157,7 @@ export default function AdminDashboardPage() {
             markAllRead,
         }}>
         <div
-            className="min-h-screen bg-[#111111] text-white flex flex-col"
+            className="h-screen bg-[#111111] text-white flex flex-col overflow-hidden"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
             <AdminNavBar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -180,7 +180,7 @@ export default function AdminDashboardPage() {
 
             <div className="flex-1 flex min-h-0">
                 <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-                <div className="flex-1 overflow-auto">
+                <div className="flex-1 min-h-0 overflow-auto">
                     <ActiveView tab={activeTab} setActiveTab={setActiveTab} />
                 </div>
             </div>

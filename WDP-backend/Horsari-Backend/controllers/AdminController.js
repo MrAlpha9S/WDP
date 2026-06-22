@@ -192,6 +192,11 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    async createStream(req, res) {
+        const response = await AdminService.createStreamForRace(req.params.id);
+        return res.status(response.code).json(response);
+    }
+
     async getStreamInfo(req, res) {
         const response = await AdminService.getStreamInfo(req.params.id);
         return res.status(response.code).json(response);

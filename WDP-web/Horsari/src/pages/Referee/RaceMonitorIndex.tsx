@@ -207,9 +207,14 @@ export default function RaceMonitorIndex() {
             setPhase('post');
         });
 
-        // Admin started / cancelled the race
+        // Admin started / cancelled the race — refetch round so muxPlaybackId is current
         socket.on('race_status_changed', ({ status }: { status: string }) => {
             setPhase(derivePhase(status));
+            if (status === 'running' && raceRoundId) {
+                refereeService.getRaceRoundById(raceRoundId)
+                    .then(res => { if (res.code === 200 && res.data) setRaceRound(res.data); })
+                    .catch(() => {});
+            }
         });
 
         return () => { socket.disconnect(); };

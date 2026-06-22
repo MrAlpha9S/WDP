@@ -318,6 +318,15 @@ export const adminService = {
 
   // --- Mux Stream & VOD ---
 
+  createStream: async (id: string) => {
+    try {
+      const response = await api.post(`/admin/race-rounds/${id}/stream`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to create stream' };
+    }
+  },
+
   getStreamInfo: async (id: string) => {
     try {
       const response = await api.get(`/admin/race-rounds/${id}/stream`);
