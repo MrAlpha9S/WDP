@@ -1,6 +1,7 @@
 const RefereeRepository = require('../repositories/RefereeRepository');
 const UserRepository = require('../repositories/UserRepository');
 const RaceRefereeRepository = require('../repositories/RaceRefereeRepository');
+const { broadcastAdminEvent } = require('./AdminEventBroadcaster');
 
 const RaceReferee = require('../entities/RaceReferee');
 const RaceRound = require('../entities/RaceRound');
@@ -463,7 +464,7 @@ class RefereeService {
     }
 
     // Verify or fail a single registration (referee pre-race checkup)
-    async verifyRegistration(refereeId, raceRoundId, registrationId, body, io) {
+    async verifyRegistration(refereeId, raceRoundId, registrationId, body) {
         try {
             const { status, verificationFailReason, selectedInvitationId, failedChecks = [] } = body || {};
 
@@ -611,19 +612,21 @@ class RefereeService {
             await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus });
 
             if (io) {
-                io.emit('admin_notification', {
-                    id: Date.now().toString(),
-                    type: newStatus === 'prepared' ? 'race_prepared' : 'race_cancelled',
-                    title: newStatus === 'prepared' ? 'Race Pre-Check Complete' : 'Race Cancelled — No Eligible Entries',
-                    message: newStatus === 'prepared'
-                        ? `Race round has been cleared and is ready to start.`
-                        : `Race round has been cancelled — all entries failed or were withdrawn.`,
-                    raceRoundId,
-                    timestamp: new Date(),
-                    read: false,
-                    actionLabel: 'View Race',
-                    actionPayload: { raceRoundId },
-                });
+                if (newStatus === 'prepared') {
+                    broadcastAdminEvent(io,
+                        'race_prepared',
+                        'Race Pre-Check Complete',
+                        'A race round has been cleared and is ready to start.',
+                        { actionLabel: 'View Race', actionPayload: { raceRoundId } },
+                    );
+                } else {
+                    broadcastAdminEvent(io,
+                        'race_cancelled',
+                        'Race Cancelled — No Eligible Entries',
+                        'All entries failed or were withdrawn after pre-race inspection.',
+                        { actionLabel: 'View Race', actionPayload: { raceRoundId } },
+                    );
+                }
             }
 
             return {

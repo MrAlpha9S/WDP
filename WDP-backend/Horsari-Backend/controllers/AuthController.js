@@ -1,4 +1,5 @@
 const AuthService = require('../services/AuthService');
+const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
 
 class AuthController {
     // Unified register with role support
@@ -8,13 +9,19 @@ class AuthController {
         const response = await AuthService.register(req.body, fileBuffer, fileName);
 
         if (response.code === 201) {
-            // Set access token as httpOnly cookie (1 hour)
             res.cookie('Authorization', `Bearer ${response.data.accessToken}`, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',
-                maxAge: 60 * 60 * 1000, // 1 hour
+                maxAge: 60 * 60 * 1000,
             });
+            const io = req.app.get('io');
+            const role = req.body.role ?? 'user';
+            const name = req.body.fullName ?? 'A new user';
+            broadcastAdminEvent(io, 'new_user',
+                'New User Registered',
+                `${name} joined as ${role}.`,
+            );
         }
 
         return res.status(response.code).json(response);

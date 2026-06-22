@@ -11,12 +11,14 @@ const Tournament = require('../entities/Tournament');
 const RaceRound = require('../entities/RaceRound');
 const RaceReferee = require('../entities/RaceReferee');
 const Referee = require('../entities/Referee');
+const Jockey = require('../entities/Jockey');
 const Prediction = require('../entities/Prediction');
 const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
 const RaceResult = require('../entities/RaceResult');
 const HorseOwner = require('../entities/HorseOwner');
 const User = require('../entities/User');
 const Violation = require('../entities/Violation');
+const ViolationType = require('../entities/ViolationType');
 const SimulationService = require('./SimulationService');
 const MuxService = require('./MuxService');
 
@@ -78,16 +80,38 @@ class AdminService {
     }
 
     // Get all users (admin only)
-    async getAllUsers(limit = 10, skip = 0) {
+    async getAllUsers(role, search, limit = 10, skip = 0) {
         try {
-            const users = await UserRepository.findAll(limit, skip);
-            const count = await UserRepository.count();
+            const filter = {};
+            if (role && role !== 'All') {
+                filter.role = role.toLowerCase();
+            }
+            if (search) {
+                filter.$or = [
+                    { fullName: { $regex: search, $options: 'i' } },
+                    { username: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ];
+            }
+            const users = await UserRepository.findAll(filter, limit, skip);
+            const totalUsers = await UserRepository.count(filter);
+
+            const totalPages = Math.ceil(totalUsers / limit);
             return {
                 code: 200,
-                data: { users, count },
+                data: {
+                    items: users,
+                    pagination: {
+                        totalItems: totalUsers,
+                        totalPages,
+                        currentPage: skip / limit + 1,
+                        limit
+                    }
+                },
                 msg: 'Users retrieved successfully',
             };
         } catch (error) {
+            console.error('getAllUsers error:', error);
             return {
                 code: 500,
                 msg: error.message,
@@ -95,28 +119,210 @@ class AdminService {
         }
     }
 
-    // Get users by role
-    async getUsersByRole(role) {
+    async getUsersDetail(id) {
         try {
-            if (!['horseowner', 'jockey', 'referee', 'spectator', 'admin'].includes(role)) {
-                return {
-                    code: 400,
-                    msg: 'Invalid role',
-                };
+            const user = await UserRepository.findById(id);
+            if (!user) return { code: 404, msg: 'User not found' };
+
+            const userObj = user.toObject();
+            delete userObj.passwordHash;
+
+            let roleProfile = null;
+
+            switch (userObj.role) {
+                case 'horseowner': {
+                    const HorseOwner = require('../entities/HorseOwner');
+                    const owner = await HorseOwner.findById(id).lean();
+                    const horses = await Horse.find({ ownerId: id }).lean();
+
+                    const horseIds = horses.map(h => h._id);
+                    const ownerInvitations = await Invitation.find({
+                        horseId: { $in: horseIds },
+                        registrationId: { $exists: true, $ne: null },
+                    }).lean();
+
+                    const regIds = ownerInvitations.map(i => i.registrationId).filter(Boolean);
+                    const ownerViolations = regIds.length
+                        ? await Violation.find({ registrationId: { $in: regIds } })
+                              .populate('violationTypeId')
+                              .populate('raceRoundId', 'roundName raceDate')
+                              .lean()
+                        : [];
+
+                    // group violations by the horse that owns the registration
+                    const regToHorse = {};
+                    for (const inv of ownerInvitations) {
+                        if (inv.registrationId) regToHorse[inv.registrationId.toString()] = inv.horseId.toString();
+                    }
+                    const violationsByHorse = {};
+                    for (const v of ownerViolations) {
+                        const horseId = regToHorse[v.registrationId?.toString()];
+                        if (!horseId) continue;
+                        if (!violationsByHorse[horseId]) violationsByHorse[horseId] = [];
+                        violationsByHorse[horseId].push({
+                            violationId: v._id,
+                            raceRoundId: v.raceRoundId?._id ?? v.raceRoundId ?? null,
+                            roundName: v.raceRoundId?.roundName ?? null,
+                            raceDate: v.raceRoundId?.raceDate ?? null,
+                            typeName: v.violationTypeId?.violationName ?? null,
+                            description: v.description ?? null,
+                            severity: v.severity ?? null,
+                            stewardAction: v.stewardAction ?? null,
+                            violationStatus: v.violationStatus,
+                            reportedAt: v.created_at,
+                        });
+                    }
+
+                    roleProfile = {
+                        address: owner?.address ?? null,
+                        licenseStatus: owner?.licenseStatus ?? null,
+                        licenseLink: owner?.licenseLink ?? null,
+                        horses: horses.map(h => ({
+                            _id: h._id,
+                            horseName: h.horseName,
+                            breed: h.breed ?? null,
+                            dateOfBirth: h.dateOfBirth ?? null,
+                            status: h.status,
+                            healthStatus: h.healthStatus,
+                            violations: violationsByHorse[h._id.toString()] ?? [],
+                        })),
+                    };
+                    break;
+                }
+                case 'jockey': {
+                    const Jockey = require('../entities/Jockey');
+                    const jockey = await Jockey.findById(id).lean();
+                    const invitations = await Invitation.find({
+                        jockeyId: id,
+                        invitationStatus: 'accepted',
+                    })
+                        .populate({ path: 'registrationId', populate: { path: 'raceRoundId' } })
+                        .lean();
+
+                    const jockeyRegIds = invitations
+                        .map(i => i.registrationId?._id ?? i.registrationId)
+                        .filter(Boolean);
+
+                    const jockeyViolations = jockeyRegIds.length
+                        ? await Violation.find({ registrationId: { $in: jockeyRegIds } })
+                              .populate('violationTypeId')
+                              .lean()
+                        : [];
+
+                    const violationsByReg = {};
+                    for (const v of jockeyViolations) {
+                        const key = v.registrationId?.toString();
+                        if (!key) continue;
+                        if (!violationsByReg[key]) violationsByReg[key] = [];
+                        violationsByReg[key].push({
+                            violationId: v._id,
+                            typeName: v.violationTypeId?.violationName ?? null,
+                            description: v.description ?? null,
+                            severity: v.severity ?? null,
+                            stewardAction: v.stewardAction ?? null,
+                            violationStatus: v.violationStatus,
+                            reportedAt: v.created_at,
+                        });
+                    }
+
+                    const raceHistory = [];
+                    for (const inv of invitations) {
+                        const reg = inv.registrationId;
+                        if (!reg) continue;
+                        const raceRound = reg.raceRoundId;
+                        if (!raceRound) continue;
+                        const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
+                        raceHistory.push({
+                            raceRoundId: raceRound._id,
+                            roundName: raceRound.roundName,
+                            raceDate: raceRound.raceDate,
+                            finishPosition: raceResult?.finishPosition ?? null,
+                            prizeMoney: raceResult?.prizeMoney ?? 0,
+                            violations: violationsByReg[reg._id.toString()] ?? [],
+                        });
+                    }
+
+                    roleProfile = {
+                        height: jockey?.height ?? null,
+                        weight: jockey?.weight ?? null,
+                        matchesRaced: jockey?.matchesRaced ?? 0,
+                        totalWins: jockey?.totalWins ?? 0,
+                        ranking: jockey?.ranking ?? null,
+                        status: jockey?.status ?? null,
+                        licenseLink: jockey?.licenseLink ?? null,
+                        licenseStatus: jockey?.licenseStatus ?? null,
+                        raceHistory,
+                    };
+                    break;
+                }
+                case 'referee': {
+                    const referee = await Referee.findById(id).lean();
+
+                    const assignments = await RaceReferee.find({ refereeId: id })
+                        .populate('raceRoundId')
+                        .sort({ assignedAt: -1 })
+                        .lean();
+
+                    const assignmentProfiles = await Promise.all(
+                        assignments.map(async (a) => {
+                            const raceRound = a.raceRoundId;
+                            const violations = await Violation.find({ raceRefereeId: a._id })
+                                .populate('violationTypeId')
+                                .lean();
+
+                            return {
+                                assignmentId: a._id,
+                                raceRoundId: raceRound?._id ?? null,
+                                roundName: raceRound?.roundName ?? null,
+                                raceDate: raceRound?.raceDate ?? null,
+                                raceStatus: raceRound?.status ?? null,
+                                assignmentStatus: a.status,
+                                paymentStatus: a.paymentStatus,
+                                fee: a.fee ?? 0,
+                                assignedAt: a.assignedAt,
+                                violations: violations.map((v) => ({
+                                    violationId: v._id,
+                                    typeName: v.violationTypeId?.violationName ?? null,
+                                    description: v.description ?? null,
+                                    severity: v.severity ?? null,
+                                    stewardAction: v.stewardAction ?? null,
+                                    violationStatus: v.violationStatus,
+                                    reportedAt: v.created_at,
+                                })),
+                            };
+                        })
+                    );
+
+                    roleProfile = {
+                        licenseLink: referee?.licenseLink ?? null,
+                        licenseStatus: referee?.licenseStatus ?? null,
+                        totalAssignments: assignments.length,
+                        assignments: assignmentProfiles,
+                    };
+                    break;
+                }
+                case 'spectator': {
+                    const Spectator = require('../entities/Spectator');
+                    const spectator = await Spectator.findById(id).lean();
+                    roleProfile = {
+                        rewardPoints: spectator?.rewardPoints ?? 0,
+                    };
+                    break;
+                }
+                default:
+                    roleProfile = {};
             }
-            const users = await UserRepository.findByRole(role);
+
             return {
                 code: 200,
-                data: { users, count: users.length },
-                msg: `Users with role ${role} retrieved successfully`,
+                data: { user: userObj, roleProfile },
+                msg: 'User detail retrieved successfully',
             };
         } catch (error) {
-            return {
-                code: 500,
-                msg: error.message,
-            };
+            return { code: 500, msg: error.message };
         }
     }
+
 
     // Update user status
     async updateUserStatus(userId, status) {
@@ -740,6 +946,39 @@ class AdminService {
         }
     }
 
+    // --- Certification Verification ---
+
+    async verifyCertification(userId, action) {
+        try {
+            if (!['approve', 'reject'].includes(action)) {
+                return { code: 400, msg: "Action must be 'approve' or 'reject'" };
+            }
+
+            const user = await UserRepository.findById(userId);
+            if (!user) return { code: 404, msg: 'User not found' };
+
+            const newStatus = action === 'approve' ? 'approved' : 'rejected';
+
+            switch (user.role) {
+                case 'horseowner':
+                    await HorseOwner.findByIdAndUpdate(userId, { licenseStatus: newStatus });
+                    break;
+                case 'jockey':
+                    await Jockey.findByIdAndUpdate(userId, { licenseStatus: newStatus });
+                    break;
+                case 'referee':
+                    await Referee.findByIdAndUpdate(userId, { licenseStatus: newStatus });
+                    break;
+                default:
+                    return { code: 400, msg: 'This role does not support certification verification' };
+            }
+
+            return { code: 200, msg: `Certification ${newStatus} successfully`, data: { licenseStatus: newStatus } };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
     // --- Race Eligibility Rule CRUD ---
 
     async getAllRules(page = 1, limit = 10, search = null, sortBy = 'createdAt', order = 'desc') {
@@ -1048,20 +1287,22 @@ AdminService.prototype.getSimulationState = function (raceRoundId) {
 AdminService.prototype.getImportantEvents = async function () {
     try {
         const [
-            pendingCertifications,
+            pendingOwners,
+            pendingJockeys,
+            pendingReferees,
             racesReadyToStart,
             activeTournaments,
             pendingRegistrations,
         ] = await Promise.all([
-            // Users whose certifications are pending admin review
-            User.find({ certificationStatus: 'pending' }, '_id fullName email createdAt').lean().catch(() => []),
-            // Race rounds fully inspected by referee, awaiting admin action
+            HorseOwner.find({ licenseStatus: 'pending' }, '_id').lean(),
+            Jockey.find({ licenseStatus: 'pending' }, '_id').lean(),
+            Referee.find({ licenseStatus: 'pending' }, '_id').lean(),
             RaceRound.find({ status: 'prepared' }, '_id roundName raceDate location').lean(),
-            // Tournaments currently active
             Tournament.find({ status: { $in: ['running', 'scheduled'] } }, '_id tournamentName startDate endDate status').lean(),
-            // Registrations awaiting horse owner approval
             Registration.find({ registrationStatus: 'pending' }, '_id raceRoundId horseOwnerId createdAt').lean(),
         ]);
+
+        const pendingCertifications = [...pendingOwners, ...pendingJockeys, ...pendingReferees];
 
         return {
             code: 200,

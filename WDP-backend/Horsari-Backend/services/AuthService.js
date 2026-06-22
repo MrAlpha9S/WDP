@@ -5,7 +5,7 @@ const SpectatorRepository = require('../repositories/SpectatorRepository');
 const RefereeRepository = require('../repositories/RefereeRepository');
 const PasswordUtil = require('../utils/PasswordUtil');
 const TokenUtil = require('../utils/TokenUtil');
-const CloudinaryUtil = require('../utils/cloudinaryUtil');
+const CloudinaryUtil = require('../utils/CloudinaryUtil');
 
 class AuthService {
     // Unified register with role support

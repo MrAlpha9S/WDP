@@ -11,8 +11,10 @@ router.get('/profile', authMiddleware, authAdmin, AdminController.getAdminProfil
 // Admin statistics
 router.get('/statistics', authMiddleware, authAdmin, AdminController.getStatistics);
 router.get('/users/all', authMiddleware, authAdmin, AdminController.getAllUsers);
-router.get('/users/role/:role', authMiddleware, authAdmin, AdminController.getUsersByRole);
+router.get('/users/:userId', authMiddleware, authAdmin, AdminController.getUsersDetail);
+
 router.put('/users/:userId/status', authMiddleware, authAdmin, AdminController.updateUserStatus);
+router.patch('/users/:userId/certification', authMiddleware, authAdmin, AdminController.verifyCertification);
 // admin level endpoints removed
 router.delete('/users/:userId', authMiddleware, authAdmin, AdminController.deleteUser);
 

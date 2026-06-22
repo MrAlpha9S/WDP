@@ -1,10 +1,17 @@
 const HorseService = require('../services/HorseService');
 const CloudinaryUtil = require('../utils/CloudinaryUtil');
+const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
 
 class HorseController {
     // Create horse
     async createHorse(req, res) {
         const response = await HorseService.createHorse(req.body);
+        if (response.code === 200 || response.code === 201) {
+            broadcastAdminEvent(req.app.get('io'), 'new_horse',
+                'New Horse Added',
+                `${req.body.horseName ?? 'A horse'} has been registered.`,
+            );
+        }
         return res.status(response.code).json(response);
     }
 

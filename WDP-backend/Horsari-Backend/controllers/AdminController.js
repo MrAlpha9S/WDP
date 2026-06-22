@@ -1,4 +1,5 @@
 const AdminService = require('../services/AdminService');
+const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
 
 class AdminController {
     // Create admin profile (admin only)
@@ -22,16 +23,17 @@ class AdminController {
 
     // Get all users
     async getAllUsers(req, res) {
+        const { role, search } = req.query;
         const limit = parseInt(req.query.limit) || 10;
         const skip = parseInt(req.query.skip) || 0;
-        const response = await AdminService.getAllUsers(limit, skip);
+        const response = await AdminService.getAllUsers(role, search, limit, skip);
         return res.status(response.code).json(response);
     }
 
-    // Get users by role
-    async getUsersByRole(req, res) {
-        const { role } = req.params;
-        const response = await AdminService.getUsersByRole(role);
+    // Get full user detail with role-specific profile
+    async getUsersDetail(req, res) {
+        const { userId } = req.params;
+        const response = await AdminService.getUsersDetail(userId);
         return res.status(response.code).json(response);
     }
 
@@ -110,6 +112,20 @@ class AdminController {
     }
 
     // --- Race Eligibility Rule CRUD ---
+
+    async verifyCertification(req, res) {
+        const { userId } = req.params;
+        const { action } = req.body;
+        const response = await AdminService.verifyCertification(userId, action);
+        if (response.code === 200) {
+            const label = action === 'approve' ? 'Approved' : 'Rejected';
+            broadcastAdminEvent(req.app.get('io'), 'system_alert',
+                `Certification ${label}`,
+                `A user certification has been ${label.toLowerCase()}.`,
+            );
+        }
+        return res.status(response.code).json(response);
+    }
 
     async getAllRules(req, res) {
         const page = parseInt(req.query.page) || 1;
