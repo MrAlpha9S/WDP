@@ -19,6 +19,7 @@ const RaceReferee = require('../entities/RaceReferee');
 const Invitation = require('../entities/Invitation');
 const ViolationType = require('../entities/ViolationType');
 const Violation = require('../entities/Violation');
+const RaceResult = require('../entities/RaceResult');
 
 // Mongodb@1234
 const PASSWORD_HASH = '$2a$12$OXXNUWkz5KBayO.Ei9qMJeiTG.GGqixAHg5eb1ldREdsQApndrYKm';
@@ -558,6 +559,132 @@ const mockData = async () => {
         console.log('✅ Round 3 (running) — Standalone Night Race');
 
         // ══════════════════════════════════════════════════════════════════════
+        // ROUND 4 — Grand Cup Final              [STATUS: completed]
+        // All results published. Marco 1st on Thunderbolt, Luca 2nd on Iron Duchess,
+        // Yuki 3rd on Desert Wind. Careless Riding violation on Luca in-race.
+        //   • owner1 (Alice)  → verified  (Thunderbolt  / Marco Rossi   ✓)
+        //   • owner3 (Celine) → verified  (Iron Duchess / Luca Moretti  ✓)
+        //   • owner2 (Bruno)  → verified  (Desert Wind  / Yuki Tanaka   ✓)
+        // ══════════════════════════════════════════════════════════════════════
+        const round4 = await RaceRound.create({
+            tournamentId: springTournament._id,
+            createdByAdminId: adminUsers[0]._id,
+            roundName: 'Grand Cup Final',
+            raceDate: new Date('2026-06-18T14:00:00Z'),
+            trackLength: 2000,
+            maxParticipants: 8,
+            status: 'completed',
+            minimalRidingFees: 1000,
+            raceGround: 'Turf',
+            requireEntranceFees: true,
+            firstPlacePrize: 80000,
+            secondPlacePrize: 35000,
+            thirdPlacePrize: 15000,
+            currencyType: 'USD',
+            location: 'Horsari Racecourse',
+            address: '1 Race Blvd, Horseville HC 10001',
+            eligibilityRuleId: claimingRule._id,
+        });
+
+        const raceRef4 = await RaceReferee.create({
+            raceRoundId: round4._id,
+            refereeId: refereeUsers[2]._id,
+            assignedByAdminId: adminUsers[0]._id,
+            status: 'assigned',
+            fee: 2500,
+            paymentStatus: 'paid',
+        });
+
+        // owner1 → Thunderbolt / Marco Rossi — 1st place
+        const reg4a = await Registration.create({
+            raceRoundId: round4._id,
+            horseOwnerId: horseOwners[0]._id,
+            approvedByAdminId: adminUsers[0]._id,
+            registrationStatus: 'verified',
+            registeredAt: new Date('2026-06-05T09:00:00Z'),
+        });
+        const inv4a = await Invitation.create({
+            horseId: horses[0]._id,   // Thunderbolt
+            jockeyId: jockeyUsers[0]._id,  // Marco Rossi
+            registrationId: reg4a._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: false,
+            percentagePayout: 10,
+        });
+        await Registration.findByIdAndUpdate(reg4a._id, { jockeyInRaceId: inv4a._id });
+        await RaceResult.create({
+            raceRoundId: round4._id,
+            registrationId: reg4a._id,
+            publishedByAdminId: adminUsers[0]._id,
+            finishPosition: 1,
+            finishTime: '2:01.34',
+            prizeMoney: 80000,
+            resultStatus: 'official',
+        });
+
+        // owner3 → Iron Duchess / Luca Moretti — 2nd place
+        const reg4b = await Registration.create({
+            raceRoundId: round4._id,
+            horseOwnerId: horseOwners[2]._id,
+            approvedByAdminId: adminUsers[0]._id,
+            registrationStatus: 'verified',
+            registeredAt: new Date('2026-06-05T10:00:00Z'),
+        });
+        const inv4b = await Invitation.create({
+            horseId: horses[5]._id,   // Iron Duchess
+            jockeyId: jockeyUsers[1]._id,  // Luca Moretti
+            registrationId: reg4b._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: false,
+            percentagePayout: 12,
+        });
+        await Registration.findByIdAndUpdate(reg4b._id, { jockeyInRaceId: inv4b._id });
+        await RaceResult.create({
+            raceRoundId: round4._id,
+            registrationId: reg4b._id,
+            publishedByAdminId: adminUsers[0]._id,
+            finishPosition: 2,
+            finishTime: '2:02.11',
+            prizeMoney: 35000,
+            resultStatus: 'official',
+        });
+
+        // owner2 → Desert Wind / Yuki Tanaka — 3rd place
+        const reg4c = await Registration.create({
+            raceRoundId: round4._id,
+            horseOwnerId: horseOwners[1]._id,
+            approvedByAdminId: adminUsers[0]._id,
+            registrationStatus: 'verified',
+            registeredAt: new Date('2026-06-05T11:00:00Z'),
+        });
+        const inv4c = await Invitation.create({
+            horseId: horses[2]._id,   // Desert Wind
+            jockeyId: jockeyUsers[2]._id,  // Yuki Tanaka
+            registrationId: reg4c._id,
+            ownerConfirmation: true,
+            jockeyConfirmation: true,
+            invitationStatus: 'accepted',
+            isBackup: false,
+            percentagePayout: 10,
+        });
+        await Registration.findByIdAndUpdate(reg4c._id, { jockeyInRaceId: inv4c._id });
+        await RaceResult.create({
+            raceRoundId: round4._id,
+            registrationId: reg4c._id,
+            publishedByAdminId: adminUsers[0]._id,
+            finishPosition: 3,
+            finishTime: '2:03.88',
+            prizeMoney: 15000,
+            resultStatus: 'official',
+        });
+
+        console.log('✅ Round 4 (completed) — Grand Cup Final');
+
+        // ══════════════════════════════════════════════════════════════════════
         // VIOLATION TYPES  (from SRS violation catalogue)
         // ══════════════════════════════════════════════════════════════════════
         const vtDefs = [
@@ -632,6 +759,19 @@ const mockData = async () => {
         });
         console.log('✅ Created 2 sample violations for Round 1 / Golden Flash (reg1c)');
 
+        // ── Round 4 / reg4b — Careless Riding (Luca Moretti on Iron Duchess) ──
+        await Violation.create({
+            raceRoundId: round4._id,
+            registrationId: reg4b._id,
+            raceRefereeId: raceRef4._id,
+            violationTypeId: violationTypes['Careless Riding']._id,
+            description: 'Moved across the track without sufficient clearance on the final bend, forcing Desert Wind wide.',
+            severity: 2,
+            stewardAction: 'warning',
+            violationStatus: 'confirmed',
+        });
+        console.log('✅ Created 1 during-race violation for Round 4 / Luca Moretti (reg4b)');
+
         // ── Summary ───────────────────────────────────────────────────────────
         console.log('\n✅ Seed completed!');
         console.log('════════════════════════════════════════════════════════════');
@@ -657,6 +797,10 @@ const mockData = async () => {
         console.log('');
         console.log('RACE STATE SNAPSHOT');
         console.log('  Spring Classic 2026');
+        console.log('    Round 4 — Grand Cup Final  [completed]  ← results published');
+        console.log('      owner1 Alice  → verified   Thunderbolt  / Marco Rossi  — 1st  $80,000  2:01.34');
+        console.log('      owner3 Celine → verified   Iron Duchess / Luca Moretti — 2nd  $35,000  2:02.11  ⚠ Careless Riding');
+        console.log('      owner2 Bruno  → verified   Desert Wind  / Yuki Tanaka  — 3rd  $15,000  2:03.88');
         console.log('    Round 1 — Morning Sprint   [prepared]   ← admin: start or cancel');
         console.log('      owner1 Alice  → verified   Thunderbolt  / Marco Rossi ✓ (main, racing)');
         console.log('                                              Luca Moretti   (backup, confirmed)');

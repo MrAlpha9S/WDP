@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, CheckCircle, XCircle, Clock, ExternalLink, FileText, Image as ImageIcon, Star, Shield, Loader2, AlertTriangle } from "lucide-react";
+import { X, CheckCircle, XCircle, Clock, ExternalLink, FileText, Image as ImageIcon, Star, Shield, Loader2, AlertTriangle, Timer } from "lucide-react";
 import { ROLE_STYLES, STATUS_STYLES, accentClass, Avatar } from "../AdminUsersPage";
 import type { FullUser, ViolationData } from "../AdminUsersPage";
 
@@ -361,38 +361,79 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
 
                     {activeTab === "History" && user.role === "Jockey" && user.data && 'raceHistory' in user.data && (
                         <div className="flex flex-col gap-2">
-                            {user.data.raceHistory?.length ? user.data.raceHistory.map((race: any) => (
-                                <div key={race.id} className="rounded-lg bg-white/[0.02] border border-white/[0.06] overflow-hidden">
-                                    <div className="p-3 flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[13px] font-semibold text-white">{race.raceName}</p>
-                                            <p className="text-[11px] text-gray-500">{race.date}</p>
+                            {user.data.raceHistory?.length ? user.data.raceHistory.map((race: any) => {
+                                const posLabel = race.position === 1 ? '1st' : race.position === 2 ? '2nd' : race.position === 3 ? '3rd' : race.position ? `${race.position}th` : null;
+                                const posColor = race.position === 1 ? 'text-amber-400' : race.position === 2 ? 'text-gray-300' : race.position === 3 ? 'text-orange-400' : 'text-gray-500';
+                                const hasResult = race.position != null || race.prize != null || race.finishTime != null;
+                                return (
+                                    <div key={race.id} className="rounded-lg bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+                                        {/* Race name + date */}
+                                        <div className="px-3 pt-3 pb-2 flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="text-[13px] font-semibold text-white truncate">{race.raceName}</p>
+                                                <p className="text-[11px] text-gray-500 mt-0.5">{race.date}</p>
+                                            </div>
+                                            {race.resultStatus && (
+                                                <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${race.resultStatus === 'official' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                                                    {race.resultStatus}
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-[13px] font-bold text-amber-400">{race.position === 1 ? '1st' : race.position === 2 ? '2nd' : race.position === 3 ? '3rd' : race.position ? `${race.position}th` : '—'}</p>
-                                            <p className="text-[11px] text-emerald-400 font-medium">{race.prize ? `${race.prize.toLocaleString()} pts` : '—'}</p>
-                                        </div>
+
+                                        {/* Horse ridden */}
+                                        {race.horseName && (
+                                            <div className="mx-3 mb-2 flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06]">
+                                                {race.horseImg
+                                                    ? <img src={race.horseImg} alt={race.horseName} className="w-5 h-5 rounded-full object-cover flex-shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                                    : <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0"><span className="text-[8px] font-bold text-amber-400">{race.horseName[0]}</span></div>
+                                                }
+                                                <div className="min-w-0">
+                                                    <span className="text-[12px] font-medium text-amber-300/90">{race.horseName}</span>
+                                                    {race.horseBreed && <span className="text-[10px] text-gray-600 ml-1.5">{race.horseBreed}</span>}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Result row */}
+                                        {hasResult && (
+                                            <div className="grid grid-cols-3 gap-2 mx-3 mb-3 px-3 py-2 rounded-md bg-white/[0.02] border border-white/[0.05]">
+                                                <div className="text-center">
+                                                    <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Position</p>
+                                                    <p className={`text-[13px] font-bold ${posLabel ? posColor : 'text-gray-600'}`}>{posLabel ?? '—'}</p>
+                                                </div>
+                                                <div className="text-center border-x border-white/[0.05]">
+                                                    <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Time</p>
+                                                    <p className="text-[12px] text-gray-300 font-medium flex items-center justify-center gap-1">
+                                                        <Timer size={9} className="text-gray-600" />{race.finishTime ?? '—'}
+                                                    </p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>
+                                                    <p className={`text-[12px] font-medium ${race.prize ? 'text-emerald-400' : 'text-gray-600'}`}>
+                                                        {race.prize ? `$${race.prize.toLocaleString()}` : '—'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <ViolationList violations={race.violations ?? []} />
                                     </div>
-                                    <ViolationList violations={race.violations ?? []} />
-                                </div>
-                            )) : <p className="text-[12px] text-gray-500 text-center py-4">No race history available.</p>}
+                                );
+                            }) : <p className="text-[12px] text-gray-500 text-center py-4">No race history available.</p>}
                         </div>
                     )}
 
                     {activeTab === "History" && user.role === "HorseOwner" && user.data && 'horses' in user.data && (
                         <div className="flex flex-col gap-2">
                             {user.data.horses?.length ? user.data.horses.map((horse: any) => (
-                                <div key={horse.id} className="rounded-lg bg-white/[0.02] border border-white/[0.06] overflow-hidden">
-                                    <div className="p-3 flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[13px] font-semibold text-white">{horse.name}</p>
-                                            <p className="text-[11px] text-gray-500">{horse.breed} • {horse.age} yrs</p>
-                                        </div>
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${horse.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                                            {horse.status}
-                                        </span>
+                                <div key={horse.id} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[13px] font-semibold text-white">{horse.name}</p>
+                                        <p className="text-[11px] text-gray-500">{horse.breed} • {horse.age} yrs</p>
                                     </div>
-                                    <ViolationList violations={horse.violations ?? []} />
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${horse.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                                        {horse.status}
+                                    </span>
                                 </div>
                             )) : <p className="text-[12px] text-gray-500 text-center py-4">No horses registered.</p>}
                         </div>
