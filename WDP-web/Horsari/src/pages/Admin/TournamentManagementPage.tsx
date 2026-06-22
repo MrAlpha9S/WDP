@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Pagination } from "../../components/Pagination";
 import { type AdminTab } from "./AdminComponents/NavBar";
 import type { Tournament } from "../../shared/types/TournamentTypes";
 import { CreateTournamentModal } from "./modal/CreateTournamentModal";
@@ -15,29 +16,36 @@ interface Props {
 export default function TournamentManagementPage({ setActiveTab }: Props) {
     const [viewMode, setViewMode] = useState<AdminViewMode>("table");
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
+    const [allTournamentsForCalendar, setAllTournamentsForCalendar] = useState<Tournament[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const LIMIT = 10;
+    const totalPages = Math.ceil(totalItems / LIMIT) || 1;
+
+    useEffect(() => { setPage(1); }, [searchQuery]);
 
     useEffect(() => {
         async function fetchTournaments() {
             setLoading(true);
             try {
-                const res = await adminService.getTournamentsWithDetails(1, 100);
+                const res = await adminService.getTournamentsWithDetails(page, LIMIT);
                 if (res?.data?.items) {
-                    const mappedData: Tournament[] = res.data.items
-                        .filter((item: any) => item.tournament.tournamentName !== "Non-tournament")
-                        .map((item: any) => ({
-                            id: item.tournament._id,
-                            name: item.tournament.tournamentName,
-                            description: item.tournament.description || "",
-                            startDate: item.tournament.startDate ? new Date(item.tournament.startDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
-                            endDate: item.tournament.endDate ? new Date(item.tournament.endDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
-                            status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
-                            prizePool: `${item.priceTotalPool || 0} Pts`,
-                            startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
-                            endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
-                        }));
-                    setTournaments(mappedData);
+                    const map = (item: any) => ({
+                        id: item.tournament._id,
+                        name: item.tournament.tournamentName,
+                        description: item.tournament.description || "",
+                        startDate: item.tournament.startDate ? new Date(item.tournament.startDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
+                        endDate: item.tournament.endDate ? new Date(item.tournament.endDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
+                        status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
+                        prizePool: `${item.priceTotalPool || 0} Pts`,
+                        startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
+                        endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
+                    } as Tournament);
+                    const mapped = res.data.items.filter((item: any) => item.tournament.tournamentName !== "Non-tournament").map(map);
+                    setTournaments(mapped);
+                    setTotalItems(res.data.pagination?.totalItems ?? mapped.length);
                 }
             } catch (error) {
                 console.error("Failed to load tournaments:", error);
@@ -46,6 +54,28 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
             }
         }
         fetchTournaments();
+    }, [page]);
+
+    // Load all tournaments once for the calendar view
+    useEffect(() => {
+        adminService.getTournamentsWithDetails(1, 100).then(res => {
+            if (res?.data?.items) {
+                const mapped = res.data.items
+                    .filter((item: any) => item.tournament.tournamentName !== "Non-tournament")
+                    .map((item: any) => ({
+                        id: item.tournament._id,
+                        name: item.tournament.tournamentName,
+                        description: item.tournament.description || "",
+                        startDate: "",
+                        endDate: "",
+                        status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
+                        prizePool: `${item.priceTotalPool || 0} Pts`,
+                        startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
+                        endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
+                    } as Tournament));
+                setAllTournamentsForCalendar(mapped);
+            }
+        }).catch(() => {});
     }, []);
 
     // Modal State
@@ -98,7 +128,8 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
     const getTournamentsForDay = (day: number) => {
         const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        return tournaments.filter(t => t.id !== "none" && t.startISO <= dateStr && t.endISO >= dateStr);
+        const source = allTournamentsForCalendar.length > 0 ? allTournamentsForCalendar : tournaments;
+        return source.filter(t => t.id !== "none" && t.startISO <= dateStr && t.endISO >= dateStr);
     };
 
     return (
@@ -269,6 +300,13 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                         )}
                                     </tbody>
                                 </table>
+                                <Pagination
+                                    page={page}
+                                    totalPages={totalPages}
+                                    totalItems={totalItems}
+                                    limit={LIMIT}
+                                    onPageChange={setPage}
+                                />
                             </div>
                         ) : (
                             <div className="bg-[#161616] border border-white/5 rounded-lg p-6">

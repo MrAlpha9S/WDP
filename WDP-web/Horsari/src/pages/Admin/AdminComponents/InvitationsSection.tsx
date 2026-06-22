@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { adminService } from "../../../api/adminService";
+import { Pagination } from "../../../components/Pagination";
 import { usePaginatedFetch } from "../../../hooks/usePaginatedFetch";
 
 export type ApprovalRole = "Horse Owner" | "Jockey" | "Referee" | "Trainer";
@@ -232,30 +232,7 @@ export function InvitationTable({
                 )}
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-white/[0.07] pt-4 mt-2">
-                    <span className="text-[13px] text-gray-500">
-                        Page {page} of {totalPages}
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setPage(page - 1)}
-                            disabled={page <= 1}
-                            className="p-1.5 rounded bg-[#1a1a1a] border border-white/10 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronLeft size={16} />
-                        </button>
-                        <button
-                            onClick={() => setPage(page + 1)}
-                            disabled={page >= totalPages}
-                            className="p-1.5 rounded bg-[#1a1a1a] border border-white/10 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronRight size={16} />
-                        </button>
-                    </div>
-                </div>
-            )}
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
     );
 }

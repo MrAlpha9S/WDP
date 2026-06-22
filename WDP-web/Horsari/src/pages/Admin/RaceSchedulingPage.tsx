@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { LayoutGrid, List, Plus, Settings, Users, Loader2 } from "lucide-react";
+import { Pagination } from "../../components/Pagination";
 import { TIME_SLOTS } from "../../shared/data/RaceData";
 import type { ViewMode } from "../../shared/types/RaceTypes";
 import CreateRaceModal from "./modal/CreateRaceModal";
@@ -417,29 +418,13 @@ export default function RaceSchedulingPage() {
                                         })}
                                     </tbody>
                                 </table>
-                                {Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE) > 1 && (
-                                    <div className="flex justify-between items-center p-4 border-t border-white/5 bg-[#1a1a1a] mt-4 rounded-lg">
-                                        <span className="text-[12px] text-gray-500">
-                                            Showing {(tablePage - 1) * TABLE_ITEMS_PER_PAGE + 1} to {Math.min(tablePage * TABLE_ITEMS_PER_PAGE, filteredRaces.length)} of {filteredRaces.length} races
-                                        </span>
-                                        <div className="flex gap-2">
-                                            <button 
-                                                onClick={() => setTablePage(p => Math.max(1, p - 1))}
-                                                disabled={tablePage === 1}
-                                                className="px-3 py-1.5 bg-[#222] border border-white/10 rounded text-[12px] text-gray-300 hover:text-white hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            >
-                                                Previous
-                                            </button>
-                                            <button 
-                                                onClick={() => setTablePage(p => Math.min(Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE), p + 1))}
-                                                disabled={tablePage === Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE)}
-                                                className="px-3 py-1.5 bg-[#222] border border-white/10 rounded text-[12px] text-gray-300 hover:text-white hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            >
-                                                Next
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
+                                <Pagination
+                                    page={tablePage}
+                                    totalPages={Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE) || 1}
+                                    totalItems={filteredRaces.length}
+                                    limit={TABLE_ITEMS_PER_PAGE}
+                                    onPageChange={setTablePage}
+                                />
                             </div>
                         )}
                         </div>

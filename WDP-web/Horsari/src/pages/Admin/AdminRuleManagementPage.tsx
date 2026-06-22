@@ -3,6 +3,7 @@ import { Search, ScrollText, CheckCircle, XCircle } from "lucide-react";
 import RuleDetailPanel from "./AdminComponents/RuleDetailPanel";
 import RuleModal from "./AdminComponents/RuleModal";
 import { adminService } from "../../api/adminService";
+import { Pagination } from "../../components/Pagination";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -41,17 +42,21 @@ export default function AdminRuleManagementPage() {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalRule, setModalRule] = useState<RaceEligibilityRule | null>(null);
+    const [page, setPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const LIMIT = 10;
+    const totalPages = Math.ceil(totalItems / LIMIT) || 1;
 
-    useEffect(() => {
-        fetchRules();
-    }, []);
+    useEffect(() => { setPage(1); }, [search]);
+    useEffect(() => { fetchRules(); }, [page, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchRules = async () => {
         try {
             setLoading(true);
-            const res = await adminService.getRules();
+            const res = await adminService.getRules(page, LIMIT, search || undefined);
             const items: RaceEligibilityRule[] = res.data?.items ?? res.data ?? [];
             setRules(items);
+            setTotalItems(res.data?.pagination?.totalItems ?? items.length);
             if (selectedRule) {
                 const updatedSelected = items.find((r: any) => r._id === selectedRule._id);
                 setSelectedRule(updatedSelected || null);
@@ -91,13 +96,10 @@ export default function AdminRuleManagementPage() {
         setIsModalOpen(true);
     };
 
-    const filtered = rules.filter(r => {
-        const matchSearch =
-            (r.raceType?.toLowerCase().includes(search.toLowerCase()) || false) ||
-            (r.requiredBreed?.toLowerCase().includes(search.toLowerCase()) || false);
-        const matchStatus = statusFilter === "All" || (statusFilter === "active" ? r.isActive : !r.isActive);
-        return matchSearch && matchStatus;
-    });
+    // search is handled server-side; only apply status filter client-side
+    const filtered = rules.filter(r =>
+        statusFilter === "All" || (statusFilter === "active" ? r.isActive : !r.isActive)
+    );
 
     const panelOpen = selectedRule !== null;
 
@@ -116,7 +118,7 @@ export default function AdminRuleManagementPage() {
                                 <span className="text-[11px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase">
                                     All Rules
                                 </span>
-                                <span className="text-[13px] text-gray-500">· {filtered.length} rule{filtered.length !== 1 ? "s" : ""}</span>
+                                <span className="text-[13px] text-gray-500">· {totalItems} rule{totalItems !== 1 ? "s" : ""}</span>
                             </div>
                         </div>
 
@@ -243,6 +245,13 @@ export default function AdminRuleManagementPage() {
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination
+                            page={page}
+                            totalPages={totalPages}
+                            totalItems={totalItems}
+                            limit={LIMIT}
+                            onPageChange={setPage}
+                        />
                     </div>
                 </main>
 
