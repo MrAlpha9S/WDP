@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { ChevronRight } from "lucide-react";
 import type { InviteStatus } from "../../shared/types/InboxTypes";
 import type { RaceInvite } from "../../shared/types/InboxTypes";
 import { InviteCard } from "./RefereeComponents/InboxCard";
 import { refereeService } from "../../api/refereeService";
 import { Loader2 } from "lucide-react";
+import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 
 // ── Tab type ──────────────────────────────────────────────────────────────────
 
@@ -18,82 +19,65 @@ const TABS: { key: TabFilter; label: string }[] = [
     { key: "cancelled", label: "Cancelled" },
 ];
 
+const STATUS_TO_DB: Partial<Record<TabFilter, string>> = {
+    accepted: "assigned",
+    declined: "rejected",
+};
+
+function mapInvitation(inv: any): RaceInvite {
+    const round = inv.raceRoundId || {};
+    const dateObj = new Date(round.raceDate || new Date());
+    let mappedStatus = inv.status;
+    if (inv.status === 'assigned') mappedStatus = 'accepted';
+    if (inv.status === 'rejected') mappedStatus = 'declined';
+    return {
+        id: inv._id,
+        race: round.roundName || "Unknown Race",
+        raceLabel: round.roundName || "Unknown Race",
+        tournamentName: round.tournamentId?.tournamentName || "Non-tournament",
+        date: dateObj.toLocaleDateString(),
+        time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        venue: round.location || "Unknown Venue",
+        trackLocation: round.address || "",
+        role: "Referee",
+        status: mappedStatus as InviteStatus,
+        fee: inv.fee ?? round.minimalRidingFees ?? 0,
+        sentAt: new Date(inv.assignedAt).toLocaleDateString(),
+        isNew: false,
+        raceType: (round.eligibilityRuleId?.raceType || "Flat") as any,
+        gradeLevel: "G3" as any,
+        distance: (round.trackLength || 1000) + "m",
+        track: round.raceGround || "Turf",
+        entries: round.maxParticipants || 12,
+        assignedBy: "Admin",
+        notes: "Please arrive 1 hour before the first race.",
+        paymentStatus: (inv.paymentStatus || "unpaid") as any,
+    };
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function InboxPage() {
-    const [invites, setInvites] = useState<RaceInvite[]>([]);
-    const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<TabFilter>("all");
-    const [page, setPage] = useState(1);
-    const [pagination, setPagination] = useState({ total: 0, totalPages: 1, limit: 5 });
 
-    // Reset page to 1 when tab changes
-    useEffect(() => {
-        setPage(1);
+    const fetcher = useCallback(async (page: number) => {
+        const statusParam = tab === "all" ? undefined : (STATUS_TO_DB[tab] ?? tab);
+        const res = await refereeService.getRefereeInvitations(5, page, statusParam);
+        if (res.code !== 200 || !res.data) throw new Error(res.msg ?? 'Failed to fetch invitations');
+        return {
+            items: (res.data as any[]).map(mapInvitation),
+            pagination: res.pagination,
+        };
     }, [tab]);
 
-    useEffect(() => {
-        const fetchInvitations = async () => {
-            setLoading(true);
-            try {
-                const STATUS_TO_DB: Partial<Record<TabFilter, string>> = {
-                    accepted: "assigned",
-                    declined: "rejected",
-                };
-                const statusParam = tab === "all" ? undefined : (STATUS_TO_DB[tab] ?? tab);
-                const res = await refereeService.getRefereeInvitations(5, page, statusParam);
-                if (res.code === 200 && res.data) {
-                    const mappedInvites = res.data.map((inv: any) => {
-                        const round = inv.raceRoundId || {};
-                        const dateObj = new Date(round.raceDate || new Date());
-
-                        let mappedStatus = inv.status;
-                        if (inv.status === 'assigned') mappedStatus = 'accepted';
-                        if (inv.status === 'rejected') mappedStatus = 'declined';
-
-                        return {
-                            id: inv._id,
-                            race: round.roundName || "Unknown Race",
-                            raceLabel: round.roundName || "Unknown Race",
-                            tournamentName: round.tournamentId?.tournamentName || "Non-tournament",
-                            date: dateObj.toLocaleDateString(),
-                            time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            venue: round.location || "Unknown Venue",
-                            trackLocation: round.address || "",
-                            role: "Referee",
-                            status: mappedStatus as InviteStatus,
-                            fee: inv.fee ?? round.minimalRidingFees ?? 0,
-                            sentAt: new Date(inv.assignedAt).toLocaleDateString(),
-                            isNew: false,
-                            raceType: (round.eligibilityRuleId?.raceType || "Flat") as any,
-                            gradeLevel: "G3" as any,
-                            distance: (round.trackLength || 1000) + "m",
-                            track: round.raceGround || "Turf",
-                            entries: round.maxParticipants || 12,
-                            assignedBy: "Admin",
-                            notes: "Please arrive 1 hour before the first race.",
-                            paymentStatus: (inv.paymentStatus || "unpaid") as any
-                        };
-                    });
-                    setInvites(mappedInvites);
-                    if (res.pagination) {
-                        setPagination(res.pagination);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch invitations", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchInvitations();
-    }, [tab, page]);
+    const { data: invites, loading, pagination, page, setPage, mutate } =
+        usePaginatedFetch<RaceInvite>(fetcher, tab);
 
     const handleAccept = async (id: string) => {
         try {
             const res = await refereeService.acceptInvitation(id);
             if (res.code === 200) {
-                setInvites(prev => prev.map(i => i.id === id ? { ...i, status: "accepted" as InviteStatus, isNew: false } : i));
+                mutate(prev => prev.map(i => i.id === id ? { ...i, status: "accepted" as InviteStatus, isNew: false } : i));
             }
         } catch (error) {
             console.error("Failed to accept invitation:", error);
@@ -104,7 +88,7 @@ export default function InboxPage() {
         try {
             const res = await refereeService.rejectInvitation(id);
             if (res.code === 200) {
-                setInvites(prev => prev.map(i => i.id === id ? { ...i, status: "declined" as InviteStatus, isNew: false } : i));
+                mutate(prev => prev.map(i => i.id === id ? { ...i, status: "declined" as InviteStatus, isNew: false } : i));
             }
         } catch (error) {
             console.error("Failed to decline invitation:", error);
@@ -126,17 +110,6 @@ export default function InboxPage() {
                         </h1>
                         <p className="text-[13px] text-gray-500 mt-0.5">Race assignments and referee invitations.</p>
                     </div>
-                    {/* {counts.pending > 0 && (
-                        <div className="bg-[#1a1a1a] border border-white/8 rounded-xl px-4 py-2.5 text-right">
-                            <p className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Awaiting Response</p>
-                            <p
-                                className="text-[22px] font-black text-red-500 tracking-tight leading-tight"
-                                style={{ fontFamily: "'Playfair Display', serif" }}
-                            >
-                                {counts.pending}
-                            </p>
-                        </div>
-                    )} */}
                 </div>
 
                 {/* Tabs */}
@@ -144,7 +117,7 @@ export default function InboxPage() {
                     {TABS.map(({ key, label }) => (
                         <button
                             key={key}
-                            onClick={() => setTab(key)}
+                            onClick={() => { setTab(key); setPage(1); }}
                             className={[
                                 "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold transition-all duration-150",
                                 tab === key

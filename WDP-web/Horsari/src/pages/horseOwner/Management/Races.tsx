@@ -10,46 +10,50 @@ function formatDate(iso: string): string {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapToMyRace(raw: any, i: number): MyRace {
-  const regStatus = raw?.registration?.registrationStatus ?? "";
+  const roundStatus = (raw?.raceRound?.status ?? "").toLowerCase();
 
   const statusMap: Record<string, RaceStatus> = {
-    approve:  "UPCOMING",
-    live:     "LIVE",
-    finished: "FINISHED",
-    done:     "FINISHED",
+    running:   "LIVE",
+    completed: "FINISHED",
+    scheduled: "UPCOMING",
+    prepared:  "PREPARING",
+    draft:     "UPCOMING",
+    cancelled: "FINISHED",
   };
-  const status: RaceStatus = statusMap[regStatus.toLowerCase()] ?? "UPCOMING";
+  const status: RaceStatus = statusMap[roundStatus] ?? "UPCOMING";
 
+  // API shape: { registration, raceRound, tournament, eligibleHorseIds, existingHorseId }
+  // No top-level _id; use registration._id as the stable unique key
   return {
-    id:     raw._id                                  ?? String(i),
-    name:   raw.raceRound.roundName    ?? raw.name              ?? "Unnamed Race",
+    id:     raw.registration?._id ?? raw.raceRound?._id ?? String(i),
+    name:   raw.raceRound?.roundName   ?? "Unnamed Race",
     status,
-    date:   raw.raceRound.raceDate    ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
-    venue:  raw.raceRound.location       ?? raw.location          ?? "TBA",
-    horse:  raw.horseName   ?? raw.horse?.horseName  ?? "TBA",
-    jockey: raw.jockeyName  ?? raw.jockey            ?? "TBA",
-    image:  raw.image       ?? raw.coverImage        ?? "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80",
+    date:   raw.raceRound?.raceDate    ? formatDate(raw.raceRound.raceDate) : "TBA",
+    venue:  raw.raceRound?.location    ?? "TBA",
+    horse:  raw.horse?.horseName       ?? raw.horseName  ?? "TBA",
+    jockey: raw.jockey?.fullName       ?? raw.jockeyName ?? "TBA",
+    image:  raw.raceRound?.coverImage  ?? raw.image      ?? "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80",
   };
 }
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<RaceStatus, { label: string; dot: string; text: string; bg: string }> = {
-  LIVE:     { label: "LIVE",     dot: "bg-red-400 animate-pulse", text: "text-red-400",    bg: "bg-red-500/20 border-red-500/40" },
-  UPCOMING: { label: "UPCOMING", dot: "bg-yellow-400",            text: "text-yellow-300", bg: "bg-black/50 border-white/15"     },
-  FINISHED: { label: "FINISHED", dot: "bg-gray-500",              text: "text-gray-400",   bg: "bg-black/50 border-white/10"     },
+  LIVE: { label: "LIVE", dot: "bg-red-400 animate-pulse", text: "text-red-400", bg: "bg-red-500/20 border-red-500/40" },
+  UPCOMING: { label: "UPCOMING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
+  FINISHED: { label: "FINISHED", dot: "bg-gray-500", text: "text-gray-400", bg: "bg-black/50 border-white/10" },
+  PREPARING: { label: "PREPARING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
 };
 
 // ── Race Card ─────────────────────────────────────────────────────────────────
 function RaceCard({ race }: { race: MyRace }) {
-  const cfg        = STATUS_CFG[race.status];
-  const isLive     = race.status === "LIVE";
+  const cfg = STATUS_CFG[race.status];
+  const isLive = race.status === "LIVE";
   const isFinished = race.status === "FINISHED";
 
   return (
     <div
-      className={`bg-[#1a1a1a] rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 hover:shadow-xl hover:shadow-black/50 ${
-        isFinished ? "border-white/5 opacity-70" : "border-white/8 hover:border-white/15"
-      }`}
+      className={`bg-[#1a1a1a] rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 hover:shadow-xl hover:shadow-black/50 ${isFinished ? "border-white/5 opacity-70" : "border-white/8 hover:border-white/15"
+        }`}
     >
       <div className="relative h-40 overflow-hidden bg-[#111]">
         <img
@@ -97,13 +101,12 @@ function RaceCard({ race }: { race: MyRace }) {
         </div>
 
         <button
-          className={`w-full py-2.5 rounded-lg text-[11.5px] font-bold tracking-widest uppercase transition-all duration-150 mt-auto ${
-            isLive
-              ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40"
-              : isFinished
+          className={`w-full py-2.5 rounded-lg text-[11.5px] font-bold tracking-widest uppercase transition-all duration-150 mt-auto ${isLive
+            ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40"
+            : isFinished
               ? "border border-white/8 text-gray-600 cursor-default"
               : "border border-white/15 text-gray-300 hover:border-white/30 hover:text-white"
-          }`}
+            }`}
         >
           {isLive ? "View Live Track" : isFinished ? "View Results" : "Manage Entry"}
         </button>
@@ -149,9 +152,9 @@ function RegisterTile() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function RacesPage() {
-  const [races,   setRaces]   = useState<MyRace[]>([]);
+  const [races, setRaces] = useState<MyRace[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,11 +166,11 @@ export default function RacesPage() {
         const data = await horseOwnerService.getHorseOwnerInvitations();
         if (cancelled) return;
 
-        const list: unknown[] = data?.data?.invitations ?? data?.data ?? (Array.isArray(data) ? data : []);
+        const list: unknown[] = data?.data?.items ?? data?.data ?? (Array.isArray(data) ? data : []);
 
         const approved = list.filter(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (r: any) => r?.registration?.registrationStatus === "approved"
+          (r: any) => ["approved", "verified"].includes(r?.registration?.registrationStatus ?? "")
         );
 
         setRaces(approved.map((r, i) => mapToMyRace(r, i)));

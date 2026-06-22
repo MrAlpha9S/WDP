@@ -50,9 +50,10 @@ export default function AdminRuleManagementPage() {
         try {
             setLoading(true);
             const res = await adminService.getRules();
-            setRules(res.data);
+            const items: RaceEligibilityRule[] = res.data?.items ?? res.data ?? [];
+            setRules(items);
             if (selectedRule) {
-                const updatedSelected = res.data.find((r: any) => r._id === selectedRule._id);
+                const updatedSelected = items.find((r: any) => r._id === selectedRule._id);
                 setSelectedRule(updatedSelected || null);
             }
         } catch (error) {

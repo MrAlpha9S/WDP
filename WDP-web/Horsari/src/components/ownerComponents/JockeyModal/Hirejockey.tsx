@@ -142,6 +142,7 @@ export default function HireJockeyModal({
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [selectedHorse, setSelectedHorse] = useState<Horse | null>(null);
   const [position, setPosition] = useState(false);
+  const [percentagePayout, setPercentagePayout] = useState<number>(10);
 
   const [toast, setToast] = useState<ToastState>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -156,9 +157,9 @@ export default function HireJockeyModal({
         console.log('data: ', data)
         if (cancelled) return;
 
-        const list: unknown[] = data?.data?.invitations ?? data?.data ?? (Array.isArray(data) ? data : []);
+        const list: unknown[] = data?.data?.items ?? data?.data?.invitations ?? (Array.isArray(data?.data) ? data.data : []);
         const approved = list.filter((r: any) =>
-          r?.registration?.registrationStatus === "approved"
+          ["approved", "verified"].includes(r?.registration?.registrationStatus ?? "")
         );
         setRaces(approved.map((r: any, i) => mapRace(r, i)));
       } catch {
@@ -180,7 +181,7 @@ export default function HireJockeyModal({
         const data = await horseOwnerService.getUserHorse();
         if (cancelled) return;
 
-        const list: unknown[] = data?.data?.horses ?? data?.data ?? (Array.isArray(data) ? data : []);
+        const list: unknown[] = data?.data?.items ?? data?.data?.horses ?? (Array.isArray(data?.data) ? data.data : []);
         setHorses(list.map((h: any, i) => mapHorse(h, i)));
       } catch {
         if (!cancelled) setErrorHorses("Failed to load horses.");
@@ -206,7 +207,7 @@ export default function HireJockeyModal({
       await onConfirm?.({
         jockeyId: String(jockey.id),
         registrationId: String(selectedRace.id),
-        percentagePayout: 0.1,
+        percentagePayout: percentagePayout / 100,
         horseId: String(selectedHorse.id),
         isBackup: position,
       });
@@ -373,6 +374,26 @@ export default function HireJockeyModal({
                   </div>
                 </div>
               </SelectCard>
+
+              <div className="mt-4">
+                <p className="text-[11px] font-bold tracking-[0.18em] text-gray-600 uppercase mb-3">
+                  Payout Percentage
+                </p>
+                <div className="flex items-center gap-3 bg-[#141414] rounded-xl border border-white/8 px-4 py-3">
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={percentagePayout}
+                    onChange={(e) => setPercentagePayout(Math.min(100, Math.max(1, Number(e.target.value))))}
+                    className="flex-1 bg-transparent text-white text-[15px] font-bold focus:outline-none"
+                  />
+                  <span className="text-[13px] font-semibold text-gray-500">%</span>
+                </div>
+                <p className="text-[10.5px] text-gray-600 mt-1.5">
+                  Share of prize money paid to the jockey.
+                </p>
+              </div>
             </div>
           )}
 
@@ -513,7 +534,7 @@ export default function HireJockeyModal({
             <button
               onClick={handleConfirm}
               disabled={!selectedHorse || submitting}
-              className={`... ${selectedHorse && !submitting
+              className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${selectedHorse && !submitting
                 ? "bg-green-700 hover:bg-green-600 text-white shadow-lg shadow-green-900/30"
                 : "bg-[#1a1a1a] border border-white/8 text-gray-600 cursor-not-allowed"
                 }`}

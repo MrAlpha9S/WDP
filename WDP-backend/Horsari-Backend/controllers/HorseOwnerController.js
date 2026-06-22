@@ -69,6 +69,14 @@ class HorseOwnerController {
         return res.status(response.code).json(response);
     }
 
+    // Get jockey invitations sent by this horse owner
+    async getJockeyInvitations(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const response = await HorseOwnerService.getJockeyInvitations(req.userId, page, limit);
+        return res.status(response.code).json(response);
+    }
+
     // Request race start after all registrations reviewed
     async confirmRaceStart(req, res) {
         const { raceRoundId } = req.params;

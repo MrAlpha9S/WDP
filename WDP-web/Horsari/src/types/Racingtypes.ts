@@ -1,6 +1,7 @@
 // ── Shared types ──────────────────────────────────────────────────────────────
-export type RaceStatus   = "LIVE" | "UPCOMING" | "FINISHED";
+export type RaceStatus = "LIVE" | "UPCOMING" | "FINISHED" | "PREPARING";
 export type InviteStatus = 'pending' | 'approved' | 'rejected' | 'verified' | 'failed' | 'cancelled'
+export type InviteJockeyStatus = 'pending' | 'accepted' | 'declined' | 'cancelled'
 
 export interface MyRace {
   id: number;

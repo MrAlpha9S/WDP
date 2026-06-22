@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { adminService } from "../../../api/adminService";
+import { usePaginatedFetch } from "../../../hooks/usePaginatedFetch";
 
 export type ApprovalRole = "Horse Owner" | "Jockey" | "Referee" | "Trainer";
 export type InvitationStatus = "Pending" | "Accepted" | "Declined";
@@ -259,173 +260,130 @@ export function InvitationTable({
     );
 }
 
+const LIMIT = 3;
+
+async function fetchMappedData(
+    targetPage: number,
+    targetTab: string,
+): Promise<{ mappedInvites: Invitee[]; totalPages: number }> {
+    let invitesRes: any = null;
+    let mappedInvites: Invitee[] = [];
+    let fetchedTotalPages = 1;
+
+    if (targetTab === "Horse Owner") {
+        invitesRes = await adminService.getHorseOwnerInvitations(targetPage, LIMIT);
+        fetchedTotalPages = invitesRes.data?.pagination?.totalPages || 1;
+
+        const itemsToMap = invitesRes.data?.items || [];
+        mappedInvites = itemsToMap.map((item: any) => {
+            const mainJockey = item.invitations.find((i: any) => !i.isBackup);
+            const backupJockey = item.invitations.find((i: any) => i.isBackup);
+            const name = item.horseOwner?.fullName || "Unknown Owner";
+            const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
+            let status: InvitationStatus = "Pending";
+            if (item.registrationStatus === "approved") status = "Accepted";
+            else if (item.registrationStatus === "rejected") status = "Declined";
+            return {
+                id: item.registrationId,
+                name,
+                role: "Horse Owner",
+                dateInvited: new Date(item.registrationAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }),
+                status,
+                initials,
+                color: "#2d3748",
+                registeredRace: item.raceRound?.roundName,
+                raceSlotsFilled: item.raceRound?.currentParticipants,
+                raceTotalSlots: item.raceRound?.maxParticipants,
+                horseSelected: item.horse?.horseName,
+                mainJockeyName: mainJockey ? mainJockey.jockeyName : "N/A",
+                mainJockeyStatus: mainJockey ? "Accepted" : undefined,
+                mainJockeyInvitationId: mainJockey ? mainJockey.invitationsId : undefined,
+                backupJockeyName: backupJockey ? backupJockey.jockeyName : "N/A",
+                backupJockeyStatus: backupJockey ? "Accepted" : undefined,
+                backupJockeyInvitationId: backupJockey ? backupJockey.invitationsId : undefined,
+            } as Invitee;
+        });
+    } else if (targetTab === "Referee") {
+        invitesRes = await adminService.getRefereeInvitations(targetPage, LIMIT);
+        fetchedTotalPages = invitesRes.data?.pagination?.totalPages || 1;
+
+        const itemsToMap = invitesRes.data?.items || [];
+        mappedInvites = itemsToMap.map((item: any) => {
+            const name = item.referee?.user?.fullName || "Unknown Referee";
+            const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
+            let status: InvitationStatus = "Pending";
+            if (item.raceReferee?.status === "assigned") status = "Accepted";
+            else if (item.raceReferee?.status === "rejected") status = "Declined";
+            return {
+                id: item.raceRefereeId || Math.random().toString(),
+                name,
+                role: "Referee",
+                dateInvited: "N/A",
+                status,
+                initials,
+                color: "#2a2a2a",
+                registeredRace: item.raceRound?.roundName,
+            } as Invitee;
+        });
+    } else if (targetTab === "Jockey") {
+        invitesRes = await adminService.getJockeyInvitations(targetPage, LIMIT);
+        fetchedTotalPages = invitesRes.data?.pagination?.totalPages || 1;
+
+        const itemsToMap = invitesRes.data?.items || [];
+        mappedInvites = itemsToMap.map((item: any) => {
+            const name = item.jockey?.user?.fullName || "Unknown Jockey";
+            const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
+            let status: InvitationStatus = "Pending";
+            if (item.status === "accepted") status = "Accepted";
+            else if (item.status === "declined") status = "Declined";
+            const mainJockey = item.invitations?.find((i: any) => !i.isBackup);
+            const backupJockey = item.invitations?.find((i: any) => i.isBackup);
+            return {
+                id: item.invitationId || Math.random().toString(),
+                name,
+                role: "Jockey",
+                dateInvited: item.registration?.registrationAt
+                    ? new Date(item.registration.registrationAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+                    : "N/A",
+                status,
+                initials,
+                color: "#1a2a3a",
+                registeredRace: item.raceRound?.roundName,
+                horseSelected: item.horse?.horseName,
+                mainJockeyName: mainJockey ? mainJockey.jockeyName : "N/A",
+                mainJockeyStatus: mainJockey
+                    ? (mainJockey.invitationStatus === 'accepted' ? 'Accepted' : mainJockey.invitationStatus === 'declined' ? 'Declined' : 'Pending')
+                    : undefined,
+                mainJockeyInvitationId: mainJockey ? mainJockey.invitationId : undefined,
+                backupJockeyName: backupJockey ? backupJockey.jockeyName : "N/A",
+                backupJockeyStatus: backupJockey
+                    ? (backupJockey.invitationStatus === 'accepted' ? 'Accepted' : backupJockey.invitationStatus === 'declined' ? 'Declined' : 'Pending')
+                    : undefined,
+                backupJockeyInvitationId: backupJockey ? backupJockey.invitationId : undefined,
+                isBackup: item.isBackup,
+            } as Invitee;
+        });
+    }
+
+    return { mappedInvites, totalPages: fetchedTotalPages };
+}
+
 export default function InvitationsSection() {
     const [activeTab, setActiveTab] = useState<"Horse Owner" | "Referee" | "Jockey">("Horse Owner");
-    const [invites, setInvites] = useState<Invitee[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const limit = 3;
 
-    // Cache to store mapped invites: { "Horse Owner-1": { mappedInvites, totalPages } }
-    const cache = useRef<Record<string, { mappedInvites: Invitee[], totalPages: number }>>({});
-
-    const fetchMappedData = async (targetPage: number, targetTab: string) => {
-        let invitesRes: any = null;
-        let mappedInvites: Invitee[] = [];
-        let fetchedTotalPages = 1;
-
-        if (targetTab === "Horse Owner") {
-            invitesRes = await adminService.getHorseOwnerInvitations(targetPage, limit);
-            fetchedTotalPages = invitesRes.data?.pagination?.totalPages || 1;
-
-            const itemsToMap = invitesRes.data?.items || [];
-            mappedInvites = itemsToMap.map((item: any) => {
-                const mainJockey = item.invitations.find((i: any) => !i.isBackup);
-                const backupJockey = item.invitations.find((i: any) => i.isBackup);
-
-                const name = item.horseOwner?.fullName || "Unknown Owner";
-                const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
-
-                let status: InvitationStatus = "Pending";
-                if (item.registrationStatus === "approved") status = "Accepted";
-                else if (item.registrationStatus === "rejected") status = "Declined";
-
-                return {
-                    id: item.registrationId,
-                    name: name,
-                    role: "Horse Owner",
-                    dateInvited: new Date(item.registrationAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }),
-                    status: status,
-                    initials: initials,
-                    color: "#2d3748",
-                    registeredRace: item.raceRound?.roundName,
-                    raceSlotsFilled: item.raceRound?.currentParticipants,
-                    raceTotalSlots: item.raceRound?.maxParticipants,
-                    horseSelected: item.horse?.horseName,
-                    mainJockeyName: mainJockey ? mainJockey.jockeyName : "N/A",
-                    mainJockeyStatus: mainJockey ? "Accepted" : undefined,
-                    mainJockeyInvitationId: mainJockey ? mainJockey.invitationsId : undefined,
-                    backupJockeyName: backupJockey ? backupJockey.jockeyName : "N/A",
-                    backupJockeyStatus: backupJockey ? "Accepted" : undefined,
-                    backupJockeyInvitationId: backupJockey ? backupJockey.invitationsId : undefined,
-                } as Invitee;
-            });
-        } else if (targetTab === "Referee") {
-            invitesRes = await adminService.getRefereeInvitations(targetPage, limit);
-            fetchedTotalPages = invitesRes.data?.pagination?.totalPages || 1;
-
-            const itemsToMap = invitesRes.data?.items || [];
-            mappedInvites = itemsToMap.map((item: any) => {
-                const name = item.referee?.user?.fullName || "Unknown Referee";
-                const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
-
-                let status: InvitationStatus = "Pending";
-                if (item.raceReferee?.status === "assigned") status = "Accepted";
-                else if (item.raceReferee?.status === "rejected") status = "Declined";
-
-                return {
-                    id: item.raceRefereeId || Math.random().toString(), // Use unique RaceReferee doc ID
-
-                    name: name,
-                    role: "Referee",
-                    dateInvited: "N/A",
-                    status: status,
-                    initials: initials,
-                    color: "#2a2a2a",
-                    registeredRace: item.raceRound?.roundName,
-                } as Invitee;
-            });
-        } else if (targetTab === "Jockey") {
-            invitesRes = await adminService.getJockeyInvitations(targetPage, limit);
-            fetchedTotalPages = invitesRes.data?.pagination?.totalPages || 1;
-
-            const itemsToMap = invitesRes.data?.items || [];
-            mappedInvites = itemsToMap.map((item: any) => {
-                const name = item.jockey?.user?.fullName || "Unknown Jockey";
-                const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
-
-                let status: InvitationStatus = "Pending";
-                if (item.status === "accepted") status = "Accepted";
-                else if (item.status === "declined") status = "Declined";
-
-                const mainJockey = item.invitations?.find((i: any) => !i.isBackup);
-                const backupJockey = item.invitations?.find((i: any) => i.isBackup);
-
-                return {
-                    id: item.invitationId || Math.random().toString(),
-                    name: name,
-                    role: "Jockey",
-                    dateInvited: item.registration?.registrationAt ? new Date(item.registration.registrationAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : "N/A",
-                    status: status,
-                    initials: initials,
-                    color: "#1a2a3a",
-                    registeredRace: item.raceRound?.roundName,
-                    horseSelected: item.horse?.horseName,
-                    mainJockeyName: mainJockey ? mainJockey.jockeyName : "N/A",
-                    mainJockeyStatus: mainJockey ? (mainJockey.invitationStatus === 'accepted' ? 'Accepted' : mainJockey.invitationStatus === 'declined' ? 'Declined' : 'Pending') : undefined,
-                    mainJockeyInvitationId: mainJockey ? mainJockey.invitationId : undefined,
-                    backupJockeyName: backupJockey ? backupJockey.jockeyName : "N/A",
-                    backupJockeyStatus: backupJockey ? (backupJockey.invitationStatus === 'accepted' ? 'Accepted' : backupJockey.invitationStatus === 'declined' ? 'Declined' : 'Pending') : undefined,
-                    backupJockeyInvitationId: backupJockey ? backupJockey.invitationId : undefined,
-                    isBackup: item.isBackup,
-                } as Invitee;
-            });
-        }
-
-        return { mappedInvites, totalPages: fetchedTotalPages };
-    };
-
-    const getPageData = async (targetPage: number, targetTab: string) => {
-        const cacheKey = `${targetTab}-${targetPage}`;
-        if (cache.current[cacheKey]) {
-            return cache.current[cacheKey];
-        }
-        const data = await fetchMappedData(targetPage, targetTab);
-        cache.current[cacheKey] = data;
-        return data;
-    };
-
-    useEffect(() => {
-        let isMounted = true;
-
-        async function loadCurrentPageAndPrefetch() {
-            setLoading(true);
-            try {
-                // 1. Fetch & display the current page (uses cache if available)
-                const currentData = await getPageData(page, activeTab);
-                if (isMounted) {
-                    setInvites(currentData.mappedInvites);
-                    setTotalPages(currentData.totalPages);
-                }
-
-                // 2. Silently prefetch the previous and next pages (if they exist)
-                const fetchPromises: Promise<any>[] = [];
-                if (page > 1) fetchPromises.push(getPageData(page - 1, activeTab));
-                if (page < currentData.totalPages) fetchPromises.push(getPageData(page + 1, activeTab));
-                
-                // We don't await this so it happens entirely in the background
-                Promise.all(fetchPromises).catch(err => console.error("Prefetch failed", err));
-
-            } catch (error) {
-                console.error("Failed to load invitations data", error);
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        }
-
-        loadCurrentPageAndPrefetch();
-
-        return () => {
-            isMounted = false;
+    const fetcher = useCallback(async (page: number) => {
+        const { mappedInvites, totalPages } = await fetchMappedData(page, activeTab);
+        return {
+            items: mappedInvites,
+            pagination: { totalPages, total: 0, page, limit: LIMIT },
         };
-    }, [page, activeTab]);
+    }, [activeTab]);
+
+    const { data: invites, loading, pagination, page, setPage, mutate } =
+        usePaginatedFetch<Invitee>(fetcher, activeTab);
 
     const handleRevoke = (id: string) => {
-        setInvites((prev) => prev.filter((a) => a.id !== id));
-        // Note: In a real app, you'd invalidate the cache or re-fetch here if mutative actions occur
+        mutate((prev) => prev.filter((a) => a.id !== id));
     };
 
     return (
@@ -456,7 +414,7 @@ export default function InvitationsSection() {
                 invites={invites}
                 loading={loading}
                 page={page}
-                totalPages={totalPages}
+                totalPages={pagination.totalPages}
                 setPage={setPage}
                 handleRevoke={handleRevoke}
             />

@@ -1,8 +1,6 @@
 import {
   House,
   Users,
-  Building2,
-  ShoppingBag,
   Wallet,
   Flag,
   Mail,
@@ -39,17 +37,17 @@ export default function Sidebar({ activeTab, onTabChange, pendingInvitations = 0
     {
       label: "Stable",
       items: [
-        { tab: "Horses",      icon: <House size={16} /> },
-        { tab: "Jockeys",     icon: <Users size={16} /> },
+        { tab: "Horses", icon: <House size={16} /> },
+        { tab: "Jockeys", icon: <Users size={16} /> },
         // { tab: "Stable",      icon: <Building2 size={16} /> },
         // { tab: "Marketplace", icon: <ShoppingBag size={16} /> },
-        { tab: "Financials",  icon: <Wallet size={16} /> },
+        { tab: "Financials", icon: <Wallet size={16} /> },
       ],
     },
     {
       label: "Racing",
       items: [
-        { tab: "Races",       icon: <Flag size={16} /> },
+        { tab: "Races", icon: <Flag size={16} /> },
         { tab: "Invitations", icon: <Mail size={16} />, badge: pendingInvitations },
       ],
     },
@@ -82,11 +80,10 @@ export default function Sidebar({ activeTab, onTabChange, pendingInvitations = 0
                   <button
                     key={tab}
                     onClick={() => onTabChange(tab)}
-                    className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all duration-150 w-full text-left ${
-                      isActive
+                    className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-all duration-150 w-full text-left ${isActive
                         ? "bg-red-700 text-white shadow-lg shadow-red-900/30"
                         : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
-                    }`}
+                      }`}
                   >
                     <span className={isActive ? "text-white" : "text-gray-500"}>
                       {icon}

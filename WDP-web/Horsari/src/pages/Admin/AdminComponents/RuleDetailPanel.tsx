@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, ShieldAlert, ScrollText } from "lucide-react";
+import { X, ShieldAlert, ScrollText } from "lucide-react";
 import type { RaceEligibilityRule } from "../AdminRuleManagementPage";
 import { STATUS_STYLES } from "../AdminRuleManagementPage";
 

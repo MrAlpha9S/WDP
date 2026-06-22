@@ -78,6 +78,7 @@ export const horseOwnerService = {
     try {
       const params: any = { page, limit, sortBy, order };
       const response = await api.get('/jockey/all', { params });
+      console.log('DATA: ', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;

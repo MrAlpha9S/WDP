@@ -187,8 +187,7 @@ export default function HorsesPage() {
     const fetchHorse = async () => {
       try {
         const data = await horseOwnerService.getUserHorse();
-        console.log('Data: ', data.data.horses)
-        setUserHorse(data.data.horses ?? []);
+        setUserHorse(data.data?.items ?? []);
       } finally {
         setLoading(false);
       }

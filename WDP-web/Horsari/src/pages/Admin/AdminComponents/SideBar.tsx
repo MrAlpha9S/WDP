@@ -1,9 +1,7 @@
 import {
     House,
-    Activity,
     FileText,
     User,
-    Mail
 } from "lucide-react";
 import { type AdminTab } from "./NavBar";
 

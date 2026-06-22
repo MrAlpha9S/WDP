@@ -26,6 +26,8 @@ router.post('/registration/:registrationId/approve', authMiddleware, authHorseOw
 router.post('/registration/:registrationId/reject', authMiddleware, authHorseOwner, RaceInvitationsController.rejectRegistration);
 // Horse owner can view all jockeys
 router.get('/jockeys', authMiddleware, authHorseOwner, HorseOwnerController.getAllJockeys);
+// Jockey invitations sent by this horse owner
+router.get('/invitations', authMiddleware, authHorseOwner, HorseOwnerController.getJockeyInvitations);
 // Confirm race start after referee has reviewed all registrations
 router.post('/race-rounds/:raceRoundId/confirm-start', authMiddleware, authHorseOwner, HorseOwnerController.confirmRaceStart);
 

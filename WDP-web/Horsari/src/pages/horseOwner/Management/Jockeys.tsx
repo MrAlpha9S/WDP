@@ -21,23 +21,27 @@ function mapApiToJockey(raw: any, index: number): Jockey {
 
   const statusMap: Record<string, string> = {
     active:      "Available",
+    approved:    "Available",
     pending:     "In Talks",
     inactive:    "Unavailable",
+    rejected:    "Unavailable",
     available:   "Available",
     "in talks":  "In Talks",
     unavailable: "Unavailable",
   };
 
-  const rawStatus = (raw.licenseStatus ?? raw.status ?? "").toLowerCase();
+  // licenseStatus takes priority; fall back to status field
+  const rawStatus = (raw.status ?? raw.licenseStatus ?? "").toLowerCase();
   const mappedStatus = statusMap[rawStatus] ?? "Unavailable";
   const status = VALID_STATUSES.includes(mappedStatus as typeof VALID_STATUSES[number])
     ? (mappedStatus as Jockey["status"])
     : "Unavailable";
 
-  const rawRankValue = typeof raw.ranking === "string"
-    ? raw.ranking
-    : typeof raw.rank === "string"
-      ? raw.rank
+  // ranking is a numeric position in DB; rank tier comes from a separate field
+  const rawRankValue = typeof raw.rank === "string"
+    ? raw.rank
+    : typeof raw.ranking === "string"
+      ? raw.ranking
       : "";
   const rank = VALID_RANKS.includes(rawRankValue as typeof VALID_RANKS[number])
     ? (rawRankValue as Jockey["rank"])
@@ -216,7 +220,7 @@ export default function JockeysPage() {
 
         if (cancelled) return;
 
-        const raw: unknown[] = data?.data?.jockeys ?? [];
+        const raw: unknown[] = data?.data?.items ?? data?.data?.jockeys ?? [];
         setJockeys(raw.map((item, i) => mapApiToJockey(item, i)));
       } catch (err: unknown) {
         if (!cancelled) {

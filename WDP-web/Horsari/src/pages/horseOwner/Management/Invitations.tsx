@@ -3,17 +3,19 @@ import {
   Calendar, MapPin, Flag, Check, X,
   Info, Ruler, Loader2, Users, Trophy,
 } from "lucide-react";
-import { type Invitation, type InviteStatus } from "../../../types/Racingtypes";
+import { type Invitation, type InviteJockeyStatus, type InviteStatus } from "../../../types/Racingtypes";
 import { horseOwnerService } from "../../../api/horseOwnerService";
 
 // ── Status config ─────────────────────────────────────────────────────────────
-const INVITE_STATUS_CFG: Record<InviteStatus, { text: string; bg: string; border: string }> = {
-  pending:   { text: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
-  approved:  { text: "text-green-400",  bg: "bg-green-500/10",  border: "border-green-500/30"  },
-  rejected:  { text: "text-gray-500",   bg: "bg-white/5",       border: "border-white/10"      },
-  verified:  { text: "text-gray-500",   bg: "bg-white/5",       border: "border-white/10"      },
-  failed:    { text: "text-gray-500",   bg: "bg-white/5",       border: "border-white/10"      },
-  cancelled: { text: "text-gray-500",   bg: "bg-white/5",       border: "border-white/10"      },
+const INVITE_STATUS_CFG: Record<InviteStatus | InviteJockeyStatus, { text: string; bg: string; border: string }> = {
+  pending: { text: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
+  approved: { text: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
+  accepted: { text: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
+  declined: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
+  rejected: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
+  verified: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
+  failed: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
+  cancelled: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
 };
 
 function formatDate(isoString: string): string {
@@ -22,11 +24,21 @@ function formatDate(isoString: string): string {
 
 function normalizeInviteStatus(value: unknown): InviteStatus {
   if (
-    value === "pending"   ||
-    value === "approved"  ||
-    value === "rejected"  ||
-    value === "verified"  ||
-    value === "failed"    ||
+    value === "pending" ||
+    value === "approved" ||
+    value === "rejected" ||
+    value === "verified" ||
+    value === "failed" ||
+    value === "cancelled"
+  ) return value;
+  return "pending";
+}
+
+function normalizeJockeyInviteStatus(value: unknown): InviteJockeyStatus {
+  if (
+    value === "pending" ||
+    value === "accepted" ||
+    value === "declined" ||
     value === "cancelled"
   ) return value;
   return "pending";
@@ -36,24 +48,24 @@ function normalizeInviteStatus(value: unknown): InviteStatus {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapApiToInvitation(raw: any): Invitation {
   return {
-    id:          raw.registration._id                                                                                        ?? "Unknown",
-    name:        raw.raceRound?.roundName                ?? raw.name                                                        ?? "Unnamed Race",
-    type:        raw.tournament?.name                    ? "Tournament"                                                     : "Race",
-    status:      normalizeInviteStatus(raw.registration?.registrationStatus),
-    date:        raw.raceRound?.raceDate                 ? formatDate(raw.raceRound.raceDate)                               : "TBA",
-    venue:       raw.raceRound?.location                 ?? raw.location                                                    ?? "TBA",
-    prize:       raw.raceRound?.firstPlacePrize != null  ? `${raw.raceRound?.currencyType ?? "USD"} ${raw.raceRound.firstPlacePrize.toLocaleString()}` : "TBA",
-    grade:       raw.raceRound?.eligibilityRuleId?.gradeLevel                                                              ?? "TBA",
-    distance:    raw.raceRound?.trackLength != null      ? `${raw.raceRound.trackLength}m`                                 : "TBA",
-    horse:       raw.horseName                           ?? raw.horse?.horseName                                           ?? "TBA",
-    jockey:      raw.jockeyName                          ?? raw.jockey                                                     ?? "TBA",
-    sentBy:      raw.sentBy                              ?? raw.organizer                                                   ?? "Organizer",
-    sentAt:      raw.sentAt                              ?? raw.createdAt                                                   ?? "",
-    image:       raw.image                               ?? raw.coverImage                                                  ?? "/placeholder-race.jpg",
-    prize1st:    raw.raceRound?.firstPlacePrize          ?? null,
-    prize2nd:    raw.raceRound?.secondPlacePrize         ?? null,
-    prize3rd:    raw.raceRound?.thirdPlacePrize          ?? null,
-    currencyType: raw.raceRound?.currencyType            ?? "USD",
+    id: raw.registration._id ?? "Unknown",
+    name: raw.raceRound?.roundName ?? raw.name ?? "Unnamed Race",
+    type: raw.tournament?.name ? "Tournament" : "Race",
+    status: normalizeInviteStatus(raw.registration?.registrationStatus),
+    date: raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : "TBA",
+    venue: raw.raceRound?.location ?? raw.location ?? "TBA",
+    prize: raw.raceRound?.firstPlacePrize != null ? `${raw.raceRound?.currencyType ?? "USD"} ${raw.raceRound.firstPlacePrize.toLocaleString()}` : "TBA",
+    grade: raw.raceRound?.eligibilityRuleId?.gradeLevel ?? "TBA",
+    distance: raw.raceRound?.trackLength != null ? `${raw.raceRound.trackLength}m` : "TBA",
+    horse: raw.horseName ?? raw.horse?.horseName ?? "TBA",
+    jockey: raw.jockeyName ?? raw.jockey?.fullName ?? "TBA",
+    sentBy: raw.sentBy ?? raw.organizer ?? "Organizer",
+    sentAt: raw.sentAt ?? raw.createdAt ?? "",
+    image: raw.image ?? raw.coverImage ?? "/placeholder-race.jpg",
+    prize1st: raw.raceRound?.firstPlacePrize ?? null,
+    prize2nd: raw.raceRound?.secondPlacePrize ?? null,
+    prize3rd: raw.raceRound?.thirdPlacePrize ?? null,
+    currencyType: raw.raceRound?.currencyType ?? "USD",
   };
 }
 
@@ -65,25 +77,25 @@ interface JockeyInvitation {
   raceDate: string;
   venue: string;
   horse: string;
-  status: InviteStatus;
+  status: InviteJockeyStatus;
   sentAt: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapApiToJockeyInvitation(raw: any, i: number): JockeyInvitation {
   return {
-    id:          raw._id                                     ?? String(i),
-    jockeyName:  raw.jockeyName  ?? raw.jockey?.fullName     ?? "Unknown Jockey",
-    jockeyImage: raw.jockeyImage ?? raw.jockey?.image        ?? null,
-    raceName:    raw.raceName    ?? raw.raceRound?.roundName  ?? "Unnamed Race",
-    raceDate:    raw.raceDate    ? formatDate(raw.raceDate)
-                                 : raw.raceRound?.raceDate
-                                   ? formatDate(raw.raceRound.raceDate)
-                                   : "TBA",
-    venue:       raw.venue       ?? raw.raceRound?.location  ?? "TBA",
-    horse:       raw.horseName   ?? raw.horse?.horseName     ?? "TBA",
-    status:      normalizeInviteStatus(raw.status            ?? raw.registrationStatus),
-    sentAt:      raw.sentAt      ?? raw.createdAt            ?? "",
+    id: raw._id ?? String(i),
+    jockeyName: raw.jockeyName ?? raw.jockey?.fullName ?? "Unknown Jockey",
+    jockeyImage: raw.jockeyImage ?? raw.jockey?.image ?? null,
+    raceName: raw.raceName ?? raw.raceRound?.roundName ?? "Unnamed Race",
+    raceDate: raw.raceDate ? formatDate(raw.raceDate)
+      : raw.raceRound?.raceDate
+        ? formatDate(raw.raceRound.raceDate)
+        : "TBA",
+    venue: raw.venue ?? raw.raceRound?.location ?? "TBA",
+    horse: raw.horseName ?? raw.horse?.horseName ?? "TBA",
+    status: normalizeJockeyInviteStatus(raw.status ?? raw.registrationStatus),
+    sentAt: raw.sentAt ?? raw.createdAt ?? "",
   };
 }
 
@@ -91,12 +103,12 @@ function mapApiToJockeyInvitation(raw: any, i: number): JockeyInvitation {
 function InvitationDetailModal({
   inv, onClose, onAccept, onDeny,
 }: {
-  inv:      Invitation;
-  onClose:  () => void;
+  inv: Invitation;
+  onClose: () => void;
   onAccept: (id: string) => void;
-  onDeny:   (id: number | string) => void;
+  onDeny: (id: number | string) => void;
 }) {
-  const stCfg     = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
+  const stCfg = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
   const isPending = inv.status === "pending";
 
   useEffect(() => {
@@ -129,10 +141,10 @@ function InvitationDetailModal({
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
           <div className="grid grid-cols-2 gap-3">
             {[
-              { icon: <Calendar size={13} className="text-red-400"    />, label: "Date & Time", value: inv.date     },
-              { icon: <MapPin   size={13} className="text-blue-400"   />, label: "Venue",        value: inv.venue    },
-              { icon: <Flag     size={13} className="text-purple-400" />, label: "Grade",        value: inv.grade    },
-              { icon: <Ruler    size={13} className="text-green-400"  />, label: "Distance",     value: inv.distance },
+              { icon: <Calendar size={13} className="text-red-400" />, label: "Date & Time", value: inv.date },
+              { icon: <MapPin size={13} className="text-blue-400" />, label: "Venue", value: inv.venue },
+              { icon: <Flag size={13} className="text-purple-400" />, label: "Grade", value: inv.grade },
+              { icon: <Ruler size={13} className="text-green-400" />, label: "Distance", value: inv.distance },
             ].map((item) => (
               <div key={item.label} className="bg-[#141414] rounded-xl px-4 py-3 border border-white/6 flex items-start gap-3">
                 <div className="mt-0.5 shrink-0">{item.icon}</div>
@@ -154,8 +166,8 @@ function InvitationDetailModal({
               <div className="divide-y divide-white/5">
                 {[
                   { label: "1st Place", value: inv.prize1st, color: "text-yellow-400" },
-                  { label: "2nd Place", value: inv.prize2nd, color: "text-gray-300"   },
-                  { label: "3rd Place", value: inv.prize3rd, color: "text-amber-700"  },
+                  { label: "2nd Place", value: inv.prize2nd, color: "text-gray-300" },
+                  { label: "3rd Place", value: inv.prize3rd, color: "text-amber-700" },
                 ].map(({ label, value, color }) => value != null && (
                   <div key={label} className="flex items-center justify-between px-4 py-2.5">
                     <span className="text-[12px] text-gray-500">{label}</span>
@@ -193,12 +205,12 @@ function InvitationDetailModal({
 function InvitationCard({
   inv, onAccept, onDeny, onDetail,
 }: {
-  inv:      Invitation;
+  inv: Invitation;
   onAccept: (id: string) => void;
-  onDeny:   (id: number | string) => void;
+  onDeny: (id: number | string) => void;
   onDetail: () => void;
 }) {
-  const stCfg     = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
+  const stCfg = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
   const isPending = inv.status === "pending";
 
   return (
@@ -220,9 +232,9 @@ function InvitationCard({
 
           <div className="grid grid-cols-3 gap-3">
             {[
-              { icon: <Calendar size={11} />, label: "Date",  value: inv.date  },
-              { icon: <MapPin   size={11} />, label: "Venue", value: inv.venue },
-              { icon: <Flag     size={11} />, label: "Grade", value: inv.grade },
+              { icon: <Calendar size={11} />, label: "Date", value: inv.date },
+              { icon: <MapPin size={11} />, label: "Venue", value: inv.venue },
+              { icon: <Flag size={11} />, label: "Grade", value: inv.grade },
             ].map((item) => (
               <div key={item.label} className="bg-[#141414] rounded-lg px-3 py-2 border border-white/6">
                 <div className="flex items-center gap-1 text-gray-600 mb-1">
@@ -237,8 +249,8 @@ function InvitationCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {[
-                { label: "Horse",    value: inv.horse,    accent: true  },
-                { label: "Jockey",   value: inv.jockey,   accent: true  },
+                { label: "Horse", value: inv.horse, accent: true },
+                { label: "Jockey", value: inv.jockey, accent: true },
                 { label: "Distance", value: inv.distance, accent: false },
               ].map((f) => (
                 <div key={f.label}>
@@ -276,13 +288,11 @@ function InvitationCard({
 
 // ── Jockey Invitation Card ────────────────────────────────────────────────────
 function JockeyInvitationCard({
-  inv, onAccept, onDeny,
+  inv,
 }: {
-  inv:      JockeyInvitation;
-  onAccept: (id: string) => void;
-  onDeny:   (id: string) => void;
+  inv: JockeyInvitation;
 }) {
-  const stCfg     = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
+  const stCfg = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
   const isPending = inv.status === "pending";
 
   return (
@@ -311,9 +321,9 @@ function JockeyInvitationCard({
 
           <div className="grid grid-cols-3 gap-3">
             {[
-              { icon: <Flag     size={11} />, label: "Race",  value: inv.raceName },
-              { icon: <Calendar size={11} />, label: "Date",  value: inv.raceDate },
-              { icon: <MapPin   size={11} />, label: "Venue", value: inv.venue    },
+              { icon: <Flag size={11} />, label: "Race", value: inv.raceName },
+              { icon: <Calendar size={11} />, label: "Date", value: inv.raceDate },
+              { icon: <MapPin size={11} />, label: "Venue", value: inv.venue },
             ].map((item) => (
               <div key={item.label} className="bg-[#141414] rounded-lg px-3 py-2 border border-white/6">
                 <div className="flex items-center gap-1 text-gray-600 mb-1">
@@ -331,21 +341,11 @@ function JockeyInvitationCard({
               <p className="text-[12.5px] font-semibold text-red-400">{inv.horse}</p>
             </div>
             <div className="flex items-center gap-2">
-              {isPending ? (
-                <>
-                  <button onClick={() => onDeny(inv.id)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-gray-400 text-[12px] font-semibold hover:border-red-700/50 hover:text-red-400 transition-all duration-150">
-                    <X size={13} /> Deny
-                  </button>
-                  <button onClick={() => onAccept(inv.id)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white text-[12px] font-semibold transition-colors duration-150 shadow-lg shadow-green-900/30">
-                    <Check size={13} /> Accept
-                  </button>
-                </>
-              ) : (
-                <div className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600">
-                  {inv.status === "approved" ? <Check size={13} className="text-green-500" /> : <X size={13} className="text-red-600" />}
-                  {inv.status}
-                </div>
-              )}
+              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600">
+                {inv.status === "accepted" && <Check size={13} className="text-green-500" />}
+                {inv.status !== "accepted" && inv.status !== "pending" && <X size={13} className="text-red-600" />}
+                <span className="capitalize">{inv.status}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -382,11 +382,10 @@ function TabButton({ active, label, count, onClick }: {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12.5px] font-semibold transition-all duration-150 ${
-        active
-          ? "bg-white/8 text-white border border-white/12"
-          : "text-gray-500 hover:text-gray-300 border border-transparent"
-      }`}
+      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12.5px] font-semibold transition-all duration-150 ${active
+        ? "bg-white/8 text-white border border-white/12"
+        : "text-gray-500 hover:text-gray-300 border border-transparent"
+        }`}
     >
       {label}
       {count !== undefined && count > 0 && (
@@ -409,15 +408,15 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   const [activeTab, setActiveTab] = useState<Tab>("race");
 
   // Race invitations
-  const [invitations,   setInvitations]   = useState<Invitation[]>([]);
-  const [loadingRace,   setLoadingRace]   = useState(true);
-  const [errorRace,     setErrorRace]     = useState<string | null>(null);
-  const [selected,      setSelected]      = useState<Invitation | null>(null);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [loadingRace, setLoadingRace] = useState(true);
+  const [errorRace, setErrorRace] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Invitation | null>(null);
 
   // Jockey invitations
-  const [jockeyInvs,    setJockeyInvs]    = useState<JockeyInvitation[]>([]);
+  const [jockeyInvs, setJockeyInvs] = useState<JockeyInvitation[]>([]);
   const [loadingJockey, setLoadingJockey] = useState(true);
-  const [errorJockey,   setErrorJockey]   = useState<string | null>(null);
+  const [errorJockey, setErrorJockey] = useState<string | null>(null);
 
   // Fetch race invitations
   useEffect(() => {
@@ -428,7 +427,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
         setErrorRace(null);
         const data = await horseOwnerService.getHorseOwnerInvitations();
         if (cancelled) return;
-        const raw: unknown[] = Array.isArray(data) ? data : (data?.data ?? []);
+        const raw: unknown[] = data?.data?.items ?? [];
         const mapped = raw.map((item) => mapApiToInvitation(item));
         setInvitations(mapped);
         onPendingChange?.(mapped.filter((i) => i.status === "pending").length);
@@ -481,17 +480,11 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     });
   }
 
-  // Jockey handlers (optimistic — wire to API when endpoint is available)
-  function handleJockeyAccept(id: string) {
-    setJockeyInvs((prev) => prev.map((i) => i.id === id ? { ...i, status: "approved" as const } : i));
-  }
-  function handleJockeyDeny(id: string) {
-    setJockeyInvs((prev) => prev.map((i) => i.id === id ? { ...i, status: "rejected" as const } : i));
-  }
 
-  const racePendingCount   = invitations.filter((i) => i.status === "pending").length;
-  const jockeyPendingCount = jockeyInvs.filter((i)  => i.status === "pending").length;
-  const selectedLive       = selected ? invitations.find((i) => i.id === selected.id) ?? null : null;
+
+  const racePendingCount = invitations.filter((i) => i.status === "pending").length;
+  const jockeyPendingCount = jockeyInvs.filter((i) => i.status === "pending").length;
+  const selectedLive = selected ? invitations.find((i) => i.id === selected.id) ?? null : null;
 
   return (
     <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -516,7 +509,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
 
       {/* Tabs */}
       <div className="flex items-center gap-1 mb-6 p-1 bg-[#1a1a1a] border border-white/8 rounded-xl w-fit">
-        <TabButton active={activeTab === "race"}   label="Race Invitations"   count={racePendingCount}   onClick={() => setActiveTab("race")}   />
+        <TabButton active={activeTab === "race"} label="Race Invitations" count={racePendingCount} onClick={() => setActiveTab("race")} />
         <TabButton active={activeTab === "jockey"} label="Jockey Invitations" count={jockeyPendingCount} onClick={() => setActiveTab("jockey")} />
       </div>
 
@@ -571,12 +564,12 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
             <>
               {jockeyPendingCount > 0 && (
                 <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
-                  {jockeyPendingCount} pending {jockeyPendingCount === 1 ? "invitation" : "invitations"} awaiting your response.
+                  {jockeyPendingCount} pending {jockeyPendingCount === 1 ? "invitation" : "invitations"} awaiting jockey response.
                 </p>
               )}
               <div className="space-y-4">
                 {jockeyInvs.slice().sort((a) => (a.status === "pending" ? -1 : 1)).map((inv) => (
-                  <JockeyInvitationCard key={inv.id} inv={inv} onAccept={handleJockeyAccept} onDeny={handleJockeyDeny} />
+                  <JockeyInvitationCard key={inv.id} inv={inv} />
                 ))}
               </div>
             </>

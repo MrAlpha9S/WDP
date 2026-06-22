@@ -243,6 +243,14 @@ class HorseOwnerService {
                 }
             }
 
+            // Batch-fetch main invitations (jockeyInRaceId) to get jockey fullName and horse name
+            const mainInvitationIds = regs.filter(r => r.jockeyInRaceId).map(r => r.jockeyInRaceId);
+            const mainInvitations = await Invitation.find({ _id: { $in: mainInvitationIds } })
+                .populate({ path: 'jockeyId', model: 'User', select: 'fullName image' })
+                .populate('horseId', 'horseName')
+                .lean();
+            const mainInvMap = new Map(mainInvitations.map(inv => [String(inv._id), inv]));
+
             const items = await Promise.all(regs.map(async reg => {
                 const rr = await RaceRound.findById(reg.raceRoundId).populate('eligibilityRuleId').lean();
                 let tournament = null;
@@ -262,12 +270,20 @@ class HorseOwnerService {
                     }
                 }
 
+                const mainInv = reg.jockeyInRaceId ? mainInvMap.get(String(reg.jockeyInRaceId)) : null;
+
                 return {
                     registration: reg,
                     raceRound: rr || null,
                     tournament: tournament || null,
                     eligibleHorseIds,
                     existingHorseId: existingHorseMap.get(String(reg._id)) ?? null,
+                    jockey: mainInv?.jockeyId
+                        ? { fullName: mainInv.jockeyId.fullName ?? null, image: mainInv.jockeyId.image ?? null }
+                        : null,
+                    horse: mainInv?.horseId
+                        ? { horseName: mainInv.horseId.horseName ?? null }
+                        : null,
                 };
             }));
 
@@ -399,6 +415,62 @@ class HorseOwnerService {
             return { code: 200, msg: 'Confirm-start request sent to admin successfully.' };
         } catch (error) {
             console.error('Error confirming race start:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Get jockey invitations sent by this horse owner (paginated)
+    async getJockeyInvitations(ownerId, page = 1, limit = 10) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+
+            // Find all registration IDs that belong to this owner
+            const regs = await Registration.find({ horseOwnerId: ownerId }).select('_id').lean();
+            const regIds = regs.map(r => r._id);
+
+            const skip = (page - 1) * limit;
+            const total = await Invitation.countDocuments({ registrationId: { $in: regIds } });
+
+            const invitations = await Invitation.find({ registrationId: { $in: regIds } })
+                .populate({ path: 'jockeyId', model: 'User', select: 'fullName image' })
+                .populate('horseId', 'horseName')
+                .populate({
+                    path: 'registrationId',
+                    populate: { path: 'raceRoundId', select: 'roundName raceDate location' },
+                })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean();
+
+            const mapped = invitations.map(inv => ({
+                _id: inv._id,
+                jockey: inv.jockeyId
+                    ? { fullName: inv.jockeyId.fullName ?? null, image: inv.jockeyId.image ?? null }
+                    : null,
+                horse: inv.horseId ? { horseName: inv.horseId.horseName } : null,
+                raceRound: inv.registrationId?.raceRoundId
+                    ? {
+                        roundName: inv.registrationId.raceRoundId.roundName,
+                        raceDate:  inv.registrationId.raceRoundId.raceDate,
+                        location:  inv.registrationId.raceRoundId.location,
+                      }
+                    : null,
+                status: inv.invitationStatus,
+                isBackup: inv.isBackup,
+                percentagePayout: inv.percentagePayout,
+                createdAt: inv.createdAt,
+            }));
+
+            return {
+                code: 200,
+                data: {
+                    invitations: mapped,
+                    pagination: { total, totalPages: Math.ceil(total / limit), page, limit },
+                },
+                msg: 'Jockey invitations retrieved successfully',
+            };
+        } catch (error) {
             return { code: 500, msg: error.message };
         }
     }
