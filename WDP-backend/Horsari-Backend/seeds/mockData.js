@@ -50,12 +50,34 @@ const mockData = async () => {
             const owner = await HorseOwner.create({
                 _id: user._id,
                 address: `${(i + 1) * 100} Stable Lane, Horseville HC 1000${i + 1}`,
-                licenseLink: `https://horsari.com/licenses/owner-${i + 1}.pdf`,
+                licenseLink: 'https://drive.google.com/file/d/1FzBxahtdGCsKcZQf21-A4JOzC26IE2hd/view?usp=sharing',
                 licenseStatus: 'approved',
             });
             horseOwners.push(owner);
         }
         console.log('✅ Created 3 horse owners');
+
+        // ── Horse Owners (pending / unverified) ───────────────────────────────
+        const pendingOwnerNames = ['Diana Moreau', 'Ethan Brooks'];
+        for (let i = 0; i < 2; i++) {
+            const user = await User.create({
+                username: `horseowner${i + 4}`,
+                email: `horseowner${i + 4}@horsari.com`,
+                passwordHash: PASSWORD_HASH,
+                fullName: pendingOwnerNames[i],
+                dateOfBirth: new Date('1988-04-20'),
+                phoneNumber: `555000${i + 4}`,
+                role: 'horseowner',
+                status: 'active',
+            });
+            await HorseOwner.create({
+                _id: user._id,
+                address: `${(i + 4) * 100} Paddock Road, Horseville HC 2000${i + 1}`,
+                licenseLink: 'https://drive.google.com/file/d/1FzBxahtdGCsKcZQf21-A4JOzC26IE2hd/view?usp=sharing',
+                licenseStatus: 'pending',
+            });
+        }
+        console.log('✅ Created 2 pending horse owners');
 
         // ── Admins ────────────────────────────────────────────────────────────
         const adminUsers = [];
@@ -92,11 +114,32 @@ const mockData = async () => {
             refereeUsers.push(user);
             await Referee.create({
                 _id: user._id,
-                licenseLink: `https://horsari.com/licenses/ref-${i + 1}.pdf`,
+                licenseLink: 'https://drive.google.com/file/d/1FzBxahtdGCsKcZQf21-A4JOzC26IE2hd/view?usp=sharing',
                 licenseStatus: 'approved',
             });
         }
         console.log('✅ Created 3 referees');
+
+        // ── Referees (pending / unverified) ───────────────────────────────────
+        const pendingRefereeNames = ['Grace Kim', 'Henry Walsh'];
+        for (let i = 0; i < 2; i++) {
+            const user = await User.create({
+                username: `referee${i + 4}`,
+                email: `referee${i + 4}@horsari.com`,
+                passwordHash: PASSWORD_HASH,
+                fullName: pendingRefereeNames[i],
+                dateOfBirth: new Date('1992-09-05'),
+                phoneNumber: `555200${i + 4}`,
+                role: 'referee',
+                status: 'active',
+            });
+            await Referee.create({
+                _id: user._id,
+                licenseLink: 'https://drive.google.com/file/d/1FzBxahtdGCsKcZQf21-A4JOzC26IE2hd/view?usp=sharing',
+                licenseStatus: 'pending',
+            });
+        }
+        console.log('✅ Created 2 pending referees');
 
         // ── Jockeys ───────────────────────────────────────────────────────────
         const jockeyNames = ['Marco Rossi', 'Luca Moretti', 'Yuki Tanaka'];
@@ -120,12 +163,38 @@ const mockData = async () => {
                 matchesRaced: 20 + i * 10,
                 totalWins: 5 + i * 3,
                 ranking: 10 + i * 5,
-                licenseLink: `https://horsari.com/licenses/jockey-${i + 1}.pdf`,
+                licenseLink: 'https://drive.google.com/file/d/1FzBxahtdGCsKcZQf21-A4JOzC26IE2hd/view?usp=sharing',
                 licenseStatus: 'approved',
                 status: 'active',
             });
         }
         console.log('✅ Created 3 jockeys');
+
+        // ── Jockeys (pending / unverified) ────────────────────────────────────
+        const pendingJockeyNames = ['Sofia Reyes', 'Kai Nakamura'];
+        for (let i = 0; i < 2; i++) {
+            const user = await User.create({
+                username: `jockey${i + 4}`,
+                email: `jockey${i + 4}@horsari.com`,
+                passwordHash: PASSWORD_HASH,
+                fullName: pendingJockeyNames[i],
+                dateOfBirth: new Date('2002-06-14'),
+                phoneNumber: `555400${i + 4}`,
+                role: 'jockey',
+                status: 'active',
+            });
+            await Jockey.create({
+                _id: user._id,
+                height: 162 + i * 2,
+                weight: 50 + i * 2,
+                matchesRaced: 0,
+                totalWins: 0,
+                licenseLink: 'https://drive.google.com/file/d/1FzBxahtdGCsKcZQf21-A4JOzC26IE2hd/view?usp=sharing',
+                licenseStatus: 'pending',
+                status: 'active',
+            });
+        }
+        console.log('✅ Created 2 pending jockeys');
 
         // ── Spectators ────────────────────────────────────────────────────────
         for (let i = 0; i < 3; i++) {
@@ -569,15 +638,22 @@ const mockData = async () => {
         console.log('Password for all accounts: Mongodb@1234');
         console.log('');
         console.log('ACCOUNTS');
-        console.log('  Horse Owners  horseowner1@horsari.com  Alice Chen');
-        console.log('                horseowner2@horsari.com  Bruno Hartmann');
-        console.log('                horseowner3@horsari.com  Celine Dupont');
+        console.log('  Horse Owners  horseowner1@horsari.com  Alice Chen       [approved]');
+        console.log('                horseowner2@horsari.com  Bruno Hartmann   [approved]');
+        console.log('                horseowner3@horsari.com  Celine Dupont    [approved]');
+        console.log('                horseowner4@horsari.com  Diana Moreau     [pending]');
+        console.log('                horseowner5@horsari.com  Ethan Brooks     [pending]');
         console.log('  Admins        admin1@horsari.com');
-        console.log('  Referees      referee1@horsari.com     David Park  (Round 1 & 2)');
-        console.log('                referee2@horsari.com     Elena Vasquez (Round 3)');
-        console.log('  Jockeys       jockey1@horsari.com      Marco Rossi');
-        console.log('                jockey2@horsari.com      Luca Moretti');
-        console.log('                jockey3@horsari.com      Yuki Tanaka');
+        console.log('  Referees      referee1@horsari.com     David Park       [approved] (Round 1 & 2)');
+        console.log('                referee2@horsari.com     Elena Vasquez    [approved] (Round 3)');
+        console.log('                referee3@horsari.com     Frank Müller     [approved]');
+        console.log('                referee4@horsari.com     Grace Kim        [pending]');
+        console.log('                referee5@horsari.com     Henry Walsh      [pending]');
+        console.log('  Jockeys       jockey1@horsari.com      Marco Rossi      [approved]');
+        console.log('                jockey2@horsari.com      Luca Moretti     [approved]');
+        console.log('                jockey3@horsari.com      Yuki Tanaka      [approved]');
+        console.log('                jockey4@horsari.com      Sofia Reyes      [pending]');
+        console.log('                jockey5@horsari.com      Kai Nakamura     [pending]');
         console.log('');
         console.log('RACE STATE SNAPSHOT');
         console.log('  Spring Classic 2026');

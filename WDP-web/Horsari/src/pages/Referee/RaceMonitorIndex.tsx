@@ -16,6 +16,7 @@ import type {
     RaceFinishedPayload,
 } from "../../providers/useRaceSocket";
 import { refereeService } from "../../api/refereeService";
+import { TOKEN_KEY } from "../../utils/constants";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -185,20 +186,14 @@ export default function RaceMonitorIndex() {
         const socket = io(SOCKET_URL, { withCredentials: true });
         socketRef.current = socket;
 
-        socket.on('connect', () => setWsConnected(true));
+        const token = localStorage.getItem(TOKEN_KEY) ?? '';
+
+        socket.on('connect', () => {
+            setWsConnected(true);
+            if (raceRoundId) socket.emit('join_race', { raceRoundId, token });
+        });
         socket.on('disconnect', () => setWsConnected(false));
         socket.on('test_ping', ({ count }: { count: number }) => setWsCount(count));
-
-        // Join the race-specific room so the server can push targeted events
-        if (raceRoundId) {
-            socket.on('connect', () => {
-                socket.emit('join_race', { raceRoundId });
-            });
-            // Also join immediately if already connected
-            if (socket.connected) {
-                socket.emit('join_race', { raceRoundId });
-            }
-        }
 
         // Real-time simulation tick
         socket.on('race_update', (payload: RaceUpdate) => {

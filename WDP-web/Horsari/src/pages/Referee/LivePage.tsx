@@ -304,6 +304,14 @@ const [verificationOpen, setVerificationOpen] = useState(false);
     // Mux live stream playback ID comes from the race round fetched on mount
     const muxPlaybackId = raceRound?.muxPlaybackId ?? null;
 
+    // Show YouTube placeholder if Mux stream hasn't started within 10 seconds
+    const [streamTimedOut, setStreamTimedOut] = useState(false);
+    useEffect(() => {
+        if (muxPlaybackId) { setStreamTimedOut(false); return; }
+        const t = setTimeout(() => setStreamTimedOut(true), 5_000);
+        return () => clearTimeout(t);
+    }, [muxPlaybackId]);
+
     // Derive display values from live update (or fallback to "--")
     const liveHorses   = liveUpdate?.horses ?? null;
     const trackLength  = liveUpdate?.trackLength ?? raceRound?.trackLength ?? 2000;
@@ -448,6 +456,14 @@ const [verificationOpen, setVerificationOpen] = useState(false);
                                 className="w-full h-full"
                                 style={{ aspectRatio: "16/9" }}
                             />
+                        ) : streamTimedOut ? (
+                            <iframe
+                                src="https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk"
+                                allow="autoplay; encrypted-media"
+                                allowFullScreen
+                                className="w-full h-full border-0"
+                                title="Race stream placeholder"
+                            />
                         ) : (
                             <img src={cam.src} alt="Race feed" className="w-full h-full object-cover opacity-90 transition-all duration-300" />
                         )}
@@ -455,7 +471,7 @@ const [verificationOpen, setVerificationOpen] = useState(false);
                         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-red-700/90 backdrop-blur px-2 py-1 rounded-lg">
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                             <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                                {muxPlaybackId ? "Live · OBS Stream" : `Preview · ${cam.label}`}
+                                {muxPlaybackId ? "Live · OBS Stream" : streamTimedOut ? "Placeholder · Awaiting Stream" : `Preview · ${cam.label}`}
                             </span>
                         </div>
 
