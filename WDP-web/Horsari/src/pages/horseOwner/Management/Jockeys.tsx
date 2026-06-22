@@ -19,23 +19,30 @@ function mapApiToJockey(raw: any, index: number): Jockey {
   const VALID_STATUSES = ["Available", "In Talks", "Unavailable"] as const;
   const VALID_RANKS = ["Elite", "Pro", "Veteran", "Apprentice"] as const;
 
-  const statusMap: Record<string, string> = {
-    active:      "Available",
-    approved:    "Available",
-    pending:     "In Talks",
-    inactive:    "Unavailable",
-    rejected:    "Unavailable",
-    available:   "Available",
-    "in talks":  "In Talks",
-    unavailable: "Unavailable",
-  };
+  // Jockey must have an approved license before they can be available
+  const licenseStatus = (raw.licenseStatus ?? "").toLowerCase();
+  const isCertified = licenseStatus === "approved";
 
-  // licenseStatus takes priority; fall back to status field
-  const rawStatus = (raw.status ?? raw.licenseStatus ?? "").toLowerCase();
-  const mappedStatus = statusMap[rawStatus] ?? "Unavailable";
-  const status = VALID_STATUSES.includes(mappedStatus as typeof VALID_STATUSES[number])
-    ? (mappedStatus as Jockey["status"])
-    : "Unavailable";
+  let status: Jockey["status"];
+  if (!isCertified) {
+    status = "Unavailable";
+  } else {
+    const statusMap: Record<string, string> = {
+      active:      "Available",
+      approved:    "Available",
+      pending:     "In Talks",
+      inactive:    "Unavailable",
+      retired:     "Unavailable",
+      available:   "Available",
+      "in talks":  "In Talks",
+      unavailable: "Unavailable",
+    };
+    const rawStatus = (raw.status ?? "").toLowerCase();
+    const mappedStatus = statusMap[rawStatus] ?? "Unavailable";
+    status = VALID_STATUSES.includes(mappedStatus as typeof VALID_STATUSES[number])
+      ? (mappedStatus as Jockey["status"])
+      : "Unavailable";
+  }
 
   // ranking is a numeric position in DB; rank tier comes from a separate field
   const rawRankValue = typeof raw.rank === "string"
