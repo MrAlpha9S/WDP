@@ -108,10 +108,7 @@ async function buildHorses(raceRoundId) {
     const STYLES = ['Runner', 'Pace', 'Late'];
 
     return Promise.all(registrations.map(async (reg, idx) => {
-        const invitation = await Invitation.findOne({
-            registrationId: reg._id,
-            isJockeyInRace: true,
-        })
+        const invitation = await Invitation.findById(reg.jockeyInRaceId)
             .populate('horseId')
             .populate('jockeyId')
             .lean();

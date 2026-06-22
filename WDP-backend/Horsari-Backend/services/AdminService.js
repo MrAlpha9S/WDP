@@ -19,6 +19,7 @@ const User = require('../entities/User');
 const Violation = require('../entities/Violation');
 const SimulationService = require('./SimulationService');
 const MuxService = require('./MuxService');
+const UserRole = require('../entities/UserRole');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
@@ -257,8 +258,8 @@ class AdminService {
                     }
 
                     // Extract horse from the first invitation (all invitations for a registration share the same horse)
-                    const horse = invitations.length > 0 && invitations[0].horseId 
-                        ? invitations[0].horseId 
+                    const horse = invitations.length > 0 && invitations[0].horseId
+                        ? invitations[0].horseId
                         : null;
 
                     return {
@@ -282,7 +283,7 @@ class AdminService {
                             invitationsId: inv._id,
                             jockeyName: inv.jockeyUser?.fullName ?? 'Unknown',
                             isBackup: inv.isBackup,
-                            isJockeyInRace: inv.isJockeyInRace,
+                            isJockeyInRace: reg.jockeyInRaceId?.toString() === inv._id.toString(),
                             status: inv.invitationStatus,
                         })),
                         horseOwner: horseOwner
@@ -439,7 +440,7 @@ class AdminService {
                         invitationId: sib._id,
                         jockeyName: sib.jockeyUser?.fullName || 'Unknown',
                         isBackup: sib.isBackup,
-                        isJockeyInRace: sib.isJockeyInRace,
+                        isJockeyInRace: reg?.jockeyInRaceId?.toString() === sib._id.toString(),
                         invitationStatus: sib.invitationStatus
                     })),
                     jockey: jockey ? {
@@ -451,7 +452,7 @@ class AdminService {
                     status: inv.invitationStatus,
                     invitationId: inv._id,
                     isBackup: inv.isBackup,
-                    isJockeyInRace: inv.isJockeyInRace
+                    isJockeyInRace: reg?.jockeyInRaceId?.toString() === inv._id.toString()
                 };
             }));
 
@@ -535,36 +536,39 @@ class AdminService {
     }
 
     // Get Race Rounds
-    async getRaceRounds(tournament_id = null, raceRound_id = null) {
+    async getRaceRounds(tournament_id = null, raceRound_id = null, page = 1, limit = 10, status = null, search = null, sortBy = 'raceDate', order = 'desc') {
         try {
+            const skip = (page - 1) * limit;
             let query = {};
-            if (tournament_id) {
-                query.tournamentId = tournament_id;
-            }
-            if (raceRound_id) {
-                query._id = raceRound_id;
-            }
+            if (tournament_id) query.tournamentId = tournament_id;
+            if (raceRound_id) query._id = raceRound_id;
+            if (status) query.status = status;
+            if (search) query.roundName = { $regex: search, $options: 'i' };
 
-            const results = [];
-            const raceRounds = await RaceRound.find(query).lean();
+            const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
 
-            for (const raceRound of raceRounds) {
-                // Fetch RaceType
+            const [raceRounds, totalItems] = await Promise.all([
+                RaceRound.find(query).sort(sortObj).skip(skip).limit(limit).lean(),
+                RaceRound.countDocuments(query),
+            ]);
+
+            const items = await Promise.all(raceRounds.map(async raceRound => {
                 let raceType = raceRound.raceType || null;
                 if (!raceType && raceRound.eligibilityRuleId) {
                     const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
                     if (rule && rule.raceType) raceType = rule.raceType;
                 }
+                return { ...raceRound, RaceType: raceType };
+            }));
 
-                const rrObj = {
-                    ...raceRound,
-                    RaceType: raceType
-                };
-
-                results.push(rrObj);
-            }
-
-            return { code: 200, data: results, msg: 'Race rounds retrieved successfully' };
+            return {
+                code: 200,
+                data: {
+                    items,
+                    pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit },
+                },
+                msg: 'Race rounds retrieved successfully',
+            };
         } catch (error) {
             console.error('Error fetching race rounds:', error);
             return { code: 500, msg: error.message };
@@ -617,8 +621,8 @@ class AdminService {
                     : null;
 
                 const invitationFilter = { registrationId: reg._id };
-                if (raceRound.status === 'completed' || raceRound.status === 'running') {
-                    invitationFilter.isJockeyInRace = true;
+                if ((raceRound.status === 'completed' || raceRound.status === 'running') && reg.jockeyInRaceId) {
+                    invitationFilter._id = reg.jockeyInRaceId;
                 } else {
                     invitationFilter.isBackup = false;
                 }
@@ -654,7 +658,7 @@ class AdminService {
                     sum_prediction,
                     Horse: invitation ? invitation.horseId : null,
                     Jockey: invitation ? invitation.jockeyId : null,
-                    isJockeyInRace: invitation?.isJockeyInRace ?? false,
+                    isJockeyInRace: !!reg.jockeyInRaceId,
                     Owner: ownerUser,
                     RaceResult: raceResult || null
                 });
@@ -739,14 +743,29 @@ class AdminService {
 
     // --- Race Eligibility Rule CRUD ---
 
-    async getAllRules() {
+    async getAllRules(page = 1, limit = 10, search = null, sortBy = 'createdAt', order = 'desc') {
         try {
             const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
-            const rules = await RaceEligibilityRule.find().sort({ create_at: -1 }).lean();
+            const skip = (page - 1) * limit;
+            const filter = {};
+            if (search) {
+                filter.$or = [
+                    { raceType: { $regex: search, $options: 'i' } },
+                    { gradeLevel: { $regex: search, $options: 'i' } },
+                ];
+            }
+            const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
+            const [items, totalItems] = await Promise.all([
+                RaceEligibilityRule.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
+                RaceEligibilityRule.countDocuments(filter),
+            ]);
             return {
                 code: 200,
-                data: rules,
-                msg: 'Race eligibility rules retrieved successfully'
+                data: {
+                    items,
+                    pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit },
+                },
+                msg: 'Race eligibility rules retrieved successfully',
             };
         } catch (error) {
             console.error('Error fetching rules:', error);
@@ -796,7 +815,7 @@ class AdminService {
                 { $set: ruleData },
                 { new: true, runValidators: true }
             ).lean();
-            
+
             if (!updatedRule) {
                 return { code: 404, msg: 'Race eligibility rule not found' };
             }
@@ -815,7 +834,7 @@ class AdminService {
         try {
             const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
             const deletedRule = await RaceEligibilityRule.findByIdAndDelete(id).lean();
-            
+
             if (!deletedRule) {
                 return { code: 404, msg: 'Race eligibility rule not found' };
             }
@@ -830,6 +849,8 @@ class AdminService {
         }
     }
 }
+
+
 
 // Helper: get all registrationIds that belong to a given raceRoundId
 async function getRegistrationIdsByRound(raceRoundId) {

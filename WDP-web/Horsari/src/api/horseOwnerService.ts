@@ -34,26 +34,50 @@ export interface hireJockey {
 }
 
 export const horseOwnerService = {
-  getUserHorse: async () => {
+  getUserHorse: async (
+    page = 1,
+    limit = 10,
+    search?: string,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ) => {
     try {
-      const response = await api.get('/horseowner/my-horses?limit=10&skip=0');
+      const params: any = { page, limit, sortBy, order };
+      if (search) params.search = search;
+      const response = await api.get('/horseowner/my-horses', { params });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
   },
-  getHorseOwnerInvitations: async () => {
+  getHorseOwnerInvitations: async (
+    page = 1,
+    limit = 10,
+    status?: string,
+    search?: string,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ) => {
     try {
-      const response = await api.get('/horseowner/race-invitations');
-      console.log('DATA: ', response.data)
+      const params: any = { page, limit, sortBy, order };
+      if (status) params.status = status;
+      if (search) params.search = search;
+      const response = await api.get('/horseowner/race-invitations', { params });
+      console.log('DATA: ', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
   },
-  getAllJockey: async () => {
+  getAllJockey: async (
+    page = 1,
+    limit = 10,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ) => {
     try {
-      const response = await api.get('/jockey/all?limit=10&skip=0');
+      const params: any = { page, limit, sortBy, order };
+      const response = await api.get('/jockey/all', { params });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -75,10 +99,10 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  allJockeyInvitations: async () => {
+  allJockeyInvitations: async (page = 1, limit = 10) => {
     try {
-      const response = await api.get(`/horseowner/invitations?limit=10&page=1`);
-      console.log('allJockeyInvitations: ',  response.data)
+      const response = await api.get('/horseowner/invitations', { params: { page, limit } });
+      console.log('allJockeyInvitations: ', response.data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;

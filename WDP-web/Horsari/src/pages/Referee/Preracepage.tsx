@@ -126,8 +126,9 @@ export default function PreRacePage() {
                                 const isChecked = checkedIds.has(registrationId);
                                 const regStatus = reg.registrationStatus;
                                 const horseName = reg.Horse?.horseName;
-                                const confirmedInv = reg.Invitations?.find(inv => inv.isJockeyInRace)
-                                    ?? reg.Invitations?.find(inv => inv.jockeyConfirmation);
+                                const confirmedInv = reg.jockeyInRaceId
+                                    ? reg.Invitations?.find(inv => inv._id === reg.jockeyInRaceId)
+                                    : reg.Invitations?.find(inv => inv.jockeyConfirmation);
                                 const jockeyName = (confirmedInv?.jockeyId?._id as any)?.fullName as string | undefined;
                                 const ownerName = reg.Owner?.fullName;
                                 const jockeyConfirmed = confirmedInv?.jockeyConfirmation ?? false;

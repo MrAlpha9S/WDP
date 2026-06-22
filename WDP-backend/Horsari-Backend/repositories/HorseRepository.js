@@ -16,6 +16,14 @@ class HorseRepository {
         return await Horse.find({ ownerId }).populate('ownerId');
     }
 
+    async findByOwnerIdPaginated(ownerId, filter = {}, sortObj = {}, skip = 0, limit = 10) {
+        return await Horse.find({ ownerId, ...filter }).populate('ownerId').sort(sortObj).skip(skip).limit(limit).lean();
+    }
+
+    async countByOwnerIdFiltered(ownerId, filter = {}) {
+        return await Horse.countDocuments({ ownerId, ...filter });
+    }
+
     async findAll(limit = 10, skip = 0) {
         return await Horse.find()
             .populate('ownerId')

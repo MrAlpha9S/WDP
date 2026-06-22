@@ -84,13 +84,19 @@ class RefereeController {
 
     // Get referee race rounds
     async getRefereeRaceRounds(req, res) {
-        const response = await RefereeService.getRefereeRaceRounds(req.userId);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { status, search, sortBy = 'raceDate', order = 'desc' } = req.query;
+        const response = await RefereeService.getRefereeRaceRounds(req.userId, page, limit, status, search, sortBy, order);
         return res.status(response.code).json(response);
     }
 
     // Get referee tournaments
     async getRefereeTournaments(req, res) {
-        const response = await RefereeService.getRefereeTournaments(req.userId);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { status, search, sortBy = 'startDate', order = 'desc' } = req.query;
+        const response = await RefereeService.getRefereeTournaments(req.userId, page, limit, status, search, sortBy, order);
         return res.status(response.code).json(response);
     }
 
@@ -125,13 +131,19 @@ class RefereeController {
 
     // Get violation types (optionally filtered by type=pre-race|during-race|after-race)
     async getViolationTypes(req, res) {
-        const response = await RefereeService.getViolationTypes(req.query.type);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const { search, sortBy = 'severity', order = 'asc' } = req.query;
+        const response = await RefereeService.getViolationTypes(req.query.type, page, limit, search, sortBy, order);
         return res.status(response.code).json(response);
     }
 
     // Get all violations for a race round (referee-scoped)
     async getRaceRoundViolations(req, res) {
-        const response = await RefereeService.getRaceRoundViolations(req.userId, req.params.id);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const { status, search, sortBy = 'created_at', order = 'desc' } = req.query;
+        const response = await RefereeService.getRaceRoundViolations(req.userId, req.params.id, page, limit, status, search, sortBy, order);
         return res.status(response.code).json(response);
     }
 

@@ -261,25 +261,47 @@ class RefereeService {
         }
     }
 
-    // Get Race Rounds assigned to the referee
-    // Optimised: 7 fixed bulk queries instead of N+1 sequential loops
-    async getRefereeRaceRounds(refereeId) {
+    // Get Race Rounds assigned to the referee (paginated)
+    async getRefereeRaceRounds(refereeId, page = 1, limit = 10, status = null, search = null, sortBy = 'raceDate', order = 'desc') {
         try {
-            // ── 1. Assignments ────────────────────────────────────────────────
+            // ── 1. All assignment IDs for this referee ────────────────────────
             const assignments = await RaceReferee.find({ refereeId }).lean();
             if (!assignments.length) {
-                return { code: 200, data: [], msg: 'No race rounds assigned to this referee.' };
+                return {
+                    code: 200,
+                    data: { items: [], pagination: { totalItems: 0, totalPages: 0, currentPage: page, limit } },
+                    msg: 'No race rounds assigned to this referee.',
+                };
             }
 
             const raceRoundIds = assignments.map(a => a.raceRoundId);
 
-            // ── 2. Bulk fetch all required collections in parallel ─────────────
-            const [raceRounds, registrationsAll] = await Promise.all([
-                RaceRound.find({ _id: { $in: raceRoundIds } }).lean(),
-                Registration.find({ raceRoundId: { $in: raceRoundIds } }).lean(),
+            // ── 2. Filter + paginate at DB level ──────────────────────────────
+            const skip = (page - 1) * limit;
+            const filter = { _id: { $in: raceRoundIds } };
+            if (status) filter.status = status;
+            if (search) filter.roundName = { $regex: search, $options: 'i' };
+            const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
+
+            const [raceRounds, totalItems] = await Promise.all([
+                RaceRound.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
+                RaceRound.countDocuments(filter),
             ]);
 
-            // ── 3. Collect IDs for secondary bulk fetches ─────────────────────
+            if (!raceRounds.length) {
+                return {
+                    code: 200,
+                    data: { items: [], pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                    msg: 'Referee race rounds retrieved successfully',
+                };
+            }
+
+            // ── 3. Bulk fetch secondary data for the page slice ───────────────
+            const pageRoundIds = raceRounds.map(r => r._id);
+            const [registrationsAll] = await Promise.all([
+                Registration.find({ raceRoundId: { $in: pageRoundIds } }).lean(),
+            ]);
+
             const eligibilityIds = [...new Set(
                 raceRounds.filter(r => r.eligibilityRuleId).map(r => r.eligibilityRuleId.toString())
             )];
@@ -288,7 +310,6 @@ class RefereeService {
                 registrationsAll.filter(r => r.horseOwnerId).map(r => r.horseOwnerId.toString())
             )];
 
-            // ── 4. Bulk fetch secondary data in parallel ──────────────────────
             const [eligibilityRules, owners, invitations, raceResults] = await Promise.all([
                 eligibilityIds.length
                     ? RaceEligibilityRule.find({ _id: { $in: eligibilityIds } }).lean()
@@ -307,7 +328,7 @@ class RefereeService {
                     : Promise.resolve([]),
             ]);
 
-            // ── 5. Build lookup maps ──────────────────────────────────────────
+            // ── 4. Build lookup maps ──────────────────────────────────────────
             const eligibilityMap = new Map(eligibilityRules.map(e => [e._id.toString(), e]));
             const ownerMap       = new Map(owners.map(u => [u._id.toString(), u]));
             const invitationsByReg = new Map();
@@ -316,18 +337,16 @@ class RefereeService {
                 if (!invitationsByReg.has(key)) invitationsByReg.set(key, []);
                 invitationsByReg.get(key).push(inv);
             }
-            const raceResultMap  = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
-
-            // Group registrations by raceRoundId
-            const regsByRound = new Map();
+            const raceResultMap = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
+            const regsByRound   = new Map();
             for (const reg of registrationsAll) {
                 const key = reg.raceRoundId.toString();
                 if (!regsByRound.has(key)) regsByRound.set(key, []);
                 regsByRound.get(key).push(reg);
             }
 
-            // ── 6. Assemble results in memory ─────────────────────────────────
-            const results = raceRounds.map(raceRound => {
+            // ── 5. Assemble items ─────────────────────────────────────────────
+            const items = raceRounds.map(raceRound => {
                 const raceType = raceRound.raceType
                     || (raceRound.eligibilityRuleId
                         ? eligibilityMap.get(raceRound.eligibilityRuleId.toString())?.raceType
@@ -348,7 +367,11 @@ class RefereeService {
                 return { ...raceRound, RaceType: raceType, Registration: registrations };
             });
 
-            return { code: 200, data: results, msg: 'Referee race rounds retrieved successfully' };
+            return {
+                code: 200,
+                data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                msg: 'Referee race rounds retrieved successfully',
+            };
         } catch (error) {
             console.error('Error fetching referee race rounds:', error);
             return { code: 500, msg: error.message };
@@ -381,8 +404,8 @@ class RefereeService {
             const registrations = await Registration.find({ raceRoundId: raceRound._id }).lean();
             const enriched = await Promise.all(registrations.map(async (reg) => {
                 const invitationFilter = { registrationId: reg._id };
-                if (raceRound.status === 'completed' || raceRound.status === 'running') {
-                    invitationFilter.isJockeyInRace = true;
+                if ((raceRound.status === 'completed' || raceRound.status === 'running') && reg.jockeyInRaceId) {
+                    invitationFilter._id = reg.jockeyInRaceId;
                 }
 
                 const invitations = await Invitation.find(invitationFilter)
@@ -484,9 +507,6 @@ class RefereeService {
                 if (!selectedInv.jockeyConfirmation) {
                     return { code: 422, msg: 'The selected jockey has not confirmed participation yet.' };
                 }
-                // Mark the selected jockey as racing, clear all others for this registration
-                await Invitation.updateMany({ registrationId }, { isJockeyInRace: false });
-                await Invitation.findByIdAndUpdate(selectedInvitationId, { isJockeyInRace: true });
             }
 
             // 4. Update the registration
@@ -495,6 +515,7 @@ class RefereeService {
                 {
                     registrationStatus: status,
                     verificationFailReason: status === 'failed' ? verificationFailReason : null,
+                    jockeyInRaceId: status === 'verified' ? selectedInvitationId : null,
                 },
                 { new: true }
             ).lean();
@@ -618,42 +639,65 @@ class RefereeService {
         }
     }
 
-    // Get Tournaments assigned to the referee
-    // Optimised: 8 fixed bulk queries instead of N+1 sequential loops
-    async getRefereeTournaments(refereeId) {
+    // Get Tournaments assigned to the referee (paginated)
+    async getRefereeTournaments(refereeId, page = 1, limit = 10, status = null, search = null, sortBy = 'startDate', order = 'desc') {
         try {
-            // ── 1. Assignments ────────────────────────────────────────────────
+            // ── 1. All race round IDs for this referee ────────────────────────
             const assignments = await RaceReferee.find({ refereeId }).lean();
             if (!assignments.length) {
-                return { code: 200, data: [], msg: 'No tournaments found.' };
+                return {
+                    code: 200,
+                    data: { items: [], pagination: { totalItems: 0, totalPages: 0, currentPage: page, limit } },
+                    msg: 'No tournaments found.',
+                };
             }
 
             const raceRoundIds = assignments.map(a => a.raceRoundId);
             const assignmentMap = new Map(assignments.map(a => [a.raceRoundId.toString(), a]));
 
-            // ── 2. Bulk fetch all required collections in parallel ─────────────
-            const [raceRounds, tournaments] = await Promise.all([
-                RaceRound.find({ _id: { $in: raceRoundIds } }).lean(),
-                (async () => {
-                    const rounds = await RaceRound.find({ _id: { $in: raceRoundIds } }, 'tournamentId').lean();
-                    const tIds = [...new Set(rounds.map(r => r.tournamentId?.toString()).filter(Boolean))];
-                    return Tournament.find({ _id: { $in: tIds } }).lean();
-                })(),
+            // ── 2. Collect distinct tournament IDs from the assigned rounds ────
+            const roundsForTournaments = await RaceRound.find({ _id: { $in: raceRoundIds } }, 'tournamentId').lean();
+            const allTournamentIds = [...new Set(
+                roundsForTournaments.map(r => r.tournamentId?.toString()).filter(Boolean)
+            )];
+
+            // ── 3. Paginate tournaments with filter ───────────────────────────
+            const skip = (page - 1) * limit;
+            const tFilter = { _id: { $in: allTournamentIds } };
+            if (status) tFilter.status = status;
+            if (search) tFilter.tournamentName = { $regex: search, $options: 'i' };
+            const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
+
+            const [tournaments, totalItems] = await Promise.all([
+                Tournament.find(tFilter).sort(sortObj).skip(skip).limit(limit).lean(),
+                Tournament.countDocuments(tFilter),
             ]);
 
-            const tournamentIds = [...new Set(raceRounds.map(r => r.tournamentId?.toString()).filter(Boolean))];
+            if (!tournaments.length) {
+                return {
+                    code: 200,
+                    data: { items: [], pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                    msg: 'Referee tournaments retrieved successfully',
+                };
+            }
 
-            // ── 3. Collect IDs for secondary bulk fetches ─────────────────────
+            // ── 4. Bulk fetch data only for this page's tournaments ───────────
+            const pageTournamentIds = tournaments.map(t => t._id.toString());
+            const pageRaceRounds = await RaceRound.find({
+                _id: { $in: raceRoundIds },
+                tournamentId: { $in: pageTournamentIds },
+            }).lean();
+
+            const pageRaceRoundIds = pageRaceRounds.map(r => r._id);
             const eligibilityIds = [...new Set(
-                raceRounds.filter(r => r.eligibilityRuleId).map(r => r.eligibilityRuleId.toString())
+                pageRaceRounds.filter(r => r.eligibilityRuleId).map(r => r.eligibilityRuleId.toString())
             )];
-            const registrationsAll = await Registration.find({ raceRoundId: { $in: raceRoundIds } }).lean();
+            const registrationsAll = await Registration.find({ raceRoundId: { $in: pageRaceRoundIds } }).lean();
             const regIds   = registrationsAll.map(r => r._id);
             const ownerIds = [...new Set(
                 registrationsAll.filter(r => r.horseOwnerId).map(r => r.horseOwnerId.toString())
             )];
 
-            // ── 4. Bulk fetch secondary data in parallel ──────────────────────
             const [eligibilityRules, owners, invitations, raceResults] = await Promise.all([
                 eligibilityIds.length
                     ? RaceEligibilityRule.find({ _id: { $in: eligibilityIds } }).lean()
@@ -681,32 +725,25 @@ class RefereeService {
                 if (!invitationsByReg.has(key)) invitationsByReg.set(key, []);
                 invitationsByReg.get(key).push(inv);
             }
-            const raceResultMap  = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
-
-            // Group registrations by raceRoundId
-            const regsByRound = new Map();
+            const raceResultMap = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
+            const regsByRound   = new Map();
             for (const reg of registrationsAll) {
                 const key = reg.raceRoundId.toString();
                 if (!regsByRound.has(key)) regsByRound.set(key, []);
                 regsByRound.get(key).push(reg);
             }
-
-            // Group raceRounds by tournamentId
             const roundsByTournament = new Map();
-            for (const r of raceRounds) {
+            for (const r of pageRaceRounds) {
                 const key = r.tournamentId?.toString();
                 if (!key) continue;
                 if (!roundsByTournament.has(key)) roundsByTournament.set(key, []);
                 roundsByTournament.get(key).push(r);
             }
 
-            // ── 6. Assemble results in memory ─────────────────────────────────
-            const results = tournaments.map(t => {
-                const tRounds = roundsByTournament.get(t._id.toString()) || [];
-
-                const mappedRounds = tRounds.map(r => {
+            // ── 6. Assemble items ─────────────────────────────────────────────
+            const items = tournaments.map(t => {
+                const tRounds = (roundsByTournament.get(t._id.toString()) || []).map(r => {
                     const raceType = eligibilityMap.get(r.eligibilityRuleId?.toString()) || null;
-
                     const registrations = (regsByRound.get(r._id.toString()) || []).map(reg => {
                         const regInvitations = invitationsByReg.get(reg._id.toString()) || [];
                         return {
@@ -717,7 +754,6 @@ class RefereeService {
                             RaceResult:  raceResultMap.get(reg._id.toString()) || null,
                         };
                     });
-
                     return {
                         ...r,
                         RaceType:     raceType,
@@ -725,11 +761,14 @@ class RefereeService {
                         Registration: registrations,
                     };
                 });
-
-                return { ...t, RaceRound: mappedRounds };
+                return { ...t, RaceRound: tRounds };
             });
 
-            return { code: 200, data: results, msg: 'Referee tournaments retrieved successfully' };
+            return {
+                code: 200,
+                data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                msg: 'Referee tournaments retrieved successfully',
+            };
         } catch (error) {
             console.error('Error fetching referee tournaments:', error);
             return { code: 500, msg: error.message };
@@ -737,12 +776,22 @@ class RefereeService {
     }
     // ── Violation Types ───────────────────────────────────────────────────────
 
-    async getViolationTypes(type) {
+    async getViolationTypes(type, page = 1, limit = 50, search = null, sortBy = 'severity', order = 'asc') {
         try {
+            const skip = (page - 1) * limit;
             const filter = { isActive: true };
             if (type) filter.type = type;
-            const data = await ViolationType.find(filter).sort({ severity: 1, violationName: 1 }).lean();
-            return { code: 200, data, msg: 'Violation types retrieved.' };
+            if (search) filter.violationName = { $regex: search, $options: 'i' };
+            const sortObj = { [sortBy]: order === 'asc' ? 1 : -1, violationName: 1 };
+            const [items, totalItems] = await Promise.all([
+                ViolationType.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
+                ViolationType.countDocuments(filter),
+            ]);
+            return {
+                code: 200,
+                data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                msg: 'Violation types retrieved.',
+            };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -750,17 +799,32 @@ class RefereeService {
 
     // ── Violations (race-round scoped) ────────────────────────────────────────
 
-    async getRaceRoundViolations(refereeId, raceRoundId) {
+    async getRaceRoundViolations(refereeId, raceRoundId, page = 1, limit = 20, status = null, search = null, sortBy = 'created_at', order = 'desc') {
         try {
             const assignment = await RaceReferee.findOne({ refereeId, raceRoundId }).lean();
             if (!assignment) return { code: 403, msg: 'You are not assigned to this race round.' };
 
-            const data = await Violation.find({ raceRoundId })
-                .populate('violationTypeId', 'violationName type category severity defaultPenalty')
-                .populate('registrationId', '_id registrationStatus')
-                .sort({ created_at: -1 })
-                .lean();
-            return { code: 200, data, msg: 'Violations retrieved.' };
+            const skip = (page - 1) * limit;
+            const filter = { raceRoundId };
+            if (status) filter.violationStatus = status;
+            if (search) filter.description = { $regex: search, $options: 'i' };
+            const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
+
+            const [items, totalItems] = await Promise.all([
+                Violation.find(filter)
+                    .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                    .populate('registrationId', '_id registrationStatus')
+                    .sort(sortObj)
+                    .skip(skip)
+                    .limit(limit)
+                    .lean(),
+                Violation.countDocuments(filter),
+            ]);
+            return {
+                code: 200,
+                data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                msg: 'Violations retrieved.',
+            };
         } catch (error) {
             return { code: 500, msg: error.message };
         }

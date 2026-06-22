@@ -20,6 +20,7 @@ export interface RegistrationDetail {
     _id: string;
     registrationStatus?: string;
     verificationFailReason?: string | null;
+    jockeyInRaceId?: string | null;
     Horse?: {
         _id: string;
         horseName?: string;

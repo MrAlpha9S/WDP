@@ -80,10 +80,20 @@ export interface ViolationRecord {
 // ── Service ───────────────────────────────────────────────────────────────────
 
 export const refereeService = {
-    /** Returns race rounds assigned to the current referee (optimised bulk query). */
-    getRefereeRaceRounds: async (): Promise<{ code: number; data: RaceRoundData[]; msg: string }> => {
+    /** Returns race rounds assigned to the current referee (paginated). */
+    getRefereeRaceRounds: async (
+        page = 1,
+        limit = 10,
+        status?: string,
+        search?: string,
+        sortBy = 'raceDate',
+        order: 'asc' | 'desc' = 'desc',
+    ): Promise<{ code: number; data: { items: RaceRoundData[]; pagination: any }; msg: string }> => {
         try {
-            const response = await api.get('/referee/race-rounds');
+            const params: any = { page, limit, sortBy, order };
+            if (status) params.status = status;
+            if (search) params.search = search;
+            const response = await api.get('/referee/race-rounds', { params });
             console.log('getRefereeRaceRounds:', response.data);
             return response.data;
         } catch (error: any) {
@@ -91,10 +101,20 @@ export const refereeService = {
         }
     },
 
-    /** Returns tournaments (with nested rounds) assigned to the current referee. */
-    getRefereeTournaments: async (): Promise<{ code: number; data: TournamentWithRounds[]; msg: string }> => {
+    /** Returns tournaments (with nested rounds) assigned to the current referee (paginated). */
+    getRefereeTournaments: async (
+        page = 1,
+        limit = 10,
+        status?: string,
+        search?: string,
+        sortBy = 'startDate',
+        order: 'asc' | 'desc' = 'desc',
+    ): Promise<{ code: number; data: { items: TournamentWithRounds[]; pagination: any }; msg: string }> => {
         try {
-            const response = await api.get('/referee/tournaments');
+            const params: any = { page, limit, sortBy, order };
+            if (status) params.status = status;
+            if (search) params.search = search;
+            const response = await api.get('/referee/tournaments', { params });
             console.log('getRefereeTournaments:', response.data);
             return response.data;
         } catch (error: any) {
@@ -204,10 +224,19 @@ export const refereeService = {
         }
     },
 
-    getViolationTypes: async (type?: 'pre-race' | 'during-race' | 'after-race'): Promise<{ code: number; data: ViolationTypeRecord[]; msg: string }> => {
+    getViolationTypes: async (
+        type?: 'pre-race' | 'during-race' | 'after-race',
+        page = 1,
+        limit = 50,
+        search?: string,
+        sortBy = 'severity',
+        order: 'asc' | 'desc' = 'asc',
+    ): Promise<{ code: number; data: { items: ViolationTypeRecord[]; pagination: any }; msg: string }> => {
         try {
-            const q = type ? `?type=${type}` : '';
-            const response = await api.get(`/referee/violation-types${q}`);
+            const params: any = { page, limit, sortBy, order };
+            if (type) params.type = type;
+            if (search) params.search = search;
+            const response = await api.get('/referee/violation-types', { params });
             console.log('getViolationTypes:', response.data);
             return response.data;
         } catch (error: any) {
@@ -215,9 +244,20 @@ export const refereeService = {
         }
     },
 
-    getRaceRoundViolations: async (raceRoundId: string): Promise<{ code: number; data: ViolationRecord[]; msg: string }> => {
+    getRaceRoundViolations: async (
+        raceRoundId: string,
+        page = 1,
+        limit = 20,
+        status?: string,
+        search?: string,
+        sortBy = 'created_at',
+        order: 'asc' | 'desc' = 'desc',
+    ): Promise<{ code: number; data: { items: ViolationRecord[]; pagination: any }; msg: string }> => {
         try {
-            const response = await api.get(`/referee/race-rounds/${raceRoundId}/violations`);
+            const params: any = { page, limit, sortBy, order };
+            if (status) params.status = status;
+            if (search) params.search = search;
+            const response = await api.get(`/referee/race-rounds/${raceRoundId}/violations`, { params });
             console.log('getRaceRoundViolations:', response.data);
             return response.data;
         } catch (error: any) {

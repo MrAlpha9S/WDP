@@ -46,9 +46,10 @@ class JockeyController {
 
   // Get all jockeys
   async getAllJockeys(req, res) {
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const skip = parseInt(req.query.skip) || 0;
-    const response = await JockeyService.getAllJockeys(limit, skip);
+    const { sortBy = 'createdAt', order = 'desc' } = req.query;
+    const response = await JockeyService.getAllJockeys(page, limit, sortBy, order);
     return res.status(response.code).json(response);
   }
 

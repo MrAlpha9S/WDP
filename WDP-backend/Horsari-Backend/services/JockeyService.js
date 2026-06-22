@@ -164,24 +164,29 @@ class JockeyService {
   }
 
   // Get all jockeys
-  async getAllJockeys(limit = 10, skip = 0) {
+  async getAllJockeys(page = 1, limit = 10, sortBy = 'createdAt', order = 'desc') {
     try {
-      const jockeys = await JockeyRepository.findAll(limit, skip);
-      const p = jockeys.map((i) => {
+      const skip = (page - 1) * limit;
+      const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
+      const [jockeys, totalItems] = await Promise.all([
+        JockeyRepository.findAll(limit, skip, sortObj),
+        JockeyRepository.count(),
+      ]);
+      const items = jockeys.map((i) => {
         const { _id, ...rest } = i.toObject();
         const { passwordHash, ...rest2 } = i._id.toObject();
         return Object.assign({}, rest, rest2);
       });
       return {
         code: 200,
-        data: { jockeys: p },
+        data: {
+          items,
+          pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit },
+        },
         msg: "Jockeys retrieved successfully",
       };
     } catch (error) {
-      return {
-        code: 500,
-        msg: error.message,
-      };
+      return { code: 500, msg: error.message };
     }
   }
   async getAllJockeysWithUserInfo(limit = 10, skip = 0) {
@@ -561,7 +566,7 @@ class JockeyService {
             ownerConfirmation: inv.ownerConfirmation,
             jockeyConfirmation: inv.jockeyConfirmation,
             isBackup: inv.isBackup,
-            isJockeyInRace: inv.isJockeyInRace,
+            isJockeyInRace: registration?.jockeyInRaceId?.toString() === inv._id.toString(),
             percentagePayout: inv.percentagePayout,
             horse: horse
               ? {

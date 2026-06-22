@@ -16,8 +16,8 @@ class JockeyRepository {
     return await Jockey.findById(jockeyId).populate("_id");
   }
 
-  async findAll(limit = 10, skip = 0) {
-    return await Jockey.find().populate("_id").limit(limit).skip(skip);
+  async findAll(limit = 10, skip = 0, sortObj = {}) {
+    return await Jockey.find().populate("_id").sort(sortObj).limit(limit).skip(skip);
   }
 
   async findByStatus(status) {

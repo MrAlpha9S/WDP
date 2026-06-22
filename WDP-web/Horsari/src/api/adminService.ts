@@ -4,6 +4,7 @@ export interface RaceRegistration {
   _id: string;
   registrationStatus?: string;
   sum_prediction?: number;
+  isJockeyInRace?: boolean;
   Horse?: { horseName: string } | null;
   Jockey?: { _id?: { fullName?: string } } | null;
   Owner?: { fullName?: string } | null;
@@ -109,15 +110,22 @@ export const adminService = {
     }
   },
 
-  getRaceRounds: async (tournament_id?: string | null, raceRound_id?: string | null): Promise<RaceRoundsResponse> => {
+  getRaceRounds: async (
+    tournament_id?: string | null,
+    raceRound_id?: string | null,
+    page = 1,
+    limit = 10,
+    status?: string,
+    search?: string,
+    sortBy = 'raceDate',
+    order: 'asc' | 'desc' = 'desc',
+  ): Promise<RaceRoundsResponse> => {
     try {
-      const params: any = {};
-      if (tournament_id) {
-        params.tournament_id = tournament_id;
-      }
-      if (raceRound_id) {
-        params.raceRound_id = raceRound_id;
-      }
+      const params: any = { page, limit, sortBy, order };
+      if (tournament_id) params.tournament_id = tournament_id;
+      if (raceRound_id) params.raceRound_id = raceRound_id;
+      if (status) params.status = status;
+      if (search) params.search = search;
       const response = await api.get('/admin/race-rounds', { params });
       console.log('API Response:', response.data);
       return response.data;
@@ -207,9 +215,17 @@ export const adminService = {
   },
 
   // --- Race Eligibility Rules ---
-  getRules: async () => {
+  getRules: async (
+    page = 1,
+    limit = 10,
+    search?: string,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ) => {
     try {
-      const response = await api.get('/admin/rules');
+      const params: any = { page, limit, sortBy, order };
+      if (search) params.search = search;
+      const response = await api.get('/admin/rules', { params });
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {

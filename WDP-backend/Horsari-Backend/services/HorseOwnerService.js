@@ -88,24 +88,26 @@ class HorseOwnerService {
     }
 
     // Get all horses owned
-    async getOwnedHorses(ownerId, limit = 10, skip = 0) {
+    async getOwnedHorses(ownerId, page = 1, limit = 10, search = null, sortBy = 'createdAt', order = 'desc') {
         try {
-            const horses = await HorseRepository.findByOwnerId(ownerId);
+            const skip = (page - 1) * limit;
+            const filter = {};
+            if (search) filter.horseName = { $regex: search, $options: 'i' };
+            const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
+            const [items, totalItems] = await Promise.all([
+                HorseRepository.findByOwnerIdPaginated(ownerId, filter, sortObj, skip, limit),
+                HorseRepository.countByOwnerIdFiltered(ownerId, filter),
+            ]);
             return {
                 code: 200,
                 data: {
-                    horses: horses.slice(skip, skip + limit),
-                    count: horses.length,
-                    limit,
-                    skip,
+                    items,
+                    pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit },
                 },
                 msg: 'Owned horses retrieved successfully',
             };
         } catch (error) {
-            return {
-                code: 500,
-                msg: error.message,
-            };
+            return { code: 500, msg: error.message };
         }
     }
 
@@ -209,17 +211,29 @@ class HorseOwnerService {
     }
 
     // Get race invitations for owner: registrations + raceRound (+ tournament, eligibility rule)
-    async getRaceInvitations(ownerId) {
+    async getRaceInvitations(ownerId, page = 1, limit = 10, status = null, search = null, sortBy = 'createdAt', order = 'desc') {
         try {
             if (!ownerId) return { code: 400, msg: 'ownerId is required' };
 
-            // Find registrations for this owner that are pending/approved (invitations)
-            const regs = await Registration.find({ horseOwnerId: ownerId }).lean();
+            const skip = (page - 1) * limit;
+            const regFilter = { horseOwnerId: ownerId };
+            if (status) regFilter.registrationStatus = status;
+
+            // For search: find matching raceRound IDs by roundName first
+            if (search) {
+                const matchingRounds = await RaceRound.find({ roundName: { $regex: search, $options: 'i' } }, '_id').lean();
+                regFilter.raceRoundId = { $in: matchingRounds.map(r => r._id) };
+            }
+
+            const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
+
+            const [regs, totalItems] = await Promise.all([
+                Registration.find(regFilter).sort(sortObj).skip(skip).limit(limit).lean(),
+                Registration.countDocuments(regFilter),
+            ]);
 
             const horses = await HorseRepository.findByOwnerId(ownerId);
-            const horseIds = horses.map(h => String(h._id));
 
-            // Bulk-fetch first invitation per registration to know which horse is already locked in
             const regIds = regs.map(r => r._id);
             const existingInvitations = await Invitation.find({ registrationId: { $in: regIds } }).select('registrationId horseId').lean();
             const existingHorseMap = new Map();
@@ -229,7 +243,7 @@ class HorseOwnerService {
                 }
             }
 
-            const result = await Promise.all(regs.map(async reg => {
+            const items = await Promise.all(regs.map(async reg => {
                 const rr = await RaceRound.findById(reg.raceRoundId).populate('eligibilityRuleId').lean();
                 let tournament = null;
                 if (rr && rr.tournamentId) {
@@ -240,7 +254,6 @@ class HorseOwnerService {
                 if (rr && rr.eligibilityRuleId) {
                     const rule = await RaceEligibilityRule.findById(rr.eligibilityRuleId).lean();
                     if (rule) {
-                        // Basic matching: filter by requiredBreed and requiredGender when provided
                         eligibleHorseIds = horses.filter(h => {
                             if (rule.requiredBreed && h.breed !== rule.requiredBreed) return false;
                             if (rule.requiredGender && h.gender !== rule.requiredGender) return false;
@@ -258,7 +271,14 @@ class HorseOwnerService {
                 };
             }));
 
-            return { code: 200, data: result, msg: 'Race invitations retrieved successfully' };
+            return {
+                code: 200,
+                data: {
+                    items,
+                    pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit },
+                },
+                msg: 'Race invitations retrieved successfully',
+            };
         } catch (error) {
             return { code: 500, msg: error.message };
         }

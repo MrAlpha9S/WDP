@@ -89,7 +89,10 @@ class AdminController {
     async getRaceRounds(req, res) {
         const tournament_id = req.query.tournament_id || null;
         const raceRound_id = req.query.raceRound_id || null;
-        const response = await AdminService.getRaceRounds(tournament_id, raceRound_id);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { status, search, sortBy = 'raceDate', order = 'desc' } = req.query;
+        const response = await AdminService.getRaceRounds(tournament_id, raceRound_id, page, limit, status, search, sortBy, order);
         return res.status(response.code).json(response);
     }
 
@@ -109,7 +112,10 @@ class AdminController {
     // --- Race Eligibility Rule CRUD ---
 
     async getAllRules(req, res) {
-        const response = await AdminService.getAllRules();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { search, sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await AdminService.getAllRules(page, limit, search, sortBy, order);
         return res.status(response.code).json(response);
     }
 

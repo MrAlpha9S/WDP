@@ -2,7 +2,10 @@ const HorseOwnerService = require('../services/HorseOwnerService');
 
 class RaceInvitationsController {
     async getRaceInvitations(req, res) {
-        const response = await HorseOwnerService.getRaceInvitations(req.userId);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { status, search, sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await HorseOwnerService.getRaceInvitations(req.userId, page, limit, status, search, sortBy, order);
         return res.status(response.code).json(response);
     }
 

@@ -28,6 +28,11 @@ const registrationSchema = new mongoose.Schema(
             ref: 'HorseOwner',
             required: true,
         },
+        jockeyInRaceId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Invitation',
+            default: null,
+        },
     },
     { timestamps: true }
 );

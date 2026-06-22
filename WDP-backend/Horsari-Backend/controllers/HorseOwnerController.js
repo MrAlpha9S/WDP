@@ -25,9 +25,10 @@ class HorseOwnerController {
 
     // Get my horses
     async getMyHorses(req, res) {
+        const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const skip = parseInt(req.query.skip) || 0;
-        const response = await HorseOwnerService.getOwnedHorses(req.userId, limit, skip);
+        const { search, sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await HorseOwnerService.getOwnedHorses(req.userId, page, limit, search, sortBy, order);
         return res.status(response.code).json(response);
     }
 
@@ -54,9 +55,10 @@ class HorseOwnerController {
 
     // For horse owners: get all jockeys (with stats if any)
     async getAllJockeys(req, res) {
+        const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const skip = parseInt(req.query.skip) || 0;
-        const response = await JockeyService.getAllJockeys(limit, skip);
+        const { sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await JockeyService.getAllJockeys(page, limit, sortBy, order);
         return res.status(response.code).json(response);
     }
 

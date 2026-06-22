@@ -108,12 +108,13 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
     const invitations = activeReg.Invitations ?? [];
 
     const hasHorse = !!horse;
-    const hasConfirmedInvitation = invitations.some(inv => inv.jockeyConfirmation || inv.isJockeyInRace);
+    const hasConfirmedInvitation = invitations.some(inv => inv.jockeyConfirmation);
     const prerequisitesMet = hasHorse && hasConfirmedInvitation;
 
-    const seedInv = (registration.Invitations ?? []).find(i => i.isJockeyInRace)
-        ?? (registration.Invitations ?? []).find(i => i.jockeyConfirmation);
-    const [selectedInvitationId, setSelectedInvitationId] = useState<string | null>(seedInv?._id ?? null);
+    const seedInvId = registration.jockeyInRaceId
+        ?? (registration.Invitations ?? []).find(i => i.jockeyConfirmation)?._id
+        ?? null;
+    const [selectedInvitationId, setSelectedInvitationId] = useState<string | null>(seedInvId);
     const [noJockeyFail, setNoJockeyFail] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -137,9 +138,9 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
     // Sync jockey selection once fresh data arrives
     useEffect(() => {
         if (!freshRegistration) return;
-        const inv = freshRegistration.Invitations?.find(i => i.isJockeyInRace)
-            ?? freshRegistration.Invitations?.find(i => i.jockeyConfirmation);
-        if (inv) setSelectedInvitationId(inv._id);
+        const invId = freshRegistration.jockeyInRaceId
+            ?? freshRegistration.Invitations?.find(i => i.jockeyConfirmation)?._id;
+        if (invId) setSelectedInvitationId(invId);
     }, [freshRegistration]);
 
     // Group violation types by category for section rendering
