@@ -133,6 +133,14 @@ const options = {
                 },
             },
         },
+        tags: [
+            { name: 'Global',     description: 'Authentication and shared endpoints — accessible to all roles' },
+            { name: 'Admin',      description: 'Admin-only management endpoints (users, races, tournaments, rules, horses, streams)' },
+            { name: 'Referee',    description: 'Referee endpoints — race rounds, verifications, violations, results' },
+            { name: 'HorseOwner', description: 'Horse owner endpoints — horses, registrations, jockey invitations' },
+            { name: 'Jockey',     description: 'Jockey endpoints — profile, invitations, race schedule and history' },
+            { name: 'Spectator',  description: 'Spectator endpoints — profile and reward points' },
+        ],
         security: [
             {
                 BearerAuth: [],

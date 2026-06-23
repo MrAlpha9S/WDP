@@ -1,4 +1,5 @@
 const JockeyService = require("../services/JockeyService");
+const UserService = require("../services/UserService");
 
 class JockeyController {
   // (admin register removed)
@@ -89,13 +90,16 @@ class JockeyController {
 
   // Change password
   async changePassword(req, res) {
-    const response = await JockeyService.changePassword(req.userId, req.body);
+    const response = await UserService.changePassword(req.userId, req.body);
     return res.status(response.code).json(response);
   }
 
   // Get my invitations
   async getMyInvitations(req, res) {
-    const response = await JockeyService.getMyInvitations(req.userId);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const { status, sortBy = 'createdAt', order = 'desc' } = req.query;
+    const response = await JockeyService.getMyInvitations(req.userId, page, limit, status, sortBy, order);
     return res.status(response.code).json(response);
   }
 
@@ -110,13 +114,34 @@ class JockeyController {
 
   // Get my race schedule
   async getMyRaceSchedule(req, res) {
-    const response = await JockeyService.getMyRaceSchedule(req.userId);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const { sortBy = 'raceDate', order = 'asc' } = req.query;
+    const response = await JockeyService.getMyRaceSchedule(req.userId, page, limit, sortBy, order);
+    return res.status(response.code).json(response);
+  }
+
+  // View race history — races where jockey was the confirmed official rider
+  async getViewRaceHistory(req, res) {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const { sortBy = 'raceDate', order = 'desc' } = req.query;
+    const response = await JockeyService.getViewRaceHistory(req.userId, page, limit, sortBy, order);
+    return res.status(response.code).json(response);
+  }
+
+  // Get horse detail with full race history
+  async getHorseDetail(req, res) {
+    const response = await JockeyService.getHorseDetail(req.params.horseId);
     return res.status(response.code).json(response);
   }
 
   // Get my race history
   async getMyRaceHistory(req, res) {
-    const response = await JockeyService.getMyRaceHistory(req.userId);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const { sortBy = 'raceDate', order = 'desc' } = req.query;
+    const response = await JockeyService.getMyRaceHistory(req.userId, page, limit, sortBy, order);
     return res.status(response.code).json(response);
   }
 }

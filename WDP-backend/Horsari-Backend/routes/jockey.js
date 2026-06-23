@@ -22,7 +22,9 @@ router.get('/my-stats', authMiddleware, authJockey, JockeyController.getMyStats)
 router.get('/invitations', authMiddleware, authJockey, JockeyController.getMyInvitations);
 router.post('/invitations/respond', authMiddleware, authJockey, JockeyController.respondToInvitation);
 router.get('/race-schedule', authMiddleware, authJockey, JockeyController.getMyRaceSchedule);
+router.get('/horses/:horseId', authMiddleware, authJockey, JockeyController.getHorseDetail);
 router.get('/race-history', authMiddleware, authJockey, JockeyController.getMyRaceHistory);
+router.get('/view-race-history', authMiddleware, authJockey, JockeyController.getViewRaceHistory);
 router.post('/record-win', authMiddleware, authJockey, JockeyController.addWin);
 router.post('/record-match', authMiddleware, authJockey, JockeyController.recordMatch);
 

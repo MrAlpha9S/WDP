@@ -1,6 +1,5 @@
 const JockeyRepository = require("../repositories/JockeyRepository");
 const UserRepository = require("../repositories/UserRepository");
-const PasswordUtil = require("../utils/PasswordUtil");
 const Invitation = require("../entities/Invitation");
 const Registration = require("../entities/Registration");
 const Horse = require("../entities/Horse");
@@ -446,81 +445,8 @@ class JockeyService {
     }
   }
 
-  // Change password
-  async changePassword(jockeyId, passwordData) {
-    try {
-      const { oldPassword, newPassword, confirmPassword } = passwordData;
-
-      if (!oldPassword || !newPassword || !confirmPassword) {
-        return {
-          code: 400,
-          msg: "Old password, new password, and confirm password are required",
-        };
-      }
-
-      if (newPassword !== confirmPassword) {
-        return {
-          code: 400,
-          msg: "New password and confirm password do not match",
-        };
-      }
-
-      if (!PasswordUtil.validatePasswordStrength(newPassword)) {
-        return {
-          code: 400,
-          msg: "Password must be at least 8 characters with uppercase, lowercase, number, and special character",
-        };
-      }
-
-      const user = await UserRepository.findById(jockeyId);
-      if (!user) {
-        return {
-          code: 404,
-          msg: "User not found",
-        };
-      }
-
-      if (!user.passwordHash) {
-        return {
-          code: 400,
-          msg: "This account uses Google authentication and does not have a password",
-        };
-      }
-
-      // Verify old password
-      const isPasswordValid = await PasswordUtil.comparePassword(
-        oldPassword,
-        user.passwordHash,
-      );
-      if (!isPasswordValid) {
-        return {
-          code: 401,
-          msg: "Old password is incorrect",
-        };
-      }
-
-      // Hash new password
-      const newPasswordHash = await PasswordUtil.hashPassword(newPassword);
-
-      // Update password
-      await UserRepository.updateById(jockeyId, {
-        passwordHash: newPasswordHash,
-      });
-
-      return {
-        code: 200,
-        msg: "Password changed successfully",
-      };
-    } catch (error) {
-      return {
-        code: 500,
-        msg: error.message,
-      };
-    }
-  }
-
   // Get my invitations (pending or accepted)
-  async getMyInvitations(jockeyId) {
+  async getMyInvitations(jockeyId, page = 1, limit = 10, status = null, sortBy = 'createdAt', order = 'desc') {
     try {
       const jockey = await JockeyRepository.findByJockeyId(jockeyId);
       if (!jockey) {
@@ -530,11 +456,18 @@ class JockeyService {
         };
       }
 
-      // Find invitations for this jockey that are pending or accepted
-      const invitations = await Invitation.find({
-        jockeyId: jockey._id,
-        invitationStatus: { $in: ["pending", "accepted"] },
-      }).lean();
+      const skip = (page - 1) * limit;
+      const statusFilter = status ? { $in: [status] } : { $in: ["pending", "accepted"] };
+      const filter = { jockeyId: jockey._id, invitationStatus: statusFilter };
+      const DB_SORT_FIELDS = new Set(['createdAt', 'updatedAt', 'invitationStatus', 'percentagePayout']);
+      const dbSort = DB_SORT_FIELDS.has(sortBy)
+        ? { [sortBy]: order === 'asc' ? 1 : -1 }
+        : { createdAt: -1 };
+
+      const [invitations, totalItems] = await Promise.all([
+        Invitation.find(filter).sort(dbSort).skip(skip).limit(limit).lean(),
+        Invitation.countDocuments(filter),
+      ]);
 
       // Populate related data
       const result = await Promise.all(
@@ -616,9 +549,25 @@ class JockeyService {
         }),
       );
 
+      if (sortBy === 'raceDate') {
+        result.sort((a, b) => {
+          const valA = a.raceRound?.raceDate ? new Date(a.raceRound.raceDate) : new Date(0);
+          const valB = b.raceRound?.raceDate ? new Date(b.raceRound.raceDate) : new Date(0);
+          return order === 'asc' ? valA - valB : valB - valA;
+        });
+      }
+
       return {
         code: 200,
-        data: result,
+        data: {
+          items: result,
+          pagination: {
+            totalItems,
+            totalPages: Math.ceil(totalItems / limit),
+            currentPage: page,
+            limit,
+          },
+        },
         msg: "Invitations retrieved successfully",
       };
     } catch (error) {
@@ -705,7 +654,7 @@ class JockeyService {
   }
 
   // Get my race schedule (accepted invitations)
-  async getMyRaceSchedule(jockeyId) {
+  async getMyRaceSchedule(jockeyId, page = 1, limit = 10, sortBy = 'raceDate', order = 'asc') {
     try {
       const jockey = await JockeyRepository.findByJockeyId(jockeyId);
       if (!jockey) {
@@ -715,11 +664,17 @@ class JockeyService {
         };
       }
 
-      // Find accepted invitations
-      const invitations = await Invitation.find({
-        jockeyId: jockey._id,
-        invitationStatus: "accepted",
-      }).lean();
+      const skip = (page - 1) * limit;
+      const filter = { jockeyId: jockey._id, invitationStatus: "accepted" };
+      const DB_SORT_FIELDS = new Set(['createdAt', 'updatedAt']);
+      const dbSort = DB_SORT_FIELDS.has(sortBy)
+        ? { [sortBy]: order === 'asc' ? 1 : -1 }
+        : { createdAt: -1 };
+
+      const [invitations, totalItems] = await Promise.all([
+        Invitation.find(filter).sort(dbSort).skip(skip).limit(limit).lean(),
+        Invitation.countDocuments(filter),
+      ]);
 
       const result = await Promise.all(
         invitations.map(async (inv) => {
@@ -821,20 +776,25 @@ class JockeyService {
         }),
       );
 
-      // Sort by raceDate ascending
-      result.sort((a, b) => {
-        const dateA = a.raceRound?.raceDate
-          ? new Date(a.raceRound.raceDate)
-          : new Date(0);
-        const dateB = b.raceRound?.raceDate
-          ? new Date(b.raceRound.raceDate)
-          : new Date(0);
-        return dateA - dateB;
-      });
+      if (sortBy === 'raceDate') {
+        result.sort((a, b) => {
+          const valA = a.raceRound?.raceDate ? new Date(a.raceRound.raceDate) : new Date(0);
+          const valB = b.raceRound?.raceDate ? new Date(b.raceRound.raceDate) : new Date(0);
+          return order === 'asc' ? valA - valB : valB - valA;
+        });
+      }
 
       return {
         code: 200,
-        data: result,
+        data: {
+          items: result,
+          pagination: {
+            totalItems,
+            totalPages: Math.ceil(totalItems / limit),
+            currentPage: page,
+            limit,
+          },
+        },
         msg: "Race schedule retrieved successfully",
       };
     } catch (error) {
@@ -846,7 +806,7 @@ class JockeyService {
   }
 
   // Get my race history (races with results)
-  async getMyRaceHistory(jockeyId) {
+  async getMyRaceHistory(jockeyId, page = 1, limit = 10, sortBy = 'raceDate', order = 'desc') {
     try {
       const jockey = await JockeyRepository.findByJockeyId(jockeyId);
       if (!jockey) {
@@ -856,8 +816,7 @@ class JockeyService {
         };
       }
 
-      // Find all race results for this jockey's registrations
-      // First, find registrations where this jockey is assigned
+      // Collect all registrationIds from accepted invitations (no pagination here — just ID lookup)
       const invitations = await Invitation.find({
         jockeyId: jockey._id,
         invitationStatus: "accepted",
@@ -865,10 +824,18 @@ class JockeyService {
 
       const registrationIds = invitations.map((inv) => inv.registrationId);
 
-      // Find race results for these registrations
-      const raceResults = await RaceResult.find({
-        registrationId: { $in: registrationIds },
-      }).lean();
+      // Paginate at the RaceResult level
+      const skip = (page - 1) * limit;
+      const resultFilter = { registrationId: { $in: registrationIds } };
+      const DB_SORT_FIELDS = new Set(['createdAt', 'updatedAt', 'finishPosition', 'prizeMoney']);
+      const dbSort = DB_SORT_FIELDS.has(sortBy)
+        ? { [sortBy]: order === 'asc' ? 1 : -1 }
+        : { createdAt: -1 };
+
+      const [raceResults, totalItems] = await Promise.all([
+        RaceResult.find(resultFilter).sort(dbSort).skip(skip).limit(limit).lean(),
+        RaceResult.countDocuments(resultFilter),
+      ]);
 
       const result = await Promise.all(
         raceResults.map(async (rr) => {
@@ -946,20 +913,25 @@ class JockeyService {
         }),
       );
 
-      // Sort by raceDate descending
-      result.sort((a, b) => {
-        const dateA = a.raceRound?.raceDate
-          ? new Date(a.raceRound.raceDate)
-          : new Date(0);
-        const dateB = b.raceRound?.raceDate
-          ? new Date(b.raceRound.raceDate)
-          : new Date(0);
-        return dateB - dateA;
-      });
+      if (sortBy === 'raceDate') {
+        result.sort((a, b) => {
+          const valA = a.raceRound?.raceDate ? new Date(a.raceRound.raceDate) : new Date(0);
+          const valB = b.raceRound?.raceDate ? new Date(b.raceRound.raceDate) : new Date(0);
+          return order === 'asc' ? valA - valB : valB - valA;
+        });
+      }
 
       return {
         code: 200,
-        data: result,
+        data: {
+          items: result,
+          pagination: {
+            totalItems,
+            totalPages: Math.ceil(totalItems / limit),
+            currentPage: page,
+            limit,
+          },
+        },
         msg: "Race history retrieved successfully",
       };
     } catch (error) {
@@ -967,6 +939,230 @@ class JockeyService {
         code: 500,
         msg: error.message,
       };
+    }
+  }
+
+  // Get horse detail with full race history
+  async getHorseDetail(horseId) {
+    try {
+      const horse = await Horse.findById(horseId).lean();
+      if (!horse) {
+        return { code: 404, msg: 'Horse not found' };
+      }
+
+      const horseOwner = await HorseOwner.findById(horse.ownerId).lean();
+      const ownerUser = horseOwner ? await UserRepository.findById(horseOwner._id) : null;
+
+      // Collect unique registrationIds from all invitations for this horse
+      const invitations = await Invitation.find({ horseId: horse._id }).lean();
+      const seenRegistrationIds = new Set();
+      const uniqueRegistrationIds = [];
+      for (const inv of invitations) {
+        const key = String(inv.registrationId);
+        if (inv.registrationId && !seenRegistrationIds.has(key)) {
+          seenRegistrationIds.add(key);
+          uniqueRegistrationIds.push(inv.registrationId);
+        }
+      }
+
+      const raceHistory = await Promise.all(
+        uniqueRegistrationIds.map(async (registrationId) => {
+          const registration = await Registration.findById(registrationId).lean();
+          const raceRound = registration
+            ? await RaceRound.findById(registration.raceRoundId).lean()
+            : null;
+          const raceResult = registration
+            ? await RaceResult.findOne({ registrationId: registration._id }).lean()
+            : null;
+
+          return {
+            registration: registration
+              ? {
+                  registrationId: registration._id,
+                  registrationStatus: registration.registrationStatus,
+                  registeredAt: registration.registeredAt,
+                }
+              : null,
+            raceRound: raceRound
+              ? {
+                  raceRoundId: raceRound._id,
+                  roundName: raceRound.roundName,
+                  raceDate: raceRound.raceDate,
+                  trackLength: raceRound.trackLength,
+                  location: raceRound.location,
+                  raceGround: raceRound.raceGround,
+                  status: raceRound.status,
+                }
+              : null,
+            raceResult: raceResult
+              ? {
+                  resultId: raceResult._id,
+                  finishPosition: raceResult.finishPosition,
+                  finishTime: raceResult.finishTime,
+                  prizeMoney: raceResult.prizeMoney,
+                  resultStatus: raceResult.resultStatus,
+                }
+              : null,
+          };
+        }),
+      );
+
+      // Sort by raceDate descending (most recent first)
+      raceHistory.sort((a, b) => {
+        const dateA = a.raceRound?.raceDate ? new Date(a.raceRound.raceDate) : new Date(0);
+        const dateB = b.raceRound?.raceDate ? new Date(b.raceRound.raceDate) : new Date(0);
+        return dateB - dateA;
+      });
+
+      return {
+        code: 200,
+        data: {
+          horse: {
+            horseId: horse._id,
+            horseName: horse.horseName,
+            breed: horse.breed,
+            gender: horse.gender,
+            healthStatus: horse.healthStatus,
+            dateOfBirth: horse.dateOfBirth,
+            status: horse.status,
+            img: horse.img,
+          },
+          owner: {
+            ownerId: horseOwner?._id ?? null,
+            fullName: ownerUser?.fullName ?? null,
+          },
+          raceHistory,
+        },
+        msg: 'Horse detail retrieved successfully',
+      };
+    } catch (error) {
+      return { code: 500, msg: error.message };
+    }
+  }
+
+  // View race history — only races where this jockey was the confirmed official rider (jockeyInRaceId)
+  async getViewRaceHistory(jockeyId, page = 1, limit = 10, sortBy = 'raceDate', order = 'desc') {
+    try {
+      const jockey = await JockeyRepository.findByJockeyId(jockeyId);
+      if (!jockey) {
+        return { code: 404, msg: 'Jockey not found' };
+      }
+
+      // All invitations belonging to this jockey (we need their _ids to match jockeyInRaceId)
+      const invitations = await Invitation.find({ jockeyId: jockey._id }).lean();
+      const invitationIds = invitations.map((inv) => inv._id);
+
+      // Registrations where this jockey was the official rider
+      const skip = (page - 1) * limit;
+      const filter = { jockeyInRaceId: { $in: invitationIds } };
+      const DB_SORT_FIELDS = new Set(['createdAt', 'updatedAt', 'registeredAt', 'registrationStatus']);
+      const dbSort = DB_SORT_FIELDS.has(sortBy)
+        ? { [sortBy]: order === 'asc' ? 1 : -1 }
+        : { createdAt: -1 };
+
+      const [registrations, totalItems] = await Promise.all([
+        Registration.find(filter).sort(dbSort).skip(skip).limit(limit).lean(),
+        Registration.countDocuments(filter),
+      ]);
+
+      const result = await Promise.all(
+        registrations.map(async (reg) => {
+          // Resolve horse via the linked invitation
+          const linkedInvitation = invitations.find(
+            (inv) => inv._id.toString() === reg.jockeyInRaceId?.toString(),
+          );
+          const horse = linkedInvitation
+            ? await Horse.findById(linkedInvitation.horseId).lean()
+            : null;
+
+          const raceRound = await RaceRound.findById(reg.raceRoundId).lean();
+          const tournament = raceRound
+            ? await Tournament.findById(raceRound.tournamentId).lean()
+            : null;
+          const raceResult = await RaceResult.findOne({ registrationId: reg._id }).lean();
+
+          const violations = await Violation.find({ registrationId: reg._id }).lean();
+          const violationDetails = await Promise.all(
+            violations.map(async (v) => {
+              const violationType = await ViolationType.findById(v.violationTypeId).lean();
+              return {
+                description: v.description,
+                actualPenalty: v.actualPenalty,
+                violationStatus: v.violationStatus,
+                violationName: violationType ? violationType.violationName : 'Unknown',
+              };
+            }),
+          );
+
+          return {
+            registration: {
+              registrationId: reg._id,
+              registrationStatus: reg.registrationStatus,
+              registeredAt: reg.registeredAt,
+            },
+            horse: horse
+              ? {
+                  horseId: horse._id,
+                  horseName: horse.horseName,
+                  breed: horse.breed,
+                  gender: horse.gender,
+                  healthStatus: horse.healthStatus,
+                }
+              : null,
+            raceRound: raceRound
+              ? {
+                  raceRoundId: raceRound._id,
+                  roundName: raceRound.roundName,
+                  raceDate: raceRound.raceDate,
+                  trackLength: raceRound.trackLength,
+                  location: raceRound.location,
+                  raceGround: raceRound.raceGround,
+                  status: raceRound.status,
+                }
+              : null,
+            tournament: tournament
+              ? {
+                  tournamentId: tournament._id,
+                  tournamentName: tournament.tournamentName,
+                }
+              : null,
+            raceResult: raceResult
+              ? {
+                  resultId: raceResult._id,
+                  finishPosition: raceResult.finishPosition,
+                  finishTime: raceResult.finishTime,
+                  prizeMoney: raceResult.prizeMoney,
+                  resultStatus: raceResult.resultStatus,
+                }
+              : null,
+            violations: violationDetails,
+          };
+        }),
+      );
+
+      if (sortBy === 'raceDate') {
+        result.sort((a, b) => {
+          const valA = a.raceRound?.raceDate ? new Date(a.raceRound.raceDate) : new Date(0);
+          const valB = b.raceRound?.raceDate ? new Date(b.raceRound.raceDate) : new Date(0);
+          return order === 'asc' ? valA - valB : valB - valA;
+        });
+      }
+
+      return {
+        code: 200,
+        data: {
+          items: result,
+          pagination: {
+            totalItems,
+            totalPages: Math.ceil(totalItems / limit),
+            currentPage: page,
+            limit,
+          },
+        },
+        msg: 'Race history retrieved successfully',
+      };
+    } catch (error) {
+      return { code: 500, msg: error.message };
     }
   }
 }
