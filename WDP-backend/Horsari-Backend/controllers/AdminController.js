@@ -61,8 +61,8 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
-    // Get referee invitation list
-    async getRefereeInvitations(req, res) {
+    // Get all referee invitations (admin view)
+    async getAllRefereeInvitations(req, res) {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const response = await AdminService.getRefereeInvitations(page, limit);

@@ -25,6 +25,6 @@ router.get('/race-invitations', authMiddleware, authHorseOwner, RaceInvitationsC
 router.post('/registration/:registrationId/approve', authMiddleware, authHorseOwner, RaceInvitationsController.approveRegistration);
 router.post('/registration/:registrationId/reject', authMiddleware, authHorseOwner, RaceInvitationsController.rejectRegistration);
 // Horse owner can view all jockeys
-router.get('/jockeys', authMiddleware, authHorseOwner, HorseOwnerController.getAllJockeys);
+router.get('/jockeys', authMiddleware, authHorseOwner, HorseOwnerController.getJockeysList);
 
 module.exports = router;

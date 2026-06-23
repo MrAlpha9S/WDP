@@ -21,7 +21,7 @@ router.delete('/users/:userId', authMiddleware, authAdmin, AdminController.delet
 router.get('/horse-owner-invitations', authMiddleware, authAdmin, AdminController.getHorseOwnerInvitations);
 
 // Referee invitation list
-router.get('/referee-invitations', authMiddleware, authAdmin, AdminController.getRefereeInvitations);
+router.get('/referee-invitations', authMiddleware, authAdmin, AdminController.getAllRefereeInvitations);
 
 // Jockey invitation list
 router.get('/jockey-invitations', authMiddleware, authAdmin, AdminController.getJockeyInvitations);

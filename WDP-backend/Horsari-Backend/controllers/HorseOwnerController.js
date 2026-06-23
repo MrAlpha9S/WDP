@@ -52,8 +52,8 @@ class HorseOwnerController {
         return res.status(response.code).json(response);
     }
 
-    // For horse owners: get all jockeys (with stats if any)
-    async getAllJockeys(req, res) {
+    // For horse owners: browse jockeys list
+    async getJockeysList(req, res) {
         const limit = parseInt(req.query.limit) || 10;
         const skip = parseInt(req.query.skip) || 0;
         const response = await JockeyService.getAllJockeys(limit, skip);
