@@ -334,7 +334,7 @@ export default function InvitesScreen() {
 
   const load = async (silent = false) => {
     if (!silent) setIsLoading(true);
-    setError(null);
+    if (!silent) setError(null);
     try {
       const data = await getMyInvitations();
       setAllInvites(data);
