@@ -114,6 +114,7 @@ function RaceCard({ item }: { item: RaceScheduleItem }) {
           </View>
         )}
       </View>
+
     </View>
   );
 }

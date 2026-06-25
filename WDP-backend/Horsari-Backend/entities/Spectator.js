@@ -7,7 +7,7 @@ const spectatorSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
-        rewardPoints: {
+        wallet: {
             type: Number,
             default: 0,
         },

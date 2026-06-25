@@ -115,8 +115,13 @@ class SpectatorController {
     }
 
     async getAvailablePredictionMethods(req, res) {
-        const { raceRoundId } = req.params;
+        const raceRoundId = req.params.raceRoundId || req.query.raceRoundId || null;
         const response = await SpectatorService.getAvailablePredictionMethods(req.userId, raceRoundId);
+        return res.status(response.code).json(response);
+    }
+
+    async getTournamentsForPrediction(req, res) {
+        const response = await SpectatorService.getTournamentsForPrediction(req.userId);
         return res.status(response.code).json(response);
     }
 

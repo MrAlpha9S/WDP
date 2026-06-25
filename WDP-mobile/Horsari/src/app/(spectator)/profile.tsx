@@ -118,7 +118,7 @@ export default function SpectatorProfileScreen() {
     'Khán giả';
 
   const rewardPoints =
-    wallet?.spectator.rewardPoints ?? profile?.spectator.rewardPoints ?? 0;
+    wallet?.spectator.wallet ?? profile?.spectator.wallet ?? 0;
 
   return (
     <View style={styles.root}>
@@ -242,7 +242,7 @@ export default function SpectatorProfileScreen() {
                     <View style={styles.walletItem}>
                       <Text style={styles.walletLabel}>SỐ DƯ HIỆN TẠI</Text>
                       <Text style={[styles.walletValue, { color: Palette.gold }]}>
-                        {wallet.spectator.rewardPoints.toLocaleString()}
+                        {wallet.spectator.wallet.toLocaleString()}
                       </Text>
                       <Text style={styles.walletUnit}>điểm</Text>
                     </View>

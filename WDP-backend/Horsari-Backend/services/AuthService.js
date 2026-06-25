@@ -122,7 +122,7 @@ class AuthService {
                 case 'spectator':
                     await SpectatorRepository.create({
                         _id: newUser._id,
-                        rewardPoints: 0,
+                        wallet: 0,
                     });
                     break;
                 default:
@@ -457,7 +457,7 @@ class AuthService {
                 case 'spectator':
                     entityData = await SpectatorRepository.create({
                         _id: userId,
-                        rewardPoints: 0,
+                        wallet: 0,
                     });
                     break;
 
@@ -604,7 +604,7 @@ class AuthService {
 
             const spectator = await SpectatorRepository.create({
                 _id: userId,
-                rewardPoints: 0,
+                wallet: 0,
             });
 
             // Update user role

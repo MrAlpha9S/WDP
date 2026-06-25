@@ -10,7 +10,17 @@ const predictionSchema = new mongoose.Schema(
         registrationId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Registration',
-            required: true,
+            default: null,
+        },
+        tournamentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Tournament',
+            default: null,
+        },
+        predictedHorseId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Horse',
+            default: null,
         },
         predictionMethodId: {
             type: mongoose.Schema.Types.ObjectId,

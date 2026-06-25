@@ -252,7 +252,7 @@ export default function WalletScreen() {
   const onRefresh = () => { setIsRefreshing(true); load(true); };
   const onModalSuccess = () => load(true);
 
-  const rewardPoints = wallet?.spectator.rewardPoints ?? 0;
+  const rewardPoints = wallet?.spectator.wallet ?? 0;
   const totalEarned = wallet?.stats.totalEarned ?? 0;
 
   return (

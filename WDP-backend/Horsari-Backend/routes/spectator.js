@@ -39,6 +39,12 @@ router.get('/race-rounds/:raceRoundId/result', authMiddleware, authSpectator, Sp
 router.get('/race-rounds/:raceRoundId/leaderboard', authMiddleware, authSpectator, SpectatorController.getRaceLeaderboard);
 router.get('/race-rounds/:raceRoundId/prediction-methods', authMiddleware, authSpectator, SpectatorController.getAvailablePredictionMethods);
 
+// Tournaments available for champion prediction (scheduled + ongoing)
+router.get('/tournaments', authMiddleware, authSpectator, SpectatorController.getTournamentsForPrediction);
+
+// All active prediction methods (optionally filtered by raceRoundId query param)
+router.get('/prediction-methods', authMiddleware, authSpectator, SpectatorController.getAvailablePredictionMethods);
+
 // Protected routes - predictions
 router.post('/predictions', authMiddleware, authSpectator, SpectatorController.createPrediction);
 router.get('/predictions', authMiddleware, authSpectator, SpectatorController.getMyPredictions);

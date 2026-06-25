@@ -30,6 +30,11 @@ const tournamentSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        championHorseId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Horse',
+            default: null,
+        },
     },
     { timestamps: true }
 );

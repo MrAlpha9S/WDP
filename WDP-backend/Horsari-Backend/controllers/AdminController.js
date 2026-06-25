@@ -172,6 +172,14 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    async setTournamentChampion(req, res) {
+        const { tournamentId } = req.params;
+        const { championHorseId } = req.body;
+        if (!championHorseId) return res.status(400).json({ code: 400, msg: 'championHorseId is required' });
+        const response = await AdminService.settleTournamentPredictions(tournamentId, championHorseId);
+        return res.status(response.code).json(response);
+    }
+
     async getRaceViolations(req, res) {
         const response = await AdminService.getRaceViolations(req.params.id);
         return res.status(response.code).json(response);

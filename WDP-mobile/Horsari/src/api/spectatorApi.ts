@@ -3,7 +3,7 @@ import apiClient from './axios';
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
 export interface SpectatorProfile {
-  spectator: { _id: string; rewardPoints: number };
+  spectator: { _id: string; wallet: number };
   user: {
     fullName: string;
     username: string;
@@ -60,7 +60,7 @@ export interface HomeFeed {
   liveRace: HomeFeedLiveRace | null;
   upcomingRaces: HomeFeedUpcomingRace[];
   featuredHorses: HomeFeedHorse[];
-  spectator: { rewardPoints: number } | null;
+  spectator: { wallet: number } | null;
 }
 
 // ─── Race Schedule ────────────────────────────────────────────────────────────
@@ -92,10 +92,21 @@ export type ScheduleFilter = 'running' | 'scheduled' | 'completed';
 // ─── Predictions ──────────────────────────────────────────────────────────────
 
 export type PredictionStatus = 'pending' | 'correct' | 'incorrect' | 'cancelled' | 'refunded';
+export type PredictionMethodType = 'tournament_champion' | 'race_rank' | 'race_winner';
+
+export interface PredictionMethod {
+  _id: string;
+  methodName: string;
+  methodDescription: string;
+  methodType: PredictionMethodType;
+  isActive: boolean;
+  userAlreadyPredicted?: boolean;
+  existingPredictions?: PredictionItem[];
+}
 
 export interface PredictionItem {
   _id: string;
-  predictedRank: number;
+  predictedRank: number | null;
   predictionStatus: PredictionStatus;
   rewardPoints: number;
   created_at: string;
@@ -103,7 +114,9 @@ export interface PredictionItem {
     _id: string;
     methodName: string;
     methodDescription: string;
+    methodType: PredictionMethodType;
   } | null;
+  // race_rank / race_winner
   registration: {
     _id: string;
     laneNumber: number | null;
@@ -117,12 +130,21 @@ export interface PredictionItem {
       tournament: { _id: string; tournamentName: string } | null;
     } | null;
   } | null;
+  // tournament_champion
+  tournament: { _id: string; tournamentName: string; status: string } | null;
+  predictedHorse: { _id: string; horseName: string; img: string | null } | null;
 }
+
+// Input shapes for createPrediction
+export type CreatePredictionBody =
+  | { predictionMethodId: string; registrationId: string; predictedRank: number }   // race_rank
+  | { predictionMethodId: string; registrationId: string }                           // race_winner
+  | { predictionMethodId: string; tournamentId: string; predictedHorseId: string }; // tournament_champion
 
 // ─── Wallet ───────────────────────────────────────────────────────────────────
 
 export interface WalletInfo {
-  spectator: { _id: string; rewardPoints: number };
+  spectator: { _id: string; wallet: number };
   stats: { totalEarned: number };
 }
 
@@ -261,6 +283,79 @@ export async function withdrawPoints(
       { amount, description },
     );
     return { ok: res.data.code === 201, message: res.data.msg };
+  } catch (err: any) {
+    return { ok: false, message: err?.response?.data?.msg ?? 'Lỗi kết nối.' };
+  }
+}
+
+export interface RaceDetailRegistration {
+  _id: string;
+  laneNumber: number | null;
+  horse: { _id: string; horseName: string; img: string | null } | null;
+  userPrediction: PredictionItem | null;
+}
+
+export interface TournamentForPrediction {
+  _id: string;
+  tournamentName: string;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  prizePool: number | null;
+  horses: { _id: string; horseName: string; img: string | null }[];
+  alreadyPredicted: boolean;
+}
+
+export async function getTournamentsForPrediction(): Promise<TournamentForPrediction[]> {
+  try {
+    const res = await apiClient.get<{ code: number; data: TournamentForPrediction[]; msg: string }>(
+      '/api/spectator/tournaments',
+    );
+    return res.data.code === 200 ? res.data.data : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getRaceDetail(
+  raceRoundId: string,
+): Promise<{ raceRound: any; registrations: RaceDetailRegistration[] } | null> {
+  try {
+    const res = await apiClient.get<{
+      code: number;
+      data: { raceRound: any; registrations: RaceDetailRegistration[] };
+      msg: string;
+    }>(`/api/spectator/race-rounds/${raceRoundId}/live`);
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getAvailablePredictionMethods(
+  raceRoundId?: string,
+): Promise<PredictionMethod[]> {
+  try {
+    const params = raceRoundId ? { raceRoundId } : {};
+    const res = await apiClient.get<{ code: number; data: PredictionMethod[]; msg: string }>(
+      '/api/spectator/prediction-methods',
+      { params },
+    );
+    return res.data.code === 200 ? res.data.data : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function createPrediction(
+  body: CreatePredictionBody,
+): Promise<{ ok: boolean; message: string; data?: PredictionItem }> {
+  try {
+    const res = await apiClient.post<{ code: number; data: PredictionItem; msg: string }>(
+      '/api/spectator/predictions',
+      body,
+    );
+    return { ok: res.data.code === 201, message: res.data.msg, data: res.data.data };
   } catch (err: any) {
     return { ok: false, message: err?.response?.data?.msg ?? 'Lỗi kết nối.' };
   }

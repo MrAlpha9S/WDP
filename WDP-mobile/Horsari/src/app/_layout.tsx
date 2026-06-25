@@ -44,6 +44,7 @@ function RootNavigation() {
       <Stack.Screen name="login" />
       <Stack.Screen name="(jockey)" />
       <Stack.Screen name="(spectator)" />
+      <Stack.Screen name="new-prediction" />
     </Stack>
   );
 }

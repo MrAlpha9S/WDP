@@ -312,7 +312,7 @@ class AdminService {
                     const Spectator = require('../entities/Spectator');
                     const spectator = await Spectator.findById(id).lean();
                     roleProfile = {
-                        rewardPoints: spectator?.rewardPoints ?? 0,
+                        wallet: spectator?.wallet ?? 0,
                     };
                     break;
                 }
@@ -1226,6 +1226,11 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
             .sort({ finishPosition: 1 })
             .lean();
 
+        // Settle pending race predictions in the background (non-blocking)
+        this._settlePredictionsForRace(raceRoundId).catch(err =>
+            console.error('[confirmRaceResult] settle predictions error:', err.message)
+        );
+
         if (io) {
             io.to(`race:${raceRoundId}`).emit('race_status_changed', {
                 raceRoundId,
@@ -1504,6 +1509,108 @@ AdminService.prototype.updateHorseStatus = async function (horseId, newStatus) {
         ).lean();
         if (!horse) return { code: 404, msg: 'Horse not found.' };
         return { code: 200, data: horse, msg: `Horse status updated to ${newStatus}.` };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Settle race-level predictions after a race round is confirmed completed.
+// Called internally by confirmRaceResult.
+AdminService.prototype._settlePredictionsForRace = async function (raceRoundId) {
+    const Prediction     = require('../entities/Prediction');
+    const PredictionMethod = require('../entities/PredictionMethod');
+    const Registration   = require('../entities/Registration');
+    const RaceResult     = require('../entities/RaceResult');
+    const Spectator      = require('../entities/Spectator');
+
+    const registrations = await Registration.find({ raceRoundId }, '_id').lean();
+    if (registrations.length === 0) return;
+
+    const registrationIds = registrations.map(r => r._id);
+
+    const [pendingPredictions, raceResults] = await Promise.all([
+        Prediction.find({ registrationId: { $in: registrationIds }, predictionStatus: 'pending' }).lean(),
+        RaceResult.find({ raceRoundId, resultStatus: 'official' }).lean(),
+    ]);
+
+    if (pendingPredictions.length === 0) return;
+
+    const resultMap = {};
+    raceResults.forEach(r => { resultMap[r.registrationId.toString()] = r.finishPosition; });
+
+    const methods = await PredictionMethod.find({
+        _id: { $in: [...new Set(pendingPredictions.map(p => p.predictionMethodId.toString()))] },
+    }).lean();
+    const methodMap = {};
+    methods.forEach(m => { methodMap[m._id.toString()] = m; });
+
+    for (const pred of pendingPredictions) {
+        const actualPos = resultMap[pred.registrationId.toString()];
+        if (actualPos === undefined) continue; // no result yet
+
+        const method = methodMap[pred.predictionMethodId.toString()];
+        if (!method) continue;
+
+        let isCorrect = false;
+        let reward = 0;
+
+        if (method.methodType === 'race_winner') {
+            isCorrect = actualPos === 1;
+            reward = isCorrect ? 800 : 0;
+        } else if (method.methodType === 'race_rank') {
+            isCorrect = actualPos === pred.predictedRank;
+            reward = isCorrect ? 200 : 0;
+        }
+
+        const newStatus = isCorrect ? 'correct' : 'incorrect';
+        await Prediction.findByIdAndUpdate(pred._id, { predictionStatus: newStatus, rewardPoints: reward });
+
+        if (isCorrect && reward > 0) {
+            await Spectator.findByIdAndUpdate(pred.spectatorId, { $inc: { wallet: reward } });
+        }
+    }
+};
+
+// Settle tournament_champion predictions after admin sets the champion horse.
+AdminService.prototype.settleTournamentPredictions = async function (tournamentId, championHorseId) {
+    try {
+        const Tournament     = require('../entities/Tournament');
+        const Prediction     = require('../entities/Prediction');
+        const Spectator      = require('../entities/Spectator');
+        const Horse          = require('../entities/Horse');
+
+        const tournament = await Tournament.findById(tournamentId).lean();
+        if (!tournament) return { code: 404, msg: 'Tournament not found' };
+
+        const horse = await Horse.findById(championHorseId).lean();
+        if (!horse) return { code: 404, msg: 'Champion horse not found' };
+
+        await Tournament.findByIdAndUpdate(tournamentId, { championHorseId });
+
+        const pending = await Prediction.find({
+            tournamentId,
+            predictionStatus: 'pending',
+        }).lean();
+
+        let settledCount = 0;
+        for (const pred of pending) {
+            const isCorrect = pred.predictedHorseId?.toString() === championHorseId.toString();
+            const reward = isCorrect ? 500 : 0;
+            const newStatus = isCorrect ? 'correct' : 'incorrect';
+
+            await Prediction.findByIdAndUpdate(pred._id, { predictionStatus: newStatus, rewardPoints: reward });
+
+            if (isCorrect && reward > 0) {
+                await Spectator.findByIdAndUpdate(pred.spectatorId, { $inc: { wallet: reward } });
+            }
+            settledCount++;
+        }
+
+        return {
+            code: 200,
+            data: { tournamentId, championHorseId, settledCount },
+            msg: `Tournament champion set and ${settledCount} predictions settled`,
+        };
     } catch (error) {
         return { code: 500, msg: error.message };
     }

@@ -30,6 +30,9 @@ router.get('/jockey-invitations', authMiddleware, authAdmin, AdminController.get
 // Get tournaments with details and prediction pool
 router.get('/tournaments', authMiddleware, authAdmin, AdminController.getTournamentsWithDetails);
 
+// Set tournament champion and settle all champion predictions
+router.post('/tournaments/:tournamentId/champion', authMiddleware, authAdmin, AdminController.setTournamentChampion);
+
 // Get race rounds grouped by tournament with deep nested entities
 router.get('/race-rounds', authMiddleware, authAdmin, AdminController.getRaceRounds);
 

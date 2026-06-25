@@ -14,7 +14,7 @@ const PredictionMethod = require('../entities/PredictionMethod');
 class SpectatorService {
     async createSpectator(spectatorId, data) {
         try {
-            const { rewardPoints } = data || {};
+            const { wallet } = data || {};
 
             if (!spectatorId) {
                 return { code: 400, msg: 'spectatorId is required' };
@@ -32,7 +32,7 @@ class SpectatorService {
 
             const spectatorProfile = await SpectatorRepository.create({
                 _id: spectatorId,
-                rewardPoints: rewardPoints || 0,
+                wallet: wallet || 0,
             });
 
             return { code: 201, data: spectatorProfile, msg: 'Spectator profile created successfully' };
@@ -62,7 +62,7 @@ class SpectatorService {
             return {
                 code: 200,
                 data: {
-                    spectator: { _id: spectator._id, rewardPoints: spectator.rewardPoints },
+                    spectator: { _id: spectator._id, wallet: spectator.wallet },
                     user: user ? {
                         fullName: user.fullName,
                         username: user.username,
@@ -98,7 +98,7 @@ class SpectatorService {
             if (!spectator) {
                 return { code: 404, msg: 'Spectator not found' };
             }
-            return { code: 200, data: { rewardPoints: spectator.rewardPoints }, msg: 'Reward points retrieved successfully' };
+            return { code: 200, data: { wallet: spectator.wallet }, msg: 'Wallet balance retrieved successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -129,8 +129,8 @@ class SpectatorService {
             if (!spectator) {
                 return { code: 404, msg: 'Spectator not found' };
             }
-            if (spectator.rewardPoints < points) {
-                return { code: 400, msg: 'Insufficient reward points' };
+            if (spectator.wallet < points) {
+                return { code: 400, msg: 'Insufficient wallet balance' };
             }
             const updatedSpectator = await SpectatorRepository.addRewardPoints(spectator._id, -points);
             return { code: 200, data: updatedSpectator, msg: `${points} reward points deducted successfully` };
@@ -142,7 +142,7 @@ class SpectatorService {
     async getTopSpectators(limit = 10) {
         try {
             const spectators = await SpectatorRepository.findAll(limit, 0);
-            const sorted = spectators.sort((a, b) => b.rewardPoints - a.rewardPoints);
+            const sorted = spectators.sort((a, b) => b.wallet - a.wallet);
             return { code: 200, data: { spectators: sorted.slice(0, limit), count: sorted.length }, msg: 'Top spectators retrieved successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
@@ -180,7 +180,7 @@ class SpectatorService {
             return {
                 code: 200,
                 data: {
-                    spectator: { _id: spectator._id, rewardPoints: spectator.rewardPoints },
+                    spectator: { _id: spectator._id, wallet: spectator.wallet },
                     stats: { totalEarned: totalEarned || 0 },
                 },
                 msg: 'Wallet info retrieved successfully',
@@ -247,7 +247,7 @@ class SpectatorService {
             const updated = await SpectatorRepository.addRewardPoints(userId, amount);
             return {
                 code: 201,
-                data: { newBalance: updated.rewardPoints },
+                data: { newBalance: updated.wallet },
                 msg: `${amount} points deposited successfully`,
             };
         } catch (error) {
@@ -263,7 +263,7 @@ class SpectatorService {
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
 
-            if (spectator.rewardPoints < amount) {
+            if (spectator.wallet < amount) {
                 return { code: 400, msg: 'Insufficient balance' };
             }
 
@@ -278,7 +278,7 @@ class SpectatorService {
             const updated = await SpectatorRepository.addRewardPoints(userId, -amount);
             return {
                 code: 201,
-                data: { newBalance: updated.rewardPoints },
+                data: { newBalance: updated.wallet },
                 msg: `${amount} points withdrawn successfully`,
             };
         } catch (error) {
@@ -407,7 +407,7 @@ class SpectatorService {
                     liveRace,
                     upcomingRaces,
                     featuredHorses,
-                    spectator: { rewardPoints: spectator.rewardPoints },
+                    spectator: { wallet: spectator.wallet },
                 },
                 msg: 'Home feed retrieved successfully',
             };
@@ -622,19 +622,22 @@ class SpectatorService {
 
     // ─── Predictions ──────────────────────────────────────────────────────────
 
-    async getAvailablePredictionMethods(userId, raceRoundId) {
+    async getAvailablePredictionMethods(userId, raceRoundId = null) {
         try {
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
 
+            const methods = await PredictionMethod.find({ isActive: true }).lean();
+
+            // When called without raceRoundId, return all methods without usage info
+            if (!raceRoundId) {
+                return { code: 200, data: methods, msg: 'Prediction methods retrieved successfully' };
+            }
+
             const raceRound = await RaceRound.findById(raceRoundId).lean();
             if (!raceRound) return { code: 404, msg: 'Race round not found' };
 
-            const [methods, registrationDocs] = await Promise.all([
-                PredictionMethod.find({ isActive: true }).lean(),
-                Registration.find({ raceRoundId }).select('_id').lean(),
-            ]);
-
+            const registrationDocs = await Registration.find({ raceRoundId }).select('_id').lean();
             const registrationIds = registrationDocs.map(r => r._id);
             const existingPredictions = registrationIds.length > 0
                 ? await PredictionRepository.findBySpectatorAndRegistrations(userId, registrationIds)
@@ -651,11 +654,7 @@ class SpectatorService {
                 };
             });
 
-            return {
-                code: 200,
-                data: enrichedMethods,
-                msg: 'Prediction methods retrieved successfully',
-            };
+            return { code: 200, data: enrichedMethods, msg: 'Prediction methods retrieved successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -663,40 +662,69 @@ class SpectatorService {
 
     async createPrediction(userId, body) {
         try {
-            const { registrationId, predictionMethodId, predictedRank } = body || {};
+            const { predictionMethodId, registrationId, predictedRank, tournamentId, predictedHorseId } = body || {};
 
-            if (!registrationId || !predictionMethodId) {
-                return { code: 400, msg: 'registrationId and predictionMethodId are required' };
-            }
+            if (!predictionMethodId) return { code: 400, msg: 'predictionMethodId is required' };
 
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
 
-            const [registration, method] = await Promise.all([
-                Registration.findById(registrationId).lean(),
-                PredictionMethod.findById(predictionMethodId).lean(),
-            ]);
-
-            if (!registration) return { code: 404, msg: 'Registration not found' };
+            const method = await PredictionMethod.findById(predictionMethodId).lean();
             if (!method) return { code: 404, msg: 'Prediction method not found' };
             if (!method.isActive) return { code: 400, msg: 'Prediction method is not active' };
 
-            const existing = await PredictionRepository.findOne({
-                spectatorId: userId,
-                registrationId,
-                predictionMethodId,
-            });
+            const Tournament = require('../entities/Tournament');
+
+            if (method.methodType === 'tournament_champion') {
+                if (!tournamentId || !predictedHorseId) {
+                    return { code: 400, msg: 'tournamentId and predictedHorseId are required for tournament_champion' };
+                }
+                const tournament = await Tournament.findById(tournamentId).lean();
+                if (!tournament) return { code: 404, msg: 'Tournament not found' };
+                if (!['scheduled', 'ongoing'].includes(tournament.status)) {
+                    return { code: 400, msg: 'Predictions are only allowed for scheduled or ongoing tournaments' };
+                }
+                const existing = await PredictionRepository.findOne({ spectatorId: userId, tournamentId, predictionMethodId });
+                if (existing) return { code: 400, msg: 'You have already predicted the champion for this tournament' };
+
+                const prediction = await PredictionRepository.create({
+                    spectatorId: userId,
+                    tournamentId,
+                    predictedHorseId,
+                    predictionMethodId,
+                    predictionStatus: 'pending',
+                    rewardPoints: 0,
+                });
+                return { code: 201, data: prediction, msg: 'Champion prediction created successfully' };
+            }
+
+            // race_rank / race_winner — both need registrationId
+            if (!registrationId) return { code: 400, msg: 'registrationId is required for race predictions' };
+
+            if (method.methodType === 'race_rank' && (!predictedRank || predictedRank < 1)) {
+                return { code: 400, msg: 'predictedRank (≥1) is required for race_rank predictions' };
+            }
+
+            const registration = await Registration.findById(registrationId).lean();
+            if (!registration) return { code: 404, msg: 'Registration not found' };
+
+            const raceRound = await RaceRound.findById(registration.raceRoundId).lean();
+            if (!raceRound) return { code: 404, msg: 'Race round not found' };
+            if (!['scheduled', 'prepared'].includes(raceRound.status)) {
+                return { code: 400, msg: 'Predictions are only allowed before the race starts' };
+            }
+
+            const existing = await PredictionRepository.findOne({ spectatorId: userId, registrationId, predictionMethodId });
             if (existing) return { code: 400, msg: 'You have already predicted for this registration with this method' };
 
             const prediction = await PredictionRepository.create({
                 spectatorId: userId,
                 registrationId,
                 predictionMethodId,
-                predictedRank,
+                predictedRank: method.methodType === 'race_winner' ? 1 : predictedRank,
                 predictionStatus: 'pending',
                 rewardPoints: 0,
             });
-
             return { code: 201, data: prediction, msg: 'Prediction created successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
@@ -708,7 +736,7 @@ class SpectatorService {
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
 
-            const filter = { ...(predictionStatus && { predictionStatus }) };
+            const filter = { ...(predictionStatus && predictionStatus !== 'all' && { predictionStatus }) };
 
             const VALID_SORT = new Set(['created_at', 'updatedAt', 'predictionStatus', 'rewardPoints']);
             const safeSort = VALID_SORT.has(sortBy) ? sortBy : 'created_at';
@@ -725,12 +753,41 @@ class SpectatorService {
             // Populate each prediction and reshape to match mobile contract
             const enriched = await Promise.all(
                 predictions.map(async pred => {
-                    const [method, registration] = await Promise.all([
-                        PredictionMethod.findById(pred.predictionMethodId).lean(),
-                        Registration.findById(pred.registrationId).lean(),
-                    ]);
+                    const method = await PredictionMethod.findById(pred.predictionMethodId).lean();
 
-                    // Horse lives on Invitation, not Registration
+                    // ── tournament_champion branch ──────────────────────────────
+                    if (method?.methodType === 'tournament_champion') {
+                        let tournament = null;
+                        if (pred.tournamentId) {
+                            const t = await Tournament.findById(pred.tournamentId).lean();
+                            if (t) tournament = { _id: t._id, tournamentName: t.tournamentName, status: t.status };
+                        }
+                        let predictedHorse = null;
+                        if (pred.predictedHorseId) {
+                            const h = await Horse.findById(pred.predictedHorseId).lean();
+                            if (h) predictedHorse = { _id: h._id, horseName: h.horseName, img: h.img || null };
+                        }
+                        return {
+                            _id: pred._id,
+                            predictedRank: null,
+                            predictionStatus: pred.predictionStatus,
+                            rewardPoints: pred.rewardPoints,
+                            created_at: pred.created_at,
+                            predictionMethod: method ? {
+                                _id: method._id,
+                                methodName: method.methodName,
+                                methodDescription: method.methodDescription,
+                                methodType: method.methodType,
+                            } : null,
+                            registration: null,
+                            tournament,
+                            predictedHorse,
+                        };
+                    }
+
+                    // ── race_rank / race_winner branch ──────────────────────────
+                    const registration = await Registration.findById(pred.registrationId).lean();
+
                     let horse = null;
                     if (registration?.jockeyInRaceId) {
                         const inv = await Invitation.findById(registration.jockeyInRaceId).lean();
@@ -760,7 +817,6 @@ class SpectatorService {
                         }
                     }
 
-                    // Build nested registration object matching mobile shape
                     const registrationData = registration ? {
                         _id: registration._id,
                         laneNumber: registration.laneNumber || null,
@@ -778,8 +834,11 @@ class SpectatorService {
                             _id: method._id,
                             methodName: method.methodName,
                             methodDescription: method.methodDescription,
+                            methodType: method.methodType,
                         } : null,
                         registration: registrationData,
+                        tournament: null,
+                        predictedHorse: null,
                     };
                 })
             );
@@ -797,6 +856,61 @@ class SpectatorService {
                 },
                 msg: 'Predictions retrieved successfully',
             };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async getTournamentsForPrediction(userId) {
+        try {
+            const spectator = await SpectatorRepository.findBySpectatorId(userId);
+            if (!spectator) return { code: 404, msg: 'Spectator not found' };
+
+            const Tournament = require('../entities/Tournament');
+            const Horse = require('../entities/Horse');
+
+            const tournaments = await Tournament.find({
+                status: { $in: ['scheduled', 'ongoing'] },
+            }).lean();
+
+            // For each tournament, gather all horses that have participated in its races
+            const enriched = await Promise.all(tournaments.map(async t => {
+                const raceRounds = await RaceRound.find({ tournamentId: t._id }).select('_id').lean();
+                const raceRoundIds = raceRounds.map(r => r._id);
+
+                let horses = [];
+                if (raceRoundIds.length > 0) {
+                    const regs = await Registration.find({
+                        raceRoundId: { $in: raceRoundIds },
+                        registrationStatus: { $in: ['approved', 'verified'] },
+                    }).lean();
+
+                    const horseIds = [...new Set(regs.map(r => r.horseId?.toString()).filter(Boolean))];
+                    const horseDocs = horseIds.length > 0
+                        ? await Horse.find({ _id: { $in: horseIds } }).select('_id horseName img').lean()
+                        : [];
+                    horses = horseDocs.map(h => ({ _id: h._id, horseName: h.horseName, img: h.img || null }));
+                }
+
+                // Check if this spectator already predicted champion for this tournament
+                const existing = await PredictionRepository.findOne({
+                    spectatorId: userId,
+                    tournamentId: t._id,
+                });
+
+                return {
+                    _id: t._id,
+                    tournamentName: t.tournamentName,
+                    status: t.status,
+                    startDate: t.startDate,
+                    endDate: t.endDate,
+                    prizePool: t.prizePool,
+                    horses,
+                    alreadyPredicted: !!existing,
+                };
+            }));
+
+            return { code: 200, data: enriched, msg: 'Tournaments retrieved successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
