@@ -18,6 +18,37 @@ export interface RaceRefereeAssignment {
   fee?: number;
 }
 
+export interface PoolHorseEntry {
+  registrationId: string;
+  horseName: string | null;
+  totalStake: number;
+  poolShare: number;
+  odds: number;
+  displayPayout: number;
+}
+
+export interface PredictionPool {
+  methodType: 'race_winner' | 'race_rank';
+  poolStatus: 'live' | 'settled' | 'refunded' | 'empty';
+  takeoutRate: number;
+  grossPool: number | null;
+  netPool: number | null;
+  houseEarning: number | null;
+  totalBettors: number;
+  // live only
+  perHorse?: PoolHorseEntry[];
+  // settled only
+  totalPaidOut?: number;
+  totalWinners?: number;
+  totalLosers?: number;
+  totalRefunded?: number;
+}
+
+export interface TrackEarnings {
+  totalHouseEarning: number;
+  byPool: { race_winner: number | null; race_rank: number | null };
+}
+
 export interface RaceRoundData {
   _id: string;
   tournamentId?: string;
@@ -36,6 +67,8 @@ export interface RaceRoundData {
   currencyType?: string;
   Registration?: RaceRegistration[];
   Referee?: RaceRefereeAssignment[];
+  predictionPools?: PredictionPool[];
+  trackEarnings?: TrackEarnings;
 }
 
 export interface TournamentRaceData {

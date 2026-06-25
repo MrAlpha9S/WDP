@@ -138,15 +138,27 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                 </div>
                 <div>
                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Time</label>
-                    <input
-                        type="time"
-                        value={props.raceTime}
-                        onChange={(e) => props.setRaceTime(e.target.value)}
-                        min="09:00"
-                        max="17:00"
-                        step="1800"
-                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
-                    />
+                    <div className="flex gap-2 items-center">
+                        <select
+                            value={props.raceTime.split(':')[0] ?? '09'}
+                            onChange={(e) => props.setRaceTime(`${e.target.value}:${props.raceTime.split(':')[1] ?? '00'}`)}
+                            className="flex-1 bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
+                        >
+                            {Array.from({ length: 9 }, (_, i) => i + 9).map(h => {
+                                const hh = String(h).padStart(2, '0');
+                                return <option key={hh} value={hh}>{hh}</option>;
+                            })}
+                        </select>
+                        <span className="text-white font-bold">:</span>
+                        <select
+                            value={props.raceTime.split(':')[1] ?? '00'}
+                            onChange={(e) => props.setRaceTime(`${props.raceTime.split(':')[0] ?? '09'}:${e.target.value}`)}
+                            className="flex-1 bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
+                        >
+                            <option value="00">00</option>
+                            <option value="30">30</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

@@ -137,9 +137,30 @@ export interface PredictionItem {
 
 // Input shapes for createPrediction
 export type CreatePredictionBody =
-  | { predictionMethodId: string; registrationId: string; predictedRank: number }   // race_rank
-  | { predictionMethodId: string; registrationId: string }                           // race_winner
-  | { predictionMethodId: string; tournamentId: string; predictedHorseId: string }; // tournament_champion
+  | { predictionMethodId: string; registrationId: string; predictedRank: number; rewardPoints: number }   // race_rank
+  | { predictionMethodId: string; registrationId: string; rewardPoints: number }                           // race_winner
+  | { predictionMethodId: string; tournamentId: string; predictedHorseId: string; rewardPoints: number }; // tournament_champion
+
+// Payout info returned by getPredictionDetail
+export interface PredictionPayoutInfo {
+  methodType: string;
+  // pending — live pool snapshot
+  takeoutRate?: number;
+  grossPool?: number;
+  netPool?: number;
+  stakeOnPredictedHorse?: number;
+  totalBettors?: number;
+  odds?: number;
+  estimatedCollect?: number;
+  // settled
+  actualPayout?: number;
+  refunded?: boolean;
+}
+
+export interface PredictionDetail extends PredictionItem {
+  actualResult: Record<string, unknown> | null;
+  payoutInfo: PredictionPayoutInfo | null;
+}
 
 // ─── Wallet ───────────────────────────────────────────────────────────────────
 
@@ -358,5 +379,16 @@ export async function createPrediction(
     return { ok: res.data.code === 201, message: res.data.msg, data: res.data.data };
   } catch (err: any) {
     return { ok: false, message: err?.response?.data?.msg ?? 'Lỗi kết nối.' };
+  }
+}
+
+export async function getPredictionDetail(predictionId: string): Promise<PredictionDetail | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: PredictionDetail; msg: string }>(
+      `/api/spectator/predictions/${predictionId}`,
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
   }
 }

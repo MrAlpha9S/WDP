@@ -144,6 +144,7 @@ export default function NewPredictionScreen() {
   const [selectedHorseId, setSelectedHorseId] = useState<string | null>(null);
   const [selectedRegId, setSelectedRegId] = useState<string | null>(null);
   const [predictedRank, setPredictedRank] = useState('');
+  const [stakeInput, setStakeInput] = useState('');
   const [isConfigLoading, setIsConfigLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -178,6 +179,7 @@ export default function NewPredictionScreen() {
     setSelectedHorseId(null);
     setSelectedRegId(null);
     setPredictedRank('');
+    setStakeInput('');
     setSubmitError(null);
     setIsConfigLoading(true);
     setStep('configure');
@@ -193,6 +195,7 @@ export default function NewPredictionScreen() {
   const handleSelectTournament = async (item: TournamentForPrediction) => {
     setTarget({ type: 'tournament', item });
     setSelectedHorseId(null);
+    setStakeInput('');
     setSubmitError(null);
     setIsConfigLoading(true);
     setStep('configure');
@@ -216,6 +219,13 @@ export default function NewPredictionScreen() {
     setSubmitError(null);
     setIsSubmitting(true);
 
+    const rewardPoints = parseInt(stakeInput, 10);
+    if (!rewardPoints || rewardPoints <= 0) {
+      setSubmitError('Vui lòng nhập số điểm đặt cược hợp lệ (> 0).');
+      setIsSubmitting(false);
+      return;
+    }
+
     let body: CreatePredictionBody | null = null;
 
     if (selectedMethod.methodType === 'tournament_champion') {
@@ -224,15 +234,16 @@ export default function NewPredictionScreen() {
         predictionMethodId: selectedMethodId,
         tournamentId: (target.item as TournamentForPrediction)._id,
         predictedHorseId: selectedHorseId,
+        rewardPoints,
       };
     } else if (selectedMethod.methodType === 'race_winner') {
       if (!selectedRegId) { setSubmitError('Vui lòng chọn một con ngựa.'); setIsSubmitting(false); return; }
-      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId };
+      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, rewardPoints };
     } else if (selectedMethod.methodType === 'race_rank') {
       const rank = parseInt(predictedRank, 10);
       if (!selectedRegId) { setSubmitError('Vui lòng chọn một con ngựa.'); setIsSubmitting(false); return; }
       if (!rank || rank < 1) { setSubmitError('Vui lòng nhập thứ hạng hợp lệ (≥ 1).'); setIsSubmitting(false); return; }
-      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, predictedRank: rank };
+      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, predictedRank: rank, rewardPoints };
     }
 
     if (!body) { setIsSubmitting(false); return; }
@@ -260,7 +271,7 @@ export default function NewPredictionScreen() {
     step === 'configure' ? 'CẤU HÌNH DỰ ĐOÁN' : 'ĐẶT DỰ ĐOÁN MỚI';
 
   const handleBack = () => {
-    if (step === 'configure') { setStep('pick-type'); setTarget(null); }
+    if (step === 'configure') { setStep('pick-type'); setTarget(null); setStakeInput(''); }
     else router.back();
   };
 
@@ -444,7 +455,7 @@ export default function NewPredictionScreen() {
                   <SectionLabel text={target?.type === 'tournament' ? 'CHỌN NGỰA VÔ ĐỊCH' : 'CHỌN NGỰA'} />
                   {horses.length === 0 ? (
                     <View style={styles.inlineEmpty}>
-                      <Ionicons name="horse" size={20} color={Palette.textMuted} />
+                      <Ionicons name="ribbon-outline" size={20} color={Palette.textMuted} />
                       <Text style={styles.inlineEmptyText}>
                         {target?.type === 'race'
                           ? 'Chưa có ngựa đăng ký cho cuộc đua này'
@@ -485,6 +496,23 @@ export default function NewPredictionScreen() {
                   </View>
                 </View>
               )}
+
+              {/* Stake amount — always visible in configure step */}
+              <View style={styles.section}>
+                <SectionLabel text="SỐ ĐIỂM ĐẶT CƯỢC" />
+                <View style={styles.rankRow}>
+                  <Text style={styles.rankLabel}>Điểm</Text>
+                  <TextInput
+                    style={styles.rankInput}
+                    value={stakeInput}
+                    onChangeText={setStakeInput}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor={Palette.textMuted}
+                    maxLength={8}
+                  />
+                </View>
+              </View>
 
               {/* Error */}
               {submitError && (

@@ -109,44 +109,46 @@ export default function AdminRuleManagementPage() {
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? "flex-[0_0_50%]" : "flex-1"}`}>
 
                     {/* Header */}
-                    <header className="pb-6 flex items-center justify-between border-b border-white/5 shrink-0">
-                        <div>
-                            <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-                                Eligibility Rules
-                            </h1>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[11px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase">
-                                    All Rules
-                                </span>
-                                <span className="text-[13px] text-gray-500">· {totalItems} rule{totalItems !== 1 ? "s" : ""}</span>
+                    <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+                        {/* Row 1 */}
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                    Eligibility Rules
+                                </h1>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                                        All Rules
+                                    </span>
+                                    <span className="text-[12px] text-gray-500 truncate">· {totalItems} rule{totalItems !== 1 ? "s" : ""}</span>
+                                </div>
                             </div>
+                            <button onClick={openCreateModal} className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]">
+                                + Create Rule
+                            </button>
                         </div>
 
-                        <div className="flex gap-3 items-center">
-                            <div className="relative w-56">
+                        {/* Row 2 */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="relative flex-1 min-w-0">
                                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                                 <input
                                     type="text"
                                     placeholder="Search type or breed…"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-8 pr-3 text-[12px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[34px] transition-colors"
+                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px] transition-colors"
                                 />
                             </div>
-
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                                className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer"
+                                className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Statuses</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
-
-                            <button onClick={openCreateModal} className="flex items-center gap-2 px-5 text-[13px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[34px]">
-                                + Create Rule
-                            </button>
                         </div>
                     </header>
 

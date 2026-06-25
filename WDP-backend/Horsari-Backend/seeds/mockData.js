@@ -800,7 +800,7 @@ async function seed() {
         predictedHorseId: horses[2]._id,
         predictionMethodId: predictionMethods[0]._id,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 400,
       },
       {
         spectatorId: spectators[1]._id,
@@ -808,7 +808,7 @@ async function seed() {
         predictedHorseId: horses[3]._id,
         predictionMethodId: predictionMethods[0]._id,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 300,
       },
       {
         spectatorId: spectators[2]._id,
@@ -816,7 +816,7 @@ async function seed() {
         predictedHorseId: horses[4]._id,
         predictionMethodId: predictionMethods[0]._id,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 600,
       },
       {
         spectatorId: spectators[3]._id,
@@ -824,7 +824,7 @@ async function seed() {
         predictedHorseId: horses[5]._id,
         predictionMethodId: predictionMethods[0]._id,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 250,
       },
 
       {
@@ -953,7 +953,7 @@ async function seed() {
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 1,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 200,
       },
       {
         spectatorId: spectators[3]._id,
@@ -961,7 +961,7 @@ async function seed() {
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 2,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 150,
       },
       {
         spectatorId: spectators[3]._id,
@@ -969,7 +969,7 @@ async function seed() {
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 3,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 100,
       },
       {
         spectatorId: spectators[3]._id,
@@ -977,7 +977,7 @@ async function seed() {
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 1,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 350,
       },
       {
         spectatorId: spectators[3]._id,
@@ -985,7 +985,7 @@ async function seed() {
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 2,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 180,
       },
 
       /* ==========================
@@ -1042,35 +1042,35 @@ async function seed() {
         registrationId: r2Regs[0]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 500,
       },
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[1]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 300,
       },
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[2]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 700,
       },
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[3]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 200,
       },
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[4]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
-        rewardPoints: 0,
+        rewardPoints: 450,
       },
 
       {

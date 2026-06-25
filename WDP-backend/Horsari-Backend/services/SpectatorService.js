@@ -662,12 +662,17 @@ class SpectatorService {
 
     async createPrediction(userId, body) {
         try {
-            const { predictionMethodId, registrationId, predictedRank, tournamentId, predictedHorseId } = body || {};
+            const { predictionMethodId, registrationId, predictedRank, tournamentId, predictedHorseId, rewardPoints } = body || {};
 
             if (!predictionMethodId) return { code: 400, msg: 'predictionMethodId is required' };
+            if (!rewardPoints || rewardPoints <= 0) return { code: 400, msg: 'rewardPoints must be greater than 0' };
 
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
+
+            if ((spectator.wallet || 0) < rewardPoints) {
+                return { code: 400, msg: 'Insufficient wallet balance' };
+            }
 
             const method = await PredictionMethod.findById(predictionMethodId).lean();
             if (!method) return { code: 404, msg: 'Prediction method not found' };
@@ -687,13 +692,23 @@ class SpectatorService {
                 const existing = await PredictionRepository.findOne({ spectatorId: userId, tournamentId, predictionMethodId });
                 if (existing) return { code: 400, msg: 'You have already predicted the champion for this tournament' };
 
+                await SpectatorRepository.addRewardPoints(spectator._id, -rewardPoints);
+                await TransactionRepository.create({
+                    userId,
+                    transactionType: 'reward',
+                    amount: -rewardPoints,
+                    status: 'completed',
+                    description: `Prediction stake — ${method.methodName}`,
+                    referenceType: 'prediction',
+                });
+
                 const prediction = await PredictionRepository.create({
                     spectatorId: userId,
                     tournamentId,
                     predictedHorseId,
                     predictionMethodId,
                     predictionStatus: 'pending',
-                    rewardPoints: 0,
+                    rewardPoints,
                 });
                 return { code: 201, data: prediction, msg: 'Champion prediction created successfully' };
             }
@@ -717,13 +732,23 @@ class SpectatorService {
             const existing = await PredictionRepository.findOne({ spectatorId: userId, registrationId, predictionMethodId });
             if (existing) return { code: 400, msg: 'You have already predicted for this registration with this method' };
 
+            await SpectatorRepository.addRewardPoints(spectator._id, -rewardPoints);
+            await TransactionRepository.create({
+                userId,
+                transactionType: 'reward',
+                amount: -rewardPoints,
+                status: 'completed',
+                description: `Prediction stake — ${method.methodName}`,
+                referenceType: 'prediction',
+            });
+
             const prediction = await PredictionRepository.create({
                 spectatorId: userId,
                 registrationId,
                 predictionMethodId,
                 predictedRank: method.methodType === 'race_winner' ? 1 : predictedRank,
                 predictionStatus: 'pending',
-                rewardPoints: 0,
+                rewardPoints,
             });
             return { code: 201, data: prediction, msg: 'Prediction created successfully' };
         } catch (error) {
@@ -955,9 +980,116 @@ class SpectatorService {
                 }
             }
 
+            // ── Payout info ──────────────────────────────────────────────────
+            // Each method type has its own independent pool (race_winner pool ≠
+            // race_rank pool ≠ tournament_champion pool), so we compute odds
+            // only within the pool that matches this prediction's methodType.
+            const PayoutService = require('./PayoutService');
+            let payoutInfo = null;
+
+            if (prediction.predictionStatus === 'pending' && method) {
+                const S = prediction.rewardPoints || 0; // this spectator's stake
+
+                if (method.methodType === 'tournament_champion' && prediction.tournamentId) {
+                    // Pool = all pending stakes for this tournament + this method only
+                    const Prediction = require('../entities/Prediction');
+                    const champPreds = await Prediction.find({
+                        tournamentId:       prediction.tournamentId,
+                        predictionMethodId: prediction.predictionMethodId,
+                        predictionStatus:   'pending',
+                    }).lean();
+
+                    // Bi per predicted horse
+                    const stakeByHorse = {};
+                    for (const p of champPreds) {
+                        const hid = p.predictedHorseId?.toString();
+                        if (hid) stakeByHorse[hid] = (stakeByHorse[hid] || 0) + (p.rewardPoints || 0);
+                    }
+
+                    const P  = PayoutService.grossPool(Object.values(stakeByHorse));
+                    const T  = 0.22; // tournament_champion takeout
+                    const N  = PayoutService.netPool(P, T);
+                    const Bi = stakeByHorse[prediction.predictedHorseId?.toString()] || 0;
+
+                    payoutInfo = {
+                        methodType:            method.methodType,
+                        takeoutRate:           T,
+                        grossPool:             P,
+                        netPool:               parseFloat(N.toFixed(2)),
+                        stakeOnPredictedHorse: Bi,
+                        totalBettors:          champPreds.length,
+                        odds:                  parseFloat(PayoutService.oddsForHorse(N, Bi).toFixed(4)),
+                        estimatedCollect:      Bi > 0 && S > 0
+                            ? parseFloat(PayoutService.totalCollect(S, N, Bi).toFixed(2))
+                            : 0,
+                    };
+
+                } else if (['race_winner', 'race_rank'].includes(method.methodType) && raceRound) {
+                    // Build pool directly from ALL pending predictions for this race round
+                    // and method type. We do NOT restrict to 'verified' registrations here
+                    // because predictions are allowed on 'approved' registrations too — filtering
+                    // to 'verified' would make the live pool appear empty until admin verifies.
+                    const Prediction = require('../entities/Prediction');
+                    const allRegsInRound = await Registration.find({ raceRoundId: raceRound._id })
+                        .select('_id').lean();
+                    const allRegIds = allRegsInRound.map(r => r._id);
+
+                    const racePreds = await Prediction.find({
+                        registrationId:     { $in: allRegIds },
+                        predictionMethodId: prediction.predictionMethodId,
+                        predictionStatus:   'pending',
+                    }).lean();
+
+                    // Bi = sum of stakes on each registration (independent pools per horse)
+                    const stakeByReg = {};
+                    for (const p of racePreds) {
+                        const rid = p.registrationId.toString();
+                        stakeByReg[rid] = (stakeByReg[rid] || 0) + (p.rewardPoints || 0);
+                    }
+
+                    const T  = 0.17; // race methods takeout
+                    const P  = PayoutService.grossPool(Object.values(stakeByReg));
+                    const N  = PayoutService.netPool(P, T);
+                    const Bi = stakeByReg[prediction.registrationId?.toString()] || 0;
+
+                    payoutInfo = {
+                        methodType:            method.methodType,
+                        takeoutRate:           T,
+                        grossPool:             P,
+                        netPool:               parseFloat(N.toFixed(2)),
+                        stakeOnPredictedHorse: Bi,
+                        totalBettors:          racePreds.length,
+                        odds:                  parseFloat(PayoutService.oddsForHorse(N, Bi).toFixed(4)),
+                        estimatedCollect:      Bi > 0 && S > 0
+                            ? parseFloat(PayoutService.totalCollect(S, N, Bi).toFixed(2))
+                            : 0,
+                    };
+                }
+
+            } else if (prediction.predictionStatus === 'correct') {
+                // rewardPoints was overwritten with actual parimutuel collect at settle time
+                payoutInfo = { methodType: method?.methodType ?? null, actualPayout: prediction.rewardPoints };
+
+            } else if (prediction.predictionStatus === 'incorrect') {
+                payoutInfo = { methodType: method?.methodType ?? null, actualPayout: 0 };
+
+            } else if (prediction.predictionStatus === 'refunded') {
+                // Stake returned to wallet; rewardPoints reset to 0 at settle time
+                payoutInfo = { methodType: method?.methodType ?? null, actualPayout: 0, refunded: true };
+            }
+
             return {
                 code: 200,
-                data: { ...prediction, predictionMethod: method, registration, horse, raceRound, tournament, actualResult },
+                data: {
+                    ...prediction,
+                    predictionMethod: method,
+                    registration,
+                    horse,
+                    raceRound,
+                    tournament,
+                    actualResult,
+                    payoutInfo,
+                },
                 msg: 'Prediction detail retrieved successfully',
             };
         } catch (error) {

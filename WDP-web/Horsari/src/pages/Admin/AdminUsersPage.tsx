@@ -35,7 +35,32 @@ export interface RaceHistoryData { id: string; raceName: string; date: string; p
 export interface JockeyData { height: number; weight: number; matchesRaced: number; totalWins: number; ranking: number; status: string; licenseLink: string; licenseStatus: string; raceHistory?: RaceHistoryData[]; }
 export interface RefereeAssignmentData { assignmentId: string; raceRoundId: string | null; roundName: string | null; raceDate: string | null; raceStatus: string | null; assignmentStatus: string; paymentStatus: string; fee: number; violations?: ViolationData[]; }
 export interface RefereeData { licenseLink: string; licenseStatus: string; totalAssignments: number; assignments?: RefereeAssignmentData[]; }
-export interface SpectatorData { rewardPoints: number; }
+export interface SpectatorPredictionData {
+    predictionId: string;
+    methodName: string | null;
+    methodType: string | null;
+    predictionStatus: string;
+    rewardPoints: number;
+    predictedRank: number | null;
+    predictedHorse: string | null;
+    raceRound: { raceRoundId: string; roundName: string; raceDate: string; status: string } | null;
+    tournament: { tournamentId: string; tournamentName: string; status: string } | null;
+    createdAt: string | null;
+}
+export interface SpectatorTransactionData {
+    transactionId: string;
+    transactionType: string;
+    amount: number;
+    status: string;
+    description: string | null;
+    referenceType: string | null;
+    date: string;
+}
+export interface SpectatorData {
+    wallet: number;
+    predictions: SpectatorPredictionData[];
+    transactions: SpectatorTransactionData[];
+}
 export interface AdminData { adminLevel: number; }
 
 export type RoleData =
@@ -138,7 +163,30 @@ function mergeRoleDetail(base: FullUser, detail: any): FullUser {
             })),
         };
     } else if (base.role === 'Spectator') {
-        data = { rewardPoints: rp.rewardPoints ?? 0 };
+        data = {
+            wallet: rp.wallet ?? 0,
+            predictions: (rp.predictions ?? []).map((p: any): SpectatorPredictionData => ({
+                predictionId:     String(p.predictionId ?? p._id),
+                methodName:       p.methodName       ?? null,
+                methodType:       p.methodType       ?? null,
+                predictionStatus: p.predictionStatus ?? 'pending',
+                rewardPoints:     p.rewardPoints     ?? 0,
+                predictedRank:    p.predictedRank    ?? null,
+                predictedHorse:   p.predictedHorse   ?? null,
+                raceRound:        p.raceRound        ?? null,
+                tournament:       p.tournament       ?? null,
+                createdAt:        p.createdAt        ?? null,
+            })),
+            transactions: (rp.transactions ?? []).map((t: any): SpectatorTransactionData => ({
+                transactionId:   String(t.transactionId ?? t._id),
+                transactionType: t.transactionType,
+                amount:          t.amount,
+                status:          t.status,
+                description:     t.description  ?? null,
+                referenceType:   t.referenceType ?? null,
+                date:            t.date,
+            })),
+        };
     } else if (base.role === 'Admin') {
         data = { adminLevel: 1 };
     }
@@ -167,7 +215,7 @@ function mapUser(backendUser: any): FullUser {
     if (role === 'HorseOwner') data = { address: "N/A", licenseStatus: "N/A", licenseLink: "" };
     else if (role === 'Jockey') data = { height: 0, weight: 0, matchesRaced: 0, totalWins: 0, ranking: 0, status: "N/A", licenseLink: "", licenseStatus: "N/A" };
     else if (role === 'Referee') data = { certificationNumber: "N/A", licenseNumber: "N/A" };
-    else if (role === 'Spectator') data = { rewardPoints: 0 };
+    else if (role === 'Spectator') data = { wallet: 0, predictions: [], transactions: [] };
     else if (role === 'Admin') data = { adminLevel: 1 };
 
     return { ...base, data } as FullUser;
@@ -307,46 +355,51 @@ export default function AdminUsersPage() {
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? "flex-[0_0_50%]" : "flex-1"}`}>
                     
                     {/* Header */}
-                    <header className="pb-6 flex items-center justify-between border-b border-white/5 shrink-0">
-                        <div>
-                            <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-                                Users
-                            </h1>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[11px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase">
-                                    All Registered Users
-                                </span>
-                                <span className="text-[13px] text-gray-500">· {totalItems} user{totalItems !== 1 ? "s" : ""}</span>
+                    <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+                        {/* Row 1 */}
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                    Users
+                                </h1>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                                        All Registered Users
+                                    </span>
+                                    <span className="text-[12px] text-gray-500 truncate">· {totalItems} user{totalItems !== 1 ? "s" : ""}</span>
+                                </div>
                             </div>
+                            <button className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]">
+                                + Create User
+                            </button>
                         </div>
 
-                        <div className="flex gap-3 items-center">
-                            <div className="relative w-56">
+                        {/* Row 2 */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="relative flex-1 min-w-0">
                                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                                 <input
                                     type="text"
                                     placeholder="Search users…"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-8 pr-3 text-[12px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[34px] transition-colors"
+                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px] transition-colors"
                                 />
                             </div>
-
                             <select
                                 value={limit}
                                 onChange={(e) => setLimit(Number(e.target.value))}
-                                className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer"
+                                className="shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
-                                <option value={10}>10 per page</option>
-                                <option value={25}>25 per page</option>
-                                <option value={50}>50 per page</option>
-                                <option value={100}>100 per page</option>
+                                <option value={10}>10 / page</option>
+                                <option value={25}>25 / page</option>
+                                <option value={50}>50 / page</option>
+                                <option value={100}>100 / page</option>
                             </select>
-
                             <select
                                 value={roleFilter}
                                 onChange={(e) => setRoleFilter(e.target.value as any)}
-                                className="bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[12px] text-gray-300 focus:outline-none focus:border-white/20 h-[34px] appearance-none cursor-pointer"
+                                className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Roles</option>
                                 <option value="HorseOwner">Horse Owner</option>
@@ -355,10 +408,6 @@ export default function AdminUsersPage() {
                                 <option value="Spectator">Spectator</option>
                                 <option value="Admin">Admin</option>
                             </select>
-
-                            <button className="flex items-center gap-2 px-5 text-[13px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[34px]">
-                                + Create User
-                            </button>
                         </div>
                     </header>
 

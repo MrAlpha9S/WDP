@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, CheckCircle, XCircle, Clock, ExternalLink, FileText, Image as ImageIcon, Star, Shield, Loader2, AlertTriangle, Timer } from "lucide-react";
 import { ROLE_STYLES, STATUS_STYLES, accentClass, Avatar } from "../AdminUsersPage";
-import type { FullUser, ViolationData } from "../AdminUsersPage";
+import type { FullUser, ViolationData, SpectatorData } from "../AdminUsersPage";
 
 // ── Clickable avatar for panel header (opens lightbox if image exists) ────────
 
@@ -171,6 +171,63 @@ function ViolationList({ violations }: { violations: ViolationData[] }) {
     );
 }
 
+function SpectatorActivityTab({ data }: { data: SpectatorData }) {
+    const [subTab, setSubTab] = useState<'predictions' | 'transactions'>('predictions');
+    return (
+        <div className="flex flex-col gap-3">
+            <div className="flex rounded-lg overflow-hidden border border-white/[0.07] divide-x divide-white/[0.07]">
+                <button onClick={() => setSubTab('predictions')} className={`flex-1 text-[11px] font-semibold py-1.5 transition-colors ${subTab === 'predictions' ? 'bg-white/[0.08] text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                    Predictions ({data.predictions.length})
+                </button>
+                <button onClick={() => setSubTab('transactions')} className={`flex-1 text-[11px] font-semibold py-1.5 transition-colors ${subTab === 'transactions' ? 'bg-white/[0.08] text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                    Transactions ({data.transactions.length})
+                </button>
+            </div>
+
+            {subTab === 'predictions' && (
+                data.predictions.length ? data.predictions.map(p => (
+                    <div key={p.predictionId} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 flex flex-col gap-1">
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                                <p className="text-[12px] font-semibold text-white truncate">{p.predictedHorse ?? 'Unknown Horse'}</p>
+                                {p.raceRound && <p className="text-[11px] text-gray-500 truncate">{p.raceRound.roundName} · {p.raceRound.raceDate ? new Date(p.raceRound.raceDate).toLocaleDateString() : 'TBD'}</p>}
+                            </div>
+                            <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded capitalize ${p.predictionStatus === 'won' ? 'bg-emerald-500/15 text-emerald-400' : p.predictionStatus === 'lost' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                                {p.predictionStatus}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px] text-gray-500 flex-wrap">
+                            {p.methodName && <span>{p.methodName}{p.methodType ? ` (${p.methodType})` : ''}</span>}
+                            {p.predictedRank != null && <span>Rank: #{p.predictedRank}</span>}
+                            <span className="text-amber-400 font-medium">{p.rewardPoints >= 0 ? `+${p.rewardPoints.toLocaleString()}` : p.rewardPoints.toLocaleString()} pts</span>
+                        </div>
+                    </div>
+                )) : <p className="text-[12px] text-gray-500 text-center py-4">No predictions yet.</p>
+            )}
+
+            {subTab === 'transactions' && (
+                data.transactions.length ? data.transactions.map(t => (
+                    <div key={t.transactionId} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                            <p className="text-[12px] font-semibold text-white capitalize truncate">{t.transactionType.replace(/_/g, ' ')}</p>
+                            {t.description && <p className="text-[11px] text-gray-500 truncate">{t.description}</p>}
+                            <p className="text-[11px] text-gray-600">{new Date(t.date).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                            <span className={`text-[13px] font-bold ${t.amount >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString()}
+                            </span>
+                            <span className={`text-[10px] font-medium ${t.status === 'completed' ? 'text-emerald-400/70' : t.status === 'failed' ? 'text-red-400/70' : 'text-amber-400/70'}`}>
+                                {t.status}
+                            </span>
+                        </div>
+                    </div>
+                )) : <p className="text-[12px] text-gray-500 text-center py-4">No transactions yet.</p>
+            )}
+        </div>
+    );
+}
+
 function RoleDetails({ user }: { user: FullUser }) {
     const style = ROLE_STYLES[user.role];
     return (
@@ -208,11 +265,14 @@ function RoleDetails({ user }: { user: FullUser }) {
                     } />
                     <div className="py-2"><FileLink label="Referee License" href={user.data?.licenseLink} type="pdf" /></div>
                 </>)}
-                {user.role === "Spectator" && (
-                    <DetailRow label="Reward Points" value={
-                        user.data?.rewardPoints != null ? <span className="text-amber-400 font-semibold">{user.data.rewardPoints.toLocaleString()} pts</span> : null
-                    } />
-                )}
+                {user.role === "Spectator" && (() => {
+                    const sd = user.data as SpectatorData;
+                    return (<>
+                        <DetailRow label="Wallet Balance" value={<span className="text-amber-400 font-semibold">{sd.wallet.toLocaleString()} pts</span>} />
+                        <DetailRow label="Total Predictions" value={<span className="text-white font-semibold">{sd.predictions.length}</span>} />
+                        <DetailRow label="Total Transactions" value={<span className="text-white font-semibold">{sd.transactions.length}</span>} />
+                    </>);
+                })()}
                 {user.role === "Admin" && (
                     <DetailRow label="Admin Level" value={
                         user.data?.adminLevel != null ? <span className="flex items-center gap-1.5 text-red-400 font-semibold"><Shield size={12} />Level {user.data.adminLevel}</span> : null
@@ -299,12 +359,12 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                     >
                         Role Info
                     </button>
-                    {["Jockey", "HorseOwner", "Referee"].includes(user.role) && (
+                    {["Jockey", "HorseOwner", "Referee", "Spectator"].includes(user.role) && (
                         <button
                             className={`flex-1 pb-2 text-[12px] font-semibold transition-colors ${activeTab === "History" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
                             onClick={() => setActiveTab("History")}
                         >
-                            {user.role === "HorseOwner" ? "Stables" : user.role === "Referee" ? "Assignments" : "History"}
+                            {user.role === "HorseOwner" ? "Stables" : user.role === "Referee" ? "Assignments" : user.role === "Spectator" ? "Activity" : "History"}
                         </button>
                     )}
                 </div>
@@ -461,6 +521,10 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                                 </div>
                             )) : <p className="text-[12px] text-gray-500 text-center py-4">No assignments found.</p>}
                         </div>
+                    )}
+
+                    {activeTab === "History" && user.role === "Spectator" && (
+                        <SpectatorActivityTab data={user.data as SpectatorData} />
                     )}
                 </div>
             </div>

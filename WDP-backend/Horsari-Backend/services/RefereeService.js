@@ -509,6 +509,14 @@ class RefereeService {
                 { new: true }
             ).lean();
 
+            // Refund predictions if the horse failed inspection
+            if (status === 'failed') {
+                const PayoutService = require('./PayoutService');
+                PayoutService.refundRegistrationPredictions(registrationId).catch(err =>
+                    console.error('[RefereeService] refundRegistrationPredictions error:', err.message)
+                );
+            }
+
             // 5. Sync violations — always clear old ones first (handles re-inspect)
             await Violation.deleteMany({ registrationId });
 

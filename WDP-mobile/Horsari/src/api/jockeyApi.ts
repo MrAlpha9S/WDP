@@ -71,17 +71,25 @@ export interface InvitationItem {
 // ─── API calls ───────────────────────────────────────────────────────────────
 
 export async function getMyRaceSchedule(): Promise<ScheduleItem[]> {
-  const res = await apiClient.get<{ code: number; data: ScheduleItem[]; msg: string }>(
-    '/api/jockey/my-race-schedule'
-  );
-  return res.data.code === 200 ? (res.data.data ?? []) : [];
+  try {
+    const res = await apiClient.get<{ code: number; data: ScheduleItem[]; msg: string }>(
+      '/api/jockey/my-race-schedule'
+    );
+    return res.data.code === 200 ? (res.data.data ?? []) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getMyInvitations(): Promise<InvitationItem[]> {
-  const res = await apiClient.get<{ code: number; data: InvitationItem[]; msg: string }>(
-    '/api/jockey/my-invitations'
-  );
-  return res.data.code === 200 ? (res.data.data ?? []) : [];
+  try {
+    const res = await apiClient.get<{ code: number; data: InvitationItem[]; msg: string }>(
+      '/api/jockey/my-invitations'
+    );
+    return res.data.code === 200 ? (res.data.data ?? []) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function respondToInvitation(

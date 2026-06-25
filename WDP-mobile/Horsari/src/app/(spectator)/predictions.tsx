@@ -19,7 +19,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   getMyPredictions,
+  getPredictionDetail,
+  PredictionDetail,
   PredictionItem,
+  PredictionPayoutInfo,
   PredictionStatus,
 } from '../../api/spectatorApi';
 import { Fonts } from '@/constants/theme';
@@ -71,14 +74,123 @@ function DetailRow({ label, value, valueColor }: { label: string; value: string;
   );
 }
 
+// ─── Payout Section ───────────────────────────────────────────────────────────
+
+function PayoutSection({
+  item,
+  detail,
+  loading,
+}: {
+  item: PredictionItem;
+  detail: PredictionDetail | null;
+  loading: boolean;
+}) {
+  const payout: PredictionPayoutInfo | null = detail?.payoutInfo ?? null;
+
+  if (loading) {
+    return (
+      <View style={styles.payoutBox}>
+        <ActivityIndicator size="small" color={Palette.gold} />
+      </View>
+    );
+  }
+
+  if (!payout) return null;
+
+  const { predictionStatus } = item;
+
+  if (predictionStatus === 'pending') {
+    const stake = item.rewardPoints;
+    const odds = payout.odds ?? 0;
+    const est = payout.estimatedCollect ?? 0;
+    return (
+      <View style={styles.payoutBox}>
+        <Text style={styles.payoutBoxTitle}>TỶ LỆ CƯỢC HIỆN TẠI</Text>
+        <View style={styles.payoutGrid}>
+          <View style={styles.payoutCell}>
+            <Text style={styles.payoutCellLabel}>CƯỢC</Text>
+            <Text style={styles.payoutCellValue}>{stake.toLocaleString()}</Text>
+          </View>
+          <View style={[styles.payoutCell, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#2A2A30' }]}>
+            <Text style={styles.payoutCellLabel}>HỆ SỐ</Text>
+            <Text style={[styles.payoutCellValue, { color: Palette.gold }]}>{odds.toFixed(2)}×</Text>
+          </View>
+          <View style={styles.payoutCell}>
+            <Text style={styles.payoutCellLabel}>DỰ THẮNG</Text>
+            <Text style={[styles.payoutCellValue, { color: Palette.green }]}>~{Math.round(est).toLocaleString()}</Text>
+          </View>
+        </View>
+        {payout.grossPool != null && (
+          <View style={styles.payoutMeta}>
+            <Ionicons name="people-outline" size={11} color={Palette.textMuted} />
+            <Text style={styles.payoutMetaText}>
+              {payout.totalBettors ?? 0} người đặt · Pool: {(payout.grossPool ?? 0).toLocaleString()} pts · Phí: {(((payout.takeoutRate ?? 0.17)) * 100).toFixed(0)}%
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  if (predictionStatus === 'correct') {
+    return (
+      <View style={[styles.payoutBox, { borderColor: `${Palette.green}44` }]}>
+        <View style={styles.payoutResultRow}>
+          <Ionicons name="checkmark-circle" size={18} color={Palette.green} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.payoutResultLabel}>ĐIỂM NHẬN ĐƯỢC</Text>
+            <Text style={[styles.payoutResultValue, { color: Palette.green }]}>
+              +{(payout.actualPayout ?? item.rewardPoints).toLocaleString()} pts
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (predictionStatus === 'incorrect') {
+    return (
+      <View style={[styles.payoutBox, { borderColor: `${Palette.red}44` }]}>
+        <View style={styles.payoutResultRow}>
+          <Ionicons name="close-circle" size={18} color={Palette.red} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.payoutResultLabel}>KẾT QUẢ</Text>
+            <Text style={[styles.payoutResultValue, { color: Palette.red }]}>Thua cuộc · 0 pts</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (predictionStatus === 'refunded') {
+    return (
+      <View style={[styles.payoutBox, { borderColor: `${Palette.gold}44` }]}>
+        <View style={styles.payoutResultRow}>
+          <Ionicons name="refresh-circle" size={18} color={Palette.gold} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.payoutResultLabel}>HOÀN ĐIỂM</Text>
+            <Text style={[styles.payoutResultValue, { color: Palette.gold }]}>Đã hoàn trả điểm cược</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return null;
+}
+
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 
 function PredictionDetailModal({
   item,
+  detail,
+  detailLoading,
   visible,
   onClose,
 }: {
   item: PredictionItem | null;
+  detail: PredictionDetail | null;
+  detailLoading: boolean;
   visible: boolean;
   onClose: () => void;
 }) {
@@ -157,13 +269,13 @@ function PredictionDetailModal({
             <DetailRow label="Hạng dự đoán" value={`Hạng ${item.predictedRank}`} valueColor={Palette.gold} />
           )}
           {raceDate && <DetailRow label="Ngày đua" value={raceDate} />}
-          {item.rewardPoints > 0 && (
-            <DetailRow label="Điểm thưởng" value={`+${item.rewardPoints} điểm`} valueColor={Palette.green} />
-          )}
           {item.created_at && (
             <DetailRow label="Ngày đặt" value={formatViDate(item.created_at)} />
           )}
         </View>
+
+        {/* Payout section */}
+        <PayoutSection item={item} detail={detail} loading={detailLoading} />
 
         <Pressable style={styles.closeBtn} onPress={onClose}>
           <Text style={styles.closeBtnText}>ĐÓNG</Text>
@@ -280,6 +392,8 @@ export default function PredictionsScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<PredictionItem | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<PredictionDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
   const load = async (filter: FilterKey, silent = false) => {
@@ -304,9 +418,14 @@ export default function PredictionsScreen() {
     load(activeFilter, true);
   };
 
-  const openDetail = (item: PredictionItem) => {
+  const openDetail = async (item: PredictionItem) => {
     setSelectedItem(item);
+    setSelectedDetail(null);
+    setDetailLoading(true);
     setModalVisible(true);
+    const detail = await getPredictionDetail(item._id);
+    setSelectedDetail(detail);
+    setDetailLoading(false);
   };
 
   return (
@@ -399,6 +518,8 @@ export default function PredictionsScreen() {
       {/* ─── Detail Modal ─── */}
       <PredictionDetailModal
         item={selectedItem}
+        detail={selectedDetail}
+        detailLoading={detailLoading}
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
       />
@@ -647,6 +768,84 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.5,
     color: Palette.textMuted,
+  },
+
+  // ── Payout Section ──
+  payoutBox: {
+    marginTop: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A2A30',
+    backgroundColor: '#111113',
+    overflow: 'hidden',
+  },
+  payoutBoxTitle: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: Palette.textMuted,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
+  payoutGrid: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderColor: '#2A2A30',
+  },
+  payoutCell: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 4,
+  },
+  payoutCellLabel: {
+    fontFamily: Fonts.mono,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: Palette.textMuted,
+  },
+  payoutCellValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Palette.text,
+  },
+  payoutMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderColor: '#2A2A30',
+  },
+  payoutMetaText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    color: Palette.textMuted,
+    flex: 1,
+  },
+  payoutResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+  },
+  payoutResultLabel: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    color: Palette.textMuted,
+    marginBottom: 2,
+  },
+  payoutResultValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Palette.text,
   },
 
   // Empty / error states

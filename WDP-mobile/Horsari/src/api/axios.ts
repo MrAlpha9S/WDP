@@ -30,11 +30,13 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
-// On 401: clear stored session and trigger logout via the registered handler.
+// On 401 or 403: clear stored session and trigger logout via the registered handler.
+// 401 = token missing/expired; 403 = token present but defective/tampered.
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
       await clearSession();
       _onUnauthorized?.();
     }

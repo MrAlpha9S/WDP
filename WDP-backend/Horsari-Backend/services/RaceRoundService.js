@@ -370,7 +370,12 @@ class RaceRoundService {
             // Update invitations linked to these registrations
             await InvitationRepository.updateManyByRegistrationIds(registrationIds, { invitationStatus: 'cancelled' });
         }
-        
+
+        const PayoutService = require('../services/PayoutService');
+        PayoutService.refundRacePredictions(id).catch(err =>
+            console.error('[RaceRoundService] refundRacePredictions error:', err.message)
+        );
+
         return { code: 200, message: 'Race round cancelled successfully', data: updatedRaceRound };
     }
 
