@@ -12,6 +12,11 @@ const violationSchema = new mongoose.Schema(
             ref: 'Registration',
             required: false,
         },
+        raceRoundId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'RaceRound',
+            required: true,
+        },
         raceRefereeId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'RaceReferee',

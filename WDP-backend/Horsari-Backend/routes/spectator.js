@@ -27,6 +27,9 @@ router.get('/wallet', authMiddleware, authSpectator, SpectatorController.getWall
 router.get('/transactions', authMiddleware, authSpectator, SpectatorController.getTransactionHistory);
 router.post('/deposit', authMiddleware, authSpectator, SpectatorController.depositPoints);
 router.post('/withdraw', authMiddleware, authSpectator, SpectatorController.withdrawPoints);
+// Mobile-compatible aliases
+router.post('/transactions/deposit', authMiddleware, authSpectator, SpectatorController.depositPoints);
+router.post('/transactions/withdraw', authMiddleware, authSpectator, SpectatorController.withdrawPoints);
 
 // Protected routes - home feed & race viewing
 router.get('/home-feed', authMiddleware, authSpectator, SpectatorController.getHomeFeed);

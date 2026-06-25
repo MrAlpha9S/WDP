@@ -121,6 +121,27 @@ class JockeyController {
     return res.status(response.code).json(response);
   }
 
+  // Mobile: GET /my-race-schedule — flat array, includes invitationId/isBackup/percentagePayout
+  async getMyRaceScheduleFlat(req, res) {
+    const response = await JockeyService.getMyRaceScheduleFlat(req.userId);
+    return res.status(response.code).json(response);
+  }
+
+  // Mobile: GET /my-invitations — flat array, nested horseOwner.user
+  async getMyInvitationsFlat(req, res) {
+    const { status } = req.query;
+    const response = await JockeyService.getMyInvitationsFlat(req.userId, status);
+    return res.status(response.code).json(response);
+  }
+
+  // Mobile: PUT /invitation/:invitationId/respond
+  async respondToInvitationById(req, res) {
+    const { invitationId } = req.params;
+    const { jockeyConfirmation } = req.body;
+    const response = await JockeyService.respondToInvitationById(req.userId, invitationId, jockeyConfirmation);
+    return res.status(response.code).json(response);
+  }
+
   // View race history — races where jockey was the confirmed official rider
   async getViewRaceHistory(req, res) {
     const page = parseInt(req.query.page) || 1;

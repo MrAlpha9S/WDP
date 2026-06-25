@@ -6,6 +6,11 @@ const registrationSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'RaceRound',
         },
+        horseId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Horse',
+            required: true,
+        },
         approvedByAdminId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Admin',
@@ -31,6 +36,10 @@ const registrationSchema = new mongoose.Schema(
         jockeyInRaceId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Invitation',
+            default: null,
+        },
+        laneNumber: {
+            type: Number,
             default: null,
         },
     },

@@ -47,7 +47,36 @@ class SpectatorService {
             if (!spectator) {
                 return { code: 404, msg: 'Spectator profile not found' };
             }
-            return { code: 200, data: spectator, msg: 'Spectator profile retrieved successfully' };
+
+            const user = await UserRepository.findById(spectatorId);
+
+            const Prediction = require('../entities/Prediction');
+            const [totalPredictions, totalCorrectPredictions] = await Promise.all([
+                Prediction.countDocuments({ spectatorId }),
+                Prediction.countDocuments({ spectatorId, predictionStatus: 'correct' }),
+            ]);
+            const winRate = totalPredictions > 0
+                ? parseFloat(((totalCorrectPredictions / totalPredictions) * 100).toFixed(2))
+                : 0;
+
+            return {
+                code: 200,
+                data: {
+                    spectator: { _id: spectator._id, rewardPoints: spectator.rewardPoints },
+                    user: user ? {
+                        fullName: user.fullName,
+                        username: user.username,
+                        email: user.email,
+                        dateOfBirth: user.dateOfBirth || null,
+                        phoneNumber: user.phoneNumber || null,
+                        image: user.image || null,
+                        address: user.address || null,
+                        status: user.status,
+                    } : null,
+                    stats: { totalPredictions, totalCorrectPredictions, winRate },
+                },
+                msg: 'Spectator profile retrieved successfully',
+            };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -150,7 +179,10 @@ class SpectatorService {
 
             return {
                 code: 200,
-                data: { rewardPoints: spectator.rewardPoints, totalEarned },
+                data: {
+                    spectator: { _id: spectator._id, rewardPoints: spectator.rewardPoints },
+                    stats: { totalEarned: totalEarned || 0 },
+                },
                 msg: 'Wallet info retrieved successfully',
             };
         } catch (error) {
@@ -181,11 +213,11 @@ class SpectatorService {
             return {
                 code: 200,
                 data: {
-                    items,
-                    pagination: {
-                        totalItems,
-                        totalPages: Math.ceil(totalItems / limit),
-                        currentPage: page,
+                    transactions: items,
+                    meta: {
+                        total: totalItems,
+                        hasMore: page * limit < totalItems,
+                        page,
                         limit,
                     },
                 },
@@ -214,7 +246,7 @@ class SpectatorService {
 
             const updated = await SpectatorRepository.addRewardPoints(userId, amount);
             return {
-                code: 200,
+                code: 201,
                 data: { newBalance: updated.rewardPoints },
                 msg: `${amount} points deposited successfully`,
             };
@@ -245,7 +277,7 @@ class SpectatorService {
 
             const updated = await SpectatorRepository.addRewardPoints(userId, -amount);
             return {
-                code: 200,
+                code: 201,
                 data: { newBalance: updated.rewardPoints },
                 msg: `${amount} points withdrawn successfully`,
             };
@@ -261,30 +293,26 @@ class SpectatorService {
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
 
-            const [liveRace, upcomingRaces, featuredHorses] = await Promise.all([
+            const [liveRaceRaw, upcomingRacesRaw, featuredHorsesRaw] = await Promise.all([
                 RaceRound.findOne({ status: 'running' })
-                    .populate('tournamentId', 'tournamentName')
+                    .populate('tournamentId', 'tournamentName prizePool')
                     .lean(),
                 RaceRound.find({ status: 'scheduled' })
                     .sort({ raceDate: 1 })
                     .limit(5)
-                    .populate('tournamentId', 'tournamentName')
+                    .populate('tournamentId', 'tournamentName prizePool startDate endDate')
                     .lean(),
                 Horse.aggregate([
                     { $match: { status: 'active' } },
-                    // Horse → Invitations (horse is specified on the Invitation, not Registration)
                     { $lookup: { from: 'invitations', localField: '_id', foreignField: 'horseId', as: 'invitations' } },
-                    // Extract invitation IDs so we can find confirmed registrations
                     { $addFields: { invitationIds: '$invitations._id' } },
-                    // Confirmed registrations where jockeyInRaceId points to one of these invitations
                     { $lookup: { from: 'registrations', localField: 'invitationIds', foreignField: 'jockeyInRaceId', as: 'confirmedRegs' } },
                     { $addFields: { confirmedRegIds: '$confirmedRegs._id' } },
-                    // Race results for those registrations
                     { $lookup: { from: 'raceresults', localField: 'confirmedRegIds', foreignField: 'registrationId', as: 'results' } },
                     {
                         $addFields: {
                             totalRaces: { $size: '$results' },
-                            wins: {
+                            totalWins: {
                                 $size: {
                                     $filter: {
                                         input: '$results',
@@ -297,19 +325,90 @@ class SpectatorService {
                     {
                         $addFields: {
                             winRate: {
-                                $cond: [{ $gt: ['$totalRaces', 0] }, { $divide: ['$wins', '$totalRaces'] }, 0],
+                                $cond: [{ $gt: ['$totalRaces', 0] }, { $divide: ['$totalWins', '$totalRaces'] }, 0],
                             },
                         },
                     },
                     { $sort: { winRate: -1 } },
                     { $limit: 4 },
-                    { $project: { horseName: 1, breed: 1, img: 1, status: 1, totalRaces: 1, wins: 1, winRate: 1 } },
+                    { $project: { horseName: 1, img: 1, healthStatus: 1, totalRaces: 1, totalWins: 1, winRate: 1 } },
                 ]),
             ]);
 
+            // Enrich live race with registrations (lane number + horse)
+            let liveRace = null;
+            if (liveRaceRaw) {
+                const liveRegs = await Registration.find({
+                    raceRoundId: liveRaceRaw._id,
+                    registrationStatus: { $in: ['approved', 'verified'] },
+                }).lean();
+
+                const enrichedRegs = await Promise.all(liveRegs.map(async reg => {
+                    let horse = null;
+                    if (reg.jockeyInRaceId) {
+                        const inv = await Invitation.findById(reg.jockeyInRaceId).lean();
+                        if (inv?.horseId) {
+                            const h = await Horse.findById(inv.horseId).lean();
+                            if (h) horse = { _id: h._id, horseName: h.horseName, img: h.img || null };
+                        }
+                    }
+                    return {
+                        _id: reg._id,
+                        laneNumber: reg.laneNumber || null,
+                        horse,
+                    };
+                }));
+
+                const t = liveRaceRaw.tournamentId;
+                liveRace = {
+                    _id: liveRaceRaw._id,
+                    roundName: liveRaceRaw.roundName,
+                    raceDate: liveRaceRaw.raceDate,
+                    location: liveRaceRaw.location || null,
+                    status: liveRaceRaw.status,
+                    livestreamUrl: liveRaceRaw.muxPlaybackId
+                        ? `https://stream.mux.com/${liveRaceRaw.muxPlaybackId}.m3u8`
+                        : null,
+                    tournament: t ? { _id: t._id, tournamentName: t.tournamentName } : null,
+                    registrations: enrichedRegs,
+                };
+            }
+
+            const upcomingRaces = upcomingRacesRaw.map(r => {
+                const t = r.tournamentId;
+                return {
+                    _id: r._id,
+                    roundName: r.roundName,
+                    raceDate: r.raceDate,
+                    location: r.location || null,
+                    address: r.address || null,
+                    status: r.status,
+                    tournament: t ? {
+                        _id: t._id,
+                        tournamentName: t.tournamentName,
+                        prizePool: t.prizePool || null,
+                    } : null,
+                };
+            });
+
+            const featuredHorses = featuredHorsesRaw.map(h => ({
+                _id: h._id,
+                horseName: h.horseName,
+                img: h.img || null,
+                healthStatus: h.healthStatus || null,
+                totalRaces: h.totalRaces,
+                totalWins: h.totalWins,
+                winRate: h.winRate,
+            }));
+
             return {
                 code: 200,
-                data: { liveRace, upcomingRaces, featuredHorses, rewardPoints: spectator.rewardPoints },
+                data: {
+                    liveRace,
+                    upcomingRaces,
+                    featuredHorses,
+                    spectator: { rewardPoints: spectator.rewardPoints },
+                },
                 msg: 'Home feed retrieved successfully',
             };
         } catch (error) {
@@ -348,19 +447,39 @@ class SpectatorService {
             const countMap = {};
             participantCounts.forEach(p => { countMap[p._id.toString()] = p.count; });
 
-            const items = raceRounds.map(r => ({
-                ...r,
-                currentParticipants: countMap[r._id.toString()] || 0,
-            }));
+            const raceRoundsMapped = raceRounds.map(r => {
+                const t = r.tournamentId;
+                return {
+                    _id: r._id,
+                    roundName: r.roundName,
+                    raceDate: r.raceDate,
+                    trackLength: r.trackLength || null,
+                    location: r.location || null,
+                    address: r.address || null,
+                    raceGround: r.raceGround || null,
+                    status: r.status,
+                    maxParticipants: r.maxParticipants || null,
+                    requireEntranceFees: r.requireEntranceFees || null,
+                    minimalRidingFees: r.minimalRidingFees || null,
+                    currentParticipants: countMap[r._id.toString()] || 0,
+                    tournament: t ? {
+                        _id: t._id,
+                        tournamentName: t.tournamentName,
+                        startDate: t.startDate || null,
+                        endDate: t.endDate || null,
+                        prizePool: t.prizePool || null,
+                    } : null,
+                };
+            });
 
             return {
                 code: 200,
                 data: {
-                    items,
-                    pagination: {
-                        totalItems,
-                        totalPages: Math.ceil(totalItems / limit),
-                        currentPage: page,
+                    raceRounds: raceRoundsMapped,
+                    meta: {
+                        total: totalItems,
+                        hasMore: page * limit < totalItems,
+                        page,
                         limit,
                     },
                 },
@@ -601,7 +720,9 @@ class SpectatorService {
                 PredictionRepository.countBySpectatorId(userId, filter),
             ]);
 
-            // Populate each prediction
+            const Tournament = require('../entities/Tournament');
+
+            // Populate each prediction and reshape to match mobile contract
             const enriched = await Promise.all(
                 predictions.map(async pred => {
                     const [method, registration] = await Promise.all([
@@ -613,31 +734,64 @@ class SpectatorService {
                     let horse = null;
                     if (registration?.jockeyInRaceId) {
                         const inv = await Invitation.findById(registration.jockeyInRaceId).lean();
-                        if (inv?.horseId) horse = await Horse.findById(inv.horseId).lean();
-                    }
-
-                    let raceRound = null;
-                    let tournament = null;
-                    if (registration?.raceRoundId) {
-                        raceRound = await RaceRound.findById(registration.raceRoundId).lean();
-                        if (raceRound?.tournamentId) {
-                            const Tournament = require('../entities/Tournament');
-                            tournament = await Tournament.findById(raceRound.tournamentId).lean();
+                        if (inv?.horseId) {
+                            const h = await Horse.findById(inv.horseId).lean();
+                            if (h) horse = { _id: h._id, horseName: h.horseName, img: h.img || null };
                         }
                     }
 
-                    return { ...pred, predictionMethod: method, registration, horse, raceRound, tournament };
+                    let raceRoundData = null;
+                    if (registration?.raceRoundId) {
+                        const rr = await RaceRound.findById(registration.raceRoundId).lean();
+                        if (rr) {
+                            let tournament = null;
+                            if (rr.tournamentId) {
+                                const t = await Tournament.findById(rr.tournamentId).lean();
+                                if (t) tournament = { _id: t._id, tournamentName: t.tournamentName };
+                            }
+                            raceRoundData = {
+                                _id: rr._id,
+                                roundName: rr.roundName,
+                                raceDate: rr.raceDate,
+                                location: rr.location || null,
+                                status: rr.status,
+                                tournament,
+                            };
+                        }
+                    }
+
+                    // Build nested registration object matching mobile shape
+                    const registrationData = registration ? {
+                        _id: registration._id,
+                        laneNumber: registration.laneNumber || null,
+                        horse,
+                        raceRound: raceRoundData,
+                    } : null;
+
+                    return {
+                        _id: pred._id,
+                        predictedRank: pred.predictedRank,
+                        predictionStatus: pred.predictionStatus,
+                        rewardPoints: pred.rewardPoints,
+                        created_at: pred.created_at,
+                        predictionMethod: method ? {
+                            _id: method._id,
+                            methodName: method.methodName,
+                            methodDescription: method.methodDescription,
+                        } : null,
+                        registration: registrationData,
+                    };
                 })
             );
 
             return {
                 code: 200,
                 data: {
-                    items: enriched,
-                    pagination: {
-                        totalItems,
-                        totalPages: Math.ceil(totalItems / limit),
-                        currentPage: page,
+                    predictions: enriched,
+                    meta: {
+                        total: totalItems,
+                        hasMore: page * limit < totalItems,
+                        page,
                         limit,
                     },
                 },

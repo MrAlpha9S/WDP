@@ -89,8 +89,10 @@ class SpectatorController {
     async getRaceSchedule(req, res) {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const { status, sortBy = 'raceDate', order = 'asc' } = req.query;
-        const response = await SpectatorService.getRaceSchedule(req.userId, page, limit, status, sortBy, order);
+        // Accept both `filter` (mobile) and `status` (legacy) as the status param
+        const { filter, status, sortBy = 'raceDate', order = 'asc' } = req.query;
+        const effectiveStatus = filter || status || null;
+        const response = await SpectatorService.getRaceSchedule(req.userId, page, limit, effectiveStatus, sortBy, order);
         return res.status(response.code).json(response);
     }
 
