@@ -662,12 +662,19 @@ class SpectatorService {
 
     async createPrediction(userId, body) {
         try {
-            const { predictionMethodId, registrationId, predictedRank, tournamentId, predictedHorseId } = body || {};
+            const { predictionMethodId, registrationId, secondRegistrationId, tournamentId, predictedHorseId, amount } = body || {};
 
             if (!predictionMethodId) return { code: 400, msg: 'predictionMethodId is required' };
 
+            const PARIMUTUEL = require('../config/rewardConfig');
+            const betAmount = Number(amount);
+            if (!betAmount || betAmount < PARIMUTUEL.MIN_BET) {
+                return { code: 400, msg: `Minimum bet amount is ${PARIMUTUEL.MIN_BET} points` };
+            }
+
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
+            if (spectator.wallet < betAmount) return { code: 400, msg: 'Insufficient wallet balance' };
 
             const method = await PredictionMethod.findById(predictionMethodId).lean();
             if (!method) return { code: 404, msg: 'Prediction method not found' };
@@ -675,34 +682,40 @@ class SpectatorService {
 
             const Tournament = require('../entities/Tournament');
 
-            if (method.methodType === 'tournament_champion') {
+            // ── CHAMPION ────────────────────────────────────────────────────────
+            if (method.methodType === 'champion') {
                 if (!tournamentId || !predictedHorseId) {
-                    return { code: 400, msg: 'tournamentId and predictedHorseId are required for tournament_champion' };
+                    return { code: 400, msg: 'tournamentId and predictedHorseId are required for champion' };
                 }
                 const tournament = await Tournament.findById(tournamentId).lean();
                 if (!tournament) return { code: 404, msg: 'Tournament not found' };
-                if (!['scheduled', 'ongoing'].includes(tournament.status)) {
-                    return { code: 400, msg: 'Predictions are only allowed for scheduled or ongoing tournaments' };
+                if (tournament.status !== 'scheduled') {
+                    return { code: 400, msg: 'Champion bets are only allowed before the tournament starts' };
                 }
                 const existing = await PredictionRepository.findOne({ spectatorId: userId, tournamentId, predictionMethodId });
                 if (existing) return { code: 400, msg: 'You have already predicted the champion for this tournament' };
 
+                await SpectatorRepository.addRewardPoints(userId, -betAmount);
                 const prediction = await PredictionRepository.create({
                     spectatorId: userId,
                     tournamentId,
                     predictedHorseId,
                     predictionMethodId,
+                    amount: betAmount,
                     predictionStatus: 'pending',
                     rewardPoints: 0,
                 });
-                return { code: 201, data: prediction, msg: 'Champion prediction created successfully' };
+                return { code: 201, data: prediction, msg: 'Champion bet placed successfully' };
             }
 
-            // race_rank / race_winner — both need registrationId
+            // ── WIN / PLACE / SHOW / EXACTA ─────────────────────────────────────
             if (!registrationId) return { code: 400, msg: 'registrationId is required for race predictions' };
 
-            if (method.methodType === 'race_rank' && (!predictedRank || predictedRank < 1)) {
-                return { code: 400, msg: 'predictedRank (≥1) is required for race_rank predictions' };
+            if (method.methodType === 'exacta') {
+                if (!secondRegistrationId) return { code: 400, msg: 'secondRegistrationId is required for exacta' };
+                if (String(registrationId) === String(secondRegistrationId)) {
+                    return { code: 400, msg: 'First and second horse must be different for exacta' };
+                }
             }
 
             const registration = await Registration.findById(registrationId).lean();
@@ -714,18 +727,31 @@ class SpectatorService {
                 return { code: 400, msg: 'Predictions are only allowed before the race starts' };
             }
 
-            const existing = await PredictionRepository.findOne({ spectatorId: userId, registrationId, predictionMethodId });
-            if (existing) return { code: 400, msg: 'You have already predicted for this registration with this method' };
+            if (method.methodType === 'exacta') {
+                const secondReg = await Registration.findById(secondRegistrationId).lean();
+                if (!secondReg) return { code: 404, msg: 'Second registration not found' };
+                if (String(secondReg.raceRoundId) !== String(registration.raceRoundId)) {
+                    return { code: 400, msg: 'Both horses must be in the same race' };
+                }
+            }
 
-            const prediction = await PredictionRepository.create({
+            const existing = await PredictionRepository.findOne({ spectatorId: userId, registrationId, predictionMethodId });
+            if (existing) return { code: 400, msg: 'You have already placed this bet for this horse' };
+
+            await SpectatorRepository.addRewardPoints(userId, -betAmount);
+
+            const predData = {
                 spectatorId: userId,
                 registrationId,
                 predictionMethodId,
-                predictedRank: method.methodType === 'race_winner' ? 1 : predictedRank,
+                amount: betAmount,
                 predictionStatus: 'pending',
                 rewardPoints: 0,
-            });
-            return { code: 201, data: prediction, msg: 'Prediction created successfully' };
+            };
+            if (method.methodType === 'exacta') predData.secondRegistrationId = secondRegistrationId;
+
+            const prediction = await PredictionRepository.create(predData);
+            return { code: 201, data: prediction, msg: 'Bet placed successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -754,9 +780,15 @@ class SpectatorService {
             const enriched = await Promise.all(
                 predictions.map(async pred => {
                     const method = await PredictionMethod.findById(pred.predictionMethodId).lean();
+                    const methodShape = method ? {
+                        _id: method._id,
+                        methodName: method.methodName,
+                        methodDescription: method.methodDescription,
+                        methodType: method.methodType,
+                    } : null;
 
-                    // ── tournament_champion branch ──────────────────────────────
-                    if (method?.methodType === 'tournament_champion') {
+                    // ── CHAMPION branch ─────────────────────────────────────────
+                    if (method?.methodType === 'champion') {
                         let tournament = null;
                         if (pred.tournamentId) {
                             const t = await Tournament.findById(pred.tournamentId).lean();
@@ -769,74 +801,85 @@ class SpectatorService {
                         }
                         return {
                             _id: pred._id,
-                            predictedRank: null,
+                            amount: pred.amount,
                             predictionStatus: pred.predictionStatus,
                             rewardPoints: pred.rewardPoints,
                             created_at: pred.created_at,
-                            predictionMethod: method ? {
-                                _id: method._id,
-                                methodName: method.methodName,
-                                methodDescription: method.methodDescription,
-                                methodType: method.methodType,
-                            } : null,
+                            predictionMethod: methodShape,
                             registration: null,
+                            secondRegistration: null,
                             tournament,
                             predictedHorse,
                         };
                     }
 
-                    // ── race_rank / race_winner branch ──────────────────────────
-                    const registration = await Registration.findById(pred.registrationId).lean();
-
-                    let horse = null;
-                    if (registration?.jockeyInRaceId) {
-                        const inv = await Invitation.findById(registration.jockeyInRaceId).lean();
-                        if (inv?.horseId) {
-                            const h = await Horse.findById(inv.horseId).lean();
-                            if (h) horse = { _id: h._id, horseName: h.horseName, img: h.img || null };
-                        }
-                    }
-
-                    let raceRoundData = null;
-                    if (registration?.raceRoundId) {
-                        const rr = await RaceRound.findById(registration.raceRoundId).lean();
-                        if (rr) {
-                            let tournament = null;
-                            if (rr.tournamentId) {
-                                const t = await Tournament.findById(rr.tournamentId).lean();
-                                if (t) tournament = { _id: t._id, tournamentName: t.tournamentName };
+                    // ── shared helper: enrich one registration ──────────────────
+                    const enrichReg = async (regId, includeRaceRound = false) => {
+                        const reg = await Registration.findById(regId).lean();
+                        if (!reg) return null;
+                        let horse = null;
+                        if (reg.jockeyInRaceId) {
+                            const inv = await Invitation.findById(reg.jockeyInRaceId).lean();
+                            if (inv?.horseId) {
+                                const h = await Horse.findById(inv.horseId).lean();
+                                if (h) horse = { _id: h._id, horseName: h.horseName, img: h.img || null };
                             }
-                            raceRoundData = {
-                                _id: rr._id,
-                                roundName: rr.roundName,
-                                raceDate: rr.raceDate,
-                                location: rr.location || null,
-                                status: rr.status,
-                                tournament,
-                            };
                         }
+                        let raceRoundData = null;
+                        if (includeRaceRound && reg.raceRoundId) {
+                            const rr = await RaceRound.findById(reg.raceRoundId).lean();
+                            if (rr) {
+                                let tournamentSnap = null;
+                                if (rr.tournamentId) {
+                                    const t = await Tournament.findById(rr.tournamentId).lean();
+                                    if (t) tournamentSnap = { _id: t._id, tournamentName: t.tournamentName };
+                                }
+                                raceRoundData = {
+                                    _id: rr._id,
+                                    roundName: rr.roundName,
+                                    raceDate: rr.raceDate,
+                                    location: rr.location || null,
+                                    status: rr.status,
+                                    tournament: tournamentSnap,
+                                };
+                            }
+                        }
+                        return { _id: reg._id, laneNumber: reg.laneNumber || null, horse, raceRound: raceRoundData };
+                    };
+
+                    // ── WIN / PLACE / SHOW ──────────────────────────────────────
+                    if (method?.methodType !== 'exacta') {
+                        const registrationData = pred.registrationId
+                            ? await enrichReg(pred.registrationId, true)
+                            : null;
+                        return {
+                            _id: pred._id,
+                            amount: pred.amount,
+                            predictionStatus: pred.predictionStatus,
+                            rewardPoints: pred.rewardPoints,
+                            created_at: pred.created_at,
+                            predictionMethod: methodShape,
+                            registration: registrationData,
+                            secondRegistration: null,
+                            tournament: null,
+                            predictedHorse: null,
+                        };
                     }
 
-                    const registrationData = registration ? {
-                        _id: registration._id,
-                        laneNumber: registration.laneNumber || null,
-                        horse,
-                        raceRound: raceRoundData,
-                    } : null;
-
+                    // ── EXACTA branch ───────────────────────────────────────────
+                    const [regData, secondRegData] = await Promise.all([
+                        pred.registrationId ? enrichReg(pred.registrationId, true) : Promise.resolve(null),
+                        pred.secondRegistrationId ? enrichReg(pred.secondRegistrationId, false) : Promise.resolve(null),
+                    ]);
                     return {
                         _id: pred._id,
-                        predictedRank: pred.predictedRank,
+                        amount: pred.amount,
                         predictionStatus: pred.predictionStatus,
                         rewardPoints: pred.rewardPoints,
                         created_at: pred.created_at,
-                        predictionMethod: method ? {
-                            _id: method._id,
-                            methodName: method.methodName,
-                            methodDescription: method.methodDescription,
-                            methodType: method.methodType,
-                        } : null,
-                        registration: registrationData,
+                        predictionMethod: methodShape,
+                        registration: regData,
+                        secondRegistration: secondRegData,
                         tournament: null,
                         predictedHorse: null,
                     };

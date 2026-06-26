@@ -466,7 +466,7 @@ class HorseOwnerService {
                 code: 200,
                 data: {
                     invitations: mapped,
-                    pagination: { total, totalPages: Math.ceil(total / limit), page, limit },
+                    pagination: { totalItems: total, totalPages: Math.ceil(total / limit), currentPage: page, limit },
                 },
                 msg: 'Jockey invitations retrieved successfully',
             };

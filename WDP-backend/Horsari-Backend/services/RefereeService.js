@@ -96,7 +96,7 @@ class RefereeService {
                 code: 200,
                 data: invitations,
                 pagination: {
-                    total,
+                    totalItems: total,
                     totalPages,
                     currentPage: page,
                     limit,

@@ -92,7 +92,7 @@ export type ScheduleFilter = 'running' | 'scheduled' | 'completed';
 // ─── Predictions ──────────────────────────────────────────────────────────────
 
 export type PredictionStatus = 'pending' | 'correct' | 'incorrect' | 'cancelled' | 'refunded';
-export type PredictionMethodType = 'tournament_champion' | 'race_rank' | 'race_winner';
+export type PredictionMethodType = 'win' | 'place' | 'show' | 'exacta' | 'champion';
 
 export interface PredictionMethod {
   _id: string;
@@ -104,9 +104,23 @@ export interface PredictionMethod {
   existingPredictions?: PredictionItem[];
 }
 
+export interface RegistrationSnap {
+  _id: string;
+  laneNumber: number | null;
+  horse: { _id: string; horseName: string; img: string | null } | null;
+  raceRound: {
+    _id: string;
+    roundName: string;
+    raceDate: string;
+    location: string;
+    status: string;
+    tournament: { _id: string; tournamentName: string } | null;
+  } | null;
+}
+
 export interface PredictionItem {
   _id: string;
-  predictedRank: number | null;
+  amount: number;
   predictionStatus: PredictionStatus;
   rewardPoints: number;
   created_at: string;
@@ -116,30 +130,20 @@ export interface PredictionItem {
     methodDescription: string;
     methodType: PredictionMethodType;
   } | null;
-  // race_rank / race_winner
-  registration: {
-    _id: string;
-    laneNumber: number | null;
-    horse: { _id: string; horseName: string; img: string | null } | null;
-    raceRound: {
-      _id: string;
-      roundName: string;
-      raceDate: string;
-      location: string;
-      status: string;
-      tournament: { _id: string; tournamentName: string } | null;
-    } | null;
-  } | null;
-  // tournament_champion
+  // win / place / show / exacta
+  registration: RegistrationSnap | null;
+  // exacta — second horse
+  secondRegistration: { _id: string; laneNumber: number | null; horse: { _id: string; horseName: string; img: string | null } | null } | null;
+  // champion
   tournament: { _id: string; tournamentName: string; status: string } | null;
   predictedHorse: { _id: string; horseName: string; img: string | null } | null;
 }
 
 // Input shapes for createPrediction
 export type CreatePredictionBody =
-  | { predictionMethodId: string; registrationId: string; predictedRank: number }   // race_rank
-  | { predictionMethodId: string; registrationId: string }                           // race_winner
-  | { predictionMethodId: string; tournamentId: string; predictedHorseId: string }; // tournament_champion
+  | { predictionMethodId: string; registrationId: string; amount: number }                                                    // win / place / show
+  | { predictionMethodId: string; registrationId: string; secondRegistrationId: string; amount: number }                     // exacta
+  | { predictionMethodId: string; tournamentId: string; predictedHorseId: string; amount: number };                          // champion
 
 // ─── Wallet ───────────────────────────────────────────────────────────────────
 

@@ -11,7 +11,7 @@ const predictionMethodSchema = new mongoose.Schema(
         },
         methodType: {
             type: String,
-            enum: ['tournament_champion', 'race_rank', 'race_winner'],
+            enum: ['win', 'place', 'show', 'exacta', 'champion'],
             required: true,
         },
         isActive: {

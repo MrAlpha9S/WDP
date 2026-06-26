@@ -25,8 +25,8 @@ class AdminController {
     async getAllUsers(req, res) {
         const { role, search } = req.query;
         const limit = parseInt(req.query.limit) || 10;
-        const skip = parseInt(req.query.skip) || 0;
-        const response = await AdminService.getAllUsers(role, search, limit, skip);
+        const page = parseInt(req.query.page) || 1;
+        const response = await AdminService.getAllUsers(role, search, limit, page);
         return res.status(response.code).json(response);
     }
 

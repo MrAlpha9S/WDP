@@ -12,6 +12,11 @@ const predictionSchema = new mongoose.Schema(
             ref: 'Registration',
             default: null,
         },
+        secondRegistrationId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Registration',
+            default: null,
+        },
         tournamentId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Tournament',
@@ -27,8 +32,10 @@ const predictionSchema = new mongoose.Schema(
             ref: 'PredictionMethod',
             required: true,
         },
-        predictedRank: {
+        amount: {
             type: Number,
+            required: true,
+            min: 1,
         },
         predictionStatus: {
             type: String,

@@ -80,8 +80,9 @@ class AdminService {
     }
 
     // Get all users (admin only)
-    async getAllUsers(role, search, limit = 10, skip = 0) {
+    async getAllUsers(role, search, limit = 10, page = 1) {
         try {
+            const skip = (page - 1) * limit;
             const filter = {};
             if (role && role !== 'All') {
                 filter.role = role.toLowerCase();
@@ -104,7 +105,7 @@ class AdminService {
                     pagination: {
                         totalItems: totalUsers,
                         totalPages,
-                        currentPage: skip / limit + 1,
+                        currentPage: page,
                         limit
                     }
                 },
@@ -1517,11 +1518,12 @@ AdminService.prototype.updateHorseStatus = async function (horseId, newStatus) {
 // Settle race-level predictions after a race round is confirmed completed.
 // Called internally by confirmRaceResult.
 AdminService.prototype._settlePredictionsForRace = async function (raceRoundId) {
-    const Prediction     = require('../entities/Prediction');
+    const Prediction       = require('../entities/Prediction');
     const PredictionMethod = require('../entities/PredictionMethod');
-    const Registration   = require('../entities/Registration');
-    const RaceResult     = require('../entities/RaceResult');
-    const Spectator      = require('../entities/Spectator');
+    const Registration     = require('../entities/Registration');
+    const RaceResult       = require('../entities/RaceResult');
+    const Spectator        = require('../entities/Spectator');
+    const PARIMUTUEL       = require('../config/rewardConfig');
 
     const registrations = await Registration.find({ raceRoundId }, '_id').lean();
     if (registrations.length === 0) return;
@@ -1535,6 +1537,7 @@ AdminService.prototype._settlePredictionsForRace = async function (raceRoundId) 
 
     if (pendingPredictions.length === 0) return;
 
+    // finishPosition map keyed by registrationId string
     const resultMap = {};
     raceResults.forEach(r => { resultMap[r.registrationId.toString()] = r.finishPosition; });
 
@@ -1544,29 +1547,58 @@ AdminService.prototype._settlePredictionsForRace = async function (raceRoundId) 
     const methodMap = {};
     methods.forEach(m => { methodMap[m._id.toString()] = m; });
 
-    for (const pred of pendingPredictions) {
-        const actualPos = resultMap[pred.registrationId.toString()];
-        if (actualPos === undefined) continue; // no result yet
+    // Determine win condition per prediction
+    const isWinner = (pred, method) => {
+        const pos = resultMap[pred.registrationId.toString()];
+        if (pos === undefined) return false;
+        if (method.methodType === 'win')   return pos === 1;
+        if (method.methodType === 'place') return pos <= 2;
+        if (method.methodType === 'show')  return pos <= 3;
+        if (method.methodType === 'exacta') {
+            const pos2 = pred.secondRegistrationId
+                ? resultMap[pred.secondRegistrationId.toString()]
+                : undefined;
+            return pos === 1 && pos2 === 2;
+        }
+        return false;
+    };
 
-        const method = methodMap[pred.predictionMethodId.toString()];
+    // Group predictions by methodId → parimutuel pool per method type
+    const byMethod = {};
+    for (const pred of pendingPredictions) {
+        const key = pred.predictionMethodId.toString();
+        if (!byMethod[key]) byMethod[key] = [];
+        byMethod[key].push(pred);
+    }
+
+    for (const [methodId, preds] of Object.entries(byMethod)) {
+        const method = methodMap[methodId];
         if (!method) continue;
 
-        let isCorrect = false;
-        let reward = 0;
+        const cfg = PARIMUTUEL[method.methodType.toUpperCase()];
+        const takeout = cfg?.takeoutRate ?? 0;
 
-        if (method.methodType === 'race_winner') {
-            isCorrect = actualPos === 1;
-            reward = isCorrect ? 800 : 0;
-        } else if (method.methodType === 'race_rank') {
-            isCorrect = actualPos === pred.predictedRank;
-            reward = isCorrect ? 200 : 0;
-        }
+        const totalPool   = preds.reduce((s, p) => s + (p.amount || 0), 0);
+        const winners     = preds.filter(p => isWinner(p, method));
+        const winningPool = winners.reduce((s, p) => s + (p.amount || 0), 0);
+        const netPool     = totalPool * (1 - takeout);
 
-        const newStatus = isCorrect ? 'correct' : 'incorrect';
-        await Prediction.findByIdAndUpdate(pred._id, { predictionStatus: newStatus, rewardPoints: reward });
+        for (const pred of preds) {
+            const won = winners.includes(pred);
+            let payout = 0;
 
-        if (isCorrect && reward > 0) {
-            await Spectator.findByIdAndUpdate(pred.spectatorId, { $inc: { wallet: reward } });
+            if (won && winningPool > 0) {
+                payout = Math.floor((pred.amount / winningPool) * netPool);
+            }
+
+            await Prediction.findByIdAndUpdate(pred._id, {
+                predictionStatus: won ? 'correct' : 'incorrect',
+                rewardPoints: payout,
+            });
+
+            if (payout > 0) {
+                await Spectator.findByIdAndUpdate(pred.spectatorId, { $inc: { wallet: payout } });
+            }
         }
     }
 };
@@ -1574,10 +1606,11 @@ AdminService.prototype._settlePredictionsForRace = async function (raceRoundId) 
 // Settle tournament_champion predictions after admin sets the champion horse.
 AdminService.prototype.settleTournamentPredictions = async function (tournamentId, championHorseId) {
     try {
-        const Tournament     = require('../entities/Tournament');
-        const Prediction     = require('../entities/Prediction');
-        const Spectator      = require('../entities/Spectator');
-        const Horse          = require('../entities/Horse');
+        const Tournament   = require('../entities/Tournament');
+        const Prediction   = require('../entities/Prediction');
+        const Spectator    = require('../entities/Spectator');
+        const Horse        = require('../entities/Horse');
+        const PARIMUTUEL   = require('../config/rewardConfig');
 
         const tournament = await Tournament.findById(tournamentId).lean();
         if (!tournament) return { code: 404, msg: 'Tournament not found' };
@@ -1587,29 +1620,36 @@ AdminService.prototype.settleTournamentPredictions = async function (tournamentI
 
         await Tournament.findByIdAndUpdate(tournamentId, { championHorseId });
 
-        const pending = await Prediction.find({
-            tournamentId,
-            predictionStatus: 'pending',
-        }).lean();
+        const pending = await Prediction.find({ tournamentId, predictionStatus: 'pending' }).lean();
 
-        let settledCount = 0;
+        const takeout     = PARIMUTUEL.CHAMPION?.takeoutRate ?? 0;
+        const totalPool   = pending.reduce((s, p) => s + (p.amount || 0), 0);
+        const winners     = pending.filter(p => p.predictedHorseId?.toString() === championHorseId.toString());
+        const winningPool = winners.reduce((s, p) => s + (p.amount || 0), 0);
+        const netPool     = totalPool * (1 - takeout);
+
         for (const pred of pending) {
-            const isCorrect = pred.predictedHorseId?.toString() === championHorseId.toString();
-            const reward = isCorrect ? 500 : 0;
-            const newStatus = isCorrect ? 'correct' : 'incorrect';
+            const won = winners.includes(pred);
+            let payout = 0;
 
-            await Prediction.findByIdAndUpdate(pred._id, { predictionStatus: newStatus, rewardPoints: reward });
-
-            if (isCorrect && reward > 0) {
-                await Spectator.findByIdAndUpdate(pred.spectatorId, { $inc: { wallet: reward } });
+            if (won && winningPool > 0) {
+                payout = Math.floor((pred.amount / winningPool) * netPool);
             }
-            settledCount++;
+
+            await Prediction.findByIdAndUpdate(pred._id, {
+                predictionStatus: won ? 'correct' : 'incorrect',
+                rewardPoints: payout,
+            });
+
+            if (payout > 0) {
+                await Spectator.findByIdAndUpdate(pred.spectatorId, { $inc: { wallet: payout } });
+            }
         }
 
         return {
             code: 200,
-            data: { tournamentId, championHorseId, settledCount },
-            msg: `Tournament champion set and ${settledCount} predictions settled`,
+            data: { tournamentId, championHorseId, settledCount: pending.length, totalPool, netPool },
+            msg: `Tournament champion set and ${pending.length} bets settled`,
         };
     } catch (error) {
         return { code: 500, msg: error.message };

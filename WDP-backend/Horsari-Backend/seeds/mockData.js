@@ -33,6 +33,7 @@ const Transaction = require("../entities/Transaction");
 
 const PASSWORD_HASH =
   "$2b$10$smxEWfBiOmkrAkvaBpyfJ.Lv/uxe4inN8KRymH6TN.W10RSAWMbrO";
+//123456
 
 const now = new Date();
 const daysAgo = (n) => new Date(now - n * 86400000);
@@ -302,29 +303,40 @@ async function seed() {
       },
     ]);
 
-    // --- PredictionMethod (3) ---
+    // --- PredictionMethod (5) ---
     const predictionMethods = await PredictionMethod.create([
       {
-        methodName: "Champion",
-        methodDescription:
-          "Predict the horse that finishes in 1st place of Tournament",
-        methodType: "tournament_champion",
+        methodName: "WIN",
+        methodDescription: "Predict which horse finishes 1st in the race. Reward: 500 pts.",
+        methodType: "win",
         isActive: true,
       },
       {
-        methodName: "Ranking",
-        methodDescription:
-          "Predict any horse that finishes in the guess position of RaceRound (1st, 2nd, 3rd,...)",
-        methodType: "race_rank",
+        methodName: "PLACE",
+        methodDescription: "Predict which horse finishes in the top 2. Reward: 300 pts.",
+        methodType: "place",
         isActive: true,
       },
       {
-        methodName: "Exacta",
-        methodDescription: "Predict the exact 1st place of RaceRound",
-        methodType: "race_winner",
+        methodName: "SHOW",
+        methodDescription: "Predict which horse finishes in the top 3. Reward: 200 pts.",
+        methodType: "show",
+        isActive: true,
+      },
+      {
+        methodName: "EXACTA",
+        methodDescription: "Predict the exact 1st and 2nd place horses in order. Reward: 1500 pts.",
+        methodType: "exacta",
+        isActive: true,
+      },
+      {
+        methodName: "CHAMPION",
+        methodDescription: "Predict the overall champion horse of a Tournament. Reward: 800 pts.",
+        methodType: "champion",
         isActive: true,
       },
     ]);
+    // shorthand indices: 0=WIN, 1=PLACE, 2=SHOW, 3=EXACTA, 4=CHAMPION
 
     /* ================================================
            3. HORSES (8 — spread across 3 owners)
@@ -751,356 +763,70 @@ async function seed() {
    11. PREDICTION
    ================================================ */
 
-    // Champion of tournament 1
+    // Champion of tournament 1 = horses[0] (finished 1st in round 1)
     await Tournament.findByIdAndUpdate(tournaments[0]._id, {
       championHorseId: horses[0]._id,
     });
 
+    // Round 1 results: r1Regs[0]=1st, r1Regs[1]=2nd, r1Regs[2]=3rd, r1Regs[3]=4th, r1Regs[4]=5th, r1Regs[5]=DQ
+    // rewardPoints in settled seeds are approximate parimutuel payouts for sample data only.
+    // Real payouts are calculated at settlement time from the actual pool.
     const predictionSeeds = [
       /* ==========================
-       CHAMPION (12)
+       WIN (predictionMethods[0])
+       Pool round 1: 100+50+60+80=290. Winner pool: 100. takeout=0 → payout ≈ 290
        ========================== */
-
-      {
-        spectatorId: spectators[0]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "correct",
-        rewardPoints: 500,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "correct",
-        rewardPoints: 500,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[3]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[0]._id,
-        tournamentId: tournaments[1]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        tournamentId: tournaments[1]._id,
-        predictedHorseId: horses[3]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        tournamentId: tournaments[1]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        tournamentId: tournaments[1]._id,
-        predictedHorseId: horses[5]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[0]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "correct",
-        rewardPoints: 500,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[7]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
+      { spectatorId: spectators[0]._id, registrationId: r1Regs[0]._id, predictionMethodId: predictionMethods[0]._id, amount: 100, predictionStatus: "correct",  rewardPoints: 290 },
+      { spectatorId: spectators[1]._id, registrationId: r1Regs[1]._id, predictionMethodId: predictionMethods[0]._id, amount: 50,  predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[2]._id, registrationId: r1Regs[2]._id, predictionMethodId: predictionMethods[0]._id, amount: 60,  predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[3]._id, registrationId: r1Regs[4]._id, predictionMethodId: predictionMethods[0]._id, amount: 80,  predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[0]._id, registrationId: r2Regs[1]._id, predictionMethodId: predictionMethods[0]._id, amount: 120, predictionStatus: "pending",   rewardPoints: 0   },
+      { spectatorId: spectators[1]._id, registrationId: r2Regs[2]._id, predictionMethodId: predictionMethods[0]._id, amount: 75,  predictionStatus: "pending",   rewardPoints: 0   },
 
       /* ==========================
-       RACE RANK (15)
+       PLACE (predictionMethods[1])
+       Pool: 80+60+50+40=230. Winners (pos<=2): 80+60=140 → payout ≈ 80/140*230≈131 and 60/140*230≈98
        ========================== */
-
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[0]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[1]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 3,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[3]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 4,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[0]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[1]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 5,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 3,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[3]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[5]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[1]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[0]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 3,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[3]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[4]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
+      { spectatorId: spectators[0]._id, registrationId: r1Regs[0]._id, predictionMethodId: predictionMethods[1]._id, amount: 80,  predictionStatus: "correct",  rewardPoints: 131 },
+      { spectatorId: spectators[1]._id, registrationId: r1Regs[1]._id, predictionMethodId: predictionMethods[1]._id, amount: 60,  predictionStatus: "correct",  rewardPoints: 98  },
+      { spectatorId: spectators[2]._id, registrationId: r1Regs[2]._id, predictionMethodId: predictionMethods[1]._id, amount: 50,  predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[3]._id, registrationId: r1Regs[3]._id, predictionMethodId: predictionMethods[1]._id, amount: 40,  predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[2]._id, registrationId: r2Regs[1]._id, predictionMethodId: predictionMethods[1]._id, amount: 90,  predictionStatus: "pending",   rewardPoints: 0   },
+      { spectatorId: spectators[3]._id, registrationId: r2Regs[2]._id, predictionMethodId: predictionMethods[1]._id, amount: 55,  predictionStatus: "pending",   rewardPoints: 0   },
 
       /* ==========================
-       RACE WINNER (15)
+       SHOW (predictionMethods[2])
+       Pool: 60+70+40+50=220. Winners (pos<=3): 60+70+40=170 → payouts ≈ 77, 90, 51
        ========================== */
+      { spectatorId: spectators[0]._id, registrationId: r1Regs[0]._id, predictionMethodId: predictionMethods[2]._id, amount: 60,  predictionStatus: "correct",  rewardPoints: 77  },
+      { spectatorId: spectators[1]._id, registrationId: r1Regs[2]._id, predictionMethodId: predictionMethods[2]._id, amount: 70,  predictionStatus: "correct",  rewardPoints: 90  },
+      { spectatorId: spectators[2]._id, registrationId: r1Regs[3]._id, predictionMethodId: predictionMethods[2]._id, amount: 40,  predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[3]._id, registrationId: r1Regs[4]._id, predictionMethodId: predictionMethods[2]._id, amount: 50,  predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[1]._id, registrationId: r2Regs[1]._id, predictionMethodId: predictionMethods[2]._id, amount: 85,  predictionStatus: "pending",   rewardPoints: 0   },
 
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "correct",
-        rewardPoints: 1000,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "correct",
-        rewardPoints: 1000,
-      },
+      /* ==========================
+       EXACTA (predictionMethods[3])
+       Pool: 200+100+80+60=440. Winner: spectators[0] only → payout=440
+       ========================== */
+      { spectatorId: spectators[0]._id, registrationId: r1Regs[0]._id, secondRegistrationId: r1Regs[1]._id, predictionMethodId: predictionMethods[3]._id, amount: 200, predictionStatus: "correct",  rewardPoints: 440 },
+      { spectatorId: spectators[1]._id, registrationId: r1Regs[1]._id, secondRegistrationId: r1Regs[0]._id, predictionMethodId: predictionMethods[3]._id, amount: 100, predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[2]._id, registrationId: r1Regs[0]._id, secondRegistrationId: r1Regs[2]._id, predictionMethodId: predictionMethods[3]._id, amount: 80,  predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[3]._id, registrationId: r1Regs[2]._id, secondRegistrationId: r1Regs[1]._id, predictionMethodId: predictionMethods[3]._id, amount: 60,  predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[0]._id, registrationId: r2Regs[1]._id, secondRegistrationId: r2Regs[2]._id, predictionMethodId: predictionMethods[3]._id, amount: 150, predictionStatus: "pending",   rewardPoints: 0   },
+      { spectatorId: spectators[1]._id, registrationId: r2Regs[2]._id, secondRegistrationId: r2Regs[4]._id, predictionMethodId: predictionMethods[3]._id, amount: 120, predictionStatus: "pending",   rewardPoints: 0   },
 
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[1]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[4]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "correct",
-        rewardPoints: 1000,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[5]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[1]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[2]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[3]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[4]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[2]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[3]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "correct",
-        rewardPoints: 1000,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[4]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
+      /* ==========================
+       CHAMPION (predictionMethods[4])
+       Pool T1: 300+250+150+100=800. Winners (horse[0]): 300+250=550 → payouts ≈ 436, 363
+       ========================== */
+      { spectatorId: spectators[0]._id, tournamentId: tournaments[0]._id, predictedHorseId: horses[0]._id, predictionMethodId: predictionMethods[4]._id, amount: 300, predictionStatus: "correct",  rewardPoints: 436 },
+      { spectatorId: spectators[1]._id, tournamentId: tournaments[0]._id, predictedHorseId: horses[0]._id, predictionMethodId: predictionMethods[4]._id, amount: 250, predictionStatus: "correct",  rewardPoints: 363 },
+      { spectatorId: spectators[2]._id, tournamentId: tournaments[0]._id, predictedHorseId: horses[1]._id, predictionMethodId: predictionMethods[4]._id, amount: 150, predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[3]._id, tournamentId: tournaments[0]._id, predictedHorseId: horses[3]._id, predictionMethodId: predictionMethods[4]._id, amount: 100, predictionStatus: "incorrect", rewardPoints: 0   },
+      { spectatorId: spectators[0]._id, tournamentId: tournaments[1]._id, predictedHorseId: horses[2]._id, predictionMethodId: predictionMethods[4]._id, amount: 200, predictionStatus: "pending",   rewardPoints: 0   },
+      { spectatorId: spectators[1]._id, tournamentId: tournaments[1]._id, predictedHorseId: horses[3]._id, predictionMethodId: predictionMethods[4]._id, amount: 180, predictionStatus: "pending",   rewardPoints: 0   },
+      { spectatorId: spectators[2]._id, tournamentId: tournaments[1]._id, predictedHorseId: horses[4]._id, predictionMethodId: predictionMethods[4]._id, amount: 120, predictionStatus: "pending",   rewardPoints: 0   },
+      { spectatorId: spectators[3]._id, tournamentId: tournaments[1]._id, predictedHorseId: horses[5]._id, predictionMethodId: predictionMethods[4]._id, amount: 90,  predictionStatus: "pending",   rewardPoints: 0   },
     ];
 
     const predictions = await Prediction.insertMany(predictionSeeds);

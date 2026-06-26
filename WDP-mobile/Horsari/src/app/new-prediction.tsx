@@ -47,9 +47,11 @@ interface TournamentTarget { type: 'tournament'; item: TournamentForPrediction }
 type Target = RaceTarget | TournamentTarget;
 
 const METHOD_ICON: Record<PredictionMethodType, string> = {
-  race_winner:          'trophy-outline',
-  race_rank:            'podium-outline',
-  tournament_champion:  'ribbon-outline',
+  win:      'medal-outline',
+  place:    'podium-outline',
+  show:     'stats-chart-outline',
+  exacta:   'git-compare-outline',
+  champion: 'ribbon-outline',
 };
 
 function formatDate(d: string) {
@@ -143,7 +145,9 @@ export default function NewPredictionScreen() {
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
   const [selectedHorseId, setSelectedHorseId] = useState<string | null>(null);
   const [selectedRegId, setSelectedRegId] = useState<string | null>(null);
-  const [predictedRank, setPredictedRank] = useState('');
+  const [selectedSecondHorseId, setSelectedSecondHorseId] = useState<string | null>(null);
+  const [selectedSecondRegId, setSelectedSecondRegId] = useState<string | null>(null);
+  const [betAmount, setBetAmount] = useState('');
   const [isConfigLoading, setIsConfigLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -177,7 +181,9 @@ export default function NewPredictionScreen() {
     setSelectedMethodId(null);
     setSelectedHorseId(null);
     setSelectedRegId(null);
-    setPredictedRank('');
+    setSelectedSecondHorseId(null);
+    setSelectedSecondRegId(null);
+    setBetAmount('');
     setSubmitError(null);
     setIsConfigLoading(true);
     setStep('configure');
@@ -185,7 +191,7 @@ export default function NewPredictionScreen() {
       getAvailablePredictionMethods(item._id),
       getRaceDetail(item._id),
     ]);
-    setMethods(methodsRes.filter(m => m.methodType === 'race_winner' || m.methodType === 'race_rank'));
+    setMethods(methodsRes.filter(m => m.methodType !== 'champion'));
     setRegistrations(raceRes?.registrations ?? []);
     setIsConfigLoading(false);
   };
@@ -193,11 +199,12 @@ export default function NewPredictionScreen() {
   const handleSelectTournament = async (item: TournamentForPrediction) => {
     setTarget({ type: 'tournament', item });
     setSelectedHorseId(null);
+    setBetAmount('');
     setSubmitError(null);
     setIsConfigLoading(true);
     setStep('configure');
     const methodsRes = await getAvailablePredictionMethods();
-    const champion = methodsRes.find(m => m.methodType === 'tournament_champion');
+    const champion = methodsRes.find(m => m.methodType === 'champion');
     setMethods(champion ? [champion] : []);
     if (champion) setSelectedMethodId(champion._id);
     setIsConfigLoading(false);
@@ -205,34 +212,54 @@ export default function NewPredictionScreen() {
 
   const handleSelectHorse = (horseId: string) => {
     setSelectedHorseId(horseId);
+    if (selectedSecondHorseId === horseId) {
+      setSelectedSecondHorseId(null);
+      setSelectedSecondRegId(null);
+    }
     if (target?.type === 'race') {
       const reg = registrations.find(r => r.horse?._id === horseId);
       setSelectedRegId(reg?._id ?? null);
     }
   };
 
+  const handleSelectSecondHorse = (horseId: string) => {
+    setSelectedSecondHorseId(horseId);
+    if (selectedHorseId === horseId) {
+      setSelectedHorseId(null);
+      setSelectedRegId(null);
+    }
+    if (target?.type === 'race') {
+      const reg = registrations.find(r => r.horse?._id === horseId);
+      setSelectedSecondRegId(reg?._id ?? null);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!target || !selectedMethod || !selectedMethodId) return;
     setSubmitError(null);
+
+    const amount = parseInt(betAmount, 10);
+    if (!amount || amount < 10) { setSubmitError('Vui lòng nhập số điểm cược (tối thiểu 10 điểm).'); return; }
+
     setIsSubmitting(true);
 
     let body: CreatePredictionBody | null = null;
 
-    if (selectedMethod.methodType === 'tournament_champion') {
+    if (selectedMethod.methodType === 'champion') {
       if (!selectedHorseId) { setSubmitError('Vui lòng chọn một con ngựa.'); setIsSubmitting(false); return; }
       body = {
         predictionMethodId: selectedMethodId,
         tournamentId: (target.item as TournamentForPrediction)._id,
         predictedHorseId: selectedHorseId,
+        amount,
       };
-    } else if (selectedMethod.methodType === 'race_winner') {
+    } else if (selectedMethod.methodType === 'win' || selectedMethod.methodType === 'place' || selectedMethod.methodType === 'show') {
       if (!selectedRegId) { setSubmitError('Vui lòng chọn một con ngựa.'); setIsSubmitting(false); return; }
-      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId };
-    } else if (selectedMethod.methodType === 'race_rank') {
-      const rank = parseInt(predictedRank, 10);
-      if (!selectedRegId) { setSubmitError('Vui lòng chọn một con ngựa.'); setIsSubmitting(false); return; }
-      if (!rank || rank < 1) { setSubmitError('Vui lòng nhập thứ hạng hợp lệ (≥ 1).'); setIsSubmitting(false); return; }
-      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, predictedRank: rank };
+      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, amount };
+    } else if (selectedMethod.methodType === 'exacta') {
+      if (!selectedRegId) { setSubmitError('Vui lòng chọn ngựa hạng 1.'); setIsSubmitting(false); return; }
+      if (!selectedSecondRegId) { setSubmitError('Vui lòng chọn ngựa hạng 2.'); setIsSubmitting(false); return; }
+      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, secondRegistrationId: selectedSecondRegId, amount };
     }
 
     if (!body) { setIsSubmitting(false); return; }
@@ -429,7 +456,8 @@ export default function NewPredictionScreen() {
                             setSelectedMethodId(m._id);
                             setSelectedHorseId(null);
                             setSelectedRegId(null);
-                            setPredictedRank('');
+                            setSelectedSecondHorseId(null);
+                            setSelectedSecondRegId(null);
                           }}
                         />
                       ))}
@@ -438,53 +466,100 @@ export default function NewPredictionScreen() {
                 </View>
               )}
 
-              {/* Horse picker — always show once method selected */}
+              {/* Horse picker(s) — shown once method selected */}
               {(selectedMethodId || target?.type === 'tournament') && (
-                <View style={styles.section}>
-                  <SectionLabel text={target?.type === 'tournament' ? 'CHỌN NGỰA VÔ ĐỊCH' : 'CHỌN NGỰA'} />
-                  {horses.length === 0 ? (
-                    <View style={styles.inlineEmpty}>
-                      <Ionicons name="horse" size={20} color={Palette.textMuted} />
-                      <Text style={styles.inlineEmptyText}>
-                        {target?.type === 'race'
-                          ? 'Chưa có ngựa đăng ký cho cuộc đua này'
-                          : 'Chưa có ngựa nào trong giải đấu này'}
-                      </Text>
+                selectedMethod?.methodType === 'exacta' ? (
+                  <>
+                    {/* EXACTA: two separate pickers */}
+                    <View style={styles.section}>
+                      <SectionLabel text="NGỰA HẠNG 1 (VỊ TRÍ 1)" />
+                      {horses.length === 0 ? (
+                        <View style={styles.inlineEmpty}>
+                          <Ionicons name="alert-circle-outline" size={20} color={Palette.textMuted} />
+                          <Text style={styles.inlineEmptyText}>Chưa có ngựa đăng ký</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.horseGrid}>
+                          {horses.map(h => (
+                            <HorseChip
+                              key={h._id}
+                              horse={h.horseName}
+                              lane={(h as any).laneNumber}
+                              active={selectedHorseId === h._id}
+                              onPress={() => handleSelectHorse(h._id)}
+                            />
+                          ))}
+                        </View>
+                      )}
                     </View>
-                  ) : (
-                    <View style={styles.horseGrid}>
-                      {horses.map(h => (
-                        <HorseChip
-                          key={h._id}
-                          horse={h.horseName}
-                          lane={(h as any).laneNumber}
-                          active={selectedHorseId === h._id}
-                          onPress={() => handleSelectHorse(h._id)}
-                        />
-                      ))}
+
+                    <View style={styles.section}>
+                      <SectionLabel text="NGỰA HẠNG 2 (VỊ TRÍ 2)" />
+                      {horses.length === 0 ? (
+                        <View style={styles.inlineEmpty}>
+                          <Ionicons name="alert-circle-outline" size={20} color={Palette.textMuted} />
+                          <Text style={styles.inlineEmptyText}>Chưa có ngựa đăng ký</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.horseGrid}>
+                          {horses.map(h => (
+                            <HorseChip
+                              key={h._id}
+                              horse={h.horseName}
+                              lane={(h as any).laneNumber}
+                              active={selectedSecondHorseId === h._id}
+                              onPress={() => handleSelectSecondHorse(h._id)}
+                            />
+                          ))}
+                        </View>
+                      )}
                     </View>
-                  )}
-                </View>
+                  </>
+                ) : (
+                  <View style={styles.section}>
+                    <SectionLabel text={target?.type === 'tournament' ? 'CHỌN NGỰA VÔ ĐỊCH' : 'CHỌN NGỰA'} />
+                    {horses.length === 0 ? (
+                      <View style={styles.inlineEmpty}>
+                        <Ionicons name="horse" size={20} color={Palette.textMuted} />
+                        <Text style={styles.inlineEmptyText}>
+                          {target?.type === 'race'
+                            ? 'Chưa có ngựa đăng ký cho cuộc đua này'
+                            : 'Chưa có ngựa nào trong giải đấu này'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.horseGrid}>
+                        {horses.map(h => (
+                          <HorseChip
+                            key={h._id}
+                            horse={h.horseName}
+                            lane={(h as any).laneNumber}
+                            active={selectedHorseId === h._id}
+                            onPress={() => handleSelectHorse(h._id)}
+                          />
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )
               )}
 
-              {/* Rank input — race_rank only, after horse selected */}
-              {selectedMethod?.methodType === 'race_rank' && selectedHorseId && (
-                <View style={styles.section}>
-                  <SectionLabel text="THỨ HẠNG DỰ ĐOÁN" />
-                  <View style={styles.rankRow}>
-                    <Text style={styles.rankLabel}>Hạng</Text>
-                    <TextInput
-                      style={styles.rankInput}
-                      value={predictedRank}
-                      onChangeText={setPredictedRank}
-                      keyboardType="number-pad"
-                      placeholder="?"
-                      placeholderTextColor={Palette.textMuted}
-                      maxLength={2}
-                    />
-                  </View>
+              {/* Bet amount */}
+              <View style={styles.section}>
+                <SectionLabel text="SỐ ĐIỂM CƯỢC" />
+                <View style={styles.amountRow}>
+                  <Ionicons name="star-outline" size={18} color={Palette.gold} />
+                  <TextInput
+                    style={styles.amountInput}
+                    value={betAmount}
+                    onChangeText={setBetAmount}
+                    keyboardType="number-pad"
+                    placeholder="Nhập số điểm (tối thiểu 10)"
+                    placeholderTextColor={Palette.textMuted}
+                  />
+                  <Text style={styles.amountUnit}>điểm</Text>
                 </View>
-              )}
+              </View>
 
               {/* Error */}
               {submitError && (
@@ -664,7 +739,7 @@ const styles = StyleSheet.create({
   horseLane: { fontFamily: Fonts.mono, fontSize: 10, fontWeight: '700', color: Palette.textMuted },
   horseName: { fontSize: 13, fontWeight: '600', color: Palette.text },
 
-  rankRow: {
+  amountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -672,11 +747,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Palette.cardBorder,
     borderRadius: 14,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  rankLabel: { fontSize: 15, fontWeight: '600', color: Palette.textMuted },
-  rankInput: { fontSize: 32, fontWeight: '800', color: Palette.gold, minWidth: 48, fontFamily: Fonts.mono },
+  amountInput: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '700',
+    color: Palette.gold,
+    fontFamily: Fonts.mono,
+  },
+  amountUnit: { fontSize: 12, fontWeight: '600', color: Palette.textMuted, fontFamily: Fonts.mono },
 
   errorBox: {
     flexDirection: 'row',

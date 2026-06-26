@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   getMyPredictions,
   PredictionItem,
+  PredictionMethodType,
   PredictionStatus,
 } from '../../api/spectatorApi';
 import { Fonts } from '@/constants/theme';
@@ -53,8 +54,11 @@ function predStatusStyle(s: PredictionStatus): { color: string; label: string; i
 }
 
 function methodIcon(type?: string): string {
-  if (type === 'tournament_champion') return 'trophy-outline';
-  if (type === 'race_winner') return 'medal-outline';
+  if (type === 'champion') return 'trophy-outline';
+  if (type === 'win')      return 'medal-outline';
+  if (type === 'exacta')   return 'git-compare-outline';
+  if (type === 'place')    return 'podium-outline';
+  if (type === 'show')     return 'stats-chart-outline';
   return 'podium-outline';
 }
 
@@ -100,8 +104,9 @@ function PredictionDetailModal({
   if (!item) return null;
 
   const { color, label, icon } = predStatusStyle(item.predictionStatus);
-  const isChampion = item.predictionMethod?.methodType === 'tournament_champion';
-  const isRaceWinner = item.predictionMethod?.methodType === 'race_winner';
+  const methodType = item.predictionMethod?.methodType as PredictionMethodType | undefined;
+  const isChampion = methodType === 'champion';
+  const isExacta   = methodType === 'exacta';
 
   const title = isChampion
     ? (item.tournament?.tournamentName ?? '—')
@@ -118,6 +123,11 @@ function PredictionDetailModal({
   const raceDate = item.registration?.raceRound?.raceDate
     ? formatViDate(item.registration.raceRound.raceDate)
     : null;
+
+  const BET_LABEL: Record<string, string> = {
+    win: 'Thắng (1st)', place: 'Đặt (Top 2)', show: 'Hiện (Top 3)',
+    exacta: 'Exacta (1st + 2nd)', champion: 'Vô địch giải',
+  };
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -147,18 +157,25 @@ function PredictionDetailModal({
 
         {/* Detail rows */}
         <View style={styles.detailList}>
-          <DetailRow label="Loại dự đoán" value={item.predictionMethod?.methodName ?? '—'} />
-          <DetailRow label="Ngựa dự đoán" value={horseName} valueColor={Palette.gold} />
+          <DetailRow label="Loại cược" value={methodType ? (BET_LABEL[methodType] ?? item.predictionMethod?.methodName ?? '—') : '—'} />
+          {isExacta ? (
+            <>
+              <DetailRow label="Ngựa hạng 1" value={horseName} valueColor={Palette.gold} />
+              <DetailRow label="Ngựa hạng 2" value={item.secondRegistration?.horse?.horseName ?? '—'} valueColor={Palette.gold} />
+            </>
+          ) : (
+            <DetailRow label="Ngựa dự đoán" value={horseName} valueColor={Palette.gold} />
+          )}
           {tournamentName && <DetailRow label="Giải đấu" value={tournamentName} />}
           {!isChampion && item.registration?.laneNumber != null && (
             <DetailRow label="Ô xuất phát" value={`#${item.registration.laneNumber}`} />
           )}
-          {!isChampion && !isRaceWinner && item.predictedRank != null && (
-            <DetailRow label="Hạng dự đoán" value={`Hạng ${item.predictedRank}`} valueColor={Palette.gold} />
-          )}
           {raceDate && <DetailRow label="Ngày đua" value={raceDate} />}
+          {item.amount != null && (
+            <DetailRow label="Số điểm cược" value={`${item.amount} điểm`} />
+          )}
           {item.rewardPoints > 0 && (
-            <DetailRow label="Điểm thưởng" value={`+${item.rewardPoints} điểm`} valueColor={Palette.green} />
+            <DetailRow label="Nhận về" value={`+${item.rewardPoints} điểm`} valueColor={Palette.green} />
           )}
           {item.created_at && (
             <DetailRow label="Ngày đặt" value={formatViDate(item.created_at)} />
@@ -177,8 +194,9 @@ function PredictionDetailModal({
 
 function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () => void }) {
   const { color, label, icon } = predStatusStyle(item.predictionStatus);
-  const isChampion = item.predictionMethod?.methodType === 'tournament_champion';
-  const isRaceWinner = item.predictionMethod?.methodType === 'race_winner';
+  const methodType = item.predictionMethod?.methodType as PredictionMethodType | undefined;
+  const isChampion = methodType === 'champion';
+  const isExacta   = methodType === 'exacta';
 
   const horseName = isChampion
     ? (item.predictedHorse?.horseName ?? '—')
@@ -192,15 +210,17 @@ function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () =
     ? 'Vô địch giải đấu'
     : (item.registration?.raceRound?.tournament?.tournamentName ?? null);
 
-  const laneNumber = item.registration?.laneNumber;
   const methodName = item.predictionMethod?.methodName;
+  const BET_SHORT: Record<string, string> = {
+    win: 'WIN', place: 'PLACE', show: 'SHOW', exacta: 'EXACTA', champion: 'CHAMP',
+  };
 
   return (
     <Pressable style={({ pressed }) => [styles.card, { borderLeftColor: color, opacity: pressed ? 0.85 : 1 }]} onPress={onPress}>
       {/* Top */}
       <View style={styles.cardTop}>
         <View style={[styles.cardIconBox, { backgroundColor: `${color}18` }]}>
-          <Ionicons name={methodIcon(item.predictionMethod?.methodType) as any} size={16} color={color} />
+          <Ionicons name={methodIcon(methodType) as any} size={16} color={color} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.cardRaceName} numberOfLines={1}>{titleText}</Text>
@@ -216,23 +236,33 @@ function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () =
 
       {/* Info grid — always 2 columns */}
       <View style={styles.infoGrid}>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>NGỰA DỰ ĐOÁN</Text>
-          <Text style={[styles.infoValue, { color: Palette.gold }]} numberOfLines={1}>{horseName}</Text>
-        </View>
-
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>
-            {isChampion ? 'PHƯƠNG THỨC' : (!isRaceWinner && item.predictedRank != null ? 'HẠNG DỰ ĐOÁN' : 'Ô XUẤT PHÁT')}
-          </Text>
-          <Text style={styles.infoValue} numberOfLines={1}>
-            {isChampion
-              ? (methodName ?? '—')
-              : (!isRaceWinner && item.predictedRank != null
-                  ? `Hạng ${item.predictedRank}`
-                  : (laneNumber != null ? `#${laneNumber}` : '—'))}
-          </Text>
-        </View>
+        {isExacta ? (
+          <>
+            <View style={styles.infoCell}>
+              <Text style={styles.infoLabel}>NGỰA HẠNG 1</Text>
+              <Text style={[styles.infoValue, { color: Palette.gold }]} numberOfLines={1}>{horseName}</Text>
+            </View>
+            <View style={styles.infoCell}>
+              <Text style={styles.infoLabel}>NGỰA HẠNG 2</Text>
+              <Text style={[styles.infoValue, { color: Palette.gold }]} numberOfLines={1}>
+                {item.secondRegistration?.horse?.horseName ?? '—'}
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.infoCell}>
+              <Text style={styles.infoLabel}>NGỰA DỰ ĐOÁN</Text>
+              <Text style={[styles.infoValue, { color: Palette.gold }]} numberOfLines={1}>{horseName}</Text>
+            </View>
+            <View style={styles.infoCell}>
+              <Text style={styles.infoLabel}>LOẠI CƯỢC</Text>
+              <Text style={styles.infoValue} numberOfLines={1}>
+                {methodType ? (BET_SHORT[methodType] ?? methodName ?? '—') : '—'}
+              </Text>
+            </View>
+          </>
+        )}
       </View>
 
       {/* Footer */}
