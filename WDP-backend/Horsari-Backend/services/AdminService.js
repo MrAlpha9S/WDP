@@ -239,9 +239,10 @@ class AdminService {
                             roundName: raceRound.roundName,
                             raceDate: raceRound.raceDate,
                             finishPosition: raceResult?.finishPosition ?? null,
-                            finishTime: raceResult?.finishTime ?? null,
-                            prizeMoney: raceResult?.prizeMoney ?? null,
-                            resultStatus: raceResult?.resultStatus ?? null,
+                            finishTime:     raceResult?.finishTime     ?? null,
+                            prizeMoney:     raceResult?.prizeMoney     ?? null,
+                            resultStatus:   raceResult?.resultStatus   ?? null,
+                            distance:       raceResult?.distance       ?? null,
                             horseId:   inv.horseId?._id   ?? null,
                             horseName: inv.horseId?.horseName ?? null,
                             horseBreed: inv.horseId?.breed ?? null,
@@ -887,7 +888,7 @@ class AdminService {
                     : null;
 
                 const invitationFilter = { registrationId: reg._id };
-                if ((raceRound.status === 'completed' || raceRound.status === 'running') && reg.jockeyInRaceId) {
+                if (['completed', 'running', 'awaitingConfirmation'].includes(raceRound.status) && reg.jockeyInRaceId) {
                     invitationFilter._id = reg.jockeyInRaceId;
                 } else {
                     invitationFilter.isBackup = false;
@@ -1388,8 +1389,8 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
     try {
         const raceRound = await RaceRound.findById(raceRoundId).lean();
         if (!raceRound) return { code: 404, msg: 'Race round not found.' };
-        if (raceRound.status !== 'running' && raceRound.status !== 'completed') {
-            return { code: 422, msg: `Cannot confirm results for a race with status "${raceRound.status}".` };
+        if (raceRound.status !== 'awaitingConfirmation' && raceRound.status !== 'completed') {
+            return { code: 422, msg: `Cannot confirm results for a race with status "${raceRound.status}". Race must be in "awaitingConfirmation" state.` };
         }
 
         // Mark all pending_confirmation results as official and stamp publishedByAdminId
@@ -1656,6 +1657,7 @@ AdminService.prototype.getHorseDetail = async function (horseId) {
                 finishTime:         resultMap[rid]?.finishTime     ?? null,
                 prizeMoney:         resultMap[rid]?.prizeMoney     ?? 0,
                 resultStatus:       resultMap[rid]?.resultStatus   ?? null,
+                distance:           resultMap[rid]?.distance       ?? null,
                 violations: (violationMap[rid] ?? []).map(v => ({
                     violationId:     v._id,
                     typeName:        v.violationTypeId?.violationName ?? null,

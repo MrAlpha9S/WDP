@@ -122,7 +122,7 @@ export const refereeService = {
         }
     },
 
-    getActiveRules: async (): Promise<{ code: number; data: any[]; msg: string }> => {
+    getActiveRules: async (): Promise<{ code: number; data: { items: any[]; pagination: any }; msg: string }> => {
         try {
             const response = await api.get('/eligibility-rules');
             console.log('getActiveRules:', response.data);
@@ -246,15 +246,13 @@ export const refereeService = {
 
     getRaceRoundViolations: async (
         raceRoundId: string,
-        page = 1,
-        limit = 20,
         status?: string,
         search?: string,
         sortBy = 'created_at',
         order: 'asc' | 'desc' = 'desc',
-    ): Promise<{ code: number; data: { items: ViolationRecord[]; pagination: any }; msg: string }> => {
+    ): Promise<{ code: number; data: ViolationRecord[]; msg: string }> => {
         try {
-            const params: any = { page, limit, sortBy, order };
+            const params: any = { sortBy, order };
             if (status) params.status = status;
             if (search) params.search = search;
             const response = await api.get(`/referee/race-rounds/${raceRoundId}/violations`, { params });
@@ -274,6 +272,16 @@ export const refereeService = {
         try {
             const response = await api.post('/referee/violations', body);
             console.log('createViolation:', response.data);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
+    confirmViolation: async (violationId: string): Promise<{ code: number; msg: string }> => {
+        try {
+            const response = await api.put(`/referee/violations/${violationId}/confirm`);
+            console.log('confirmViolation:', response.data);
             return response.data;
         } catch (error: any) {
             throw error.response?.data || error;

@@ -24,10 +24,10 @@ function randomStat(min, max) {
     return Math.round(min + Math.random() * (max - min));
 }
 
-// ── Stat → physics conversions ─────────────────────────────────────────────────
-// speed   100 → 17 m/s,   1 → ~6 m/s  (real thoroughbred: 14-17 m/s)
+// ── Stat → physics conversions (all in m/tick at TICK_MS = 100 ms) ─────────────
+// speed 100 → 1.7 m/tick, speed 1 → ~0.61 m/tick  (≈ 17 m/s and 6 m/s at 10 ticks/s)
 function statToMaxSpeed(speed) {
-    return 6 + (speed / 100) * 11;
+    return 0.6 + (speed / 100) * 1.1;
 }
 
 // stamina pool: resource a horse spends each tick to sustain speed — 300 (stat 1) to 2000 (stat 100)
@@ -36,9 +36,9 @@ function statToStamina(stamina) {
     return 300 + (stamina / 100) * 1700;
 }
 
-// accel → per-tick speed variance (m/s), ranges 0.10 – 1.55
+// accel → per-tick speed variance (m/tick), ranges 0.010 – 0.155
 function statToAccelRange(accel) {
-    return 0.10 + (accel / 100) * 1.45;
+    return 0.010 + (accel / 100) * 0.145;
 }
 
 function randomBetween(min, max) {
@@ -49,6 +49,9 @@ function randomBetween(min, max) {
 function computeLineMark(highestDistance) {
     return (Math.floor(highestDistance / 100) + 1) * 100;
 }
+
+// Tick interval in milliseconds — controls update frequency and physics step size.
+const TICK_MS = 100; // 10 updates per second; race real-time duration unchanged
 
 // ── Per-tick physics (resource-based stamina) ──────────────────────────────────
 //
@@ -69,7 +72,7 @@ function simulateTick(horse, trackLength) {
     const maxSpeed   = statToMaxSpeed(horse.speed);
     const accelRange = statToAccelRange(horse.accel);
     const minSpeed   = maxSpeed * 0.35;           // lower floor = stamina failure hurts
-    const baseDrain  = 10 + (horse.speed / 100) * 5; // 10–15 units/tick at full speed
+    const baseDrain  = 1.0 + (horse.speed / 100) * 0.5; // 1.0–1.5 units/tick at full speed
 
     let intended;   // what the horse wants to run this tick
     let drainRate;
@@ -129,7 +132,7 @@ function simulateTick(horse, trackLength) {
     const drain = baseDrain * drainRate * Math.pow(speedFraction, 1.8);
     horse.staminaPool = Math.max(0, horse.staminaPool - drain);
 
-    // ── Distance & finish ─────────────────────────────────────────────────────
+    // ── Distance & finish — target is m/tick, no dt scaling needed ───────────
     const newDist    = horse.currentDistance + target;
     const isFinished = newDist >= trackLength;
 
@@ -139,7 +142,7 @@ function simulateTick(horse, trackLength) {
     }
 
     return {
-        currentSpeed:    target,
+        currentSpeed:    target * (1000 / TICK_MS), // convert m/tick → m/s for display
         currentDistance: isFinished ? trackLength : newDist,
         isFinished,
         finishFraction,
@@ -234,6 +237,7 @@ async function saveHorseResult(raceRound, horse) {
             registrationId: new (require('mongoose').Types.ObjectId)(horse.registrationId),
             finishPosition: horse.finishPosition,
             finishTime:     horse.finishTime,
+            distance:       horse.finishingDistance ?? 0,
             prizeMoney:     prize,
             resultStatus:   'pending_confirmation',
             createdAt:      new Date(raceDate),
@@ -255,24 +259,52 @@ async function saveHorseResult(raceRound, horse) {
 }
 
 // ── Notify clients when all horses finish ──────────────────────────────────────
-async function finalizeRace(raceRoundId, horses, intensity, io) {
+async function finalizeRace(raceRoundId, raceRound, horses, intensity, io) {
     try {
+        // Sort finishers by position, compute gap in lengths each horse was ahead of the one behind it.
+        // 1 length ≈ 0.2 s at typical flat-race pace. Rounded to ¼-length precision.
+        const sorted = horses
+            .filter(h => h.isFinished && h.exactMs != null)
+            .sort((a, b) => (a.finishPosition ?? 999) - (b.finishPosition ?? 999));
+
+        for (let i = 0; i < sorted.length; i++) {
+            if (i < sorted.length - 1) {
+                const gapSec = (sorted[i + 1].exactMs - sorted[i].exactMs) / 1000;
+                sorted[i].finishingDistance = Math.round((gapSec / 0.2) * 4) / 4;
+            } else {
+                sorted[i].finishingDistance = 0; // last finisher — no one behind
+            }
+        }
+
+        // Persist results now that distances are known
+        await Promise.all(horses.map(horse => saveHorseResult(raceRound, horse)));
+
+        const sortedResults = sorted
+            .map(h => ({
+                registrationId: h.registrationId,
+                horseName:      h.horseName,
+                jockeyName:     h.jockeyName,
+                finishPosition: h.finishPosition,
+                finishTime:     h.finishTime,
+                distance:       h.finishingDistance ?? 0,
+            }));
+
         io.to(`race:${raceRoundId}`).emit('race_finished', {
             raceRoundId,
             intensity: intensity.name,
-            results: horses
-                .slice()
-                .sort((a, b) => (a.finishPosition ?? 999) - (b.finishPosition ?? 999))
-                .map(h => ({
-                    registrationId: h.registrationId,
-                    horseName:      h.horseName,
-                    jockeyName:     h.jockeyName,
-                    finishPosition: h.finishPosition,
-                    finishTime:     h.finishTime,
-                })),
+            results: sortedResults,
         });
 
-        console.log(`[Sim] Race ${raceRoundId} finalised — all horses finished.`);
+        // Transition race to awaitingConfirmation so admin can review & officially confirm
+        await RaceRound.findByIdAndUpdate(raceRoundId, { status: 'awaitingConfirmation' });
+
+        io.to(`race:${raceRoundId}`).emit('race_status_changed', {
+            raceRoundId,
+            status: 'awaitingConfirmation',
+            timestamp: new Date(),
+        });
+
+        console.log(`[Sim] Race ${raceRoundId} finalised — status → awaitingConfirmation.`);
 
         await checkTournamentChampion(raceRoundId, io);
     } catch (err) {
@@ -383,7 +415,7 @@ async function initializeSimulation(raceRoundId, io) {
 
             if (tick.isFinished) {
                 horse.isFinished = true;
-                const exactMs = Math.max(0, (currentMs - 1000) + (tick.finishFraction * 1000));
+                const exactMs = Math.max(0, (currentMs - TICK_MS) + (tick.finishFraction * TICK_MS));
                 finishedThisTick.push({ horse, exactMs });
             }
 
@@ -396,7 +428,7 @@ async function initializeSimulation(raceRoundId, io) {
                 state.finishCount += 1;
                 horse.finishPosition = state.finishCount;
                 horse.finishTime = formatTime(exactMs);
-                saveHorseResult(raceRound, horse);
+                horse.exactMs = exactMs; // stored for distance calc in finalizeRace
             }
         }
 
@@ -426,9 +458,9 @@ async function initializeSimulation(raceRoundId, io) {
         if (state.finishCount >= state.horses.length) {
             clearInterval(state.interval);
             activeRaces.delete(raceRoundId);
-            await finalizeRace(raceRoundId, state.horses, intensity, io);
+            await finalizeRace(raceRoundId, raceRound, state.horses, intensity, io);
         }
-    }, 1000);
+    }, TICK_MS);
 
     state.interval = interval;
     activeRaces.set(raceRoundId, state);

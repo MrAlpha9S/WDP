@@ -345,7 +345,7 @@ class RaceRoundService {
             return { code: 404, message: 'Race round not found' };
         }
         
-        if (raceRound.status === 'completed' || raceRound.status === 'running') {
+        if (['completed', 'running', 'awaitingConfirmation'].includes(raceRound.status)) {
             return { code: 400, message: `Cannot cancel a race round that is already ${raceRound.status}` };
         }
 

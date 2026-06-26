@@ -405,7 +405,7 @@ class RefereeService {
             const registrations = await Registration.find({ raceRoundId: raceRound._id }).lean();
             const enriched = await Promise.all(registrations.map(async (reg) => {
                 const invitationFilter = { registrationId: reg._id };
-                if ((raceRound.status === 'completed' || raceRound.status === 'running') && reg.jockeyInRaceId) {
+                if (['completed', 'running', 'awaitingConfirmation'].includes(raceRound.status) && reg.jockeyInRaceId) {
                     invitationFilter._id = reg.jockeyInRaceId;
                 }
 
@@ -798,30 +798,25 @@ class RefereeService {
 
     // ── Violations (race-round scoped) ────────────────────────────────────────
 
-    async getRaceRoundViolations(refereeId, raceRoundId, page = 1, limit = 20, status = null, search = null, sortBy = 'created_at', order = 'desc') {
+    async getRaceRoundViolations(refereeId, raceRoundId, status = null, search = null, sortBy = 'created_at', order = 'desc') {
         try {
             const assignment = await RaceReferee.findOne({ refereeId, raceRoundId }).lean();
             if (!assignment) return { code: 403, msg: 'You are not assigned to this race round.' };
 
-            const skip = (page - 1) * limit;
             const filter = { raceRoundId };
             if (status) filter.violationStatus = status;
             if (search) filter.description = { $regex: search, $options: 'i' };
             const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
 
-            const [items, totalItems] = await Promise.all([
-                Violation.find(filter)
-                    .populate('violationTypeId', 'violationName type category severity defaultPenalty')
-                    .populate('registrationId', '_id registrationStatus')
-                    .sort(sortObj)
-                    .skip(skip)
-                    .limit(limit)
-                    .lean(),
-                Violation.countDocuments(filter),
-            ]);
+            const violations = await Violation.find(filter)
+                .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                .populate('registrationId', '_id registrationStatus')
+                .sort(sortObj)
+                .lean();
+
             return {
                 code: 200,
-                data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                data: violations,
                 msg: 'Violations retrieved.',
             };
         } catch (error) {
@@ -854,6 +849,25 @@ class RefereeService {
                 .populate('violationTypeId', 'violationName type category severity defaultPenalty')
                 .lean();
             return { code: 201, data: populated, msg: 'Violation created.' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async confirmViolation(refereeId, violationId) {
+        try {
+            const violation = await Violation.findById(violationId).lean();
+            if (!violation) return { code: 404, msg: 'Violation not found.' };
+
+            // Confirm the referee owns this violation via their assignment
+            const assignment = await RaceReferee.findOne({
+                _id: violation.raceRefereeId,
+                refereeId,
+            }).lean();
+            if (!assignment) return { code: 403, msg: 'You do not have permission to confirm this violation.' };
+
+            await Violation.findByIdAndUpdate(violationId, { violationStatus: 'confirmed' });
+            return { code: 200, msg: 'Violation confirmed.' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }

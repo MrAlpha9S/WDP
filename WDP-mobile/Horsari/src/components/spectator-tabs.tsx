@@ -77,6 +77,14 @@ export default function SpectatorTabs() {
           ),
         }}
       />
+      {/* Live race detail screen — hidden from tab bar, navigated programmatically */}
+      <Tabs.Screen
+        name="race/[id]"
+        options={{
+          href: null,
+          tabBarStyle: { display: 'none' },
+        }}
+      />
     </Tabs>
   );
 }

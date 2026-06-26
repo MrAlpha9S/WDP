@@ -544,19 +544,26 @@ class SpectatorService {
 
             const registrationIds = registrations.map(r => r._id);
 
-            const [enriched, predictions] = await Promise.all([
+            const [enriched, predictions, raceResults] = await Promise.all([
                 this._enrichRegistrationsWithInvitationData(registrations),
                 registrationIds.length > 0
                     ? PredictionRepository.findBySpectatorAndRegistrations(userId, registrationIds)
+                    : Promise.resolve([]),
+                registrationIds.length > 0
+                    ? RaceResult.find({ registrationId: { $in: registrationIds } }).lean()
                     : Promise.resolve([]),
             ]);
 
             const predMap = {};
             predictions.forEach(p => { predMap[p.registrationId.toString()] = p; });
 
+            const resultMap = {};
+            raceResults.forEach(r => { resultMap[r.registrationId.toString()] = r; });
+
             const enrichedRegistrations = enriched.map(reg => ({
                 ...reg,
                 userPrediction: predMap[reg._id.toString()] || null,
+                raceResult: resultMap[reg._id.toString()] || null,
             }));
 
             return {

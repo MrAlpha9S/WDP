@@ -24,7 +24,7 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function derivePhase(status?: string): RacePhase {
     if (status === "running") return "live";
-    if (status === "completed") return "post";
+    if (status === "completed" || status === "awaitingConfirmation") return "post";
     if (status === "prepared") return "pre";
     return "pre";
 }
@@ -213,7 +213,7 @@ export default function RaceMonitorIndex() {
             if (status === 'running' && raceRoundId) {
                 refereeService.getRaceRoundById(raceRoundId)
                     .then(res => { if (res.code === 200 && res.data) setRaceRound(res.data); })
-                    .catch(() => {});
+                    .catch(() => { });
             }
         });
 

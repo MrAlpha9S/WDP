@@ -58,6 +58,18 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
     // Tab State
     const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'referees' | 'pools' | 'stream'>('overview');
+    const [distUnit, setDistUnit] = useState<'lengths' | 'metres'>('lengths');
+    const fmtLength = (l: number | null | undefined) => {
+        if (l == null || l === 0) return '—';
+        if (distUnit === 'metres') return `+${(l * 2.4).toFixed(1)} m`;
+        if (l <= 0.1)  return 'Nse';
+        if (l <= 0.2)  return 'Hd';
+        if (l <= 0.35) return 'Nk';
+        const whole = Math.floor(l);
+        const frac  = Math.round((l - whole) * 4) / 4;
+        const f     = frac === 0 ? '' : frac === 0.25 ? '¼' : frac === 0.5 ? '½' : '¾';
+        return whole === 0 ? `${f}L` : `${whole}${f}L`;
+    };
 
     const [detailedParticipants, setDetailedParticipants] = useState<any[]>([]);
     const [detailedReferees, setDetailedReferees] = useState<any[]>([]);
@@ -501,6 +513,18 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     {/* ── Registrations Tab ── */}
                     {activeTab === 'registrations' && (
                         <div className="flex flex-col gap-3">
+                            {detailedParticipants.length > 0 && (
+                                <div className="flex justify-end">
+                                    <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
+                                        {(['lengths', 'metres'] as const).map(u => (
+                                            <button key={u} onClick={() => setDistUnit(u)}
+                                                className={["text-[10px] font-bold font-mono px-2 py-1 rounded-md transition-all", distUnit === u ? "bg-white/15 text-white" : "text-gray-600 hover:text-gray-400"].join(" ")}>
+                                                {u === 'metres' ? 'm' : 'L'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             {detailedParticipants.map((p: any, idx: number) => {
                                 const colorClass = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending;
                                 return (
@@ -545,6 +569,10 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-gray-500 font-medium flex items-center gap-1"><Clock size={12}/> Finish Time</span>
                                                         <span className="text-gray-300 font-semibold">{p.raceResult.finishTime}</span>
+                                                    </div>
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-gray-500 font-medium flex items-center gap-1"><Clock size={12}/> Margin</span>
+                                                        <span className="text-gray-400 font-semibold">{fmtLength(p.raceResult.distance)}</span>
                                                     </div>
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12}/> Prize</span>

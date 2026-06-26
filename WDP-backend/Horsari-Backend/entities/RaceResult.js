@@ -26,10 +26,13 @@ const raceResultSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        distance: {
+            type: Number,
+        },
         resultStatus: {
             type: String,
-            enum: ['official', 'cancelled'],
-            default: 'official',
+            enum: ['pending_confirmation', 'official', 'cancelled'],
+            default: 'pending_confirmation',
         },
     },
     { timestamps: true }

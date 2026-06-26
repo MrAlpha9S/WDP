@@ -47,6 +47,7 @@ interface RaceHistoryEntry {
     finishTime:         string | null;
     prizeMoney:         number;
     resultStatus:       string | null;
+    distance:           number | null;
     violations:         ViolationEntry[];
 }
 
@@ -188,8 +189,20 @@ function HorseDetailPanel({
     statusLoading: boolean;
 }) {
     const [activeTab, setActiveTab] = useState<DetailTab>("overview");
+    const [distUnit, setDistUnit] = useState<'lengths' | 'metres'>('lengths');
     const status = STATUS_CFG[horse.status];
     const health = HEALTH_CFG[horse.healthStatus];
+    const fmtLength = (l: number | null | undefined) => {
+        if (l == null || l === 0) return '—';
+        if (distUnit === 'metres') return `+${(l * 2.4).toFixed(1)} m`;
+        if (l <= 0.1)  return 'Nse';
+        if (l <= 0.2)  return 'Hd';
+        if (l <= 0.35) return 'Nk';
+        const whole = Math.floor(l);
+        const frac  = Math.round((l - whole) * 4) / 4;
+        const f     = frac === 0 ? '' : frac === 0.25 ? '¼' : frac === 0.5 ? '½' : '¾';
+        return whole === 0 ? `${f}L` : `${whole}${f}L`;
+    };
 
     const raceHistory  = detail?.raceHistory ?? [];
     const allViolations = raceHistory.flatMap(r => r.violations);
@@ -304,6 +317,18 @@ function HorseDetailPanel({
 
                 {!detailLoading && activeTab === "history" && (
                     <div className="flex flex-col gap-2">
+                        {raceHistory.length > 0 && (
+                            <div className="flex justify-end">
+                                <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
+                                    {(['lengths', 'metres'] as const).map(u => (
+                                        <button key={u} onClick={() => setDistUnit(u)}
+                                            className={["text-[10px] font-bold font-mono px-2 py-1 rounded-md transition-all", distUnit === u ? "bg-white/15 text-white" : "text-gray-600 hover:text-gray-400"].join(" ")}>
+                                            {u === 'lengths' ? 'L' : 'm'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         {raceHistory.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-10 gap-2">
                                 <Trophy size={22} className="text-gray-700" />
@@ -325,7 +350,7 @@ function HorseDetailPanel({
                                         </span>
                                     )}
                                 </div>
-                                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-white/[0.05]">
+                                <div className="grid grid-cols-4 gap-2 pt-1 border-t border-white/[0.05]">
                                     <div>
                                         <p className="text-[10px] text-gray-600 uppercase tracking-wider">Position</p>
                                         <p className={`text-[13px] font-bold mt-0.5 ${POSITION_COLOR[r.finishPosition ?? 0] ?? "text-gray-500"}`}>
@@ -337,6 +362,10 @@ function HorseDetailPanel({
                                         <p className="text-[12px] text-gray-300 font-medium mt-0.5 flex items-center gap-1">
                                             <Timer size={10} className="text-gray-600" />{r.finishTime ?? "—"}
                                         </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-600 uppercase tracking-wider">Margin</p>
+                                        <p className="text-[12px] text-gray-400 font-medium mt-0.5">{fmtLength(r.distance)}</p>
                                     </div>
                                     <div>
                                         <p className="text-[10px] text-gray-600 uppercase tracking-wider">Prize</p>

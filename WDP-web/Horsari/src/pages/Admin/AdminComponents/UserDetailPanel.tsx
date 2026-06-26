@@ -292,7 +292,19 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
     onVerify?: (action: 'approve' | 'reject') => Promise<void>;
 }) {
     const [activeTab, setActiveTab] = useState<"Overview" | "Role Info" | "History">("Overview");
+    const [distUnit, setDistUnit] = useState<'lengths' | 'metres'>('lengths');
     const [verifyLoading, setVerifyLoading] = useState<'approve' | 'reject' | null>(null);
+    const fmtLength = (l: number | null | undefined) => {
+        if (l == null || l === 0) return '—';
+        if (distUnit === 'metres') return `+${(l * 2.4).toFixed(1)} m`;
+        if (l <= 0.1)  return 'Nse';
+        if (l <= 0.2)  return 'Hd';
+        if (l <= 0.35) return 'Nk';
+        const whole = Math.floor(l);
+        const frac  = Math.round((l - whole) * 4) / 4;
+        const f     = frac === 0 ? '' : frac === 0.25 ? '¼' : frac === 0.5 ? '½' : '¾';
+        return whole === 0 ? `${f}L` : `${whole}${f}L`;
+    };
     const style = ROLE_STYLES[user.role];
     const statusStyle = STATUS_STYLES[user.status];
 
@@ -421,6 +433,18 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
 
                     {activeTab === "History" && user.role === "Jockey" && user.data && 'raceHistory' in user.data && (
                         <div className="flex flex-col gap-2">
+                            {!!user.data.raceHistory?.length && (
+                                <div className="flex justify-end">
+                                    <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
+                                        {(['lengths', 'metres'] as const).map(u => (
+                                            <button key={u} onClick={() => setDistUnit(u)}
+                                                className={["text-[10px] font-bold font-mono px-2 py-1 rounded-md transition-all", distUnit === u ? "bg-white/15 text-white" : "text-gray-600 hover:text-gray-400"].join(" ")}>
+                                                {u === 'lengths' ? 'L' : 'm'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             {user.data.raceHistory?.length ? user.data.raceHistory.map((race: any) => {
                                 const posLabel = race.position === 1 ? '1st' : race.position === 2 ? '2nd' : race.position === 3 ? '3rd' : race.position ? `${race.position}th` : null;
                                 const posColor = race.position === 1 ? 'text-amber-400' : race.position === 2 ? 'text-gray-300' : race.position === 3 ? 'text-orange-400' : 'text-gray-500';
@@ -456,7 +480,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
 
                                         {/* Result row */}
                                         {hasResult && (
-                                            <div className="grid grid-cols-3 gap-2 mx-3 mb-3 px-3 py-2 rounded-md bg-white/[0.02] border border-white/[0.05]">
+                                            <div className="grid grid-cols-4 gap-2 mx-3 mb-3 px-3 py-2 rounded-md bg-white/[0.02] border border-white/[0.05]">
                                                 <div className="text-center">
                                                     <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Position</p>
                                                     <p className={`text-[13px] font-bold ${posLabel ? posColor : 'text-gray-600'}`}>{posLabel ?? '—'}</p>
@@ -466,6 +490,10 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                                                     <p className="text-[12px] text-gray-300 font-medium flex items-center justify-center gap-1">
                                                         <Timer size={9} className="text-gray-600" />{race.finishTime ?? '—'}
                                                     </p>
+                                                </div>
+                                                <div className="text-center border-r border-white/[0.05]">
+                                                    <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Margin</p>
+                                                    <p className="text-[12px] text-gray-400 font-medium">{fmtLength(race.distance)}</p>
                                                 </div>
                                                 <div className="text-center">
                                                     <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
@@ -30,6 +31,7 @@ const Palette = {
   redLight: '#E8828A',
   gold: '#C9A24B',
   green: '#22C55E',
+  amber: '#E07B3A',
 } as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -42,19 +44,27 @@ function formatViDateTime(dateStr: string): string {
 }
 
 function statusLabel(s: string): { label: string; color: string } {
-  if (s === 'running') return { label: 'Đang chạy', color: Palette.red };
-  if (s === 'scheduled') return { label: 'Sắp diễn ra', color: Palette.gold };
-  if (s === 'completed') return { label: 'Đã kết thúc', color: Palette.textMuted };
+  if (s === 'running')              return { label: 'Đang chạy',      color: Palette.red };
+  if (s === 'prepared')             return { label: 'Chuẩn bị',       color: Palette.amber };
+  if (s === 'scheduled')            return { label: 'Sắp diễn ra',    color: Palette.gold };
+  if (s === 'completed')            return { label: 'Đã kết thúc',    color: Palette.textMuted };
+  if (s === 'awaitingConfirmation') return { label: 'Chờ xác nhận',   color: Palette.amber };
   return { label: s, color: Palette.textMuted };
 }
 
 // ─── Race Card ────────────────────────────────────────────────────────────────
 
-function RaceCard({ item }: { item: RaceScheduleItem }) {
+function RaceCard({ item, onPress }: { item: RaceScheduleItem; onPress?: () => void }) {
   const { label, color } = statusLabel(item.status);
 
   return (
-    <View style={[styles.raceCard, item.status === 'running' && styles.raceCardLive]}>
+    <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+    <View style={[
+      styles.raceCard,
+      item.status === 'running'              && styles.raceCardLive,
+      item.status === 'prepared'             && styles.raceCardPrepared,
+      item.status === 'awaitingConfirmation' && styles.raceCardPrepared,
+    ]}>
       {/* Top row: name + status */}
       <View style={styles.raceCardTop}>
         <View style={{ flex: 1 }}>
@@ -66,7 +76,9 @@ function RaceCard({ item }: { item: RaceScheduleItem }) {
           )}
         </View>
         <View style={[styles.statusBadge, { borderColor: `${color}55`, backgroundColor: `${color}18` }]}>
-          {item.status === 'running' && <View style={styles.runningDot} />}
+          {(item.status === 'running' || item.status === 'prepared' || item.status === 'awaitingConfirmation') && (
+            <View style={[styles.runningDot, { backgroundColor: color }]} />
+          )}
           <Text style={[styles.statusBadgeText, { color }]}>{label.toUpperCase()}</Text>
         </View>
       </View>
@@ -116,20 +128,23 @@ function RaceCard({ item }: { item: RaceScheduleItem }) {
       </View>
 
     </View>
+    </Pressable>
   );
 }
 
 // ─── Filter definition ────────────────────────────────────────────────────────
 
 const FILTERS: { key: ScheduleFilter; label: string; color: string }[] = [
-  { key: 'running',   label: 'Đang diễn ra', color: Palette.red  },
-  { key: 'scheduled', label: 'Sắp diễn ra',  color: Palette.gold },
+  { key: 'running',   label: 'Đang diễn ra', color: Palette.red   },
+  { key: 'prepared',  label: 'Chuẩn bị',     color: Palette.amber },
+  { key: 'scheduled', label: 'Sắp diễn ra',  color: Palette.gold  },
   { key: 'completed', label: 'Đã kết thúc',  color: Palette.textMuted },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function ScheduleScreen() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<ScheduleFilter>('scheduled');
   const [races, setRaces] = useState<RaceScheduleItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -237,7 +252,11 @@ export default function ScheduleScreen() {
             )}
 
             {races.map((item) => (
-              <RaceCard key={item._id} item={item} />
+              <RaceCard
+                key={item._id}
+                item={item}
+                onPress={() => router.push(`/(spectator)/race/${item._id}` as any)}
+              />
             ))}
 
             {races.length === 0 && (
@@ -354,6 +373,9 @@ const styles = StyleSheet.create({
   raceCardLive: {
     borderColor: '#5C1A1F',
   },
+  raceCardPrepared: {
+    borderColor: '#6B3A1A',
+  },
   raceCardTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -381,7 +403,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  runningDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Palette.red },
+  runningDot: { width: 6, height: 6, borderRadius: 3 },
   statusBadgeText: {
     fontFamily: Fonts.mono,
     fontSize: 9,

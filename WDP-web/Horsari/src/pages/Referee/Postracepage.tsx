@@ -4,6 +4,7 @@ import { AlertTriangle, Camera, ChevronLeft, ChevronRight, Flag, Medal, Play, Pa
 import { ordinal } from "../../shared/data/RaceData";
 import { useRaceSocket } from "../../providers/useRaceSocket";
 import { refereeService } from "../../api/refereeService";
+import type { ViolationRecord } from "../../api/refereeService";
 import MuxPlayer from "@mux/mux-player-react";
 
 function VideoReviewPanel({ raceRound }: { raceRound: any }) {
@@ -38,6 +39,19 @@ function VideoReviewPanel({ raceRound }: { raceRound: any }) {
     );
 }
 
+type DistUnit = 'lengths' | 'metres';
+const fmtLength = (l: number | null | undefined, unit: DistUnit = 'lengths'): string => {
+    if (l == null || l === 0) return '—';
+    if (unit === 'metres') return `+${(l * 2.4).toFixed(1)} m`;
+    if (l <= 0.1)  return 'Nse';
+    if (l <= 0.2)  return 'Hd';
+    if (l <= 0.35) return 'Nk';
+    const whole = Math.floor(l);
+    const frac  = Math.round((l - whole) * 4) / 4;
+    const f     = frac === 0 ? '' : frac === 0.25 ? '¼' : frac === 0.5 ? '½' : '¾';
+    return whole === 0 ? `${f}L` : `${whole}${f}L`;
+};
+
 export default function PostRacePage() {
     const { raceRoundId } = useParams<{ raceRoundId: string }>();
     const [objectionResolved] = useState(false);
@@ -45,7 +59,8 @@ export default function PostRacePage() {
     const [isPublishing, setIsPublishing] = useState(false);
 
     const [raceRound, setRaceRound] = useState<any>(null);
-    const [violations, setViolations] = useState<any[]>([]);
+    const [distUnit, setDistUnit] = useState<DistUnit>('lengths');
+    const [violations, setViolations] = useState<ViolationRecord[]>([]);
     const [loading, setLoading] = useState(true);
 
     // ── Shared WS connection ───────────────────────────────────────────────
@@ -62,7 +77,7 @@ export default function PostRacePage() {
                     refereeService.getRaceRoundViolations(raceRoundId)
                 ]);
                 setRaceRound(raceRes.data);
-                setViolations(violRes.data || []);
+                setViolations(violRes.data ?? []);
             } catch (err) {
                 console.error("Error fetching post-race data:", err);
             } finally {
@@ -72,7 +87,12 @@ export default function PostRacePage() {
         fetchData();
     }, [raceRoundId]);
 
-    const registrations = (raceRound?.Registration || []).filter((r: any) => r.registrationStatus === 'verified');
+    // Show all horses that were eligible to run (approved or verified),
+    // excluding those that were rejected, failed pre-race checks, no-showed, or never processed.
+    const EXCLUDED_STATUSES = new Set(['pending', 'failed', 'rejected', 'cancelled']);
+    const registrations = (raceRound?.Registration || []).filter(
+        (r: any) => !EXCLUDED_STATUSES.has(r.registrationStatus)
+    );
     const sorted = [...registrations].sort((a: any, b: any) => {
         const posA = a.RaceResult?.finishPosition ?? 999;
         const posB = b.RaceResult?.finishPosition ?? 999;
@@ -80,6 +100,26 @@ export default function PostRacePage() {
     });
 
     const hasObjection = violations.some(v => v.violationStatus === 'pending') && !objectionResolved;
+
+    const handleDismiss = async (violationId: string) => {
+        try {
+            await refereeService.deleteViolation(violationId);
+            setViolations(prev => prev.filter(v => v._id !== violationId));
+        } catch (err) {
+            console.error("Error dismissing violation:", err);
+            alert("Failed to dismiss violation");
+        }
+    };
+
+    const handlePenalize = async (violationId: string) => {
+        try {
+            await refereeService.confirmViolation(violationId);
+            setViolations(prev => prev.map(v => v._id === violationId ? { ...v, violationStatus: 'confirmed' } : v));
+        } catch (err) {
+            console.error("Error confirming violation:", err);
+            alert("Failed to confirm violation");
+        }
+    };
 
     const handlePublish = async () => {
         if (hasObjection || published || !raceRoundId || isPublishing) return;
@@ -101,15 +141,23 @@ export default function PostRacePage() {
 
     return (
         <div className="flex flex-col gap-5">
-            {/* ─ WS status badge ───────────────────────────────────────────────────────────── */}
-            <div className={[
-                "flex items-center gap-2.5 self-start px-3 py-1.5 rounded-xl border text-[11px] font-bold font-mono transition-all duration-300",
-                wsConnected
-                    ? "border-emerald-700/60 bg-emerald-500/10 text-emerald-400"
-                    : "border-red-800/50 bg-red-500/10 text-red-500 animate-pulse",
-            ].join(" ")}>
-                <span className={["w-2 h-2 rounded-full", wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"].join(" ")} />
-                {wsConnected ? <>WS Connected &nbsp;·&nbsp; ping #{wsCount ?? "…"}</> : <>WS Disconnected</>}
+            {/* ─ Status badges ─────────────────────────────────────────────────────────────── */}
+            <div className="flex items-center gap-2 flex-wrap">
+                <div className={[
+                    "flex items-center gap-2.5 self-start px-3 py-1.5 rounded-xl border text-[11px] font-bold font-mono transition-all duration-300",
+                    wsConnected
+                        ? "border-emerald-700/60 bg-emerald-500/10 text-emerald-400"
+                        : "border-red-800/50 bg-red-500/10 text-red-500 animate-pulse",
+                ].join(" ")}>
+                    <span className={["w-2 h-2 rounded-full", wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"].join(" ")} />
+                    {wsConnected ? <>WS Connected &nbsp;·&nbsp; ping #{wsCount ?? "…"}</> : <>WS Disconnected</>}
+                </div>
+                {raceRound?.status === 'awaitingConfirmation' && (
+                    <div className="flex items-center gap-2 self-start px-3 py-1.5 rounded-xl border border-amber-700/60 bg-amber-500/10 text-amber-400 text-[11px] font-bold font-mono">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                        Awaiting Admin Confirmation
+                    </div>
+                )}
             </div>
             {/* ──────────────────────────────────────────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
@@ -121,26 +169,39 @@ export default function PostRacePage() {
                         <h2 className="text-[13px] font-bold text-white flex items-center gap-2" style={{ fontFamily: "'Playfair Display', serif" }}>
                             <Medal size={14} className="text-yellow-500" /> Official Finish Order
                         </h2>
-                        {hasObjection && (
-                            <span className="flex items-center gap-1.5 text-[11px] font-bold text-red-400 bg-red-500/10 border border-red-700/50 px-2.5 py-1 rounded-full animate-pulse">
-                                <AlertTriangle size={10} /> Objection Filed
-                            </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {hasObjection && (
+                                <span className="flex items-center gap-1.5 text-[11px] font-bold text-red-400 bg-red-500/10 border border-red-700/50 px-2.5 py-1 rounded-full animate-pulse">
+                                    <AlertTriangle size={10} /> Objection Filed
+                                </span>
+                            )}
+                            <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
+                                {(['lengths', 'metres'] as DistUnit[]).map(u => (
+                                    <button key={u} onClick={() => setDistUnit(u)}
+                                        className={["text-[10px] font-bold font-mono px-2 py-1 rounded-md transition-all", distUnit === u ? "bg-white/15 text-white" : "text-gray-600 hover:text-gray-400"].join(" ")}>
+                                        {u === 'lengths' ? 'L' : 'm'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                     <div className="p-3 flex flex-col gap-2">
                         {sorted.map(reg => {
                             const horse = reg.Horse || {};
-                            const confirmedInv = reg.Invitations?.[0];
-                            const jockey = confirmedInv?.jockeyId?._id || confirmedInv?.jockeyId || {};
+                            const confirmedInv = reg.Invitations?.find((inv: any) => inv.isJockeyInRace)
+                                ?? reg.Invitations?.[0];
+                            const jockeyName = (confirmedInv?.jockeyId?._id as any)?.fullName
+                                ?? (confirmedInv?.jockeyId as any)?.fullName
+                                ?? "Unknown Jockey";
                             const result = reg.RaceResult || {};
                             const pos = result.finishPosition ?? 0;
                             const posColor = pos === 1 ? "text-yellow-400" : pos === 2 ? "text-gray-300" : pos === 3 ? "text-amber-500" : "text-gray-600";
                             const posBg = pos === 1 ? "bg-yellow-600" : pos === 2 ? "bg-gray-500" : pos === 3 ? "bg-amber-700" : "bg-white/8";
                             
-                            const hasHorseObjection = violations.some(v => 
-                                (v.registrationId === reg._id || v.registrationId?._id === reg._id) && 
-                                v.violationStatus === 'pending'
-                            );
+                            const hasHorseObjection = violations.some(v => {
+                                const vRegId = typeof v.registrationId === 'string' ? v.registrationId : v.registrationId?._id;
+                                return vRegId === reg._id && v.violationStatus === 'pending';
+                            });
 
                             return (
                                 <div key={reg._id} className={["rounded-xl border px-4 py-3 flex items-center gap-3",
@@ -155,11 +216,14 @@ export default function PostRacePage() {
                                             hasHorseObjection && !objectionResolved ? "text-red-400" : pos > 0 && pos <= 3 ? "text-white" : "text-gray-400"].join(" ")}>
                                             {horse.horseName || "Unknown Horse"}
                                         </p>
-                                        <p className="text-[11.5px] text-gray-500 mt-0.5">{jockey.fullName || "Unknown Jockey"}</p>
+                                        <p className="text-[11.5px] text-gray-500 mt-0.5">{jockeyName}</p>
                                     </div>
                                     <div className="text-right shrink-0">
                                         <p className={`text-[13px] font-bold font-mono ${posColor}`}>{result.finishTime || "--:--"}</p>
                                         <p className={`text-[10px] font-bold uppercase mt-0.5 ${posColor}`}>{pos > 0 ? ordinal(pos) : "N/A"}</p>
+                                        {result.distance != null && result.distance > 0 && (
+                                            <p className="text-[10px] font-mono text-gray-500 mt-0.5">{fmtLength(result.distance, distUnit)}</p>
+                                        )}
                                     </div>
                                     {hasHorseObjection && !objectionResolved && (
                                         <span className="flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-2 py-0.5 rounded-full ml-1 shrink-0">
@@ -196,8 +260,8 @@ export default function PostRacePage() {
                                     <div className="flex gap-2 shrink-0">
                                         {inc.violationStatus === 'pending' ? (
                                             <>
-                                                <button className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-green-700/50 text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-all">Dismiss</button>
-                                                <button className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-red-700/50 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all">Penalize</button>
+                                                <button onClick={() => handleDismiss(inc._id)} className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-green-700/50 text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-all">Dismiss</button>
+                                                <button onClick={() => handlePenalize(inc._id)} className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-red-700/50 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all">Penalize</button>
                                             </>
                                         ) : (
                                             <span className="text-[11px] font-bold text-gray-500 capitalize">{inc.violationStatus}</span>
@@ -237,6 +301,7 @@ export default function PostRacePage() {
                     {[
                         { label: "Winner", value: sorted.length > 0 && sorted[0].RaceResult?.finishPosition === 1 ? sorted[0].Horse?.horseName : "Pending" },
                         { label: "Time", value: sorted.length > 0 && sorted[0].RaceResult?.finishPosition === 1 ? sorted[0].RaceResult?.finishTime : "--:--" },
+                        { label: "Margin", value: fmtLength(sorted[0]?.RaceResult?.distance, distUnit) },
                         { label: "Incidents", value: `${violations.length}` },
                         { label: "Objections", value: objectionResolved ? `${violations.length} (resolved)` : `${violations.filter(v => v.violationStatus === 'pending').length} (pending)` },
                     ].map(item => (

@@ -87,7 +87,7 @@ export interface RaceScheduleItem {
   } | null;
 }
 
-export type ScheduleFilter = 'running' | 'scheduled' | 'completed';
+export type ScheduleFilter = 'running' | 'scheduled' | 'prepared' | 'completed';
 
 // ─── Predictions ──────────────────────────────────────────────────────────────
 
@@ -313,7 +313,9 @@ export interface RaceDetailRegistration {
   _id: string;
   laneNumber: number | null;
   horse: { _id: string; horseName: string; img: string | null } | null;
+  jockey?: { _id: string; fullName: string } | null;
   userPrediction: PredictionItem | null;
+  raceResult?: { finishPosition: number; finishTime: string; distance?: number | null } | null;
 }
 
 export interface TournamentForPrediction {

@@ -342,13 +342,18 @@ const [verificationOpen, setVerificationOpen] = useState(false);
     // Mux live stream playback ID comes from the race round fetched on mount
     const muxPlaybackId = raceRound?.muxPlaybackId ?? null;
 
-    // Show YouTube placeholder if Mux stream hasn't started within 10 seconds
+    // Track Mux playback errors — fall back to placeholder on failure
+    const [muxError, setMuxError] = useState(false);
+    useEffect(() => { setMuxError(false); }, [muxPlaybackId]); // reset on new ID
+    const showMux = !!muxPlaybackId && !muxError;
+
+    // Show YouTube placeholder if no Mux stream (or Mux errored) within 5 seconds
     const [streamTimedOut, setStreamTimedOut] = useState(false);
     useEffect(() => {
-        if (muxPlaybackId) { setStreamTimedOut(false); return; }
+        if (showMux) { setStreamTimedOut(false); return; }
         const t = setTimeout(() => setStreamTimedOut(true), 5_000);
         return () => clearTimeout(t);
-    }, [muxPlaybackId]);
+    }, [showMux]);
 
     // Derive display values from live update (or fallback to "--")
     const liveHorses   = liveUpdate?.horses ?? null;
@@ -460,7 +465,7 @@ const [verificationOpen, setVerificationOpen] = useState(false);
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8">
                         <div className="flex items-center gap-2 flex-wrap">
-                            {muxPlaybackId ? (
+                            {showMux ? (
                                 <span className="flex items-center gap-1.5 text-[11px] font-bold text-red-400">
                                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                                     OBS Stream Active
@@ -485,14 +490,15 @@ const [verificationOpen, setVerificationOpen] = useState(false);
                     </div>
 
                     <div className="relative mx-3 mt-3 mb-3 rounded-xl overflow-hidden aspect-video bg-black">
-                        {muxPlaybackId ? (
+                        {showMux ? (
                             <MuxPlayer
-                                playbackId={muxPlaybackId}
+                                playbackId={muxPlaybackId!}
                                 streamType="live"
                                 autoPlay
                                 muted
                                 className="w-full h-full"
                                 style={{ aspectRatio: "16/9" }}
+                                onError={() => setMuxError(true)}
                             />
                         ) : streamTimedOut ? (
                             <iframe
@@ -509,7 +515,7 @@ const [verificationOpen, setVerificationOpen] = useState(false);
                         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-red-700/90 backdrop-blur px-2 py-1 rounded-lg">
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                             <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                                {muxPlaybackId ? "Live · OBS Stream" : streamTimedOut ? "Placeholder · Awaiting Stream" : `Preview · ${cam.label}`}
+                                {showMux ? "Live · OBS Stream" : streamTimedOut ? "Placeholder · Awaiting Stream" : `Preview · ${cam.label}`}
                             </span>
                         </div>
 

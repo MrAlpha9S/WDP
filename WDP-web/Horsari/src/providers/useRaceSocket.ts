@@ -34,7 +34,7 @@ export interface RegistrationDetail {
     } | null;
     Invitations?: InvitationDetail[];
     Owner?: { _id: string; fullName?: string } | null;
-    RaceResult?: { finishPosition?: number; finishTime?: string } | null;
+    RaceResult?: { finishPosition?: number; finishTime?: string; distance?: number | null } | null;
 }
 
 export interface RaceRoundDetail {
@@ -91,6 +91,7 @@ export interface FinishResult {
     jockeyName: string;
     finishPosition: number | null;
     finishTime: string | null;
+    distance?: number | null;
 }
 
 export interface RaceFinishedPayload {

@@ -131,7 +131,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
         ]).then(([roundRes, vtRes]) => {
             const fresh = (roundRes.data?.Registration ?? []).find((r: any) => r._id === registration._id) as RegistrationDetail | undefined;
             if (fresh) setFreshRegistration(fresh);
-            if (Array.isArray(vtRes.data)) setViolationTypes(vtRes.data);
+            if (vtRes.data?.items) setViolationTypes(vtRes.data.items);
         }).catch(() => {}).finally(() => setLoadingFresh(false));
     }, []);
 
@@ -414,7 +414,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                     {loadingFresh
                         ? null
                         : violationTypes.length === 0
-                            ? <p className="text-[12px] text-gray-600 text-center py-4">Loading violation types…</p>
+                            ? <p className="text-[12px] text-gray-600 text-center py-4">No violation types configured.</p>
                             : CATEGORY_ORDER.filter(cat => grouped[cat]?.length > 0).map(cat => (
                                 <div key={cat}>
                                     <SectionHeader

@@ -30,6 +30,7 @@ router.put('/invitations/:id/accept', authMiddleware, authReferee, RefereeContro
 router.put('/invitations/:id/reject', authMiddleware, authReferee, RefereeController.rejectInvitation);
 router.get('/violation-types', authMiddleware, authReferee, RefereeController.getViolationTypes);
 router.post('/violations', authMiddleware, authReferee, RefereeController.createViolation);
+router.put('/violations/:violationId/confirm', authMiddleware, authReferee, RefereeController.confirmViolation);
 router.delete('/violations/:violationId', authMiddleware, authReferee, RefereeController.deleteViolation);
 
 // Public - create referee profile for existing user (wildcard must be last to avoid shadowing specific routes)

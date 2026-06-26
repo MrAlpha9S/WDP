@@ -139,16 +139,20 @@ class RefereeController {
 
     // Get all violations for a race round (referee-scoped)
     async getRaceRoundViolations(req, res) {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
         const { status, search, sortBy = 'created_at', order = 'desc' } = req.query;
-        const response = await RefereeService.getRaceRoundViolations(req.userId, req.params.id, page, limit, status, search, sortBy, order);
+        const response = await RefereeService.getRaceRoundViolations(req.userId, req.params.id, status, search, sortBy, order);
         return res.status(response.code).json(response);
     }
 
     // Create a violation (used by LivePage for during-race incidents)
     async createViolation(req, res) {
         const response = await RefereeService.createViolation(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    // Confirm a violation
+    async confirmViolation(req, res) {
+        const response = await RefereeService.confirmViolation(req.userId, req.params.violationId);
         return res.status(response.code).json(response);
     }
 

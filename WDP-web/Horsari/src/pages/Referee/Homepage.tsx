@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import type { RecentInvite } from "../../shared/types/HomepageTypes";
+import type { RecentInvite, RaceType, GradeLevel, InviteStatus } from "../../shared/types/HomepageTypes";
 import HomeCalendar from "./RefereeComponents/HomeCalendar";
 import InviteSidebar from "./RefereeComponents/InviteSidebar";
 import { refereeService } from "../../api/refereeService";
@@ -24,36 +24,38 @@ export default function HomePage() {
                 ]);
 
                 if (res.code === 200 && res.data) {
-                    const activeRaces = res.data.filter((r: RaceRoundData) => r.status !== 'cancelled');
+                    const activeRaces = res.data.items.filter((r) => r.status !== 'cancelled');
                     setUpcomingRaces(activeRaces);
                 }
 
                 if (rulesRes.code === 200 && rulesRes.data) {
-                    setActiveRules(rulesRes.data);
+                    setActiveRules(rulesRes.data.items);
                 }
 
                 if (invitesRes.code === 200 && invitesRes.data) {
-                    const mappedInvites = invitesRes.data.map((inv: any) => {
-                        const round = inv.raceRoundId || {};
-                        const dateObj = new Date(round.raceDate || new Date());
-                        let mappedStatus = inv.status;
+                    const mappedInvites: RecentInvite[] = invitesRes.data.map((inv: any): RecentInvite => {
+                        const round: Record<string, any> = inv.raceRoundId ?? {};
+                        const dateObj = new Date(round.raceDate ?? new Date());
+
+                        let mappedStatus: InviteStatus = 'pending';
                         if (inv.status === 'assigned') mappedStatus = 'accepted';
-                        if (inv.status === 'rejected') mappedStatus = 'declined';
+                        else if (inv.status === 'rejected') mappedStatus = 'declined';
+                        else if (inv.status === 'cancelled') mappedStatus = 'cancelled';
 
                         return {
                             id: inv._id,
-                            raceLabel: round.roundName || "Unknown Race",
-                            tournamentName: round.tournamentId?.tournamentName || "Non-tournament",
+                            raceLabel: round.roundName ?? "Unknown Race",
+                            tournamentName: round.tournamentId?.tournamentName ?? "Non-tournament",
                             date: dateObj.toLocaleDateString(),
-                            venue: round.location || "Unknown Venue",
-                            trackLocation: round.address || "",
-                            status: mappedStatus as 'pending' | 'accepted' | 'declined',
-                            fee: round.minimalRidingFees || 0,
+                            venue: round.location ?? "Unknown Venue",
+                            trackLocation: round.address ?? "",
+                            status: mappedStatus,
+                            fee: round.minimalRidingFees ?? 0,
                             sentAt: new Date(inv.assignedAt).toLocaleDateString(),
                             isNew: false,
                             role: "Referee",
-                            raceType: (round.eligibilityRuleId?.raceType || "Flat") as any,
-                            gradeLevel: "G3" as any
+                            raceType: (round.eligibilityRuleId?.raceType ?? "Stakes") as RaceType,
+                            gradeLevel: (round.gradeLevel ?? "G3") as GradeLevel,
                         };
                     });
                     setInvites(mappedInvites);

@@ -166,7 +166,7 @@ function HorseCard({ horse }: { horse: HomeFeedHorse }) {
       </View>
       <Text style={styles.horseName} numberOfLines={2}>{horse.horseName}</Text>
       <View style={styles.horseWinRow}>
-        <Text style={styles.horseWinRate}>{horse.winRate.toFixed(0)}%</Text>
+        <Text style={styles.horseWinRate}>{horse.totalWins}</Text>
         <Text style={styles.horseWinLabel}>thắng</Text>
       </View>
       <Text style={styles.horseRaces}>{horse.totalRaces} trận</Text>

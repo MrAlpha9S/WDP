@@ -37,6 +37,7 @@ const PASSWORD_HASH =
 const now = new Date();
 const daysAgo = (n) => new Date(now - n * 86400000);
 const daysLater = (n) => new Date(now.getTime() + n * 86400000);
+const atHour = (date, h) => { const d = new Date(date); d.setHours(h, 0, 0, 0); return d; };
 
 async function seed() {
   try {
@@ -251,55 +252,45 @@ async function seed() {
       },
     ]);
 
-    // --- ViolationType (5) ---
+    // --- ViolationType (29 — pre-race, during-race and after-race) ---
     const violationTypes = await ViolationType.create([
-      {
-        violationName: "False Start",
-        violationDescription:
-          "Horse broke from the gate before the official start signal",
-        defaultPenalty: "Warning on first offense",
-        type: "pre-race",
-        category: "riding",
-        severity: 1,
-        isActive: true,
-      },
-      {
-        violationName: "Unsafe Riding",
-        violationDescription:
-          "Jockey rode in a manner that endangered other horses or riders",
-        defaultPenalty: "Fine of $500 and suspension review",
-        type: "during-race",
-        category: "riding",
-        severity: 3,
-        isActive: true,
-      },
-      {
-        violationName: "Prohibited Substance",
-        violationDescription: "Horse tested positive for a banned medication",
-        defaultPenalty: "Disqualification and investigation",
-        type: "after-race",
-        category: "medication",
-        severity: 5,
-        isActive: true,
-      },
-      {
-        violationName: "Illegal Equipment",
-        violationDescription: "Use of unapproved equipment during the race",
-        defaultPenalty: "Fine of $200",
-        type: "pre-race",
-        category: "horse-safety",
-        severity: 2,
-        isActive: true,
-      },
-      {
-        violationName: "Result Manipulation",
-        violationDescription: "Suspected fixing or deliberate poor performance",
-        defaultPenalty: "Permanent ban pending investigation",
-        type: "after-race",
-        category: "betting",
-        severity: 5,
-        isActive: true,
-      },
+      // ── PRE-RACE / horse-safety ───────────────────────────────────────────
+      { violationName: "Unfit Horse", violationDescription: "Horse is unsafe or unhealthy to race.", defaultPenalty: "Horse scratched", type: "pre-race", category: "horse-safety", severity: 3, isActive: true },
+      { violationName: "Unauthorized Equipment", violationDescription: "Illegal or undeclared racing tack detected.", defaultPenalty: "Disqualification", type: "pre-race", category: "horse-safety", severity: 3, isActive: true },
+      { violationName: "Injury Non-Disclosure", violationDescription: "Failure to report a known injury before race.", defaultPenalty: "Fine", type: "pre-race", category: "horse-safety", severity: 2, isActive: true },
+      { violationName: "Improper Treatment", violationDescription: "Unauthorized veterinary treatment administered pre-race.", defaultPenalty: "Suspension", type: "pre-race", category: "horse-safety", severity: 3, isActive: true },
+      { violationName: "Horse Abuse", violationDescription: "Abuse, neglect, or unsafe handling of the horse in stable/paddock.", defaultPenalty: "Major suspension", type: "pre-race", category: "horse-safety", severity: 4, isActive: true },
+      // ── PRE-RACE / medication ─────────────────────────────────────────────
+      { violationName: "Race-Day Medication", violationDescription: "Prohibited medication administered within race-day window.", defaultPenalty: "Fine or DQ", type: "pre-race", category: "medication", severity: 4, isActive: true },
+      // ── PRE-RACE / administrative ─────────────────────────────────────────
+      { violationName: "False Documentation", violationDescription: "Fake records or fraudulent registration documents submitted.", defaultPenalty: "Suspension", type: "pre-race", category: "administrative", severity: 4, isActive: true },
+      { violationName: "Unlicensed Participation", violationDescription: "Participant racing without valid authorization or license.", defaultPenalty: "Removal", type: "pre-race", category: "administrative", severity: 4, isActive: true },
+      { violationName: "Restricted Area Access", violationDescription: "Unauthorized access to stable, paddock, or restricted zones.", defaultPenalty: "Removal", type: "pre-race", category: "administrative", severity: 2, isActive: true },
+      { violationName: "Failure to Comply", violationDescription: "Ignoring official steward or referee instructions.", defaultPenalty: "Fine", type: "pre-race", category: "administrative", severity: 2, isActive: true },
+      { violationName: "Does not response to invitation", violationDescription: "Participant failed to respond to a race invitation within the required timeframe.", defaultPenalty: "None", type: "pre-race", category: "administrative", severity: 1, isActive: true },
+      // ── DURING-RACE / riding ──────────────────────────────────────────────
+      { violationName: "Interference", violationDescription: "Blocking or impeding another horse during the race.", defaultPenalty: "Warning or demotion", type: "during-race", category: "riding", severity: 2, isActive: true },
+      { violationName: "Careless Riding", violationDescription: "Unsafe riding without reckless intent.", defaultPenalty: "Fine or suspension", type: "during-race", category: "riding", severity: 2, isActive: true },
+      { violationName: "Dangerous Riding", violationDescription: "Reckless riding causing serious danger to others.", defaultPenalty: "Suspension", type: "during-race", category: "riding", severity: 3, isActive: true },
+      { violationName: "Course Deviation", violationDescription: "Failure to maintain the prescribed racing line.", defaultPenalty: "Warning", type: "during-race", category: "riding", severity: 1, isActive: true },
+      { violationName: "Excessive Whip Use", violationDescription: "Whip usage exceeds permitted limits.", defaultPenalty: "Fine", type: "during-race", category: "riding", severity: 2, isActive: true },
+      { violationName: "False Start", violationDescription: "Horse leaves the gate before the official start signal.", defaultPenalty: "Declared non-starter", type: "during-race", category: "riding", severity: 2, isActive: true },
+      { violationName: "Non-Competitive Riding", violationDescription: "Jockey fails to make a full, genuine racing effort.", defaultPenalty: "Investigation", type: "during-race", category: "riding", severity: 2, isActive: true },
+      // ── DURING-RACE / betting ─────────────────────────────────────────────
+      { violationName: "Race Fixing", violationDescription: "Deliberate manipulation of the race outcome.", defaultPenalty: "Permanent ban", type: "during-race", category: "betting", severity: 5, isActive: true },
+      { violationName: "Collusion", violationDescription: "Coordinated manipulation between parties to affect the result.", defaultPenalty: "Ban", type: "during-race", category: "betting", severity: 5, isActive: true },
+      { violationName: "Insider Betting", violationDescription: "Restricted individual placing bets using non-public race information.", defaultPenalty: "Account suspension", type: "during-race", category: "betting", severity: 3, isActive: true },
+      { violationName: "Betting Fraud", violationDescription: "Fraudulent betting activity to gain unlawful advantage.", defaultPenalty: "Account closure", type: "during-race", category: "betting", severity: 4, isActive: true },
+      { violationName: "Odds Manipulation", violationDescription: "Artificially manipulating market odds.", defaultPenalty: "Investigation", type: "during-race", category: "betting", severity: 3, isActive: true },
+      // ── AFTER-RACE / riding ───────────────────────────────────────────────
+      { violationName: "Weigh-In Violation", violationDescription: "Incorrect rider weight recorded after the race.", defaultPenalty: "Disqualification", type: "after-race", category: "riding", severity: 3, isActive: true },
+      // ── AFTER-RACE / medication ───────────────────────────────────────────
+      { violationName: "Positive Drug Test", violationDescription: "Prohibited substance detected in post-race sample.", defaultPenalty: "Disqualification", type: "after-race", category: "medication", severity: 4, isActive: true },
+      { violationName: "Banned Substance", violationDescription: "Possession of an illegal substance confirmed post-race.", defaultPenalty: "Suspension", type: "after-race", category: "medication", severity: 4, isActive: true },
+      { violationName: "Sample Tampering", violationDescription: "Interfering with or adulterating drug test samples.", defaultPenalty: "Severe suspension", type: "after-race", category: "medication", severity: 5, isActive: true },
+      { violationName: "Test Refusal", violationDescription: "Refusing to participate in mandatory post-race testing.", defaultPenalty: "Automatic violation", type: "after-race", category: "medication", severity: 4, isActive: true },
+      // ── AFTER-RACE / administrative ───────────────────────────────────────
+      { violationName: "Failure to Attend Inquiry", violationDescription: "Ignoring or failing to appear at a mandatory steward inquiry.", defaultPenalty: "Fine", type: "after-race", category: "administrative", severity: 2, isActive: true },
     ]);
 
     // --- PredictionMethod (3) ---
@@ -433,7 +424,7 @@ async function seed() {
         tournamentId: tournaments[0]._id,
         createdByAdminId: admins[0]._id,
         roundName: "Quarter Final — Sprint 1600m",
-        raceDate: daysAgo(10),
+        raceDate: atHour(daysAgo(10), 10),
         trackLength: 1600,
         maxParticipants: 6,
         status: "completed",
@@ -456,7 +447,7 @@ async function seed() {
         tournamentId: tournaments[0]._id,
         createdByAdminId: admins[0]._id,
         roundName: "Semi Final — Classic 2000m",
-        raceDate: daysLater(5),
+        raceDate: atHour(daysLater(5), 14),
         trackLength: 2000,
         maxParticipants: 6,
         status: "scheduled",
@@ -479,7 +470,7 @@ async function seed() {
         tournamentId: tournaments[1]._id,
         createdByAdminId: admins[1]._id,
         roundName: "Opening Race — Maiden 1200m",
-        raceDate: daysLater(62),
+        raceDate: atHour(daysLater(62), 10),
         trackLength: 1200,
         maxParticipants: 8,
         status: "draft",
@@ -671,11 +662,11 @@ async function seed() {
            ================================================ */
 
     const resultData = [
-      { reg: r1Regs[0], pos: 1, time: "1:38.20", prize: 50000 },
-      { reg: r1Regs[1], pos: 2, time: "1:38.95", prize: 20000 },
-      { reg: r1Regs[2], pos: 3, time: "1:39.40", prize: 10000 },
-      { reg: r1Regs[3], pos: 4, time: "1:40.10", prize: 0 },
-      { reg: r1Regs[4], pos: 5, time: "1:41.30", prize: 0 },
+      { reg: r1Regs[0], pos: 1, time: "1:38.20", prize: 50000, distance: 3.75 }, // 0.75s gap to 2nd → 3¾L
+      { reg: r1Regs[1], pos: 2, time: "1:38.95", prize: 20000, distance: 2.25 }, // 0.45s gap to 3rd → 2¼L
+      { reg: r1Regs[2], pos: 3, time: "1:39.40", prize: 10000, distance: 3.5  }, // 0.70s gap to 4th → 3½L
+      { reg: r1Regs[3], pos: 4, time: "1:40.10", prize: 0,     distance: 6    }, // 1.20s gap to 5th → 6L
+      { reg: r1Regs[4], pos: 5, time: "1:41.30", prize: 0,     distance: 0    }, // last finisher
     ];
 
     for (const rd of resultData) {
@@ -685,6 +676,7 @@ async function seed() {
         publishedByAdminId: admins[0]._id,
         finishPosition: rd.pos,
         finishTime: rd.time,
+        distance: rd.distance,
         prizeMoney: rd.prize,
         resultStatus: "official",
       });
@@ -697,52 +689,187 @@ async function seed() {
       publishedByAdminId: admins[0]._id,
       finishPosition: 6,
       finishTime: "DQ",
+      distance: 0,
       prizeMoney: 0,
       resultStatus: "cancelled",
     });
 
     /* ================================================
-           10. VIOLATION (Round 1)
+       9b. PREPARED RACE ROUND (Round 4 — ready for simulation)
+       ================================================ */
+
+    const round4 = await RaceRound.create({
+      tournamentId: tournaments[0]._id,
+      createdByAdminId: admins[0]._id,
+      roundName: "Final — Sprint 1400m",
+      raceDate: atHour(daysLater(1), 10),
+      trackLength: 1400,
+      maxParticipants: 6,
+      status: "prepared",
+      minimalRidingFees: 600,
+      raceGround: "Turf",
+      requireEntranceFees: true,
+      firstPlacePrize: 80000,
+      secondPlacePrize: 35000,
+      thirdPlacePrize: 18000,
+      currencyType: "USD",
+      location: "Phu Tho Racetrack",
+      address: "1 Ly Thuong Kiet, Ward 8, District 11, Ho Chi Minh City",
+      eligibilityRuleId: rules[0]._id,
+      muxLiveStreamId: "mux-live-id-round4",
+      muxStreamKey: "mux-stream-key-round4",
+      muxPlaybackId: "mux-playback-id-round4",
+      muxVodPlaybackId: "mux-vod-id-round4",
+    });
+
+    // 6 horses — all referee-verified, lanes assigned
+    const r4Regs = [];
+    for (let i = 0; i < 6; i++) {
+      const reg = await Registration.create({
+        raceRoundId: round4._id,
+        horseId: horses[i]._id,
+        horseOwnerId: horses[i].ownerId,
+        approvedByAdminId: admins[0]._id,
+        registrationStatus: "verified",
+        laneNumber: i + 1,
+        registeredAt: daysAgo(7),
+      });
+      r4Regs.push(reg);
+    }
+
+    // Accepted invitations — jockeys confirmed and flagged in race
+    for (let i = 0; i < r4Regs.length; i++) {
+      const inv = await Invitation.create({
+        horseId: horses[i]._id,
+        jockeyId: jockeys[i % jockeys.length]._id,
+        registrationId: r4Regs[i]._id,
+        ownerConfirmation: true,
+        jockeyConfirmation: true,
+        invitationStatus: "accepted",
+        isJockeyInRace: true,
+        isBackup: false,
+        percentagePayout: 10,
+      });
+      invitations.push(inv);
+      await Registration.findByIdAndUpdate(r4Regs[i]._id, { jockeyInRaceId: inv._id });
+    }
+
+    // Two referees assigned to Round 4
+    const raceReferee4a = await RaceReferee.create({
+      raceRoundId: round4._id,
+      refereeId: referees[0]._id,
+      assignedByAdminId: admins[0]._id,
+      assignedAt: daysAgo(5),
+      status: "assigned",
+      paymentStatus: "paid",
+      fee: 2000,
+    });
+
+    const raceReferee4b = await RaceReferee.create({
+      raceRoundId: round4._id,
+      refereeId: referees[1]._id,
+      assignedByAdminId: admins[0]._id,
+      assignedAt: daysAgo(5),
+      status: "assigned",
+      paymentStatus: "paid",
+      fee: 2000,
+    });
+
+    /* ================================================
+           10. VIOLATIONS
            ================================================ */
 
-    // False start — horse[4], warning
+    // ── Round 1 — all 5 violation types across different horses ──────────────
+
+    // False start — horse[4] (pre-race, confirmed)
     await Violation.create({
       raceRoundId: round1._id,
       registrationId: r1Regs[4]._id,
       raceRefereeId: raceReferee1._id,
-      violationTypeId: violationTypes[0]._id,
-      description:
-        "Horse broke early from gate #5 before the official start signal",
+      violationTypeId: violationTypes.find(v => v.violationName === "False Start")._id,
+      description: "Horse broke early from gate #5 before the official start signal",
       severity: 1,
       actualPenalty: "Verbal warning issued to jockey",
       stewardAction: "warning",
       violationStatus: "confirmed",
     });
 
-    // Unsafe riding — horse[5], disqualified
+    // Unsafe riding — horse[5] (during-race, confirmed → disqualified)
     await Violation.create({
       raceRoundId: round1._id,
       registrationId: r1Regs[5]._id,
       raceRefereeId: raceReferee1._id,
-      violationTypeId: violationTypes[1]._id,
-      description:
-        "Jockey intentionally cut across lane 4 causing collision risk at the final bend",
+      violationTypeId: violationTypes.find(v => v.violationName === "Dangerous Riding")._id,
+      description: "Jockey intentionally cut across lane 4 causing collision risk at the final bend",
       severity: 3,
       actualPenalty: "Disqualification from race",
       stewardAction: "disqualified",
       violationStatus: "confirmed",
     });
 
-    // Prohibited substance — horse[5], under investigation
+    // Prohibited substance — horse[5] (after-race, pending investigation)
     await Violation.create({
       raceRoundId: round1._id,
       registrationId: r1Regs[5]._id,
       raceRefereeId: raceReferee2._id,
-      violationTypeId: violationTypes[2]._id,
-      description:
-        "Post-race blood sample flagged for prohibited stimulant; sent for laboratory confirmation",
+      violationTypeId: violationTypes.find(v => v.violationName === "Positive Drug Test")._id,
+      description: "Post-race blood sample flagged for prohibited stimulant; sent for laboratory confirmation",
       severity: 5,
       actualPenalty: "Pending investigation result",
+      stewardAction: "investigation",
+      violationStatus: "pending",
+    });
+
+    // Illegal equipment — horse[1] (pre-race, confirmed → fine)
+    await Violation.create({
+      raceRoundId: round1._id,
+      registrationId: r1Regs[1]._id,
+      raceRefereeId: raceReferee1._id,
+      violationTypeId: violationTypes.find(v => v.violationName === "Unauthorized Equipment")._id,
+      description: "Non-regulation blinkers detected during post-race equipment check",
+      severity: 2,
+      actualPenalty: "Fine of $200 issued to owner",
+      stewardAction: "fine",
+      violationStatus: "confirmed",
+    });
+
+    // Result manipulation — horse[3] (after-race, pending investigation)
+    await Violation.create({
+      raceRoundId: round1._id,
+      registrationId: r1Regs[3]._id,
+      raceRefereeId: raceReferee2._id,
+      violationTypeId: violationTypes.find(v => v.violationName === "Race Fixing")._id,
+      description: "Unusual late deceleration in final 200m inconsistent with horse's training records",
+      severity: 5,
+      actualPenalty: "Under investigation",
+      stewardAction: "investigation",
+      violationStatus: "pending",
+    });
+
+    // ── Round 4 — pre-race violations (not yet resolved) ─────────────────────
+
+    // False start during warm-up — horse[3] (confirmed, warning)
+    await Violation.create({
+      raceRoundId: round4._id,
+      registrationId: r4Regs[3]._id,
+      raceRefereeId: raceReferee4a._id,
+      violationTypeId: violationTypes.find(v => v.violationName === "False Start")._id,
+      description: "Horse broke through the warm-up gate during pre-race parade",
+      severity: 1,
+      actualPenalty: "Formal warning noted in race dossier",
+      stewardAction: "warning",
+      violationStatus: "confirmed",
+    });
+
+    // Illegal equipment — horse[5] flagged before race (pending ruling)
+    await Violation.create({
+      raceRoundId: round4._id,
+      registrationId: r4Regs[5]._id,
+      raceRefereeId: raceReferee4b._id,
+      violationTypeId: violationTypes.find(v => v.violationName === "Unauthorized Equipment")._id,
+      description: "Bit type does not match approved equipment list filed with registration",
+      severity: 2,
+      actualPenalty: "Awaiting steward ruling",
       stewardAction: "investigation",
       violationStatus: "pending",
     });
@@ -867,6 +994,7 @@ async function seed() {
       {
         spectatorId: spectators[0]._id,
         registrationId: r1Regs[0]._id,
+        predictedHorseId: horses[0]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 1,
         predictionStatus: "correct",
@@ -875,6 +1003,7 @@ async function seed() {
       {
         spectatorId: spectators[0]._id,
         registrationId: r1Regs[1]._id,
+        predictedHorseId: horses[1]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 2,
         predictionStatus: "correct",
@@ -883,6 +1012,7 @@ async function seed() {
       {
         spectatorId: spectators[0]._id,
         registrationId: r1Regs[2]._id,
+        predictedHorseId: horses[2]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 3,
         predictionStatus: "correct",
@@ -891,6 +1021,7 @@ async function seed() {
       {
         spectatorId: spectators[0]._id,
         registrationId: r1Regs[3]._id,
+        predictedHorseId: horses[3]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 4,
         predictionStatus: "correct",
@@ -900,6 +1031,7 @@ async function seed() {
       {
         spectatorId: spectators[1]._id,
         registrationId: r1Regs[0]._id,
+        predictedHorseId: horses[0]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 2,
         predictionStatus: "incorrect",
@@ -908,6 +1040,7 @@ async function seed() {
       {
         spectatorId: spectators[1]._id,
         registrationId: r1Regs[1]._id,
+        predictedHorseId: horses[1]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 1,
         predictionStatus: "incorrect",
@@ -916,6 +1049,7 @@ async function seed() {
       {
         spectatorId: spectators[1]._id,
         registrationId: r1Regs[2]._id,
+        predictedHorseId: horses[2]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 5,
         predictionStatus: "incorrect",
@@ -925,6 +1059,7 @@ async function seed() {
       {
         spectatorId: spectators[2]._id,
         registrationId: r1Regs[2]._id,
+        predictedHorseId: horses[2]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 3,
         predictionStatus: "correct",
@@ -933,6 +1068,7 @@ async function seed() {
       {
         spectatorId: spectators[2]._id,
         registrationId: r1Regs[3]._id,
+        predictedHorseId: horses[3]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 2,
         predictionStatus: "incorrect",
@@ -941,6 +1077,7 @@ async function seed() {
       {
         spectatorId: spectators[2]._id,
         registrationId: r1Regs[5]._id,
+        predictedHorseId: horses[5]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 1,
         predictionStatus: "incorrect",
@@ -950,6 +1087,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[1]._id,
+        predictedHorseId: horses[1]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 1,
         predictionStatus: "pending",
@@ -958,6 +1096,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[2]._id,
+        predictedHorseId: horses[2]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 2,
         predictionStatus: "pending",
@@ -966,6 +1105,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[0]._id,
+        predictedHorseId: horses[0]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 3,
         predictionStatus: "pending",
@@ -974,6 +1114,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[3]._id,
+        predictedHorseId: horses[3]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 1,
         predictionStatus: "pending",
@@ -982,6 +1123,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[4]._id,
+        predictedHorseId: horses[4]._id,
         predictionMethodId: predictionMethods[1]._id,
         predictedRank: 2,
         predictionStatus: "pending",
@@ -995,6 +1137,7 @@ async function seed() {
       {
         spectatorId: spectators[0]._id,
         registrationId: r1Regs[0]._id,
+        predictedHorseId: horses[0]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "correct",
         rewardPoints: 1000,
@@ -1002,6 +1145,7 @@ async function seed() {
       {
         spectatorId: spectators[0]._id,
         registrationId: r1Regs[0]._id,
+        predictedHorseId: horses[0]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "correct",
         rewardPoints: 1000,
@@ -1010,6 +1154,7 @@ async function seed() {
       {
         spectatorId: spectators[1]._id,
         registrationId: r1Regs[1]._id,
+        predictedHorseId: horses[1]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "incorrect",
         rewardPoints: 0,
@@ -1017,6 +1162,7 @@ async function seed() {
       {
         spectatorId: spectators[1]._id,
         registrationId: r1Regs[4]._id,
+        predictedHorseId: horses[4]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "incorrect",
         rewardPoints: 0,
@@ -1025,6 +1171,7 @@ async function seed() {
       {
         spectatorId: spectators[2]._id,
         registrationId: r1Regs[0]._id,
+        predictedHorseId: horses[0]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "correct",
         rewardPoints: 1000,
@@ -1032,6 +1179,7 @@ async function seed() {
       {
         spectatorId: spectators[2]._id,
         registrationId: r1Regs[5]._id,
+        predictedHorseId: horses[5]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "incorrect",
         rewardPoints: 0,
@@ -1040,6 +1188,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[0]._id,
+        predictedHorseId: horses[0]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
         rewardPoints: 500,
@@ -1047,6 +1196,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[1]._id,
+        predictedHorseId: horses[1]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
         rewardPoints: 300,
@@ -1054,6 +1204,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[2]._id,
+        predictedHorseId: horses[2]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
         rewardPoints: 700,
@@ -1061,6 +1212,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[3]._id,
+        predictedHorseId: horses[3]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
         rewardPoints: 200,
@@ -1068,6 +1220,7 @@ async function seed() {
       {
         spectatorId: spectators[3]._id,
         registrationId: r2Regs[4]._id,
+        predictedHorseId: horses[4]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "pending",
         rewardPoints: 450,
@@ -1076,6 +1229,7 @@ async function seed() {
       {
         spectatorId: spectators[1]._id,
         registrationId: r1Regs[2]._id,
+        predictedHorseId: horses[2]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "incorrect",
         rewardPoints: 0,
@@ -1083,6 +1237,7 @@ async function seed() {
       {
         spectatorId: spectators[1]._id,
         registrationId: r1Regs[3]._id,
+        predictedHorseId: horses[3]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "incorrect",
         rewardPoints: 0,
@@ -1090,6 +1245,7 @@ async function seed() {
       {
         spectatorId: spectators[2]._id,
         registrationId: r1Regs[0]._id,
+        predictedHorseId: horses[0]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "correct",
         rewardPoints: 1000,
@@ -1097,9 +1253,140 @@ async function seed() {
       {
         spectatorId: spectators[2]._id,
         registrationId: r1Regs[4]._id,
+        predictedHorseId: horses[4]._id,
         predictionMethodId: predictionMethods[2]._id,
         predictionStatus: "incorrect",
         rewardPoints: 0,
+      },
+
+      /* ==========================
+       ROUND 4 — RACE RANK (8)
+       ========================== */
+
+      {
+        spectatorId: spectators[0]._id,
+        registrationId: r4Regs[0]._id,
+        predictedHorseId: horses[0]._id,
+        predictionMethodId: predictionMethods[1]._id,
+        predictedRank: 1,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[0]._id,
+        registrationId: r4Regs[2]._id,
+        predictedHorseId: horses[2]._id,
+        predictionMethodId: predictionMethods[1]._id,
+        predictedRank: 3,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[1]._id,
+        registrationId: r4Regs[1]._id,
+        predictedHorseId: horses[1]._id,
+        predictionMethodId: predictionMethods[1]._id,
+        predictedRank: 1,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[1]._id,
+        registrationId: r4Regs[3]._id,
+        predictedHorseId: horses[3]._id,
+        predictionMethodId: predictionMethods[1]._id,
+        predictedRank: 2,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[2]._id,
+        registrationId: r4Regs[4]._id,
+        predictedHorseId: horses[4]._id,
+        predictionMethodId: predictionMethods[1]._id,
+        predictedRank: 1,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[2]._id,
+        registrationId: r4Regs[0]._id,
+        predictedHorseId: horses[0]._id,
+        predictionMethodId: predictionMethods[1]._id,
+        predictedRank: 2,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[3]._id,
+        registrationId: r4Regs[2]._id,
+        predictedHorseId: horses[2]._id,
+        predictionMethodId: predictionMethods[1]._id,
+        predictedRank: 1,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[3]._id,
+        registrationId: r4Regs[5]._id,
+        predictedHorseId: horses[5]._id,
+        predictionMethodId: predictionMethods[1]._id,
+        predictedRank: 3,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+
+      /* ==========================
+       ROUND 4 — RACE WINNER (6)
+       ========================== */
+
+      {
+        spectatorId: spectators[0]._id,
+        registrationId: r4Regs[0]._id,
+        predictedHorseId: horses[0]._id,
+        predictionMethodId: predictionMethods[2]._id,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[0]._id,
+        registrationId: r4Regs[5]._id,
+        predictedHorseId: horses[5]._id,
+        predictionMethodId: predictionMethods[2]._id,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[1]._id,
+        registrationId: r4Regs[2]._id,
+        predictedHorseId: horses[2]._id,
+        predictionMethodId: predictionMethods[2]._id,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[2]._id,
+        registrationId: r4Regs[1]._id,
+        predictedHorseId: horses[1]._id,
+        predictionMethodId: predictionMethods[2]._id,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[2]._id,
+        registrationId: r4Regs[3]._id,
+        predictedHorseId: horses[3]._id,
+        predictionMethodId: predictionMethods[2]._id,
+        predictionStatus: "pending",
+        rewardPoints: 150,
+      },
+      {
+        spectatorId: spectators[3]._id,
+        registrationId: r4Regs[4]._id,
+        predictedHorseId: horses[4]._id,
+        predictionMethodId: predictionMethods[2]._id,
+        predictionStatus: "pending",
+        rewardPoints: 150,
       },
     ];
 
@@ -1180,11 +1467,12 @@ async function seed() {
     );
     console.log("   Horses     :", horses.length);
     console.log("   Tournaments:", tournaments.length);
-    console.log("   RaceRounds :", rounds.length);
-    console.log("   Registrations:", registrations.length);
+    console.log("   RaceRounds :", rounds.length + 1, "(3 archived + 1 prepared)");
+    console.log("   Registrations:", registrations.length + r4Regs.length);
     console.log("   Invitations:", invitations.length);
     console.log("   RaceResults: 6");
-    console.log("   Violations : 3");
+    console.log("   ViolationTypes: 29 (pre-race, during-race, after-race)");
+    console.log("   Violations : 7 (5 Round 1 + 2 Round 4 pre-race)");
     console.log("   Predictions:", predictions.length);
 
     process.exit(0);
