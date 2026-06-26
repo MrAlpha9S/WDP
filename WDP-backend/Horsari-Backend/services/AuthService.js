@@ -174,6 +174,15 @@ class AuthService {
                 };
             }
 
+            // Exact case match — reject if the caller used a different casing
+            // (e.g. Admin1@horsari.com must not match admin1@horsari.com)
+            if (user.email !== email) {
+                return {
+                    code: 401,
+                    msg: 'User not found',
+                };
+            }
+
             const isPasswordValid = await PasswordUtil.comparePassword(
                 password,
                 user.passwordHash
@@ -635,13 +644,14 @@ class AuthService {
             }
 
             const user = await UserRepository.findByEmail(email);
+            const exists = !!user && user.email === email;
             return {
                 code: 200,
                 data: {
                     email,
-                    exists: !!user,
+                    exists,
                 },
-                msg: user ? 'Email already exists' : 'Email is available',
+                msg: exists ? 'Email already exists' : 'Email is available',
             };
         } catch (error) {
             return {

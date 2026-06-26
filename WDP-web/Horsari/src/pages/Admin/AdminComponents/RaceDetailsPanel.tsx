@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
     Shield, X, AlertCircle, Loader2, Calendar, Clock, Tag, Ban, Pencil,
     Map, Flag, Users, DollarSign, Trophy, Play, CheckCircle2, Radio,
-    Copy, Check, Video, Tv, TriangleAlert
+    Copy, Check, Video, Tv, TriangleAlert, TrendingUp, BarChart2, Percent
 } from "lucide-react";
 import type { ScheduledRace } from "../../../shared/types/RaceTypes";
 import { adminService } from "../../../api/adminService";
@@ -56,12 +56,14 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const [isConfirmResultModalOpen, setIsConfirmResultModalOpen] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
 
-    // Tab State — includes 'stream' tab for running races
-    const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'referees' | 'stream'>('overview');
+    // Tab State
+    const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'referees' | 'pools' | 'stream'>('overview');
 
     const [detailedParticipants, setDetailedParticipants] = useState<any[]>([]);
     const [detailedReferees, setDetailedReferees] = useState<any[]>([]);
     const [detailedOverview, setDetailedOverview] = useState<any>(null);
+    const [detailedPools, setDetailedPools] = useState<any[]>([]);
+    const [detailedTrackEarnings, setDetailedTrackEarnings] = useState<any>(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
     // Stream / VOD state
@@ -111,6 +113,9 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         fee: ref.fee,
                     }));
                     setDetailedReferees(refs);
+
+                    setDetailedPools(res.data.predictionPools || []);
+                    setDetailedTrackEarnings(res.data.trackEarnings || null);
                 }
             })
             .catch(err => console.error("Failed to fetch detailed race info", err))
@@ -154,6 +159,8 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
             setDetailedParticipants([]);
             setDetailedReferees([]);
             setDetailedOverview(null);
+            setDetailedPools([]);
+            setDetailedTrackEarnings(null);
         }
     }, [selectedRace?.id]);
 
@@ -240,10 +247,11 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const isCompleted = status === 'completed';
     const isCancelled = status === 'cancelled';
 
-    const tabs: Array<{ key: 'overview' | 'registrations' | 'referees' | 'stream'; label: string }> = [
+    const tabs: Array<{ key: 'overview' | 'registrations' | 'referees' | 'pools' | 'stream'; label: string }> = [
         { key: 'overview', label: 'Overview' },
         { key: 'registrations', label: 'Registrations' },
         { key: 'referees', label: 'Referees' },
+        { key: 'pools', label: 'Pools' },
     ];
     if (isRunning || isCompleted) {
         tabs.push({ key: 'stream', label: isRunning ? '🔴 Stream' : 'VOD' });
@@ -586,6 +594,146 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                             {detailedReferees.length === 0 && !loadingDetails && (
                                 <div className="text-[13px] text-gray-500 italic p-8 text-center bg-[#1a1a1a] rounded-xl border border-white/5">No referees assigned.</div>
                             )}
+                        </div>
+                    )}
+
+                    {/* ── Pools Tab ── */}
+                    {activeTab === 'pools' && (
+                        <div className="flex flex-col gap-4">
+                            {/* Track Earnings Summary */}
+                            {detailedTrackEarnings && (
+                                <div className="bg-[#1a1a1a] p-4 rounded-xl border border-amber-500/20 flex flex-col gap-3">
+                                    <h3 className="text-[13px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                        <TrendingUp size={16} className="text-amber-400" /> Track Earnings (House Take)
+                                    </h3>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {(['win', 'place', 'show', 'exacta'] as const).map(mt => {
+                                            const val = detailedTrackEarnings.byPool?.[mt];
+                                            const labels: Record<string, string> = { win: 'Win Pool', place: 'Place Pool', show: 'Show Pool', exacta: 'Exacta Pool' };
+                                            return (
+                                                <div key={mt} className="bg-[#111] rounded-lg px-3 py-2.5 flex flex-col gap-1 border border-white/5">
+                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                                                        {labels[mt]}
+                                                    </span>
+                                                    <span className="text-[14px] font-bold text-amber-400">
+                                                        {val != null ? `${val.toLocaleString()} pts` : '—'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                        <div className="bg-amber-500/10 rounded-lg px-3 py-2.5 flex flex-col gap-1 border border-amber-500/20">
+                                            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">Total</span>
+                                            <span className="text-[14px] font-bold text-amber-300">
+                                                {detailedTrackEarnings.totalHouseEarning?.toLocaleString() ?? '—'} pts
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Per-pool cards */}
+                            {detailedPools.length === 0 && !loadingDetails && (
+                                <div className="text-[13px] text-gray-500 italic p-8 text-center bg-[#1a1a1a] rounded-xl border border-white/5">
+                                    No prediction pool data available.
+                                </div>
+                            )}
+
+                            {detailedPools.map((pool: any) => {
+                                const isLive     = pool.poolStatus === 'live';
+                                const isSettled  = pool.poolStatus === 'settled';
+                                const isRefunded = pool.poolStatus === 'refunded';
+                                const isEmpty    = pool.poolStatus === 'empty';
+                                const poolLabels: Record<string, string> = { win: 'Win Pool', place: 'Place Pool', show: 'Show Pool', exacta: 'Exacta Pool' };
+                                const label = poolLabels[pool.methodType] ?? `${pool.methodType} Pool`;
+
+                                const statusChip = isLive
+                                    ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse inline-block" />Live</span>
+                                    : isSettled  ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Settled</span>
+                                    : isRefunded ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">Refunded</span>
+                                    :              <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-gray-500 border border-white/10">No Bets</span>;
+
+                                return (
+                                    <div key={pool.methodType} className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-3">
+                                        {/* Pool header */}
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-[13px] font-bold text-white flex items-center gap-2">
+                                                <BarChart2 size={15} className="text-gray-500" /> {label}
+                                            </h3>
+                                            {statusChip}
+                                        </div>
+
+                                        {isEmpty && (
+                                            <p className="text-[12px] text-gray-500 italic">No bets placed for this pool type.</p>
+                                        )}
+
+                                        {isRefunded && (
+                                            <p className="text-[12px] text-amber-400/80">Race cancelled — all {pool.totalRefunded} bets refunded.</p>
+                                        )}
+
+                                        {/* Pool stats row */}
+                                        {!isEmpty && !isRefunded && (
+                                            <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                                <div className="bg-[#111] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-white/5">
+                                                    <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">Gross Pool</span>
+                                                    <span className="text-white font-semibold">{pool.grossPool != null ? `${pool.grossPool.toLocaleString()} pts` : '—'}</span>
+                                                </div>
+                                                <div className="bg-[#111] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-white/5">
+                                                    <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">Net Pool</span>
+                                                    <span className="text-white font-semibold">{pool.netPool != null ? `${pool.netPool.toLocaleString()} pts` : '—'}</span>
+                                                </div>
+                                                <div className="bg-[#111] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-white/5">
+                                                    <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px] flex items-center gap-1"><Percent size={8} />Take ({(pool.takeoutRate * 100).toFixed(0)}%)</span>
+                                                    <span className="text-amber-400 font-semibold">{pool.houseEarning != null ? `${pool.houseEarning.toLocaleString()} pts` : '—'}</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Settled summary */}
+                                        {isSettled && (
+                                            <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                                <div className="bg-emerald-500/5 rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-emerald-500/15">
+                                                    <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">Winners</span>
+                                                    <span className="text-emerald-400 font-bold text-[13px]">{pool.totalWinners ?? 0}</span>
+                                                </div>
+                                                <div className="bg-red-500/5 rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-red-500/15">
+                                                    <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">Losers</span>
+                                                    <span className="text-red-400 font-bold text-[13px]">{pool.totalLosers ?? 0}</span>
+                                                </div>
+                                                <div className="bg-[#111] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-white/5">
+                                                    <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">Paid Out</span>
+                                                    <span className="text-[#f3b2a5] font-semibold">{pool.totalPaidOut != null ? `${pool.totalPaidOut.toLocaleString()} pts` : '—'}</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Live per-horse breakdown */}
+                                        {isLive && pool.perHorse && pool.perHorse.length > 0 && (
+                                            <div className="rounded-lg border border-white/5 overflow-hidden mt-1">
+                                                <div className="grid grid-cols-[1fr_56px_50px_56px_64px] text-[9px] uppercase tracking-wider text-gray-500 font-bold px-3 py-2 bg-[#111] border-b border-white/5">
+                                                    <span>Horse</span>
+                                                    <span className="text-right">Stake</span>
+                                                    <span className="text-right">Share</span>
+                                                    <span className="text-right">Odds</span>
+                                                    <span className="text-right">$2 Pay</span>
+                                                </div>
+                                                {pool.perHorse.map((h: any) => (
+                                                    <div key={h.registrationId} className="grid grid-cols-[1fr_56px_50px_56px_64px] text-[12px] px-3 py-2.5 border-b border-white/[0.03] last:border-b-0 hover:bg-white/[0.02] transition-colors">
+                                                        <span className="text-white font-medium truncate">{h.horseName || <span className="text-gray-600 italic">Unknown</span>}</span>
+                                                        <span className="text-right text-gray-300">{h.totalStake}</span>
+                                                        <span className="text-right text-gray-300">{h.poolShare}%</span>
+                                                        <span className="text-right text-amber-400 font-semibold">{h.odds}×</span>
+                                                        <span className="text-right text-[#f3b2a5] font-semibold">{h.displayPayout}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {isLive && (
+                                            <p className="text-[11px] text-gray-600">{pool.totalBettors} bettor{pool.totalBettors !== 1 ? 's' : ''} · odds update live as more bets are placed</p>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
 

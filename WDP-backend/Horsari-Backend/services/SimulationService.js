@@ -3,6 +3,7 @@ const Invitation = require('../entities/Invitation');
 const RaceRound = require('../entities/RaceRound');
 const RaceResult = require('../entities/RaceResult');
 const User = require('../entities/User');
+const Tournament = require('../entities/Tournament');
 
 // In-memory store: raceRoundId → { horses, interval, startTime, finishCount, trackLength, intensity }
 const activeRaces = new Map();
@@ -272,8 +273,73 @@ async function finalizeRace(raceRoundId, horses, intensity, io) {
         });
 
         console.log(`[Sim] Race ${raceRoundId} finalised — all horses finished.`);
+
+        await checkTournamentChampion(raceRoundId, io);
     } catch (err) {
         console.error('[Sim] Error finalising race:', err);
+    }
+}
+
+// ── Set tournament champion if the same horse won every round ──────────────────
+// Skips "non-tournament" Tournaments (single-race events with only 1 round),
+// races that are not the last round by raceDate, and incomplete series.
+async function checkTournamentChampion(raceRoundId, io) {
+    try {
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+
+        // All rounds for this tournament, oldest → newest by raceDate
+        const allRounds = await RaceRound.find({ tournamentId: raceRound.tournamentId })
+            .sort({ raceDate: 1 })
+            .lean();
+
+        // Tournaments with only 1 race round are not a multi-race championship series
+        if (allRounds.length < 2) return;
+
+        // Only act when the just-finished race is the final round
+        const lastRound = allRounds[allRounds.length - 1];
+        if (lastRound._id.toString() !== raceRoundId.toString()) return;
+
+        // All previous rounds must already be marked completed in the DB
+        const previousRounds = allRounds.filter(r => r._id.toString() !== raceRoundId.toString());
+        if (!previousRounds.every(r => r.status === 'completed')) return;
+
+        // Trace winner horse for every round: RaceResult → Registration → Invitation → Horse
+        const winnerHorseIds = [];
+        for (const round of allRounds) {
+            const winnerResult = await RaceResult.findOne({
+                raceRoundId:    round._id,
+                finishPosition: 1,
+                resultStatus:   { $ne: 'cancelled' },
+            }).lean();
+            if (!winnerResult) return;
+
+            const reg = await Registration.findById(winnerResult.registrationId).lean();
+            if (!reg?.jockeyInRaceId) return;
+
+            const inv = await Invitation.findById(reg.jockeyInRaceId).lean();
+            if (!inv?.horseId) return;
+
+            winnerHorseIds.push(inv.horseId.toString());
+        }
+
+        if (!winnerHorseIds.length) return;
+
+        // Champion: same horse won every single round
+        const championHorseId = winnerHorseIds[0];
+        if (!winnerHorseIds.every(id => id === championHorseId)) return;
+
+        await Tournament.findByIdAndUpdate(raceRound.tournamentId, { championHorseId });
+        console.log(`[Sim] Tournament ${raceRound.tournamentId} champion → horse ${championHorseId}`);
+
+        io.emit('tournament_champion', {
+            tournamentId:    raceRound.tournamentId.toString(),
+            championHorseId,
+        });
+
+        const PayoutService = require('./PayoutService');
+        await PayoutService.distributeTournamentPayouts(raceRound.tournamentId, championHorseId);
+    } catch (err) {
+        console.error('[Sim] Error checking tournament champion:', err);
     }
 }
 

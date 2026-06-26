@@ -13,6 +13,7 @@ const RaceReferee = require('../entities/RaceReferee');
 const Referee = require('../entities/Referee');
 const Jockey = require('../entities/Jockey');
 const Prediction = require('../entities/Prediction');
+const PredictionMethod = require('../entities/PredictionMethod');
 const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
 const RaceResult = require('../entities/RaceResult');
 const HorseOwner = require('../entities/HorseOwner');
@@ -311,9 +312,62 @@ class AdminService {
                 }
                 case 'spectator': {
                     const Spectator = require('../entities/Spectator');
-                    const spectator = await Spectator.findById(id).lean();
+                    const Transaction = require('../entities/Transaction');
+
+                    const [spectator, predictions, transactions] = await Promise.all([
+                        Spectator.findById(id).lean(),
+                        Prediction.find({ spectatorId: id })
+                            .sort({ created_at: -1 })
+                            .populate('predictionMethodId', 'methodName methodType')
+                            .populate({
+                                path: 'registrationId',
+                                populate: { path: 'raceRoundId', select: 'roundName raceDate status' },
+                            })
+                            .populate('tournamentId', 'tournamentName status')
+                            .populate('predictedHorseId', 'horseName')
+                            .lean(),
+                        Transaction.find({ userId: id })
+                            .sort({ date: -1 })
+                            .lean(),
+                    ]);
+
                     roleProfile = {
                         wallet: spectator?.wallet ?? 0,
+                        predictions: predictions.map(p => ({
+                            predictionId:     p._id,
+                            methodName:       p.predictionMethodId?.methodName  ?? null,
+                            methodType:       p.predictionMethodId?.methodType  ?? null,
+                            predictionStatus: p.predictionStatus,
+                            amount:           p.amount,
+                            rewardPoints:     p.rewardPoints,
+                            predictedHorse:   p.predictedHorseId?.horseName    ?? null,
+                            raceRound: p.registrationId?.raceRoundId
+                                ? {
+                                    raceRoundId: p.registrationId.raceRoundId._id,
+                                    roundName:   p.registrationId.raceRoundId.roundName,
+                                    raceDate:    p.registrationId.raceRoundId.raceDate,
+                                    status:      p.registrationId.raceRoundId.status,
+                                }
+                                : null,
+                            tournament: p.tournamentId
+                                ? {
+                                    tournamentId:   p.tournamentId._id,
+                                    tournamentName: p.tournamentId.tournamentName,
+                                    status:         p.tournamentId.status,
+                                }
+                                : null,
+                            createdAt: p.created_at,
+                        })),
+                        transactions: transactions.map(t => ({
+                            transactionId:   t._id,
+                            transactionType: t.transactionType,
+                            amount:          t.amount,
+                            status:          t.status,
+                            description:     t.description ?? null,
+                            referenceId:     t.referenceId ?? null,
+                            referenceType:   t.referenceType ?? null,
+                            date:            t.date,
+                        })),
                     };
                     break;
                 }
@@ -719,8 +773,7 @@ class AdminService {
                     // Fetch Predictions to calculate the total reward pool
                     const predictions = await Prediction.find({ registrationId: { $in: registrationIds } }).lean();
 
-                    // Sum rewardPoints
-                    const priceTotalPool = predictions.reduce((sum, pred) => sum + (pred.rewardPoints || 0), 0);
+                    const priceTotalPool = predictions.reduce((sum, pred) => sum + (pred.amount || 0), 0);
 
                     return {
                         tournament: tournament,
@@ -828,7 +881,7 @@ class AdminService {
 
             for (const reg of registrations) {
                 const predictions = await Prediction.find({ registrationId: reg._id }).lean();
-                const sum_prediction = predictions.reduce((sum, p) => sum + (p.rewardPoints || 0), 0);
+                const sum_prediction = predictions.reduce((sum, p) => sum + (p.amount || 0), 0);
                 const ownerUser = reg.horseOwnerId
                     ? await User.findById(reg.horseOwnerId, 'fullName').lean()
                     : null;
@@ -864,6 +917,133 @@ class AdminService {
                     RaceResult: raceResult || null
                 });
             }
+
+            // ── Prediction pools (grouped by method type) ─────────────────────────
+            const POOL_TAKEOUT = { win: 0.17, place: 0.17, show: 0.17, exacta: 0.20 };
+
+            const [winMethod, placeMethod, showMethod, exactaMethod] = await Promise.all([
+                PredictionMethod.findOne({ methodType: 'win',    isActive: true }).select('_id').lean(),
+                PredictionMethod.findOne({ methodType: 'place',  isActive: true }).select('_id').lean(),
+                PredictionMethod.findOne({ methodType: 'show',   isActive: true }).select('_id').lean(),
+                PredictionMethod.findOne({ methodType: 'exacta', isActive: true }).select('_id').lean(),
+            ]);
+
+            const methodIdToType = {};
+            const poolMethodIds = [];
+            if (winMethod)   { poolMethodIds.push(winMethod._id);   methodIdToType[winMethod._id.toString()]   = 'win'; }
+            if (placeMethod) { poolMethodIds.push(placeMethod._id); methodIdToType[placeMethod._id.toString()] = 'place'; }
+            if (showMethod)  { poolMethodIds.push(showMethod._id);  methodIdToType[showMethod._id.toString()]  = 'show'; }
+            if (exactaMethod){ poolMethodIds.push(exactaMethod._id);methodIdToType[exactaMethod._id.toString()]= 'exacta'; }
+
+            // registrationId → horseName, built from the Registration array already assembled
+            const regHorseMap = {};
+            for (const entry of rrObj.Registration) {
+                if (entry.Horse) regHorseMap[entry._id.toString()] = entry.Horse.horseName || null;
+            }
+
+            const allPreds = poolMethodIds.length
+                ? await Prediction.find({
+                    registrationId:     { $in: registrations.map(r => r._id) },
+                    predictionMethodId: { $in: poolMethodIds },
+                }).lean()
+                : [];
+
+            // Group by methodType string
+            const predsByType = {};
+            for (const p of allPreds) {
+                const mt = methodIdToType[p.predictionMethodId.toString()];
+                if (!mt) continue;
+                if (!predsByType[mt]) predsByType[mt] = [];
+                predsByType[mt].push(p);
+            }
+
+            const predictionPools = [];
+            let totalHouseEarning = 0;
+
+            for (const methodType of ['win', 'place', 'show', 'exacta']) {
+                const preds = predsByType[methodType] || [];
+                const T = POOL_TAKEOUT[methodType];
+
+                if (preds.length === 0) {
+                    predictionPools.push({ methodType, poolStatus: 'empty', takeoutRate: T, grossPool: 0, netPool: 0, houseEarning: 0, totalBettors: 0, perHorse: [] });
+                    continue;
+                }
+
+                const pending   = preds.filter(p => p.predictionStatus === 'pending');
+                const correct   = preds.filter(p => p.predictionStatus === 'correct');
+                const incorrect = preds.filter(p => p.predictionStatus === 'incorrect');
+                const refunded  = preds.filter(p => p.predictionStatus === 'refunded');
+
+                if (pending.length > 0) {
+                    // ── Live pool: bets still open ──────────────────────────────────
+                    const stakeByReg = {};
+                    for (const p of pending) {
+                        const rid = p.registrationId.toString();
+                        stakeByReg[rid] = (stakeByReg[rid] || 0) + (p.amount || 0);
+                    }
+                    const P = Object.values(stakeByReg).reduce((s, v) => s + v, 0);
+                    const N = P * (1 - T);
+                    const houseEarning = parseFloat((P * T).toFixed(2));
+                    totalHouseEarning += houseEarning;
+
+                    predictionPools.push({
+                        methodType,
+                        poolStatus: 'live',
+                        takeoutRate: T,
+                        grossPool: P,
+                        netPool: parseFloat(N.toFixed(2)),
+                        houseEarning,
+                        totalBettors: pending.length,
+                        perHorse: Object.entries(stakeByReg)
+                            .map(([rid, Bi]) => ({
+                                registrationId: rid,
+                                horseName: regHorseMap[rid] || null,
+                                totalStake: Bi,
+                                poolShare:     P > 0 ? parseFloat((Bi / P * 100).toFixed(2)) : 0,
+                                odds:          Bi > 0 ? parseFloat(((N - Bi) / Bi).toFixed(4)) : 0,
+                                displayPayout: Bi > 0 ? parseFloat((2 * N / Bi).toFixed(2)) : 0,
+                            }))
+                            .sort((a, b) => b.totalStake - a.totalStake),
+                    });
+                } else {
+                    // ── Settled / refunded pool ─────────────────────────────────────
+                    const totalPaidOut = parseFloat(correct.reduce((s, p) => s + (p.rewardPoints || 0), 0).toFixed(2));
+
+                    // win: every winner was on the same horse → pool is reconstructible.
+                    // place/show/exacta: multiple finishing positions qualify, so gross pool
+                    // cannot be reconstructed cleanly from payouts alone.
+                    const N_est = methodType === 'win' ? totalPaidOut : null;
+                    const P_est = N_est != null ? parseFloat((N_est / (1 - T)).toFixed(2)) : null;
+                    const houseEarning = P_est != null ? parseFloat((P_est * T).toFixed(2)) : null;
+
+                    if (houseEarning != null && refunded.length === 0) totalHouseEarning += houseEarning;
+
+                    const allRefunded = refunded.length > 0 && correct.length === 0 && incorrect.length === 0;
+                    predictionPools.push({
+                        methodType,
+                        poolStatus: allRefunded ? 'refunded' : 'settled',
+                        takeoutRate: T,
+                        grossPool:     P_est,
+                        netPool:       N_est,
+                        houseEarning:  houseEarning != null ? houseEarning : null,
+                        totalPaidOut,
+                        totalWinners:  correct.length,
+                        totalLosers:   incorrect.length,
+                        totalRefunded: refunded.length,
+                        totalBettors:  preds.length,
+                    });
+                }
+            }
+
+            rrObj.predictionPools = predictionPools;
+            rrObj.trackEarnings = {
+                totalHouseEarning: parseFloat(totalHouseEarning.toFixed(2)),
+                byPool: predictionPools.reduce((acc, p) => {
+                    acc[p.methodType] = p.houseEarning != null ? p.houseEarning : null;
+                    return acc;
+                }, {}),
+            };
+            // ─────────────────────────────────────────────────────────────────────
 
             return { code: 200, data: rrObj, msg: 'Race round detail retrieved successfully' };
         } catch (error) {
@@ -1153,6 +1333,13 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
             SimulationService.initializeSimulation(raceRoundId, io).catch(err => {
                 console.error('[Sim] Failed to start simulation:', err);
             });
+        }
+
+        if (newStatus === 'cancelled') {
+            const PayoutService = require('./PayoutService');
+            PayoutService.refundRacePredictions(raceRoundId).catch(err =>
+                console.error('[AdminService] refundRacePredictions error:', err.message)
+            );
         }
 
         return { code: 200, data: updated, msg: `Race round status updated to "${newStatus}".` };
@@ -1518,99 +1705,15 @@ AdminService.prototype.updateHorseStatus = async function (horseId, newStatus) {
 // Settle race-level predictions after a race round is confirmed completed.
 // Called internally by confirmRaceResult.
 AdminService.prototype._settlePredictionsForRace = async function (raceRoundId) {
-    const Prediction       = require('../entities/Prediction');
-    const PredictionMethod = require('../entities/PredictionMethod');
-    const Registration     = require('../entities/Registration');
-    const RaceResult       = require('../entities/RaceResult');
-    const Spectator        = require('../entities/Spectator');
-    const PARIMUTUEL       = require('../config/rewardConfig');
-
-    const registrations = await Registration.find({ raceRoundId }, '_id').lean();
-    if (registrations.length === 0) return;
-
-    const registrationIds = registrations.map(r => r._id);
-
-    const [pendingPredictions, raceResults] = await Promise.all([
-        Prediction.find({ registrationId: { $in: registrationIds }, predictionStatus: 'pending' }).lean(),
-        RaceResult.find({ raceRoundId, resultStatus: 'official' }).lean(),
-    ]);
-
-    if (pendingPredictions.length === 0) return;
-
-    // finishPosition map keyed by registrationId string
-    const resultMap = {};
-    raceResults.forEach(r => { resultMap[r.registrationId.toString()] = r.finishPosition; });
-
-    const methods = await PredictionMethod.find({
-        _id: { $in: [...new Set(pendingPredictions.map(p => p.predictionMethodId.toString()))] },
-    }).lean();
-    const methodMap = {};
-    methods.forEach(m => { methodMap[m._id.toString()] = m; });
-
-    // Determine win condition per prediction
-    const isWinner = (pred, method) => {
-        const pos = resultMap[pred.registrationId.toString()];
-        if (pos === undefined) return false;
-        if (method.methodType === 'win')   return pos === 1;
-        if (method.methodType === 'place') return pos <= 2;
-        if (method.methodType === 'show')  return pos <= 3;
-        if (method.methodType === 'exacta') {
-            const pos2 = pred.secondRegistrationId
-                ? resultMap[pred.secondRegistrationId.toString()]
-                : undefined;
-            return pos === 1 && pos2 === 2;
-        }
-        return false;
-    };
-
-    // Group predictions by methodId → parimutuel pool per method type
-    const byMethod = {};
-    for (const pred of pendingPredictions) {
-        const key = pred.predictionMethodId.toString();
-        if (!byMethod[key]) byMethod[key] = [];
-        byMethod[key].push(pred);
-    }
-
-    for (const [methodId, preds] of Object.entries(byMethod)) {
-        const method = methodMap[methodId];
-        if (!method) continue;
-
-        const cfg = PARIMUTUEL[method.methodType.toUpperCase()];
-        const takeout = cfg?.takeoutRate ?? 0;
-
-        const totalPool   = preds.reduce((s, p) => s + (p.amount || 0), 0);
-        const winners     = preds.filter(p => isWinner(p, method));
-        const winningPool = winners.reduce((s, p) => s + (p.amount || 0), 0);
-        const netPool     = totalPool * (1 - takeout);
-
-        for (const pred of preds) {
-            const won = winners.includes(pred);
-            let payout = 0;
-
-            if (won && winningPool > 0) {
-                payout = Math.floor((pred.amount / winningPool) * netPool);
-            }
-
-            await Prediction.findByIdAndUpdate(pred._id, {
-                predictionStatus: won ? 'correct' : 'incorrect',
-                rewardPoints: payout,
-            });
-
-            if (payout > 0) {
-                await Spectator.findByIdAndUpdate(pred.spectatorId, { $inc: { wallet: payout } });
-            }
-        }
-    }
+    const PayoutService = require('./PayoutService');
+    await PayoutService.distributeRacePayouts(raceRoundId);
 };
 
 // Settle tournament_champion predictions after admin sets the champion horse.
 AdminService.prototype.settleTournamentPredictions = async function (tournamentId, championHorseId) {
     try {
         const Tournament   = require('../entities/Tournament');
-        const Prediction   = require('../entities/Prediction');
-        const Spectator    = require('../entities/Spectator');
         const Horse        = require('../entities/Horse');
-        const PARIMUTUEL   = require('../config/rewardConfig');
 
         const tournament = await Tournament.findById(tournamentId).lean();
         if (!tournament) return { code: 404, msg: 'Tournament not found' };
@@ -1620,36 +1723,13 @@ AdminService.prototype.settleTournamentPredictions = async function (tournamentI
 
         await Tournament.findByIdAndUpdate(tournamentId, { championHorseId });
 
-        const pending = await Prediction.find({ tournamentId, predictionStatus: 'pending' }).lean();
-
-        const takeout     = PARIMUTUEL.CHAMPION?.takeoutRate ?? 0;
-        const totalPool   = pending.reduce((s, p) => s + (p.amount || 0), 0);
-        const winners     = pending.filter(p => p.predictedHorseId?.toString() === championHorseId.toString());
-        const winningPool = winners.reduce((s, p) => s + (p.amount || 0), 0);
-        const netPool     = totalPool * (1 - takeout);
-
-        for (const pred of pending) {
-            const won = winners.includes(pred);
-            let payout = 0;
-
-            if (won && winningPool > 0) {
-                payout = Math.floor((pred.amount / winningPool) * netPool);
-            }
-
-            await Prediction.findByIdAndUpdate(pred._id, {
-                predictionStatus: won ? 'correct' : 'incorrect',
-                rewardPoints: payout,
-            });
-
-            if (payout > 0) {
-                await Spectator.findByIdAndUpdate(pred.spectatorId, { $inc: { wallet: payout } });
-            }
-        }
+        const PayoutService = require('./PayoutService');
+        const result = await PayoutService.distributeTournamentPayouts(tournamentId, championHorseId);
 
         return {
             code: 200,
-            data: { tournamentId, championHorseId, settledCount: pending.length, totalPool, netPool },
-            msg: `Tournament champion set and ${pending.length} bets settled`,
+            data: result.data,
+            msg: `Tournament champion set and predictions settled`,
         };
     } catch (error) {
         return { code: 500, msg: error.message };

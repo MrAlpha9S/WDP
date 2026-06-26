@@ -145,6 +145,27 @@ export type CreatePredictionBody =
   | { predictionMethodId: string; registrationId: string; secondRegistrationId: string; amount: number }                     // exacta
   | { predictionMethodId: string; tournamentId: string; predictedHorseId: string; amount: number };                          // champion
 
+// Payout info returned by getPredictionDetail
+export interface PredictionPayoutInfo {
+  methodType: string;
+  // pending — live pool snapshot
+  takeoutRate?: number;
+  grossPool?: number;
+  netPool?: number;
+  stakeOnPredictedHorse?: number;
+  totalBettors?: number;
+  odds?: number;
+  estimatedCollect?: number;
+  // settled
+  actualPayout?: number;
+  refunded?: boolean;
+}
+
+export interface PredictionDetail extends PredictionItem {
+  actualResult: Record<string, unknown> | null;
+  payoutInfo: PredictionPayoutInfo | null;
+}
+
 // ─── Wallet ───────────────────────────────────────────────────────────────────
 
 export interface WalletInfo {
@@ -362,5 +383,16 @@ export async function createPrediction(
     return { ok: res.data.code === 201, message: res.data.msg, data: res.data.data };
   } catch (err: any) {
     return { ok: false, message: err?.response?.data?.msg ?? 'Lỗi kết nối.' };
+  }
+}
+
+export async function getPredictionDetail(predictionId: string): Promise<PredictionDetail | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: PredictionDetail; msg: string }>(
+      `/api/spectator/predictions/${predictionId}`,
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
   }
 }

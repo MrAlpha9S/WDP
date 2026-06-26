@@ -23,7 +23,17 @@ const raceRefereeRouter = require('./routes/racereferee');
 const registrationRouter = require('./routes/registration');
 dotenv.config();
 var app = express();
-app.use(cors({ credentials: true, origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim())
+  .concat(['http://localhost:8081', 'http://localhost:19006']);
+app.use(cors({
+  credentials: true,
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  },
+}));
 (
   async () => {
     try {

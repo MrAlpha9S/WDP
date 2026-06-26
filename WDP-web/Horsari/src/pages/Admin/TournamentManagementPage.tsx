@@ -190,37 +190,44 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                 <main className="flex flex-col min-w-0 h-full">
 
                     {/* ── Header ── */}
-                    <header className="pb-6 flex items-center justify-between border-b border-white/5 shrink-0">
-                        <div>
-                            <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-                                Tournament Management
-                            </h1>
-                            <p className="text-[13px] text-gray-500 mt-1">Manage racing tournaments, schedules, and prize pools.</p>
-                        </div>
-
-                        {/* View Mode Toggle */}
-                        <div className="flex bg-[#1a1a1a] p-1 rounded-lg border border-white/5 mx-auto">
-                            <button
-                                onClick={() => setViewMode("table")}
-                                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-[12px] font-medium transition-colors ${viewMode === "table" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
-                            >
-                                <List size={14} /> Table
-                            </button>
-                            <button
-                                onClick={() => setViewMode("calendar")}
-                                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-[12px] font-medium transition-colors ${viewMode === "calendar" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
-                            >
-                                <CalendarIcon size={14} /> Calendar
-                            </button>
-                        </div>
-
-                        <div className="flex gap-3">
+                    <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+                        {/* Row 1 */}
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                    Tournament Management
+                                </h1>
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                                        All Tournaments
+                                    </span>
+                                    <span className="text-[12px] text-gray-500 truncate">· Manage schedules and prize pools</span>
+                                </div>
+                            </div>
                             <button
                                 onClick={() => openModal()}
-                                className="flex items-center gap-2 px-5 py-2 text-[13px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20"
+                                className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
                             >
-                                <Plus size={14} /> Create Tournament
+                                <Plus size={13} /> Create Tournament
                             </button>
+                        </div>
+
+                        {/* Row 2 */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex bg-[#1a1a1a] p-1 rounded-lg border border-white/5 shrink-0">
+                                <button
+                                    onClick={() => setViewMode("table")}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "table" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                                >
+                                    <List size={13} /> Table
+                                </button>
+                                <button
+                                    onClick={() => setViewMode("calendar")}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "calendar" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                                >
+                                    <CalendarIcon size={13} /> Calendar
+                                </button>
+                            </div>
                         </div>
                     </header>
 

@@ -998,9 +998,115 @@ class SpectatorService {
                 }
             }
 
+            // ── Payout info ──────────────────────────────────────────────────
+            // Each method type has its own independent pool. We compute live odds
+            // only within the pool that matches this prediction's methodType.
+            const PayoutService = require('./PayoutService');
+            const TAKEOUT_RATES = { win: 0.17, place: 0.17, show: 0.17, exacta: 0.20, champion: 0.22 };
+            let payoutInfo = null;
+
+            if (prediction.predictionStatus === 'pending' && method) {
+                const S = prediction.amount || 0; // this spectator's stake
+
+                if (method.methodType === 'champion' && prediction.tournamentId) {
+                    // Pool = all pending stakes for this tournament + this method only
+                    const PredModel = require('../entities/Prediction');
+                    const champPreds = await PredModel.find({
+                        tournamentId:       prediction.tournamentId,
+                        predictionMethodId: prediction.predictionMethodId,
+                        predictionStatus:   'pending',
+                    }).lean();
+
+                    // Bi per predicted horse (by amount = stake)
+                    const stakeByHorse = {};
+                    for (const p of champPreds) {
+                        const hid = p.predictedHorseId?.toString();
+                        if (hid) stakeByHorse[hid] = (stakeByHorse[hid] || 0) + (p.amount || 0);
+                    }
+
+                    const P  = PayoutService.grossPool(Object.values(stakeByHorse));
+                    const T  = TAKEOUT_RATES.champion;
+                    const N  = PayoutService.netPool(P, T);
+                    const Bi = stakeByHorse[prediction.predictedHorseId?.toString()] || 0;
+
+                    payoutInfo = {
+                        methodType:            method.methodType,
+                        takeoutRate:           T,
+                        grossPool:             P,
+                        netPool:               parseFloat(N.toFixed(2)),
+                        stakeOnPredictedHorse: Bi,
+                        totalBettors:          champPreds.length,
+                        odds:                  parseFloat(PayoutService.oddsForHorse(N, Bi).toFixed(4)),
+                        estimatedCollect:      Bi > 0 && S > 0
+                            ? parseFloat(PayoutService.totalCollect(S, N, Bi).toFixed(2))
+                            : 0,
+                    };
+
+                } else if (['win', 'place', 'show', 'exacta'].includes(method.methodType) && raceRound) {
+                    // Build pool directly from ALL pending predictions for this race round + method.
+                    // We do NOT restrict to 'verified' registrations — filtering to 'verified' would
+                    // make the live pool appear empty until admin verifies.
+                    const PredModel = require('../entities/Prediction');
+                    const allRegsInRound = await Registration.find({ raceRoundId: raceRound._id })
+                        .select('_id').lean();
+                    const allRegIds = allRegsInRound.map(r => r._id);
+
+                    const racePreds = await PredModel.find({
+                        registrationId:     { $in: allRegIds },
+                        predictionMethodId: prediction.predictionMethodId,
+                        predictionStatus:   'pending',
+                    }).lean();
+
+                    // Bi = sum of stakes (amount) on each registration
+                    const stakeByReg = {};
+                    for (const p of racePreds) {
+                        const rid = p.registrationId.toString();
+                        stakeByReg[rid] = (stakeByReg[rid] || 0) + (p.amount || 0);
+                    }
+
+                    const T  = TAKEOUT_RATES[method.methodType] ?? 0.17;
+                    const P  = PayoutService.grossPool(Object.values(stakeByReg));
+                    const N  = PayoutService.netPool(P, T);
+                    const Bi = stakeByReg[prediction.registrationId?.toString()] || 0;
+
+                    payoutInfo = {
+                        methodType:            method.methodType,
+                        takeoutRate:           T,
+                        grossPool:             P,
+                        netPool:               parseFloat(N.toFixed(2)),
+                        stakeOnPredictedHorse: Bi,
+                        totalBettors:          racePreds.length,
+                        odds:                  parseFloat(PayoutService.oddsForHorse(N, Bi).toFixed(4)),
+                        estimatedCollect:      Bi > 0 && S > 0
+                            ? parseFloat(PayoutService.totalCollect(S, N, Bi).toFixed(2))
+                            : 0,
+                    };
+                }
+
+            } else if (prediction.predictionStatus === 'correct') {
+                // rewardPoints holds actual parimutuel collect written at settle time
+                payoutInfo = { methodType: method?.methodType ?? null, actualPayout: prediction.rewardPoints };
+
+            } else if (prediction.predictionStatus === 'incorrect') {
+                payoutInfo = { methodType: method?.methodType ?? null, actualPayout: 0 };
+
+            } else if (prediction.predictionStatus === 'refunded') {
+                // Stake returned to wallet; rewardPoints reset to 0 at settle time
+                payoutInfo = { methodType: method?.methodType ?? null, actualPayout: 0, refunded: true };
+            }
+
             return {
                 code: 200,
-                data: { ...prediction, predictionMethod: method, registration, horse, raceRound, tournament, actualResult },
+                data: {
+                    ...prediction,
+                    predictionMethod: method,
+                    registration,
+                    horse,
+                    raceRound,
+                    tournament,
+                    actualResult,
+                    payoutInfo,
+                },
                 msg: 'Prediction detail retrieved successfully',
             };
         } catch (error) {
