@@ -4,7 +4,7 @@ export type InviteStatus = 'pending' | 'approved' | 'rejected' | 'verified' | 'f
 export type InviteJockeyStatus = 'pending' | 'accepted' | 'declined' | 'cancelled'
 
 export interface MyRace {
-  id: number;
+  id: string | number;
   name: string;
   date: string;
   venue: string;
@@ -12,6 +12,7 @@ export interface MyRace {
   jockey: string;
   status: RaceStatus;
   image: string;
+  raceRoundId?: string | null;
 }
 
 export interface Invitation {

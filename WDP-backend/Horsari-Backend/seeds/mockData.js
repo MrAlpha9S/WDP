@@ -74,13 +74,16 @@ async function seed() {
       admins.push(user);
     }
 
-    // --- Horse Owners (3) ---
+    // --- Horse Owners (6) ---
     const ownerData = [
-      { name: "Nguyen Van A", phone: "0901111111", address: "Hanoi" },
-      { name: "Tran Thi B", phone: "0902222222", address: "Da Nang" },
-      { name: "Le Van C", phone: "0903333333", address: "Ho Chi Minh City" },
+      { name: "Nguyen Van A",     phone: "0901111111", address: "Hanoi" },
+      { name: "Tran Thi B",       phone: "0902222222", address: "Da Nang" },
+      { name: "Le Van C",         phone: "0903333333", address: "Ho Chi Minh City" },
+      { name: "Phan Thi Dao",     phone: "0904444444", address: "Hue" },
+      { name: "Nguyen Minh Khoa", phone: "0905555555", address: "Can Tho" },
+      { name: "Dang Thi Thu",     phone: "0906666666", address: "Bien Hoa" },
     ];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       const user = await User.create({
         username: `owner${i + 1}`,
         passwordHash: PASSWORD_HASH,
@@ -375,7 +378,7 @@ async function seed() {
     const horses = [];
     for (let i = 0; i < horseData.length; i++) {
       const horse = await Horse.create({
-        ownerId: horseOwners[i % 3]._id,
+        ownerId: horseOwners[i % 6]._id,
         horseName: horseData[i].name,
         breed: horseData[i].breed,
         gender: horseData[i].gender,
@@ -549,77 +552,115 @@ async function seed() {
 
     /* ================================================
            7. INVITATION
-           — Each Round 1 registration gets a jockey
+           Rules:
+           - All invitations for a registration share the same horseId as that registration
+           - Exactly one main jockey per registration (isBackup: false)
+           - One or more backup jockeys per registration (isBackup: true)
            ================================================ */
 
     const invitations = [];
 
+    // Helper: pick a backup jockey that is different from the main and any already used backups
+    const pickBackup = (mainIdx, ...excludeIdx) =>
+      jockeys.find((j, i) => i !== mainIdx && !excludeIdx.includes(i));
+
+    // ── Round 1 (completed) — 1 main + 1–2 backups per registration ───────────
+    // Main jockey indices for each of the 6 registrations
+    const r1MainJockeyIdx = [0, 1, 2, 3, 0, 1];
+
     for (let i = 0; i < r1Regs.length; i++) {
-      const invitation = await Invitation.create({
-        horseId: horses[i]._id,
-        jockeyId: jockeys[i % jockeys.length]._id,
-        registrationId: r1Regs[i]._id,
+      const reg      = r1Regs[i];
+      const horse    = horses[i];                       // same horse as registration
+      const mainIdx  = r1MainJockeyIdx[i];
+
+      // Main — accepted (race already completed)
+      const mainInv = await Invitation.create({
+        horseId: horse._id,
+        jockeyId: jockeys[mainIdx]._id,
+        registrationId: reg._id,
         ownerConfirmation: true,
         jockeyConfirmation: true,
         invitationStatus: "accepted",
         isBackup: false,
         percentagePayout: 10,
       });
-      invitations.push(invitation);
+      invitations.push(mainInv);
+      await Registration.findByIdAndUpdate(reg._id, { jockeyInRaceId: mainInv._id });
 
-      // Link invitation back to registration
-      await Registration.findByIdAndUpdate(r1Regs[i]._id, {
-        jockeyInRaceId: invitation._id,
+      // Backup 1 — pending (owner sent, jockey hasn't replied)
+      const backup1Jockey = pickBackup(mainIdx);
+      const backup1Inv = await Invitation.create({
+        horseId: horse._id,
+        jockeyId: backup1Jockey._id,
+        registrationId: reg._id,
+        ownerConfirmation: true,
+        jockeyConfirmation: false,
+        invitationStatus: "pending",
+        isBackup: true,
+        percentagePayout: 8,
       });
+      invitations.push(backup1Inv);
+
+      // Backup 2 for first two registrations — declined scenario
+      if (i < 2) {
+        const backup2Jockey = pickBackup(mainIdx, jockeys.indexOf(backup1Jockey));
+        const backup2Inv = await Invitation.create({
+          horseId: horse._id,
+          jockeyId: backup2Jockey._id,
+          registrationId: reg._id,
+          ownerConfirmation: true,
+          jockeyConfirmation: false,
+          invitationStatus: "declined",
+          isBackup: true,
+          percentagePayout: 8,
+        });
+        invitations.push(backup2Inv);
+      }
     }
 
-    // Backup jockey invitation for horse[0] (declined primary scenario)
-    const backupInvitation = await Invitation.create({
-      horseId: horses[0]._id,
-      jockeyId: jockeys[3]._id,
-      registrationId: r1Regs[0]._id,
-      ownerConfirmation: true,
-      jockeyConfirmation: false,
-      invitationStatus: "pending",
-      isBackup: true,
-      percentagePayout: 8,
-    });
-    invitations.push(backupInvitation);
-
-    // Round 2 — accepted invitations for approved registrations (indices 1, 2, 4)
-    // r2Regs[0]=pending, r2Regs[1]=approved, r2Regs[2]=approved, r2Regs[3]=rejected, r2Regs[4]=approved
-    const r2ApprovedMap = [
-      { reg: r2Regs[1], horse: horses[1], jockey: jockeys[1] },
-      { reg: r2Regs[2], horse: horses[2], jockey: jockeys[2] },
-      { reg: r2Regs[4], horse: horses[4], jockey: jockeys[3] },
+    // ── Round 2 (upcoming) — main + 1 backup per approved registration ────────
+    // r2Regs[0]=pending, [1]=approved, [2]=approved, [3]=rejected, [4]=approved
+    const r2InvMap = [
+      // [regIdx, horseIdx, mainJockeyIdx] — horses mirror registration order
+      { regIdx: 0, mainIdx: 0, isAccepted: false },   // pending reg — owner sent but jockey not replied
+      { regIdx: 1, mainIdx: 1, isAccepted: true  },
+      { regIdx: 2, mainIdx: 2, isAccepted: true  },
+      { regIdx: 4, mainIdx: 3, isAccepted: true  },
     ];
-    for (const entry of r2ApprovedMap) {
-      const inv = await Invitation.create({
-        horseId: entry.horse._id,
-        jockeyId: entry.jockey._id,
-        registrationId: entry.reg._id,
+
+    for (const entry of r2InvMap) {
+      const reg   = r2Regs[entry.regIdx];
+      const horse = horses[entry.regIdx];              // horseId matches registration
+
+      const mainInv = await Invitation.create({
+        horseId: horse._id,
+        jockeyId: jockeys[entry.mainIdx]._id,
+        registrationId: reg._id,
         ownerConfirmation: true,
-        jockeyConfirmation: true,
-        invitationStatus: "accepted",
+        jockeyConfirmation: entry.isAccepted,
+        invitationStatus: entry.isAccepted ? "accepted" : "pending",
         isBackup: false,
         percentagePayout: 10,
       });
-      invitations.push(inv);
-      await Registration.findByIdAndUpdate(entry.reg._id, { jockeyInRaceId: inv._id });
-    }
+      invitations.push(mainInv);
+      if (entry.isAccepted) {
+        await Registration.findByIdAndUpdate(reg._id, { jockeyInRaceId: mainInv._id });
+      }
 
-    // Round 2 pending invitation (not yet accepted)
-    const pendingInvitation = await Invitation.create({
-      horseId: horses[0]._id,
-      jockeyId: jockeys[0]._id,
-      registrationId: r2Regs[0]._id,
-      ownerConfirmation: true,
-      jockeyConfirmation: false,
-      invitationStatus: "pending",
-      isBackup: false,
-      percentagePayout: 12,
-    });
-    invitations.push(pendingInvitation);
+      // Backup — pending for all round 2
+      const backupJockey = pickBackup(entry.mainIdx);
+      const backupInv = await Invitation.create({
+        horseId: horse._id,
+        jockeyId: backupJockey._id,
+        registrationId: reg._id,
+        ownerConfirmation: true,
+        jockeyConfirmation: false,
+        invitationStatus: "pending",
+        isBackup: true,
+        percentagePayout: 8,
+      });
+      invitations.push(backupInv);
+    }
 
     /* ================================================
            8. RACE REFEREE
@@ -737,11 +778,14 @@ async function seed() {
       r4Regs.push(reg);
     }
 
-    // Accepted invitations — jockeys confirmed and flagged in race
+    // Accepted invitations — 1 main (confirmed, in race) + 1 backup (pending) per registration
     for (let i = 0; i < r4Regs.length; i++) {
-      const inv = await Invitation.create({
+      const mainIdx = i % jockeys.length;
+
+      // Main jockey — accepted and flagged as in race
+      const mainInv = await Invitation.create({
         horseId: horses[i]._id,
-        jockeyId: jockeys[i % jockeys.length]._id,
+        jockeyId: jockeys[mainIdx]._id,
         registrationId: r4Regs[i]._id,
         ownerConfirmation: true,
         jockeyConfirmation: true,
@@ -750,8 +794,23 @@ async function seed() {
         isBackup: false,
         percentagePayout: 10,
       });
-      invitations.push(inv);
-      await Registration.findByIdAndUpdate(r4Regs[i]._id, { jockeyInRaceId: inv._id });
+      invitations.push(mainInv);
+      await Registration.findByIdAndUpdate(r4Regs[i]._id, { jockeyInRaceId: mainInv._id });
+
+      // Backup jockey — same horse, pending response
+      const backupJockey = pickBackup(mainIdx);
+      const backupInv = await Invitation.create({
+        horseId: horses[i]._id,
+        jockeyId: backupJockey._id,
+        registrationId: r4Regs[i]._id,
+        ownerConfirmation: true,
+        jockeyConfirmation: false,
+        invitationStatus: "pending",
+        isJockeyInRace: false,
+        isBackup: true,
+        percentagePayout: 8,
+      });
+      invitations.push(backupInv);
     }
 
     // Two referees assigned to Round 4
@@ -1462,8 +1521,8 @@ async function seed() {
     console.log("\n✅ Seed completed successfully");
     console.log(
       "   Users      :",
-      2 + 3 + 4 + 3 + 4,
-      "(2 admin / 3 owner / 4 jockey / 3 referee / 4 spectator)",
+      2 + 6 + 4 + 3 + 4,
+      "(2 admin / 6 owner / 4 jockey / 3 referee / 4 spectator)",
     );
     console.log("   Horses     :", horses.length);
     console.log("   Tournaments:", tournaments.length);

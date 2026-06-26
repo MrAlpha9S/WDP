@@ -9,7 +9,7 @@ import RefereeDashboardPage from "./pages/Referee/Index";
 import RaceMonitorPage from "./pages/Referee/RaceMonitorIndex";
 import AdminDashboardPage from "./pages/Admin/Index";
 import DashboardPage from "./pages/horseOwner";
-
+import OwnerRaceMonitorPage from "./pages/horseOwner/RaceMonitorIndex";
 export default function App() {
   return (
     <BrowserRouter>
@@ -78,8 +78,14 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
-
+          <Route
+            path="/owner/race-monitor/:raceRoundId"
+            element={
+              <ProtectedRoute allowedRoles={["horseowner", "admin"]}>
+                <OwnerRaceMonitorPage />
+              </ProtectedRoute>
+            }
+          />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

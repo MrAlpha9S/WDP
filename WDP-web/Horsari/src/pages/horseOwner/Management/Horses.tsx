@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Search, ChevronDown, SlidersHorizontal, Plus, MoreVertical } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Search, ChevronDown, Plus, MoreVertical, ChevronLeft, ChevronRight, X, Loader2, ImagePlus } from "lucide-react";
 import { horseOwnerService, type Horse } from "../../../api/horseOwnerService";
+import HorseProfile from "./HorseProfile";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type HorseStatus = "Racing" | "Training" | "Resting" | "Injured";
@@ -14,11 +15,6 @@ interface HorseCard {
   grade: string;
   status: HorseStatus;
   image: string;
-  nextRaceDate?: string;
-  nextRaceVenue?: string;
-  jockey?: string;
-  regimen?: string;
-  trainer?: string;
   returnEst?: string;
   statusNote?: string;
 }
@@ -45,17 +41,8 @@ function mapHorseToCard(h: Horse): HorseCard {
     sex: h.gender === "male" ? "Colt" : "Filly",
     grade: "Listed",
     status,
-    image: "https://images.unsplash.com/photo-1553284965-5dd67167ac2f?w=600&q=80",
+    image: (h as Horse & { img?: string }).img ?? "/jumping-horse-silhouette-facing-left-side-view.png",
     // Populate contextual fields based on mapped status
-    ...(status === "Racing" && {
-      nextRaceDate: "TBD",
-      nextRaceVenue: "TBD",
-      jockey: "TBD",
-    }),
-    ...(status === "Training" && {
-      regimen: "General",
-      trainer: "TBD",
-    }),
     ...((status === "Resting" || status === "Injured") && {
       returnEst: "TBD",
       statusNote: status === "Injured" ? "Medical Review" : "Post-Race Rest",
@@ -108,14 +95,15 @@ function InfoCell({ label, value }: { label: string; value: string }) {
 }
 
 // ── Horse card ────────────────────────────────────────────────────────────────
-function HorseCardItem({ horse }: { horse: HorseCard }) {
+function HorseCardItem({ horse, onViewProfile }: { horse: HorseCard; onViewProfile: () => void }) {
   return (
     <div className="bg-[#1a1a1a] rounded-2xl border border-white/8 overflow-hidden flex flex-col group hover:border-white/15 transition-colors duration-200">
-      <div className="relative h-52 overflow-hidden bg-[#111]">
+      <div className="relative h-40 overflow-hidden bg-[#111] flex items-center justify-center">
         <img
           src={horse.image}
           alt={horse.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          onError={(e) => { e.currentTarget.src = "/jumping-horse-silhouette-facing-left-side-view.png"; }}
+          className="h-24 w-24 object-contain opacity-25 group-hover:opacity-35 transition-opacity duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent" />
         <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
@@ -139,31 +127,19 @@ function HorseCardItem({ horse }: { horse: HorseCard }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          {horse.status === "Racing" && horse.nextRaceDate && horse.jockey && (
-            <>
-              <InfoCell label="Next Race" value={`${horse.nextRaceDate} • ${horse.nextRaceVenue}`} />
-              <InfoCell label="Jockey" value={horse.jockey} />
-            </>
+        {(horse.status === "Resting" || horse.status === "Injured") &&
+          horse.returnEst && horse.statusNote && (
+            <div className="grid grid-cols-2 gap-2">
+              <InfoCell label="Return Est." value={horse.returnEst} />
+              <InfoCell label="Status" value={horse.statusNote} />
+            </div>
           )}
-          {horse.status === "Training" && horse.regimen && horse.trainer && (
-            <>
-              <InfoCell label="Regimen" value={horse.regimen} />
-              <InfoCell label="Trainer" value={horse.trainer} />
-            </>
-          )}
-          {(horse.status === "Resting" || horse.status === "Injured") &&
-            horse.returnEst &&
-            horse.statusNote && (
-              <>
-                <InfoCell label="Return Est." value={horse.returnEst} />
-                <InfoCell label="Status" value={horse.statusNote} />
-              </>
-            )}
-        </div>
 
         <div className="flex items-center gap-2 mt-auto">
-          <button className="flex-1 py-2.5 rounded-lg border border-red-700/60 text-red-400 text-[12.5px] font-semibold hover:bg-red-700/10 hover:border-red-600 transition-all duration-150 tracking-wide">
+          <button
+            onClick={onViewProfile}
+            className="flex-1 py-2.5 rounded-lg border border-red-700/60 text-red-400 text-[12.5px] font-semibold hover:bg-red-700/10 hover:border-red-600 transition-all duration-150 tracking-wide"
+          >
             VIEW PROFILE
           </button>
           <button className="w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150 shrink-0">
@@ -175,98 +151,350 @@ function HorseCardItem({ horse }: { horse: HorseCard }) {
   );
 }
 
+// ── Register horse modal ──────────────────────────────────────────────────────
+const BREEDS = ["Thoroughbred", "Arabian", "Quarter Horse", "Standardbred", "Warmblood", "Other"];
+
+interface RegisterForm {
+  horseName: string;
+  breed: string;
+  gender: "male" | "female" | "";
+  dateOfBirth: string;
+}
+
+function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [form, setForm] = useState<RegisterForm>({ horseName: "", breed: "", gender: "", dateOfBirth: "" });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function handleField(key: keyof RegisterForm, val: string) {
+    setForm(f => ({ ...f, [key]: val }));
+    setError(null);
+  }
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    if (file) setImagePreview(URL.createObjectURL(file));
+    else setImagePreview(null);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.horseName.trim()) { setError("Horse name is required."); return; }
+    if (!form.breed.trim())     { setError("Breed is required."); return; }
+    if (!form.gender)           { setError("Please select a gender."); return; }
+    if (!form.dateOfBirth)      { setError("Date of birth is required."); return; }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await horseOwnerService.createHorse({
+        horseName: form.horseName.trim(),
+        breed: form.breed.trim(),
+        gender: form.gender as "male" | "female",
+        dateOfBirth: form.dateOfBirth,
+        healthStatus: "healthy",
+        status: "active",
+        registrationDate: new Date().toISOString(),
+      } as Omit<Horse, "_id" | "ownerId" | "createdAt" | "updatedAt" | "__v">);
+
+      const newId: string = res.data?._id ?? res.data?.id;
+      if (newId && imageFile) {
+        await horseOwnerService.uploadHorseImage(newId, imageFile);
+      }
+      onCreated();
+    } catch (err: unknown) {
+      const msg = (err as { msg?: string })?.msg ?? (err instanceof Error ? err.message : "Failed to register horse.");
+      setError(msg);
+      setSubmitting(false);
+    }
+  }
+
+  const inputCls = "w-full bg-[#1e1e1e] border border-white/10 rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
+  const labelCls = "block text-[10.5px] font-bold tracking-widest text-gray-500 uppercase mb-1.5";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">New Registration</p>
+            <h2 className="text-[17px] font-bold text-white mt-0.5" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Register a Horse
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+
+          {/* Image upload */}
+          <div
+            onClick={() => fileRef.current?.click()}
+            className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-[#1a1a1a] flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group"
+          >
+            {imagePreview ? (
+              <img src={imagePreview} className="h-20 object-contain rounded-lg" alt="preview" />
+            ) : (
+              <>
+                <ImagePlus size={20} className="text-gray-600 group-hover:text-gray-400 transition-colors" />
+                <p className="text-[12px] text-gray-600 group-hover:text-gray-400 transition-colors">
+                  Upload photo <span className="text-gray-700">(optional)</span>
+                </p>
+              </>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+          </div>
+
+          {/* Horse name */}
+          <div>
+            <label className={labelCls}>Horse Name *</label>
+            <input
+              type="text"
+              placeholder="e.g. Thunder Bolt"
+              value={form.horseName}
+              onChange={e => handleField("horseName", e.target.value)}
+              className={inputCls}
+              maxLength={60}
+            />
+          </div>
+
+          {/* Breed */}
+          <div>
+            <label className={labelCls}>Breed *</label>
+            <div className="relative">
+              <select
+                value={form.breed}
+                onChange={e => handleField("breed", e.target.value)}
+                className={`${inputCls} appearance-none pr-8 cursor-pointer`}
+              >
+                <option value="">Select breed…</option>
+                {BREEDS.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Gender + DOB row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Gender *</label>
+              <div className="relative">
+                <select
+                  value={form.gender}
+                  onChange={e => handleField("gender", e.target.value)}
+                  className={`${inputCls} appearance-none pr-8 cursor-pointer`}
+                >
+                  <option value="">Select…</option>
+                  <option value="male">Male (Colt)</option>
+                  <option value="female">Female (Filly)</option>
+                </select>
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Date of Birth *</label>
+              <input
+                type="date"
+                value={form.dateOfBirth}
+                onChange={e => handleField("dateOfBirth", e.target.value)}
+                max={new Date().toISOString().split("T")[0]}
+                className={`${inputCls} cursor-pointer`}
+              />
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <p className="text-[12px] text-red-400 bg-red-900/15 border border-red-700/30 rounded-lg px-3 py-2.5">
+              {error}
+            </p>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-lg border border-white/10 text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 py-2.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:bg-red-900/50 disabled:text-red-700 text-white text-[12.5px] font-bold tracking-wide transition-all duration-150 flex items-center justify-center gap-2"
+            >
+              {submitting ? <><Loader2 size={13} className="animate-spin" /> Registering…</> : "Register Horse"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+const PAGE_LIMIT = 9;
+
+// ── Pagination bar ────────────────────────────────────────────────────────────
+function PaginationBar({ page, totalPages, onPrev, onNext }: {
+  page: number; totalPages: number; onPrev: () => void; onNext: () => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-4 mt-8">
+      <button
+        onClick={onPrev}
+        disabled={page === 1}
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
+      >
+        <ChevronLeft size={13} /> Prev
+      </button>
+      <span className="text-[12px] text-gray-500 font-medium">Page {page} of {totalPages}</span>
+      <button
+        onClick={onNext}
+        disabled={page === totalPages}
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
+      >
+        Next <ChevronRight size={13} />
+      </button>
+    </div>
+  );
+}
+
 // ── Horses page ───────────────────────────────────────────────────────────────
 export default function HorsesPage() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All Statuses" | HorseStatus>("All Statuses");
   const [classFilter, setClassFilter] = useState("All Classes");
   const [userHorse, setUserHorse] = useState<Horse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [profileHorseId, setProfileHorseId] = useState<string | null>(null);
+  const [showRegister, setShowRegister] = useState(false);
+  const [refreshSeed, setRefreshSeed] = useState(0);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search → reset to page 1
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+  }, [search]);
 
   useEffect(() => {
-    const fetchHorse = async () => {
+    let cancelled = false;
+    async function fetchHorses() {
       try {
-        const data = await horseOwnerService.getUserHorse();
+        setLoading(true);
+        const data = await horseOwnerService.getUserHorse(page, PAGE_LIMIT, debouncedSearch || undefined);
+        if (cancelled) return;
         setUserHorse(data.data?.items ?? []);
+        setTotalPages(data.data?.pagination?.totalPages ?? 1);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    };
-    fetchHorse();
-  }, []);
+    }
+    fetchHorses();
+    return () => { cancelled = true; };
+  }, [page, debouncedSearch, refreshSeed]);
 
   const horses: HorseCard[] = userHorse.map(mapHorseToCard);
 
+  // Status + class filters are client-side (enum fields, small dataset per page)
   const filtered = horses.filter((h) => {
-    const matchSearch = h.name.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All Statuses" || h.status === statusFilter;
     const matchClass = classFilter === "All Classes" || h.grade === classFilter;
-    return matchSearch && matchStatus && matchClass;
+    return matchStatus && matchClass;
   });
 
   return (
-    <div className="flex-1 px-8 py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <h1
-            className="text-[36px] font-bold text-white leading-tight"
-            style={{ fontFamily: "'Playfair Display', serif" }}
+    <>
+    <HorseProfile horseId={profileHorseId} onClose={() => setProfileHorseId(null)} />
+    {showRegister && (
+      <RegisterHorseModal
+        onClose={() => setShowRegister(false)}
+        onCreated={() => { setShowRegister(false); setPage(1); setRefreshSeed(s => s + 1); }}
+      />
+    )}
+    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Active Roster
+            </h1>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                Horse Management
+              </span>
+              <span className="text-[12px] text-gray-500 truncate">· {filtered.length} horse{filtered.length !== 1 ? "s" : ""}</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowRegister(true)}
+            className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
           >
-            Active Roster
-          </h1>
-          <p className="text-[13px] text-gray-500 mt-1">
-            Manage your stable's performance, health, and race entries.
-          </p>
+            <Plus size={13} /> Register New Horse
+          </button>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-red-700 hover:bg-red-600 text-white text-[12.5px] font-bold tracking-widest rounded-lg transition-colors duration-150 shadow-lg shadow-red-900/40 uppercase mt-1">
-          <Plus size={14} />
-          Register New Horse
-        </button>
-      </div>
-
-      <div className="flex items-center gap-3 mt-6 mb-7">
-        <div className="relative flex-1 max-w-xs">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-          <input
-            type="text"
-            placeholder="Search horses..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-[13px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/25 transition-colors duration-150"
-          />
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 max-w-xs">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+            <input
+              type="text"
+              placeholder="Search horses..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-9 pr-4 text-[11px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 h-[32px] transition-colors duration-150"
+            />
+          </div>
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1); }}
+              className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
+            >
+              {CLASSES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+          </div>
         </div>
-
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-lg pl-4 pr-9 py-2.5 text-[13px] text-gray-300 focus:outline-none focus:border-white/25 cursor-pointer transition-colors duration-150"
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-        </div>
-
-        <div className="relative">
-          <select
-            value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-            className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-lg pl-4 pr-9 py-2.5 text-[13px] text-gray-300 focus:outline-none focus:border-white/25 cursor-pointer transition-colors duration-150"
-          >
-            {CLASSES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-        </div>
-
-        <div className="ml-auto flex items-center gap-2 text-[12px] text-gray-500 font-medium">
-          <SlidersHorizontal size={13} />
-          {filtered.length} RESULTS
-        </div>
-      </div>
+      </header>
+      <div className="flex-1 pt-5">
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24 text-gray-600">
@@ -277,12 +505,26 @@ export default function HorsesPage() {
           <p className="text-[15px] font-medium">No horses match your filters.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((horse) => (
-            <HorseCardItem key={horse.id} horse={horse} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filtered.map((horse) => (
+              <HorseCardItem
+                key={horse.id}
+                horse={horse}
+                onViewProfile={() => setProfileHorseId(horse.id)}
+              />
+            ))}
+          </div>
+          <PaginationBar
+            page={page}
+            totalPages={totalPages}
+            onPrev={() => setPage(p => p - 1)}
+            onNext={() => setPage(p => p + 1)}
+          />
+        </>
       )}
+      </div>
     </div>
+    </>
   );
 }

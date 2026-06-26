@@ -43,6 +43,8 @@ export function useSpectatorRaceSocket(raceRoundId: string | null) {
   const [connected, setConnected] = useState(false);
   const [liveUpdate, setLiveUpdate] = useState<RaceUpdate | null>(null);
   const [finishResults, setFinishResults] = useState<FinishResult[] | null>(null);
+  // Official positions from admin confirmation — used to lock in bet outcomes
+  const [confirmedResults, setConfirmedResults] = useState<FinishResult[] | null>(null);
 
   useEffect(() => {
     if (!raceRoundId || !API_BASE_URL) return;
@@ -80,6 +82,13 @@ export function useSpectatorRaceSocket(raceRoundId: string | null) {
       }
     });
 
+    // race_results_confirmed: admin locked in official positions
+    socket.on('race_results_confirmed', (data: { results?: FinishResult[] }) => {
+      if (mounted && Array.isArray(data?.results)) {
+        setConfirmedResults(data.results);
+      }
+    });
+
     return () => {
       mounted = false;
       socket.disconnect();
@@ -87,5 +96,5 @@ export function useSpectatorRaceSocket(raceRoundId: string | null) {
     };
   }, [raceRoundId]);
 
-  return { connected, liveUpdate, finishResults };
+  return { connected, liveUpdate, finishResults, confirmedResults };
 }

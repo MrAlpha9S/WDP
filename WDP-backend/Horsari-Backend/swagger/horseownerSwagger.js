@@ -55,6 +55,27 @@
  *       200:
  *         description: Paginated list of race invitations with raceRound, tournament, and eligible horses
  *
+ * /api/horseowner/race-rounds/{raceRoundId}/detail:
+ *   get:
+ *     summary: Get race detail for the authenticated horse owner
+ *     description: Returns the race round info, the owner's registration (with horse and lane), all jockey invitations sent for that registration, and the race result. `registration` is null if the owner has no registration in this race.
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: raceRoundId
+ *         required: true
+ *         schema: { type: string }
+ *         description: ID of the race round
+ *     responses:
+ *       200:
+ *         description: Race detail with owner registration, invitations, and result
+ *       404:
+ *         description: Horse owner or race round not found
+ *       500:
+ *         description: Internal server error
+ *
  * /api/jockey/all:
  *   get:
  *     summary: Get all jockeys (also used by horse owners to browse available jockeys)

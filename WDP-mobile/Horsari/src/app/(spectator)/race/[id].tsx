@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Platform,
   Pressable,
   ScrollView,
@@ -17,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   getRaceDetail,
   PredictionItem,
+  PredictionMethodType,
   RaceDetailRegistration,
 } from '../../../api/spectatorApi';
 import {
@@ -60,6 +62,21 @@ function rankSuffix(rank: number): string {
   if (rank === 2) return '🥈';
   if (rank === 3) return '🥉';
   return `${rank}th`;
+}
+
+// Compute win/loss from finish positions — used before server settles predictions
+function computeLocalOutcome(
+  prediction: PredictionItem,
+  results: FinishResult[],
+): 'won' | 'lost' | null {
+  const methodType = prediction.predictionMethod?.methodType as PredictionMethodType | undefined;
+  const regId = prediction.registration?._id;
+  if (!regId || !methodType) return null;
+  const result = results.find(r => r.registrationId === regId);
+  if (!result || result.finishPosition == null) return null;
+  if (methodType === 'race_winner') return result.finishPosition === 1 ? 'won' : 'lost';
+  if (methodType === 'race_rank')   return result.finishPosition === prediction.predictedRank ? 'won' : 'lost';
+  return null; // tournament_champion — can't determine locally
 }
 
 // ─── Track Visualization ─────────────────────────────────────────────────────
@@ -275,12 +292,23 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 function PredictionChip({
   prediction,
   horses,
+  localOutcome,
+  settled,
 }: {
   prediction: PredictionItem;
   horses: LiveHorse[];
+  localOutcome?: 'won' | 'lost' | null;
+  settled?: boolean;
 }) {
   const methodType = prediction.predictionMethod?.methodType;
-  const st = STATUS_CONFIG[prediction.predictionStatus] ?? STATUS_CONFIG.pending;
+
+  // Priority: server status (if settled) > local optimistic > raw status
+  let displayStatus = prediction.predictionStatus;
+  if (prediction.predictionStatus === 'pending' && localOutcome === 'won')  displayStatus = 'correct';
+  if (prediction.predictionStatus === 'pending' && localOutcome === 'lost') displayStatus = 'incorrect';
+
+  const st = STATUS_CONFIG[displayStatus] ?? STATUS_CONFIG.pending;
+  const isOptimistic = prediction.predictionStatus === 'pending' && localOutcome != null && !settled;
 
   const horseName =
     prediction.registration?.horse?.horseName ??
@@ -306,8 +334,111 @@ function PredictionChip({
 
       <View style={[styles.predStatusBadge, { backgroundColor: st.bg, borderColor: `${st.color}50` }]}>
         <Text style={[styles.predStatusText, { color: st.color }]}>{st.label}</Text>
+        {isOptimistic && (
+          <Text style={[styles.predStatusText, { color: st.color, fontSize: 7, opacity: 0.7 }]}>~</Text>
+        )}
       </View>
     </View>
+  );
+}
+
+// ─── Bet Outcome Banner ───────────────────────────────────────────────────────
+
+function BetOutcomeBanner({
+  predictions,
+  results,
+  settled,
+}: {
+  predictions: PredictionItem[];
+  results: FinishResult[];
+  settled: boolean;
+}) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(anim, { toValue: 1, friction: 7, tension: 50, useNativeDriver: true }).start();
+  }, []);
+
+  if (predictions.length === 0) return null;
+
+  // Resolve each prediction's outcome
+  const outcomes = predictions.map(p => {
+    let outcome: 'won' | 'lost' | 'pending';
+    if (p.predictionStatus === 'correct')   outcome = 'won';
+    else if (p.predictionStatus === 'incorrect') outcome = 'lost';
+    else {
+      const local = computeLocalOutcome(p, results);
+      outcome = local ?? 'pending';
+    }
+    const horseName =
+      p.registration?.horse?.horseName ?? '—';
+    const methodType = p.predictionMethod?.methodType;
+    const methodLabel = methodType === 'race_winner'
+      ? 'Thắng'
+      : methodType === 'race_rank'
+      ? `Hạng #${p.predictedRank ?? '?'}`
+      : 'Vô địch';
+    return { prediction: p, outcome, horseName, methodLabel };
+  });
+
+  const wonCount  = outcomes.filter(o => o.outcome === 'won').length;
+  const lostCount = outcomes.filter(o => o.outcome === 'lost').length;
+  const allWon    = wonCount > 0 && wonCount === predictions.length;
+  const allLost   = lostCount === predictions.length;
+
+  const totalPts = outcomes
+    .filter(o => o.outcome === 'won')
+    .reduce((sum, o) => sum + (o.prediction.rewardPoints ?? 0), 0);
+
+  const accent   = allWon ? Palette.green : allLost ? Palette.red : Palette.gold;
+  const bg       = allWon ? '#081A0F' : allLost ? '#1A0808' : '#1A1508';
+  const border   = allWon ? '#1D4A2A' : allLost ? '#4A1A1A' : '#3A3010';
+  const headline = allWon
+    ? 'BẠN THẮNG! 🎉'
+    : allLost
+    ? 'CHÚC THẮNG LẦN SAU 😔'
+    : `${wonCount}/${predictions.length} CỐC ĐÚNG 🎲`;
+
+  return (
+    <Animated.View
+      style={[
+        styles.betBanner,
+        { backgroundColor: bg, borderColor: border },
+        { opacity: anim, transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] },
+      ]}
+    >
+      {/* Headline */}
+      <Text style={[styles.betBannerHeadline, { color: accent }]}>{headline}</Text>
+      {wonCount > 0 && (
+        <Text style={[styles.betBannerPts, { color: accent }]}>+{totalPts} pts</Text>
+      )}
+      {!settled && (
+        <Text style={styles.betBannerNote}>Chờ xác nhận chính thức</Text>
+      )}
+
+      {/* Divider */}
+      <View style={[styles.betBannerDivider, { backgroundColor: border }]} />
+
+      {/* Individual rows */}
+      {outcomes.map(({ prediction, outcome, horseName, methodLabel }) => {
+        const rowColor = outcome === 'won' ? Palette.green : outcome === 'lost' ? Palette.red : Palette.muted;
+        const icon     = outcome === 'won' ? 'checkmark-circle' : outcome === 'lost' ? 'close-circle' : 'time';
+        return (
+          <View key={prediction._id} style={styles.betBannerRow}>
+            <Ionicons name={icon as any} size={15} color={rowColor} style={{ marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.betBannerRowHorse, { color: outcome === 'pending' ? Palette.muted : Palette.text }]} numberOfLines={1}>
+                {horseName}
+              </Text>
+              <Text style={styles.betBannerRowMeta}>{methodLabel}</Text>
+            </View>
+            <Text style={[styles.betBannerRowPts, { color: rowColor }]}>
+              {outcome === 'won' ? `+${prediction.rewardPoints}` : `${prediction.rewardPoints}`} pts
+            </Text>
+          </View>
+        );
+      })}
+    </Animated.View>
   );
 }
 
@@ -372,8 +503,10 @@ export default function LiveRaceScreen() {
   const [registrations, setRegistrations] = useState<RaceDetailRegistration[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { connected, liveUpdate, finishResults } = useSpectatorRaceSocket(id ?? null);
+  const { connected, liveUpdate, finishResults, confirmedResults } = useSpectatorRaceSocket(id ?? null);
   const [distUnit, setDistUnit] = useState<'lengths' | 'metres'>('lengths');
+  // settled = admin has officially confirmed; optimistic = race_finished fired but not yet confirmed
+  const settled = confirmedResults != null;
 
   useEffect(() => {
     if (!id) return;
@@ -558,11 +691,30 @@ export default function LiveRaceScreen() {
           </Section>
 
           {/* ── My predictions ── */}
-          {myPredictions.length > 0 && (raceRound?.status === 'running' || raceRound?.status === 'awaitingConfirmation') && (
+          {myPredictions.length > 0 && (
             <Section title="CƯỢC CỦA BẠN">
-              {myPredictions.map((p) => (
-                <PredictionChip key={p._id} prediction={p} horses={displayHorses} />
-              ))}
+              {/* Outcome banner — shown once race finishes (optimistic) or confirmed (official) */}
+              {activeFinishResults && (
+                <BetOutcomeBanner
+                  predictions={myPredictions}
+                  results={confirmedResults ?? activeFinishResults}
+                  settled={settled}
+                />
+              )}
+              {myPredictions.map((p) => {
+                const localOutcome = activeFinishResults
+                  ? computeLocalOutcome(p, confirmedResults ?? activeFinishResults)
+                  : null;
+                return (
+                  <PredictionChip
+                    key={p._id}
+                    prediction={p}
+                    horses={displayHorses}
+                    localOutcome={localOutcome}
+                    settled={settled}
+                  />
+                );
+              })}
             </Section>
           )}
 
@@ -987,5 +1139,65 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: 'rgba(255,255,255,0.28)',
     fontFamily: Fonts.mono,
+  },
+
+  // Bet outcome banner
+  betBanner: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 12,
+    gap: 4,
+  },
+  betBannerHeadline: {
+    fontFamily: Fonts.mono,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  betBannerPts: {
+    fontFamily: Fonts.mono,
+    fontSize: 20,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  betBannerNote: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    color: Palette.muted,
+    textAlign: 'center',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  betBannerDivider: {
+    height: 1,
+    marginVertical: 8,
+  },
+  betBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 5,
+  },
+  betBannerRowHorse: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 1,
+  },
+  betBannerRowMeta: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    color: Palette.muted,
+    letterSpacing: 0.3,
+  },
+  betBannerRowPts: {
+    fontFamily: Fonts.mono,
+    fontSize: 12,
+    fontWeight: '700',
+    minWidth: 60,
+    textAlign: 'right',
   },
 });

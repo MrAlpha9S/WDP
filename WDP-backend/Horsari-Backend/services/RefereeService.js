@@ -824,7 +824,7 @@ class RefereeService {
         }
     }
 
-    async createViolation(refereeId, body) {
+    async createViolation(refereeId, body, io) {
         try {
             const { raceRoundId, registrationId, violationTypeId, description } = body || {};
             if (!raceRoundId || !violationTypeId) {
@@ -848,6 +848,9 @@ class RefereeService {
             const populated = await Violation.findById(violation._id)
                 .populate('violationTypeId', 'violationName type category severity defaultPenalty')
                 .lean();
+            if (io) {
+                io.to(`race:${raceRoundId}`).emit('violation_created', { violation: populated });
+            }
             return { code: 201, data: populated, msg: 'Violation created.' };
         } catch (error) {
             return { code: 500, msg: error.message };
@@ -873,7 +876,7 @@ class RefereeService {
         }
     }
 
-    async deleteViolation(refereeId, violationId) {
+    async deleteViolation(refereeId, violationId, io) {
         try {
             const violation = await Violation.findById(violationId).lean();
             if (!violation) return { code: 404, msg: 'Violation not found.' };
@@ -885,7 +888,11 @@ class RefereeService {
             }).lean();
             if (!assignment) return { code: 403, msg: 'You do not have permission to delete this violation.' };
 
+            const raceRoundId = String(violation.raceRoundId);
             await Violation.findByIdAndDelete(violationId);
+            if (io) {
+                io.to(`race:${raceRoundId}`).emit('violation_deleted', { violationId });
+            }
             return { code: 200, msg: 'Violation deleted.' };
         } catch (error) {
             return { code: 500, msg: error.message };

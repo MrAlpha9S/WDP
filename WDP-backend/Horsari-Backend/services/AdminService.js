@@ -1423,6 +1423,11 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
                 status: 'completed',
                 timestamp: new Date(),
             });
+            io.to(`race:${raceRoundId}`).emit('race_results_confirmed', {
+                raceRoundId,
+                results,
+                timestamp: new Date(),
+            });
             io.emit('admin_notification', {
                 id: Date.now().toString(),
                 type: 'race_completed',

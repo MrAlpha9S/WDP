@@ -84,6 +84,30 @@ class HorseOwnerController {
         const response = await HorseOwnerService.confirmRaceStart(req.userId, raceRoundId, io);
         return res.status(response.code).json(response);
     }
+
+    async getRaceDetail(req, res) {
+        const { raceRoundId } = req.params;
+        const response = await HorseOwnerService.getRaceDetail(req.userId, raceRoundId);
+        return res.status(response.code).json(response);
+    }
+
+    async getHorseProfile(req, res) {
+        const { horseId } = req.params;
+        const response = await HorseOwnerService.getHorseProfile(req.userId, horseId);
+        return res.status(response.code).json(response);
+    }
+
+    async updateHorseStatus(req, res) {
+        const { horseId, status } = req.params;
+        const response = await HorseOwnerService.updateHorseStatus(req.userId, horseId, status);
+        return res.status(response.code).json(response);
+    }
+
+    async updateHorseHealthStatus(req, res) {
+        const { horseId, healthStatus } = req.params;
+        const response = await HorseOwnerService.updateHorseHealthStatus(req.userId, horseId, healthStatus);
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new HorseOwnerController();

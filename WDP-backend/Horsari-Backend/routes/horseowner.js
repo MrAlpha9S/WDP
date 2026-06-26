@@ -28,7 +28,15 @@ router.post('/registration/:registrationId/reject', authMiddleware, authHorseOwn
 router.get('/jockeys', authMiddleware, authHorseOwner, HorseOwnerController.getAllJockeys);
 // Jockey invitations sent by this horse owner
 router.get('/invitations', authMiddleware, authHorseOwner, HorseOwnerController.getJockeyInvitations);
+// Horse profile: aggregated registration history, race results, violations
+router.get('/horses/:horseId/profile', authMiddleware, authHorseOwner, HorseOwnerController.getHorseProfile);
 // Confirm race start after referee has reviewed all registrations
 router.post('/race-rounds/:raceRoundId/confirm-start', authMiddleware, authHorseOwner, HorseOwnerController.confirmRaceStart);
+// Get race detail: own registration, jockey invitations, and horse result
+router.get('/race-rounds/:raceRoundId/detail', authMiddleware, authHorseOwner, HorseOwnerController.getRaceDetail);
+
+router.put('/horses/:horseId/status', authMiddleware, authHorseOwner, HorseOwnerController.updateHorseStatus);
+router.put('/horses/:horseId/health-status', authMiddleware, authHorseOwner, HorseOwnerController.updateHorseHealthStatus);
+
 
 module.exports = router;

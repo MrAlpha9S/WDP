@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Calendar, MapPin, Plus, Loader2, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Calendar, MapPin, Plus, Loader2, AlertCircle, X, Trophy, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
 import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
 import { horseOwnerService } from "../../../api/horseOwnerService";
 
@@ -22,8 +23,6 @@ function mapToMyRace(raw: any, i: number): MyRace {
   };
   const status: RaceStatus = statusMap[roundStatus] ?? "UPCOMING";
 
-  // API shape: { registration, raceRound, tournament, eligibleHorseIds, existingHorseId }
-  // No top-level _id; use registration._id as the stable unique key
   return {
     id:     raw.registration?._id ?? raw.raceRound?._id ?? String(i),
     name:   raw.raceRound?.roundName   ?? "Unnamed Race",
@@ -32,49 +31,342 @@ function mapToMyRace(raw: any, i: number): MyRace {
     venue:  raw.raceRound?.location    ?? "TBA",
     horse:  raw.horse?.horseName       ?? raw.horseName  ?? "TBA",
     jockey: raw.jockey?.fullName       ?? raw.jockeyName ?? "TBA",
-    image:  raw.raceRound?.coverImage  ?? raw.image      ?? "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80",
+    image:  raw.raceRound?.coverImage  ?? raw.image      ?? "/track.png",
+    raceRoundId: raw.raceRound?._id ?? null,
   };
 }
 
-// ── Status config ─────────────────────────────────────────────────────────────
+// ── Status configs ────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<RaceStatus, { label: string; dot: string; text: string; bg: string }> = {
-  LIVE: { label: "LIVE", dot: "bg-red-400 animate-pulse", text: "text-red-400", bg: "bg-red-500/20 border-red-500/40" },
-  UPCOMING: { label: "UPCOMING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
-  FINISHED: { label: "FINISHED", dot: "bg-gray-500", text: "text-gray-400", bg: "bg-black/50 border-white/10" },
-  PREPARING: { label: "PREPARING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
+  LIVE:      { label: "LIVE",      dot: "bg-red-400 animate-pulse",  text: "text-red-400",    bg: "bg-red-500/20 border-red-500/40"     },
+  UPCOMING:  { label: "UPCOMING",  dot: "bg-yellow-400",             text: "text-yellow-300", bg: "bg-black/50 border-white/15"         },
+  FINISHED:  { label: "FINISHED",  dot: "bg-gray-500",               text: "text-gray-400",   bg: "bg-black/50 border-white/10"         },
+  PREPARING: { label: "PREPARING", dot: "bg-yellow-400",             text: "text-yellow-300", bg: "bg-black/50 border-white/15"         },
 };
 
+const REG_STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
+  pending:   { label: "PENDING",    color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-600/40" },
+  approved:  { label: "APPROVED",   color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-600/40"    },
+  verified:  { label: "VERIFIED",   color: "text-green-400",  bg: "bg-green-500/10 border-green-600/40"  },
+  failed:    { label: "FAILED",     color: "text-red-400",    bg: "bg-red-500/10 border-red-700/40"      },
+  rejected:  { label: "CANCELLED",  color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/40"   },
+  cancelled: { label: "CANCELLED",  color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/40"   },
+};
+
+const INV_STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
+  pending:   { label: "PENDING",   color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/30"   },
+  accepted:  { label: "ACCEPTED",  color: "text-green-400",  bg: "bg-green-500/10 border-green-600/40" },
+  declined:  { label: "DECLINED",  color: "text-red-400",    bg: "bg-red-500/10 border-red-700/40"     },
+  cancelled: { label: "CANCELLED", color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/30"   },
+};
+
+function severityColor(s?: number) {
+  if (!s) return "bg-gray-600";
+  if (s <= 2) return "bg-yellow-500";
+  if (s === 3) return "bg-orange-500";
+  return "bg-red-500";
+}
+
+function ordinal(n: number) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+// ── Race Detail Modal ─────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClose: () => void }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [detail, setDetail] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    horseOwnerService.getRaceDetail(raceRoundId)
+      .then((res) => {
+        if (!cancelled) setDetail(res?.data ?? null);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err?.msg ?? "Failed to load race detail.");
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [raceRoundId]);
+
+  const raceRound = detail?.raceRound;
+  const reg = detail?.registration;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/60 flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between px-5 py-4 border-b border-white/8 shrink-0">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-widest text-gray-600 mb-1">Race Detail</p>
+            <h2 className="text-[17px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {raceRound?.roundName ?? "Loading…"}
+            </h2>
+          </div>
+          <button onClick={onClose} className="text-gray-600 hover:text-gray-300 transition-colors ml-4 mt-0.5">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4 flex flex-col gap-5">
+          {loading && (
+            <div className="flex items-center gap-2 text-gray-600 text-[12px] py-8 justify-center">
+              <Loader2 size={14} className="animate-spin" /> Loading…
+            </div>
+          )}
+
+          {!loading && error && (
+            <div className="flex items-center gap-2 text-red-400 text-[12px]">
+              <AlertCircle size={13} /> {error}
+            </div>
+          )}
+
+          {!loading && !error && detail && (
+            <>
+              {/* Race info */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3 flex-wrap">
+                  {raceRound?.status && (() => {
+                    const statusMap: Record<string, RaceStatus> = {
+                      running: "LIVE", completed: "FINISHED", scheduled: "UPCOMING",
+                      prepared: "PREPARING", draft: "UPCOMING", cancelled: "FINISHED",
+                    };
+                    const rs: RaceStatus = statusMap[raceRound.status] ?? "UPCOMING";
+                    const cfg = STATUS_CFG[rs];
+                    return (
+                      <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold ${cfg.bg} ${cfg.text}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                        {cfg.label}
+                      </span>
+                    );
+                  })()}
+                  {raceRound?.tournamentId?.tournamentName && (
+                    <span className="text-[11px] text-gray-500">{raceRound.tournamentId.tournamentName}</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[12px]">
+                  <div className="flex items-center gap-1.5 text-gray-500">
+                    <Calendar size={11} className="shrink-0" />
+                    {raceRound?.raceDate ? formatDate(raceRound.raceDate) : "TBA"}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-500">
+                    <MapPin size={11} className="shrink-0" />
+                    {raceRound?.location ?? "TBA"}
+                  </div>
+                </div>
+                {/* Prize breakdown */}
+                {(raceRound?.firstPlacePrize || raceRound?.secondPlacePrize || raceRound?.thirdPlacePrize) && (
+                  <div className="flex items-center gap-3 mt-1">
+                    {raceRound?.firstPlacePrize > 0 && (
+                      <div className="flex items-center gap-1 text-[11px]">
+                        <Trophy size={10} className="text-yellow-400" />
+                        <span className="text-yellow-400 font-semibold">${raceRound.firstPlacePrize.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {raceRound?.secondPlacePrize > 0 && (
+                      <span className="text-[11px] text-gray-500">${raceRound.secondPlacePrize.toLocaleString()}</span>
+                    )}
+                    {raceRound?.thirdPlacePrize > 0 && (
+                      <span className="text-[11px] text-gray-500">${raceRound.thirdPlacePrize.toLocaleString()}</span>
+                    )}
+                    {raceRound?.currencyType && raceRound.currencyType !== "USD" && (
+                      <span className="text-[10px] text-gray-600">{raceRound.currencyType}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Registration */}
+              {reg ? (
+                <div className="flex flex-col gap-4">
+                  {/* Registration status */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Registration</p>
+                    {(() => {
+                      const cfg = REG_STATUS_CFG[reg.registrationStatus] ?? REG_STATUS_CFG.pending;
+                      return (
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.color}`}>
+                          {cfg.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Horse card */}
+                  {reg.horse && (
+                    <div className="bg-[#111] rounded-xl border border-white/8 p-3 flex items-center gap-3">
+                      <img
+                        src={reg.horse.img ?? "/jumping-horse-silhouette-facing-left-side-view.png"}
+                        alt={reg.horse.horseName}
+                        onError={(e) => { e.currentTarget.src = "/jumping-horse-silhouette-facing-left-side-view.png"; }}
+                        className="w-12 h-12 rounded-lg object-contain shrink-0 opacity-70"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-bold text-red-400 truncate">{reg.horse.horseName}</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          {[reg.horse.breed, reg.horse.gender].filter(Boolean).join(" · ")}
+                        </p>
+                        <p className="text-[11px] text-gray-600 mt-0.5">
+                          {reg.horse.healthStatus ?? "Unknown health"}
+                          {reg.laneNumber != null ? ` · Lane ${reg.laneNumber}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Jockey invitations */}
+                  {reg.invitations?.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Jockey Invitations</p>
+                      <div className="flex flex-col gap-1.5">
+                        {reg.invitations.map((inv: any) => {
+                          const isSelected = reg.jockeyInRaceId && String(inv._id) === String(reg.jockeyInRaceId);
+                          const invCfg = INV_STATUS_CFG[inv.invitationStatus] ?? INV_STATUS_CFG.pending;
+                          return (
+                            <div
+                              key={inv._id}
+                              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-[12px] ${isSelected ? "border-yellow-600/40 bg-yellow-500/5" : "border-white/8 bg-white/[0.02]"}`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-white font-semibold truncate">
+                                    {inv.jockey?.fullName ?? "Unknown Jockey"}
+                                  </span>
+                                  {isSelected && (
+                                    <span className="text-[9px] font-black uppercase tracking-wider text-yellow-400 bg-yellow-500/15 border border-yellow-600/30 px-1.5 py-0.5 rounded-full">
+                                      In Race
+                                    </span>
+                                  )}
+                                  {inv.isBackup && (
+                                    <span className="text-[9px] font-bold uppercase text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full">
+                                      Backup
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[11px] text-gray-600">{inv.percentagePayout}% payout</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {inv.jockeyConfirmation && (
+                                  <span className="text-green-400 text-[10px]">✓</span>
+                                )}
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg border ${invCfg.bg} ${invCfg.color}`}>
+                                  {invCfg.label}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Race result */}
+                  {reg.raceResult && (
+                    <div className="bg-[#111] rounded-xl border border-white/8 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Race Result</p>
+                      {reg.raceResult.resultStatus === "cancelled" ? (
+                        <div className="flex items-center gap-2 text-red-400 text-[13px] font-bold">
+                          <ShieldAlert size={14} /> DISQUALIFIED
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-3">
+                          {reg.raceResult.finishPosition != null && (
+                            <div>
+                              <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Finish</p>
+                              <p className="text-[18px] font-black text-white">{ordinal(reg.raceResult.finishPosition)}</p>
+                            </div>
+                          )}
+                          {reg.raceResult.finishTime && (
+                            <div>
+                              <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Time</p>
+                              <p className="text-[13px] font-bold text-white font-mono">{reg.raceResult.finishTime}</p>
+                            </div>
+                          )}
+                          {reg.raceResult.prizeMoney > 0 && (
+                            <div>
+                              <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>
+                              <p className="text-[13px] font-bold text-yellow-400">${reg.raceResult.prizeMoney.toLocaleString()}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Violations */}
+                  {reg.violations?.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-2 flex items-center gap-1.5">
+                        <ShieldAlert size={11} /> Violations ({reg.violations.length})
+                      </p>
+                      <div className="flex flex-col gap-1.5">
+                        {reg.violations.map((v: any) => {
+                          const vtName = v.violationTypeId?.violationName ?? "Violation";
+                          const severity = v.violationTypeId?.severity ?? v.severity;
+                          const isOwnerReg = v.registrationId && String(v.registrationId) === String(reg._id);
+                          return (
+                            <div
+                              key={v._id}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red-500/5" : "border-white/8 bg-white/[0.02]"}`}
+                            >
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${severityColor(severity)}`} />
+                              <span className={`flex-1 ${isOwnerReg ? "text-red-400" : "text-gray-400"}`}>{vtName}</span>
+                              <span className="text-[10px] text-gray-600 capitalize">{v.violationStatus}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[13px] text-gray-500 text-center py-4">No registration found for this race.</p>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Race Card ─────────────────────────────────────────────────────────────────
-function RaceCard({ race }: { race: MyRace }) {
+function RaceCard({ race, onDetail, onLive }: { race: MyRace; onDetail: () => void; onLive: () => void }) {
   const cfg = STATUS_CFG[race.status];
   const isLive = race.status === "LIVE";
   const isFinished = race.status === "FINISHED";
 
   return (
     <div
-      className={`bg-[#1a1a1a] rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 hover:shadow-xl hover:shadow-black/50 ${isFinished ? "border-white/5 opacity-70" : "border-white/8 hover:border-white/15"
-        }`}
+      className={`bg-[#1a1a1a] rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 hover:shadow-xl hover:shadow-black/50 ${isFinished ? "border-white/5 opacity-70" : "border-white/8 hover:border-white/15"}`}
     >
-      <div className="relative h-40 overflow-hidden bg-[#111]">
+      <div className="relative h-28 overflow-hidden bg-[#111] flex items-center justify-center">
         <img
           src={race.image}
           alt={race.name}
-          className={`w-full h-full object-cover ${isFinished ? "grayscale brightness-50" : ""}`}
+          className={`h-16 w-16 object-contain opacity-20 ${isFinished ? "grayscale" : ""}`}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent" />
-        <div
-          className={`absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10.5px] font-bold backdrop-blur-sm ${cfg.bg} ${cfg.text}`}
-        >
+        <div className={`absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10.5px] font-bold backdrop-blur-sm ${cfg.bg} ${cfg.text}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
           {cfg.label}
         </div>
       </div>
 
       <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
-        <h3
-          className="text-[16px] font-bold text-white leading-tight"
-          style={{ fontFamily: "'Playfair Display', serif" }}
-        >
+        <h3 className="text-[16px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
           {race.name}
         </h3>
 
@@ -89,27 +381,29 @@ function RaceCard({ race }: { race: MyRace }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Horse</p>
-            <p className="text-[12.5px] font-semibold text-red-400">{race.horse}</p>
-          </div>
-          <div>
-            <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Jockey</p>
-            <p className="text-[12.5px] font-semibold text-red-400">{race.jockey}</p>
-          </div>
+        <div>
+          <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Horse</p>
+          <p className="text-[12.5px] font-semibold text-red-400">{race.horse}</p>
         </div>
 
-        <button
-          className={`w-full py-2.5 rounded-lg text-[11.5px] font-bold tracking-widest uppercase transition-all duration-150 mt-auto ${isLive
-            ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40"
-            : isFinished
-              ? "border border-white/8 text-gray-600 cursor-default"
+        {isLive ? (
+          <button
+            onClick={onLive}
+            className="w-full py-2.5 rounded-lg text-[11.5px] font-bold tracking-widest uppercase transition-all duration-150 mt-auto bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40"
+          >
+            View Live Track
+          </button>
+        ) : (
+          <button
+            onClick={onDetail}
+            className={`w-full py-2.5 rounded-lg text-[11.5px] font-bold tracking-widest uppercase transition-all duration-150 mt-auto ${isFinished
+              ? "border border-white/8 text-gray-500 hover:text-gray-300 hover:border-white/15"
               : "border border-white/15 text-gray-300 hover:border-white/30 hover:text-white"
-            }`}
-        >
-          {isLive ? "View Live Track" : isFinished ? "View Results" : "Manage Entry"}
-        </button>
+              }`}
+          >
+            {isFinished ? "View Results" : "Manage Entry"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -150,11 +444,47 @@ function RegisterTile() {
   );
 }
 
+// ── Filter config ─────────────────────────────────────────────────────────────
+type FilterTab = "ALL" | "LIVE" | "UPCOMING" | "FINISHED";
+
+const FILTER_TABS: { id: FilterTab; label: string }[] = [
+  { id: "ALL",      label: "All"      },
+  { id: "LIVE",     label: "Live"     },
+  { id: "UPCOMING", label: "Upcoming" },
+  { id: "FINISHED", label: "Finished" },
+];
+
+const RACES_PAGE_SIZE = 12;
+
+// ── Pagination bar ────────────────────────────────────────────────────────────
+function PaginationBar({ page, totalPages, onPrev, onNext }: {
+  page: number; totalPages: number; onPrev: () => void; onNext: () => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-4 mt-8">
+      <button onClick={onPrev} disabled={page === 1}
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        <ChevronLeft size={13} /> Prev
+      </button>
+      <span className="text-[12px] text-gray-500 font-medium">Page {page} of {totalPages}</span>
+      <button onClick={onNext} disabled={page === totalPages}
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        Next <ChevronRight size={13} />
+      </button>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function RacesPage() {
+  const navigate = useNavigate();
   const [races, setRaces] = useState<MyRace[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRaceRoundId, setSelectedRaceRoundId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<FilterTab>("ALL");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,13 +497,7 @@ export default function RacesPage() {
         if (cancelled) return;
 
         const list: unknown[] = data?.data?.items ?? data?.data ?? (Array.isArray(data) ? data : []);
-
-        const approved = list.filter(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (r: any) => ["approved", "verified"].includes(r?.registration?.registrationStatus ?? "")
-        );
-
-        setRaces(approved.map((r, i) => mapToMyRace(r, i)));
+        setRaces(list.map((r, i) => mapToMyRace(r, i)));
       } catch (err: unknown) {
         if (!cancelled) {
           const message =
@@ -193,25 +517,82 @@ export default function RacesPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // Reset page when filter changes
+  useEffect(() => { setPage(1); }, [activeFilter]);
+
+  const filteredRaces = activeFilter === "ALL"
+    ? races
+    : activeFilter === "UPCOMING"
+      ? races.filter((r) => r.status === "UPCOMING" || r.status === "PREPARING")
+      : races.filter((r) => r.status === activeFilter);
+
+  // Count per tab for badges
+  const counts: Record<FilterTab, number> = {
+    ALL:      races.length,
+    LIVE:     races.filter(r => r.status === "LIVE").length,
+    UPCOMING: races.filter(r => r.status === "UPCOMING" || r.status === "PREPARING").length,
+    FINISHED: races.filter(r => r.status === "FINISHED").length,
+  };
+
+  const totalPages = Math.max(1, Math.ceil(filteredRaces.length / RACES_PAGE_SIZE));
+  const pagedRaces = filteredRaces.slice((page - 1) * RACES_PAGE_SIZE, page * RACES_PAGE_SIZE);
+
   return (
-    <div
-      className="flex-1 px-8 py-8 min-h-screen bg-[#111111]"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
-    >
-      <div className="mb-6">
-        <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase mb-1">
-          Race Management
-        </p>
-        <h1
-          className="text-[32px] font-bold text-white leading-tight"
-          style={{ fontFamily: "'Playfair Display', serif" }}
-        >
-          My Races
-        </h1>
-        <p className="text-[13px] text-gray-500 mt-1">
-          Oversee your current racing roster and entries.
-        </p>
-      </div>
+    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+              My Races
+            </h1>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                Race Management
+              </span>
+              <span className="text-[12px] text-gray-500 truncate">
+                · {activeFilter === "ALL" ? "All Races" : activeFilter.charAt(0) + activeFilter.slice(1).toLowerCase()}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {FILTER_TABS.map((tab) => {
+            const isActive = activeFilter === tab.id;
+            const count = counts[tab.id];
+            const isLiveTab = tab.id === "LIVE";
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveFilter(tab.id)}
+                className={[
+                  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold border transition-all duration-150",
+                  isActive
+                    ? isLiveTab
+                      ? "bg-red-700/30 border-red-600/50 text-red-300"
+                      : "bg-white/10 border-white/20 text-white"
+                    : "bg-transparent border-white/8 text-gray-500 hover:border-white/15 hover:text-gray-300",
+                ].join(" ")}
+              >
+                {isLiveTab && isActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                )}
+                {tab.label}
+                {count > 0 && (
+                  <span className={[
+                    "text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
+                    isActive
+                      ? isLiveTab ? "bg-red-600/40 text-red-300" : "bg-white/15 text-white"
+                      : "bg-white/5 text-gray-600",
+                  ].join(" ")}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </header>
+      <div className="flex-1 pt-5">
 
       {/* Loading */}
       {loading && (
@@ -232,22 +613,54 @@ export default function RacesPage() {
         </div>
       )}
 
-      {/* Empty */}
-      {!loading && !error && races.length === 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          <RegisterTile />
+      {/* Empty filtered */}
+      {!loading && !error && filteredRaces.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+          <p className="text-[14px] font-semibold text-gray-500">
+            {activeFilter === "ALL" ? "No races found." : `No ${activeFilter.toLowerCase()} races.`}
+          </p>
+          {activeFilter !== "ALL" && (
+            <button
+              onClick={() => setActiveFilter("ALL")}
+              className="text-[12px] text-gray-600 hover:text-gray-300 transition-colors underline underline-offset-2"
+            >
+              Show all races
+            </button>
+          )}
+          {activeFilter === "ALL" && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 w-full mt-4">
+              <RegisterTile />
+            </div>
+          )}
         </div>
       )}
 
       {/* Grid */}
-      {!loading && !error && races.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {races.map((race) => (
-            <RaceCard key={race.id} race={race} />
-          ))}
-          <RegisterTile />
-        </div>
+      {!loading && !error && filteredRaces.length > 0 && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {pagedRaces.map((race) => (
+              <RaceCard
+                key={race.id}
+                race={race}
+                onDetail={() => race.raceRoundId && setSelectedRaceRoundId(race.raceRoundId)}
+                onLive={() => race.raceRoundId && navigate(`/owner/race-monitor/${race.raceRoundId}`)}
+              />
+            ))}
+            {activeFilter === "ALL" && page === 1 && <RegisterTile />}
+          </div>
+          <PaginationBar page={page} totalPages={totalPages} onPrev={() => setPage(p => p - 1)} onNext={() => setPage(p => p + 1)} />
+        </>
       )}
+
+      {/* Detail modal */}
+      {selectedRaceRoundId && (
+        <RaceDetailModal
+          raceRoundId={selectedRaceRoundId}
+          onClose={() => setSelectedRaceRoundId(null)}
+        />
+      )}
+      </div>
     </div>
   );
 }

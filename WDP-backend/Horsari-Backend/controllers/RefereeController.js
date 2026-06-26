@@ -146,7 +146,8 @@ class RefereeController {
 
     // Create a violation (used by LivePage for during-race incidents)
     async createViolation(req, res) {
-        const response = await RefereeService.createViolation(req.userId, req.body);
+        const io = req.app.get('io');
+        const response = await RefereeService.createViolation(req.userId, req.body, io);
         return res.status(response.code).json(response);
     }
 
@@ -158,7 +159,8 @@ class RefereeController {
 
     // Delete / dismiss a violation
     async deleteViolation(req, res) {
-        const response = await RefereeService.deleteViolation(req.userId, req.params.violationId);
+        const io = req.app.get('io');
+        const response = await RefereeService.deleteViolation(req.userId, req.params.violationId, io);
         return res.status(response.code).json(response);
     }
 

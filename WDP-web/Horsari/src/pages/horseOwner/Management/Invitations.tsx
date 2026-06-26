@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Calendar, MapPin, Flag, Check, X,
-  Info, Ruler, Loader2, Users, Trophy,
+  Info, Ruler, Loader2, Users, Trophy, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { type Invitation, type InviteJockeyStatus, type InviteStatus } from "../../../types/Racingtypes";
 import { horseOwnerService } from "../../../api/horseOwnerService";
@@ -61,7 +61,7 @@ function mapApiToInvitation(raw: any): Invitation {
     jockey: raw.jockeyName ?? raw.jockey?.fullName ?? "TBA",
     sentBy: raw.sentBy ?? raw.organizer ?? "Organizer",
     sentAt: raw.sentAt ?? raw.createdAt ?? "",
-    image: raw.image ?? raw.coverImage ?? "/placeholder-race.jpg",
+    image: raw.image ?? raw.coverImage ?? "/track.png",
     prize1st: raw.raceRound?.firstPlacePrize ?? null,
     prize2nd: raw.raceRound?.secondPlacePrize ?? null,
     prize3rd: raw.raceRound?.thirdPlacePrize ?? null,
@@ -122,8 +122,8 @@ function InvitationDetailModal({
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-xl bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[90vh]">
 
-        <div className="relative h-52 shrink-0 overflow-hidden bg-[#111]">
-          <img src={inv.image} alt={inv.name} className={`w-full h-full object-cover ${!isPending ? "brightness-60" : "brightness-75"}`} />
+        <div className="relative h-52 shrink-0 overflow-hidden bg-[#111] flex items-center justify-center">
+          <img src={inv.image} alt={inv.name} className={`h-28 w-28 object-contain ${!isPending ? "opacity-15" : "opacity-25"}`} />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/20 to-transparent" />
           <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/60 border border-white/15 flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/80 transition-colors duration-150">
             <X size={14} />
@@ -216,8 +216,8 @@ function InvitationCard({
   return (
     <div className={`bg-[#1a1a1a] rounded-2xl border overflow-hidden transition-all duration-200 ${isPending ? "border-white/8 hover:border-white/15" : "border-white/5 opacity-75"}`}>
       <div className="flex">
-        <div className="relative w-36 shrink-0 overflow-hidden">
-          <img src={inv.image} alt={inv.name} className={`w-full h-full object-cover ${!isPending ? "grayscale brightness-40" : "brightness-75"}`} />
+        <div className="relative w-28 shrink-0 overflow-hidden bg-[#111] flex items-center justify-center">
+          <img src={inv.image} alt={inv.name} className={`w-16 h-16 object-contain ${!isPending ? "opacity-15" : "opacity-25"}`} />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#1a1a1a]" />
         </div>
         <div className="flex-1 px-5 py-4 flex flex-col gap-3">
@@ -372,6 +372,28 @@ function InvitationSkeleton() {
   );
 }
 
+// ── Pagination bar ────────────────────────────────────────────────────────────
+const INV_PAGE_SIZE = 5;
+
+function PaginationBar({ page, totalPages, onPrev, onNext }: {
+  page: number; totalPages: number; onPrev: () => void; onNext: () => void;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-4 mt-6">
+      <button onClick={onPrev} disabled={page === 1}
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        <ChevronLeft size={13} /> Prev
+      </button>
+      <span className="text-[12px] text-gray-500 font-medium">Page {page} of {totalPages}</span>
+      <button onClick={onNext} disabled={page === totalPages}
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        Next <ChevronRight size={13} />
+      </button>
+    </div>
+  );
+}
+
 // ── Tab button ────────────────────────────────────────────────────────────────
 function TabButton({ active, label, count, onClick }: {
   active: boolean;
@@ -412,11 +434,13 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   const [loadingRace, setLoadingRace] = useState(true);
   const [errorRace, setErrorRace] = useState<string | null>(null);
   const [selected, setSelected] = useState<Invitation | null>(null);
+  const [racePage, setRacePage] = useState(1);
 
   // Jockey invitations
   const [jockeyInvs, setJockeyInvs] = useState<JockeyInvitation[]>([]);
   const [loadingJockey, setLoadingJockey] = useState(true);
   const [errorJockey, setErrorJockey] = useState<string | null>(null);
+  const [jockeyPage, setJockeyPage] = useState(1);
 
   // Fetch race invitations
   useEffect(() => {
@@ -486,8 +510,18 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   const jockeyPendingCount = jockeyInvs.filter((i) => i.status === "pending").length;
   const selectedLive = selected ? invitations.find((i) => i.id === selected.id) ?? null : null;
 
+  // Sorted full lists (pending first)
+  const sortedInvitations = invitations.slice().sort((a) => (a.status === "pending" ? -1 : 1));
+  const sortedJockeyInvs  = jockeyInvs.slice().sort((a) => (a.status === "pending" ? -1 : 1));
+
+  // Paginated slices
+  const raceTotalPages   = Math.max(1, Math.ceil(sortedInvitations.length / INV_PAGE_SIZE));
+  const jockeyTotalPages = Math.max(1, Math.ceil(sortedJockeyInvs.length / INV_PAGE_SIZE));
+  const pagedInvitations = sortedInvitations.slice((racePage - 1) * INV_PAGE_SIZE, racePage * INV_PAGE_SIZE);
+  const pagedJockeyInvs  = sortedJockeyInvs.slice((jockeyPage - 1) * INV_PAGE_SIZE, jockeyPage * INV_PAGE_SIZE);
+
   return (
-    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {selectedLive && (
         <InvitationDetailModal
@@ -498,20 +532,30 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
         />
       )}
 
-      {/* Header */}
-      <div className="mb-6">
-        <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase mb-1">Race Management</p>
-        <h1 className="text-[32px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-          Invitations
-        </h1>
-        <p className="text-[13px] text-gray-500 mt-1">View and respond to exclusive race and tournament invitations.</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 p-1 bg-[#1a1a1a] border border-white/8 rounded-xl w-fit">
-        <TabButton active={activeTab === "race"} label="Race Invitations" count={racePendingCount} onClick={() => setActiveTab("race")} />
-        <TabButton active={activeTab === "jockey"} label="Jockey Invitations" count={jockeyPendingCount} onClick={() => setActiveTab("jockey")} />
-      </div>
+      <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Invitations
+            </h1>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                Race Management
+              </span>
+              <span className="text-[12px] text-gray-500 truncate">
+                {racePendingCount + jockeyPendingCount > 0
+                  ? `· ${racePendingCount + jockeyPendingCount} pending`
+                  : "· No pending"}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 p-1 bg-[#1a1a1a] border border-white/8 rounded-xl w-fit">
+          <TabButton active={activeTab === "race"} label="Race Invitations" count={racePendingCount} onClick={() => { setActiveTab("race"); setRacePage(1); }} />
+          <TabButton active={activeTab === "jockey"} label="Jockey Invitations" count={jockeyPendingCount} onClick={() => { setActiveTab("jockey"); setJockeyPage(1); }} />
+        </div>
+      </header>
+      <div className="flex-1 pt-5">
 
       {/* Race tab */}
       {activeTab === "race" && (
@@ -536,10 +580,11 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
                 </p>
               )}
               <div className="space-y-4">
-                {invitations.slice().sort((a) => (a.status === "pending" ? -1 : 1)).map((inv) => (
+                {pagedInvitations.map((inv) => (
                   <InvitationCard key={inv.id} inv={inv} onAccept={handleAccept} onDeny={handleDeny} onDetail={() => setSelected(inv)} />
                 ))}
               </div>
+              <PaginationBar page={racePage} totalPages={raceTotalPages} onPrev={() => setRacePage(p => p - 1)} onNext={() => setRacePage(p => p + 1)} />
             </>
           )}
         </>
@@ -568,14 +613,16 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
                 </p>
               )}
               <div className="space-y-4">
-                {jockeyInvs.slice().sort((a) => (a.status === "pending" ? -1 : 1)).map((inv) => (
+                {pagedJockeyInvs.map((inv) => (
                   <JockeyInvitationCard key={inv.id} inv={inv} />
                 ))}
               </div>
+              <PaginationBar page={jockeyPage} totalPages={jockeyTotalPages} onPrev={() => setJockeyPage(p => p - 1)} onNext={() => setJockeyPage(p => p + 1)} />
             </>
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

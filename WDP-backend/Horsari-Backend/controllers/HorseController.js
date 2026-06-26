@@ -5,7 +5,7 @@ const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
 class HorseController {
     // Create horse
     async createHorse(req, res) {
-        const response = await HorseService.createHorse(req.body);
+        const response = await HorseService.createHorse({ ...req.body, ownerId: req.userId });
         if (response.code === 200 || response.code === 201) {
             broadcastAdminEvent(req.app.get('io'), 'new_horse',
                 'New Horse Added',

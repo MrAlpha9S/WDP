@@ -4,7 +4,7 @@ import JockeyDetailModal, { type Jockey, STATUS_CFG } from "../../../components/
 import HireJockeyModal from "../../../components/ownerComponents/JockeyModal/Hirejockey";
 import { horseOwnerService } from "../../../api/horseOwnerService";
 
-const RANKS   = ["All", "Elite", "Pro", "Veteran", "Apprentice"] as const;
+const RANKS = ["All", "Elite", "Pro", "Veteran", "Apprentice"] as const;
 const WEIGHTS = ["Weight: All", "Under 54kg", "54–56kg", "Over 56kg"];
 const REGIONS = ["Region: Global", "Europe", "Asia", "Americas", "Oceania"];
 
@@ -28,13 +28,13 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     status = "Unavailable";
   } else {
     const statusMap: Record<string, string> = {
-      active:      "Available",
-      approved:    "Available",
-      pending:     "In Talks",
-      inactive:    "Unavailable",
-      retired:     "Unavailable",
-      available:   "Available",
-      "in talks":  "In Talks",
+      active: "Available",
+      approved: "Available",
+      pending: "In Talks",
+      inactive: "Unavailable",
+      retired: "Unavailable",
+      available: "Available",
+      "in talks": "In Talks",
       unavailable: "Unavailable",
     };
     const rawStatus = (raw.status ?? "").toLowerCase();
@@ -55,24 +55,24 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     : "Apprentice";
 
   return {
-    id:          raw._id                             ?? index,
-    name:        raw.fullName      ?? raw.username   ?? "Unknown",
-    rank:        rank,
-    country:     raw.country       ?? "N/A",
-    status:      status,
-    winRate:     raw.totalWins && raw.matchesRaced
-                   ? parseFloat(((raw.totalWins / raw.matchesRaced) * 100).toFixed(1))
-                   : 0,
-    starts:      raw.matchesRaced  ?? 0,
-    wins:        raw.totalWins     ?? 0,
-    places:      raw.places        ?? 0,
-    baseFee:     raw.baseFee       ?? null,
-    weight:      raw.weight ? `${raw.weight} kg` : "N/A",
+    id: raw._id ?? index,
+    name: raw.fullName ?? raw.username ?? "Unknown",
+    rank: rank,
+    country: raw.country ?? "N/A",
+    status: status,
+    winRate: raw.totalWins && raw.matchesRaced
+      ? parseFloat(((raw.totalWins / raw.matchesRaced) * 100).toFixed(1))
+      : 0,
+    starts: raw.matchesRaced ?? 0,
+    wins: raw.totalWins ?? 0,
+    places: raw.places ?? 0,
+    baseFee: raw.baseFee ?? null,
+    weight: raw.weight ? `${raw.weight} kg` : "N/A",
     age,
-    experience:  raw.experience    ?? "N/A",
-    specialties: raw.specialties   ?? [],
-    recentRaces: raw.recentRaces   ?? [],
-    image:       raw.image || null,
+    experience: raw.experience ?? "N/A",
+    specialties: raw.specialties ?? [],
+    recentRaces: raw.recentRaces ?? [],
+    image: raw.image || null,
   };
 }
 
@@ -120,16 +120,15 @@ function JockeySkeleton() {
 
 // ── Jockey Card ───────────────────────────────────────────────────────────────
 function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: () => void; onHire: () => void }) {
-  const cfg           = STATUS_CFG[jockey.status] ?? STATUS_CFG["Unavailable"];
+  const cfg = STATUS_CFG[jockey.status] ?? STATUS_CFG["Unavailable"];
   const isUnavailable = jockey.status === "Unavailable";
 
   return (
     <div
-      className={`bg-[#1a1a1a] rounded-2xl border border-white/8 overflow-hidden flex flex-col transition-all duration-200 ${
-        !isUnavailable
+      className={`bg-[#1a1a1a] rounded-2xl border border-white/8 overflow-hidden flex flex-col transition-all duration-200 ${!isUnavailable
           ? "hover:border-white/15 hover:shadow-xl hover:shadow-black/40"
           : "opacity-80"
-      }`}
+        }`}
     >
       <div className="relative h-52 bg-[#111] overflow-hidden">
         {jockey.image ? (
@@ -173,13 +172,6 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
           </div>
         </div>
 
-        <div className="bg-[#141414] rounded-lg px-3 py-2.5 border border-white/6 flex items-center justify-between">
-          <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase">Base Fee / Race</p>
-          <p className="text-[13.5px] font-bold text-white">
-            {jockey.baseFee !== null ? `$${jockey.baseFee.toLocaleString()}` : "Contract"}
-          </p>
-        </div>
-
         <div className="flex gap-2 mt-auto">
           <button
             onClick={onDetail}
@@ -190,11 +182,10 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
           <button
             disabled={isUnavailable}
             onClick={isUnavailable ? undefined : onHire}
-            className={`flex-1 py-2.5 rounded-lg text-[12px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 ${
-              isUnavailable
+            className={`flex-1 py-2.5 rounded-lg text-[12px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 ${isUnavailable
                 ? "bg-[#242424] border border-white/8 text-gray-600 cursor-not-allowed"
                 : "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
-            }`}
+              }`}
           >
             {isUnavailable ? "Unavailable" : <><span>Hire</span> <Diamond size={11} className="text-red-300" /></>}
           </button>
@@ -206,15 +197,15 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function JockeysPage() {
-  const [jockeys,      setJockeys]      = useState<Jockey[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState<string | null>(null);
-  const [rankFilter,   setRankFilter]   = useState("All");
+  const [jockeys, setJockeys] = useState<Jockey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [rankFilter, setRankFilter] = useState("All");
   const [weightFilter, setWeightFilter] = useState("Weight: All");
   const [regionFilter, setRegionFilter] = useState("Region: Global");
   const [visibleCount, setVisibleCount] = useState(8);
-  const [selected,     setSelected]     = useState<Jockey | null>(null);
-  const [hiring,       setHiring]       = useState<Jockey | null>(null);
+  const [selected, setSelected] = useState<Jockey | null>(null);
+  const [hiring, setHiring] = useState<Jockey | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -249,7 +240,7 @@ export default function JockeysPage() {
   }, []);
 
   const filtered = jockeys.filter((j) => rankFilter === "All" || j.rank === rankFilter);
-  const visible  = filtered.slice(0, visibleCount);
+  const visible = filtered.slice(0, visibleCount);
 
   return (
     <div className="flex-1 px-8 py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>

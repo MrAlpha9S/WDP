@@ -6,6 +6,9 @@ const RaceRound = require('../entities/RaceRound');
 const Tournament = require('../entities/Tournament');
 const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
 const Invitation = require('../entities/Invitation');
+const Horse = require('../entities/Horse');
+const RaceResult = require('../entities/RaceResult');
+const Violation = require('../entities/Violation');
 
 class HorseOwnerService {
     // Create horse owner profile for existing user (public)
@@ -452,9 +455,9 @@ class HorseOwnerService {
                 raceRound: inv.registrationId?.raceRoundId
                     ? {
                         roundName: inv.registrationId.raceRoundId.roundName,
-                        raceDate:  inv.registrationId.raceRoundId.raceDate,
-                        location:  inv.registrationId.raceRoundId.location,
-                      }
+                        raceDate: inv.registrationId.raceRoundId.raceDate,
+                        location: inv.registrationId.raceRoundId.location,
+                    }
                     : null,
                 status: inv.invitationStatus,
                 isBackup: inv.isBackup,
@@ -474,6 +477,175 @@ class HorseOwnerService {
             return { code: 500, msg: error.message };
         }
     }
+
+    async getRaceDetail(ownerId, raceRoundId) {
+        try {
+            const owner = await HorseOwnerRepository.findByOwnerId(ownerId);
+            if (!owner) return { code: 404, msg: 'Horse owner not found' };
+
+            const raceRound = await RaceRound.findById(raceRoundId).populate('tournamentId').lean();
+            if (!raceRound) return { code: 404, msg: 'Race round not found' };
+
+            const registration = await Registration.findOne({ raceRoundId, horseOwnerId: ownerId }).lean();
+            if (!registration) {
+                return { code: 200, data: { raceRound, registration: null }, msg: 'Race detail retrieved successfully' };
+            }
+
+            const [horse, invitations, raceResult, violations] = await Promise.all([
+                Horse.findById(registration.horseId).lean(),
+                Invitation.find({ registrationId: registration._id })
+                    .populate({ path: 'jockeyId', model: 'User', select: 'fullName image' })
+                    .lean(),
+                RaceResult.findOne({ registrationId: registration._id }).lean(),
+                Violation.find({
+                    raceRoundId,
+                    $or: [
+                        { registrationId: registration._id },
+                        { registrationId: null },
+                        { registrationId: { $exists: false } },
+                    ],
+                }).populate('violationTypeId', 'violationName severity').lean(),
+            ]);
+
+            const selectedInvitation = registration.jockeyInRaceId
+                ? invitations.find(inv => String(inv._id) === String(registration.jockeyInRaceId))
+                : null;
+            const selectedJockey = selectedInvitation?.jockeyId ?? null;
+
+            const enrichedInvitations = invitations.map(inv => ({
+                _id: inv._id,
+                invitationStatus: inv.invitationStatus,
+                isBackup: inv.isBackup,
+                percentagePayout: inv.percentagePayout,
+                jockeyConfirmation: inv.jockeyConfirmation,
+                ownerConfirmation: inv.ownerConfirmation,
+                createdAt: inv.createdAt,
+                jockey: inv.jockeyId ?? null,
+            }));
+
+            return {
+                code: 200,
+                data: {
+                    raceRound,
+                    registration: {
+                        ...registration,
+                        horse: horse ?? null,
+                        selectedJockey,
+                        invitations: enrichedInvitations,
+                        raceResult: raceResult ?? null,
+                        violations: violations ?? [],
+                    },
+                },
+                msg: 'Race detail retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async getHorseProfile(ownerId, horseId) {
+        try {
+            if (!ownerId || !horseId) return { code: 400, msg: 'Missing ownerId or horseId' };
+
+            const horse = await Horse.findById(horseId).lean();
+            if (!horse) return { code: 404, msg: 'Horse not found' };
+            if (String(horse.ownerId) !== String(ownerId))
+                return { code: 403, msg: 'Forbidden' };
+
+            const registrations = await Registration
+                .find({ horseId, horseOwnerId: ownerId })
+                .populate({ path: 'raceRoundId', populate: { path: 'tournamentId', select: 'name' } })
+                .sort({ registeredAt: -1 })
+                .lean();
+
+            const regIds = registrations.map(r => r._id);
+
+            const [results, violations] = await Promise.all([
+                RaceResult.find({ registrationId: { $in: regIds } }).lean(),
+                Violation.find({ registrationId: { $in: regIds } })
+                    .populate('violationTypeId', 'violationName category severity defaultPenalty')
+                    .lean(),
+            ]);
+
+            const resultByRegId = Object.fromEntries(results.map(r => [String(r.registrationId), r]));
+            const officialResults = results.filter(r => r.finishPosition != null);
+            const wins = officialResults.filter(r => r.finishPosition === 1).length;
+            const podiums = officialResults.filter(r => r.finishPosition <= 3).length;
+            const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
+
+            const raceRoundById = Object.fromEntries(
+                registrations
+                    .filter(r => r.raceRoundId?._id)
+                    .map(r => [String(r.raceRoundId._id), r.raceRoundId])
+            );
+
+            return {
+                code: 200,
+                data: {
+                    horse,
+                    stats: {
+                        totalRaces: officialResults.length,
+                        wins,
+                        podiums,
+                        losses: officialResults.length - wins,
+                        winRate: officialResults.length > 0
+                            ? Math.round((wins / officialResults.length) * 100) : 0,
+                        totalPrize,
+                    },
+                    raceHistory: registrations.map(reg => ({
+                        registration: {
+                            _id: reg._id,
+                            registrationStatus: reg.registrationStatus,
+                            laneNumber: reg.laneNumber,
+                            registeredAt: reg.registeredAt,
+                        },
+                        raceRound: reg.raceRoundId ?? null,
+                        result: resultByRegId[String(reg._id)] ?? null,
+                    })),
+                    violations: violations.map(v => ({
+                        ...v,
+                        raceRound: raceRoundById[String(v.raceRoundId)] ?? { _id: v.raceRoundId },
+                    })),
+                },
+                msg: 'Horse profile retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async updateHorseStatus(ownerId, horseId, status) {
+        try {
+            const owner = await HorseOwner.findById(ownerId);
+            if (!owner) return { code: 404, msg: 'Horse owner not found' };
+            const horse = await Horse.findById(horseId);
+            if (!horse) return { code: 404, msg: 'Horse not found' };
+            if (String(horse.ownerId) !== String(ownerId))
+                return { code: 403, msg: 'Forbidden' };
+            horse.status = status;
+            await horse.save();
+            return { code: 200, msg: 'Horse status updated successfully' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async updateHorseHealthStatus(ownerId, horseId, healthStatus) {
+        try {
+            const owner = await HorseOwner.findById(ownerId);
+            if (!owner) return { code: 404, msg: 'Horse owner not found' };
+            const horse = await Horse.findById(horseId);
+            if (!horse) return { code: 404, msg: 'Horse not found' };
+            if (String(horse.ownerId) !== String(ownerId))
+                return { code: 403, msg: 'Forbidden' };
+            horse.healthStatus = healthStatus;
+            await horse.save();
+            return { code: 200, msg: 'Horse health status updated successfully' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
 }
+
 
 module.exports = new HorseOwnerService();
