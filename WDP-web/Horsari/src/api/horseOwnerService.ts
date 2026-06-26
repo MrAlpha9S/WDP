@@ -177,10 +177,46 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
+  updateHorseStatus: async (horseId: string, status: 'active' | 'inactive' | 'retired') => {
+    try {
+      const response = await api.put(`/horseowner/horses/${horseId}/status`, { status });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  updateHorseHealthStatus: async (horseId: string, healthStatus: 'healthy' | 'injured' | 'sick') => {
+    try {
+      const response = await api.put(`/horseowner/horses/${horseId}/health-status`, { healthStatus });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
   getHorseProfile: async (horseId: string) => {
     try {
       const response = await api.get(`/horseowner/horses/${horseId}/profile`);
       return response.data as { data: HorseProfileData };
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  getRaceEligibilityMetadata: async (ruleId: string) => {
+    try {
+      const response = await api.get('/horseowner/race-eligibility-metadata', { params: { ruleId } });
+      return response.data as {
+        data: {
+          eligibilityRules: {
+            raceType: string | null;
+            minWins: number | null;
+            maxWins: number | null;
+            minAge: number | null;
+            maxAge: number | null;
+            requiredGender: string | null;
+            requiredBreed: string | null;
+          }[];
+        };
+      };
     } catch (error: any) {
       throw error.response?.data || error;
     }

@@ -139,6 +139,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
 
         const rule = metadata.eligibilityRules.find((r: any) => r.raceType === selectedRaceType);
         if (!rule) return false;
+        if (horse.status !== 'active' || horse.healthStatus !== 'healthy') return false;
 
         const wins = horse.raceResults ? horse.raceResults.filter((r: any) => r.finishPosition === 1).length : 0;
 
@@ -284,7 +285,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     if (!raceToEdit) {
         minDateUI = twoWeeksStr;
     }
-    
+
     if (selectedTournamentUI) {
         if (selectedTournamentUI.startDate) {
             const tournamentStartStr = new Date(selectedTournamentUI.startDate).toISOString().split('T')[0];

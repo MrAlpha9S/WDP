@@ -46,6 +46,9 @@ interface RaceTarget { type: 'race'; item: RaceScheduleItem }
 interface TournamentTarget { type: 'tournament'; item: TournamentForPrediction }
 type Target = RaceTarget | TournamentTarget;
 
+const isRealTournament = (t: { tournamentName: string } | null | undefined): boolean =>
+  !!t && t.tournamentName !== 'Non-tournament';
+
 const METHOD_ICON: Record<PredictionMethodType, string> = {
   race_winner:          'trophy-outline',
   race_rank:            'podium-outline',
@@ -332,8 +335,8 @@ export default function NewPredictionScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.listCardTitle} numberOfLines={1}>{race.roundName}</Text>
-                          {race.tournament && (
-                            <Text style={styles.listCardSub} numberOfLines={1}>{race.tournament.tournamentName}</Text>
+                          {isRealTournament(race.tournament) && (
+                            <Text style={styles.listCardSub} numberOfLines={1}>{race.tournament!.tournamentName}</Text>
                           )}
                           <Text style={styles.listCardMeta}>{formatDate(race.raceDate)}</Text>
                         </View>

@@ -37,6 +37,9 @@ const Palette = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const isRealTournament = (t: { tournamentName: string } | null | undefined): boolean =>
+  !!t && t.tournamentName !== 'Non-tournament';
+
 function formatViDate(dateStr: string): string {
   const d = new Date(dateStr);
   const hh = String(d.getHours()).padStart(2, '0');
@@ -66,9 +69,9 @@ function LiveRaceCard({ liveRace }: { liveRace: NonNullable<HomeFeed['liveRace']
             <View style={styles.liveDot} />
             <Text style={styles.liveBadgeText}>TRỰC TIẾP</Text>
           </View>
-          {liveRace.tournament && (
+          {isRealTournament(liveRace.tournament) && (
             <Text style={styles.liveTournament} numberOfLines={1}>
-              {liveRace.tournament.tournamentName}
+              {liveRace.tournament!.tournamentName}
             </Text>
           )}
         </View>
@@ -136,9 +139,9 @@ function UpcomingCard({ race }: { race: HomeFeedUpcomingRace }) {
             </View>
           )}
         </View>
-        {race.tournament && (
+        {isRealTournament(race.tournament) && (
           <Text style={styles.upcomingTournament} numberOfLines={1}>
-            {race.tournament.tournamentName}
+            {race.tournament!.tournamentName}
           </Text>
         )}
         <View style={styles.upcomingMeta}>

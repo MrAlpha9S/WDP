@@ -98,14 +98,22 @@ class HorseOwnerController {
     }
 
     async updateHorseStatus(req, res) {
-        const { horseId, status } = req.params;
+        const { horseId } = req.params;
+        const { status } = req.body;
         const response = await HorseOwnerService.updateHorseStatus(req.userId, horseId, status);
         return res.status(response.code).json(response);
     }
 
     async updateHorseHealthStatus(req, res) {
-        const { horseId, healthStatus } = req.params;
+        const { horseId } = req.params;
+        const { healthStatus } = req.body;
         const response = await HorseOwnerService.updateHorseHealthStatus(req.userId, horseId, healthStatus);
+        return res.status(response.code).json(response);
+    }
+
+    async getRaceEligibilityMetadata(req, res) {
+        const { ruleId } = req.query;
+        const response = await HorseOwnerService.getRaceEligibilityMetadata(ruleId);
         return res.status(response.code).json(response);
     }
 }

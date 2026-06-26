@@ -38,5 +38,6 @@ router.get('/race-rounds/:raceRoundId/detail', authMiddleware, authHorseOwner, H
 router.put('/horses/:horseId/status', authMiddleware, authHorseOwner, HorseOwnerController.updateHorseStatus);
 router.put('/horses/:horseId/health-status', authMiddleware, authHorseOwner, HorseOwnerController.updateHorseHealthStatus);
 
+router.get('/race-eligibility-metadata', authMiddleware, authHorseOwner, HorseOwnerController.getRaceEligibilityMetadata);
 
 module.exports = router;

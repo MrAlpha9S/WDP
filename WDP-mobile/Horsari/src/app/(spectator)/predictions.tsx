@@ -40,6 +40,9 @@ const Palette = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const isRealTournament = (t: { tournamentName: string } | null | undefined): boolean =>
+  !!t && t.tournamentName !== 'Non-tournament';
+
 function formatViDate(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
@@ -225,7 +228,9 @@ function PredictionDetailModal({
 
   const tournamentName = isChampion
     ? undefined
-    : item.registration?.raceRound?.tournament?.tournamentName;
+    : isRealTournament(item.registration?.raceRound?.tournament)
+      ? item.registration?.raceRound?.tournament?.tournamentName
+      : undefined;
 
   const raceDate = item.registration?.raceRound?.raceDate
     ? formatViDate(item.registration.raceRound.raceDate)
@@ -302,7 +307,9 @@ function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () =
 
   const subtitleText = isChampion
     ? 'Vô địch giải đấu'
-    : (item.registration?.raceRound?.tournament?.tournamentName ?? null);
+    : isRealTournament(item.registration?.raceRound?.tournament)
+      ? (item.registration?.raceRound?.tournament?.tournamentName ?? null)
+      : null;
 
   const laneNumber = item.registration?.laneNumber;
   const methodName = item.predictionMethod?.methodName;

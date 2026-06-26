@@ -21,6 +21,8 @@ interface Race {
   date: string;
   venue: string;
   grade: string;
+  ruleId: string;
+  raceType: string;
   eligibleHorseIds: string[];
   existingHorseId: string | null;
 }
@@ -31,9 +33,26 @@ interface Horse {
   breed: string;
   gender: string;
   healthStatus: string;
+  status: string;
+  raceResults?: { finishPosition: number }[];
+  dateOfBirth?: string;
 }
 
 type Position = "main" | "substitution";
+
+interface EligibilityRule {
+  raceType: string | null;
+  minWins?: number | null;
+  maxWins?: number | null;
+  minAge?: number | null;
+  maxAge?: number | null;
+  requiredGender?: string | null;
+  requiredBreed?: string | null;
+}
+
+interface RaceMetadata {
+  eligibilityRules: EligibilityRule[];
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
@@ -48,6 +67,8 @@ function mapRace(raw: any, i: number): Race {
     date: raw.raceRound.raceDate ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
     venue: raw.raceRound.location ?? raw.location ?? "TBA",
     grade: raw.grade ?? "TBA",
+    ruleId: raw.raceRound?.eligibilityRuleId?._id ?? raw.eligibilityRuleId?._id ?? raw.raceRound?.eligibilityRuleId ?? raw.eligibilityRuleId ?? "",
+    raceType: raw.raceRound?.eligibilityRuleId?.raceType ?? raw.eligibilityRuleId?.raceType ?? "",
     eligibleHorseIds: Array.isArray(raw.eligibleHorseIds) ? raw.eligibleHorseIds : [],
     existingHorseId: raw.existingHorseId ?? null,
   };
@@ -61,6 +82,9 @@ function mapHorse(raw: any, i: number): Horse {
     breed: raw.breed ?? "Unknown",
     gender: raw.gender ?? "N/A",
     healthStatus: raw.healthStatus ?? "N/A",
+    status: raw.status ?? "inactive",
+    raceResults: Array.isArray(raw.raceResults) ? raw.raceResults : [],
+    dateOfBirth: raw.dateOfBirth ?? undefined,
   };
 }
 
@@ -147,6 +171,28 @@ export default function HireJockeyModal({
   const [toast, setToast] = useState<ToastState>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Eligibility metadata — wire up horseOwnerService.getRaceEligibilityMetadata() when ready
+  const [metadata, setMetadata] = useState<RaceMetadata | null>(null);
+
+  // Fetch the eligibility rule for the selected race
+  useEffect(() => {
+    setMetadata(null);
+    const ruleId = selectedRace?.ruleId;
+    if (!ruleId) return;
+
+    let cancelled = false;
+    async function loadMetadata() {
+      try {
+        const res = await horseOwnerService.getRaceEligibilityMetadata(ruleId);
+        if (!cancelled && res?.data) setMetadata(res.data as RaceMetadata);
+      } catch {
+        // Non-critical: eligibility rules simply won't be applied if unavailable
+      }
+    }
+    loadMetadata();
+    return () => { cancelled = true; };
+  }, [selectedRace?.ruleId]);
+
   // Fetch races (approved registrations only)
   useEffect(() => {
     let cancelled = false;
@@ -200,6 +246,64 @@ export default function HireJockeyModal({
     return () => document.removeEventListener("keydown", h);
   }, [onClose]);
 
+  // ── Eligibility rules check ───────────────────────────────────────────────
+  // Requires horseOwnerService.getRaceEligibilityMetadata() to populate `metadata`.
+  // While metadata is null the check is skipped and eligibleHorseIds alone governs access.
+  const checkEligibility = (horse: Horse, selectedRaceType: string): boolean => {
+    const tag = `[eligibility] ${horse.name} / ${selectedRaceType}`;
+
+    if (!metadata || !metadata.eligibilityRules) {
+      console.warn(tag, "❌ no metadata or eligibilityRules");
+      return false;
+    }
+
+    const rule = metadata.eligibilityRules.find((r) => r.raceType === selectedRaceType);
+    if (!rule) {
+      console.warn(tag, "❌ no rule found for raceType", selectedRaceType, "available:", metadata.eligibilityRules.map((r) => r.raceType));
+      return false;
+    }
+
+    if (horse.status !== "active" || horse.healthStatus !== "healthy") {
+      console.warn(tag, `❌ status=${horse.status} healthStatus=${horse.healthStatus}`);
+      return false;
+    }
+
+    const wins = horse.raceResults
+      ? horse.raceResults.filter((r) => r.finishPosition === 1).length
+      : 0;
+
+    if (rule.minWins !== undefined && rule.minWins !== null && wins < rule.minWins) {
+      console.warn(tag, `❌ wins too low: has ${wins}, needs ≥ ${rule.minWins}`);
+      return false;
+    }
+    if (rule.maxWins !== undefined && rule.maxWins !== null && wins > rule.maxWins) {
+      console.warn(tag, `❌ wins too high: has ${wins}, needs ≤ ${rule.maxWins}`);
+      return false;
+    }
+
+    const currentYear = new Date().getFullYear();
+    const horseAge = horse.dateOfBirth
+      ? currentYear - new Date(horse.dateOfBirth).getFullYear()
+      : 0;
+
+    if (rule.minAge !== undefined && rule.minAge !== null && horseAge < rule.minAge) {
+      console.warn(tag, `❌ too young: age=${horseAge}, needs ≥ ${rule.minAge}`);
+      return false;
+    }
+    if (rule.maxAge !== undefined && rule.maxAge !== null && horseAge > rule.maxAge) {
+      console.warn(tag, `❌ too old: age=${horseAge}, needs ≤ ${rule.maxAge}`);
+      return false;
+    }
+
+    if (rule.requiredGender && rule.requiredGender !== "both" && rule.requiredGender !== horse.gender) {
+      console.warn(tag, `❌ gender mismatch: horse=${horse.gender}, required=${rule.requiredGender}`);
+      return false;
+    }
+
+    console.log(tag, `✅ eligible (wins=${wins}, age=${horseAge})`);
+    return true;
+  };
+
   async function handleConfirm() {
     if (!selectedRace || !selectedHorse) return;
     setSubmitting(true);
@@ -221,12 +325,12 @@ export default function HireJockeyModal({
         err?.code === 409 && (err?.message ?? "").includes("same horse")
           ? "This race already has a horse assigned. Please select the same horse."
           : err?.code === 409 && (err?.message ?? "").includes("already been invited")
-          ? "This jockey has already been invited to this race."
-          : err?.code === 422
-          ? "This registration is no longer accepting jockey assignments."
-          : err?.code === 403
-          ? "You are not authorized to modify this registration."
-          : err?.message ?? "Something went wrong. Please try again.";
+            ? "This jockey has already been invited to this race."
+            : err?.code === 422
+              ? "This registration is no longer accepting jockey assignments."
+              : err?.code === 403
+                ? "You are not authorized to modify this registration."
+                : err?.message ?? "Something went wrong. Please try again.";
       setToast({ type: "error", message: "Failed to Hire", detail });
     } finally {
       setSubmitting(false);
@@ -419,12 +523,19 @@ export default function HireJockeyModal({
                 </div>
               )}
               {horses.map((horse) => {
-                const isEligible =
+                const inEligibleList =
                   !selectedRace ||
                   selectedRace.eligibleHorseIds.length === 0 ||
                   selectedRace.eligibleHorseIds.includes(horse.id);
+                // Apply eligibility rules when metadata is loaded; skip gracefully when null
+                const meetsEligibilityRules =
+                  !selectedRace ||
+                  !selectedRace.raceType ||
+                  !metadata ||
+                  checkEligibility(horse, selectedRace.raceType);
+                const isEligible = inEligibleList && meetsEligibilityRules;
                 const isLockedOut = !!selectedRace?.existingHorseId && selectedRace.existingHorseId !== horse.id;
-                const isLockedIn  = !!selectedRace?.existingHorseId && selectedRace.existingHorseId === horse.id;
+                const isLockedIn = !!selectedRace?.existingHorseId && selectedRace.existingHorseId === horse.id;
                 const isSelectable = isEligible && !isLockedOut;
 
                 return (

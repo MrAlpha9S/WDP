@@ -46,6 +46,9 @@ const HORSE_COLORS = [
   '#9B59B6', '#1ABC9C', '#E67E22', '#C0392B',
 ];
 
+const isRealTournament = (t: { tournamentName: string } | null | undefined): boolean =>
+  !!t && t.tournamentName !== 'Non-tournament';
+
 function horseColor(num: number) {
   return HORSE_COLORS[(num - 1) % HORSE_COLORS.length];
 }
@@ -591,9 +594,9 @@ export default function LiveRaceScreen() {
             <Text style={styles.headerTitle} numberOfLines={1}>
               {raceRound?.roundName ?? 'Vòng đua'}
             </Text>
-            {raceRound?.tournament?.tournamentName ? (
+            {isRealTournament(raceRound?.tournament) ? (
               <Text style={styles.headerSub} numberOfLines={1}>
-                {raceRound.tournament.tournamentName}
+                {raceRound!.tournament.tournamentName}
               </Text>
             ) : null}
           </View>

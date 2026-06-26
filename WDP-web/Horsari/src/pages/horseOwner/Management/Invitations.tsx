@@ -50,12 +50,13 @@ function mapApiToInvitation(raw: any): Invitation {
   return {
     id: raw.registration._id ?? "Unknown",
     name: raw.raceRound?.roundName ?? raw.name ?? "Unnamed Race",
-    type: raw.tournament?.name ? "Tournament" : "Race",
+    type: raw.tournament?.tournamentName && raw.tournament.tournamentName !== 'Non-tournament'
+      ? "Tournament"
+      : "Race",
     status: normalizeInviteStatus(raw.registration?.registrationStatus),
     date: raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : "TBA",
     venue: raw.raceRound?.location ?? raw.location ?? "TBA",
     prize: raw.raceRound?.firstPlacePrize != null ? `${raw.raceRound?.currencyType ?? "USD"} ${raw.raceRound.firstPlacePrize.toLocaleString()}` : "TBA",
-    grade: raw.raceRound?.eligibilityRuleId?.gradeLevel ?? "TBA",
     distance: raw.raceRound?.trackLength != null ? `${raw.raceRound.trackLength}m` : "TBA",
     horse: raw.horseName ?? raw.horse?.horseName ?? "TBA",
     jockey: raw.jockeyName ?? raw.jockey?.fullName ?? "TBA",
@@ -139,11 +140,10 @@ function InvitationDetailModal({
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-5">
             {[
               { icon: <Calendar size={13} className="text-red-400" />, label: "Date & Time", value: inv.date },
               { icon: <MapPin size={13} className="text-blue-400" />, label: "Venue", value: inv.venue },
-              { icon: <Flag size={13} className="text-purple-400" />, label: "Grade", value: inv.grade },
               { icon: <Ruler size={13} className="text-green-400" />, label: "Distance", value: inv.distance },
             ].map((item) => (
               <div key={item.label} className="bg-[#141414] rounded-xl px-4 py-3 border border-white/6 flex items-start gap-3">
@@ -230,11 +230,10 @@ function InvitationCard({
             <p className="text-[11px] text-gray-600 mt-0.5">Sent by {inv.sentBy} · {inv.sentAt}</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {[
               { icon: <Calendar size={11} />, label: "Date", value: inv.date },
               { icon: <MapPin size={11} />, label: "Venue", value: inv.venue },
-              { icon: <Flag size={11} />, label: "Grade", value: inv.grade },
             ].map((item) => (
               <div key={item.label} className="bg-[#141414] rounded-lg px-3 py-2 border border-white/6">
                 <div className="flex items-center gap-1 text-gray-600 mb-1">
@@ -512,13 +511,13 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
 
   // Sorted full lists (pending first)
   const sortedInvitations = invitations.slice().sort((a) => (a.status === "pending" ? -1 : 1));
-  const sortedJockeyInvs  = jockeyInvs.slice().sort((a) => (a.status === "pending" ? -1 : 1));
+  const sortedJockeyInvs = jockeyInvs.slice().sort((a) => (a.status === "pending" ? -1 : 1));
 
   // Paginated slices
-  const raceTotalPages   = Math.max(1, Math.ceil(sortedInvitations.length / INV_PAGE_SIZE));
+  const raceTotalPages = Math.max(1, Math.ceil(sortedInvitations.length / INV_PAGE_SIZE));
   const jockeyTotalPages = Math.max(1, Math.ceil(sortedJockeyInvs.length / INV_PAGE_SIZE));
   const pagedInvitations = sortedInvitations.slice((racePage - 1) * INV_PAGE_SIZE, racePage * INV_PAGE_SIZE);
-  const pagedJockeyInvs  = sortedJockeyInvs.slice((jockeyPage - 1) * INV_PAGE_SIZE, jockeyPage * INV_PAGE_SIZE);
+  const pagedJockeyInvs = sortedJockeyInvs.slice((jockeyPage - 1) * INV_PAGE_SIZE, jockeyPage * INV_PAGE_SIZE);
 
   return (
     <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -557,71 +556,71 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
       </header>
       <div className="flex-1 pt-5">
 
-      {/* Race tab */}
-      {activeTab === "race" && (
-        <>
-          {loadingRace && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading invitations…</div>
-              {Array.from({ length: 3 }).map((_, i) => <InvitationSkeleton key={i} />)}
-            </div>
-          )}
-          {!loadingRace && errorRace && (
-            <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorRace}</div>
-          )}
-          {!loadingRace && !errorRace && invitations.length === 0 && (
-            <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">No race invitations found.</div>
-          )}
-          {!loadingRace && !errorRace && invitations.length > 0 && (
-            <>
-              {racePendingCount > 0 && (
-                <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
-                  {racePendingCount} pending {racePendingCount === 1 ? "invitation" : "invitations"} awaiting your response.
-                </p>
-              )}
+        {/* Race tab */}
+        {activeTab === "race" && (
+          <>
+            {loadingRace && (
               <div className="space-y-4">
-                {pagedInvitations.map((inv) => (
-                  <InvitationCard key={inv.id} inv={inv} onAccept={handleAccept} onDeny={handleDeny} onDetail={() => setSelected(inv)} />
-                ))}
+                <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading invitations…</div>
+                {Array.from({ length: 3 }).map((_, i) => <InvitationSkeleton key={i} />)}
               </div>
-              <PaginationBar page={racePage} totalPages={raceTotalPages} onPrev={() => setRacePage(p => p - 1)} onNext={() => setRacePage(p => p + 1)} />
-            </>
-          )}
-        </>
-      )}
+            )}
+            {!loadingRace && errorRace && (
+              <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorRace}</div>
+            )}
+            {!loadingRace && !errorRace && invitations.length === 0 && (
+              <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">No race invitations found.</div>
+            )}
+            {!loadingRace && !errorRace && invitations.length > 0 && (
+              <>
+                {racePendingCount > 0 && (
+                  <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
+                    {racePendingCount} pending {racePendingCount === 1 ? "invitation" : "invitations"} awaiting your response.
+                  </p>
+                )}
+                <div className="space-y-4">
+                  {pagedInvitations.map((inv) => (
+                    <InvitationCard key={inv.id} inv={inv} onAccept={handleAccept} onDeny={handleDeny} onDetail={() => setSelected(inv)} />
+                  ))}
+                </div>
+                <PaginationBar page={racePage} totalPages={raceTotalPages} onPrev={() => setRacePage(p => p - 1)} onNext={() => setRacePage(p => p + 1)} />
+              </>
+            )}
+          </>
+        )}
 
-      {/* Jockey tab */}
-      {activeTab === "jockey" && (
-        <>
-          {loadingJockey && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading jockey invitations…</div>
-              {Array.from({ length: 3 }).map((_, i) => <InvitationSkeleton key={i} />)}
-            </div>
-          )}
-          {!loadingJockey && errorJockey && (
-            <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorJockey}</div>
-          )}
-          {!loadingJockey && !errorJockey && jockeyInvs.length === 0 && (
-            <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">No jockey invitations found.</div>
-          )}
-          {!loadingJockey && !errorJockey && jockeyInvs.length > 0 && (
-            <>
-              {jockeyPendingCount > 0 && (
-                <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
-                  {jockeyPendingCount} pending {jockeyPendingCount === 1 ? "invitation" : "invitations"} awaiting jockey response.
-                </p>
-              )}
+        {/* Jockey tab */}
+        {activeTab === "jockey" && (
+          <>
+            {loadingJockey && (
               <div className="space-y-4">
-                {pagedJockeyInvs.map((inv) => (
-                  <JockeyInvitationCard key={inv.id} inv={inv} />
-                ))}
+                <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading jockey invitations…</div>
+                {Array.from({ length: 3 }).map((_, i) => <InvitationSkeleton key={i} />)}
               </div>
-              <PaginationBar page={jockeyPage} totalPages={jockeyTotalPages} onPrev={() => setJockeyPage(p => p - 1)} onNext={() => setJockeyPage(p => p + 1)} />
-            </>
-          )}
-        </>
-      )}
+            )}
+            {!loadingJockey && errorJockey && (
+              <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorJockey}</div>
+            )}
+            {!loadingJockey && !errorJockey && jockeyInvs.length === 0 && (
+              <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">No jockey invitations found.</div>
+            )}
+            {!loadingJockey && !errorJockey && jockeyInvs.length > 0 && (
+              <>
+                {jockeyPendingCount > 0 && (
+                  <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
+                    {jockeyPendingCount} pending {jockeyPendingCount === 1 ? "invitation" : "invitations"} awaiting jockey response.
+                  </p>
+                )}
+                <div className="space-y-4">
+                  {pagedJockeyInvs.map((inv) => (
+                    <JockeyInvitationCard key={inv.id} inv={inv} />
+                  ))}
+                </div>
+                <PaginationBar page={jockeyPage} totalPages={jockeyTotalPages} onPrev={() => setJockeyPage(p => p - 1)} onNext={() => setJockeyPage(p => p + 1)} />
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

@@ -693,6 +693,9 @@ class SpectatorService {
                 }
                 const tournament = await Tournament.findById(tournamentId).lean();
                 if (!tournament) return { code: 404, msg: 'Tournament not found' };
+                if (!tournament.startDate) {
+                    return { code: 400, msg: 'Champion predictions are not available for standalone races' };
+                }
                 if (!['scheduled', 'ongoing'].includes(tournament.status)) {
                     return { code: 400, msg: 'Predictions are only allowed for scheduled or ongoing tournaments' };
                 }
@@ -903,6 +906,7 @@ class SpectatorService {
 
             const tournaments = await Tournament.find({
                 status: { $in: ['scheduled', 'ongoing'] },
+                startDate: { $ne: null },
             }).lean();
 
             // For each tournament, gather all horses that have participated in its races

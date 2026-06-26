@@ -76,12 +76,12 @@ async function seed() {
 
     // --- Horse Owners (6) ---
     const ownerData = [
-      { name: "Nguyen Van A",     phone: "0901111111", address: "Hanoi" },
-      { name: "Tran Thi B",       phone: "0902222222", address: "Da Nang" },
-      { name: "Le Van C",         phone: "0903333333", address: "Ho Chi Minh City" },
-      { name: "Phan Thi Dao",     phone: "0904444444", address: "Hue" },
+      { name: "Nguyen Van A", phone: "0901111111", address: "Hanoi" },
+      { name: "Tran Thi B", phone: "0902222222", address: "Da Nang" },
+      { name: "Le Van C", phone: "0903333333", address: "Ho Chi Minh City" },
+      { name: "Phan Thi Dao", phone: "0904444444", address: "Hue" },
       { name: "Nguyen Minh Khoa", phone: "0905555555", address: "Can Tho" },
-      { name: "Dang Thi Thu",     phone: "0906666666", address: "Bien Hoa" },
+      { name: "Dang Thi Thu", phone: "0906666666", address: "Bien Hoa" },
     ];
     for (let i = 0; i < 6; i++) {
       const user = await User.create({
@@ -218,36 +218,79 @@ async function seed() {
            2. MASTER DATA
            ================================================ */
 
-    // --- RaceEligibilityRule (3) ---
+    // --- RaceEligibilityRule (6) ---
+    // rules[0]=Stakes G1, [1]=Stakes G2, [2]=Stakes G3, [3]=Allowance, [4]=Claiming, [5]=Maiden
     const rules = await RaceEligibilityRule.create([
       {
-        raceType: "Sprint",
-        minAge: 2,
-        maxAge: 8,
-        minRacesRun: 3,
-        minRacesWon: 0,
+        // Stakes G1 — top tier, proven champions only
+        raceType: "Stakes G1",
+        minAge: 3,
+        maxAge: null,
+        minRacesRun: 0,
+        minRacesWon: 3,
         requiredGender: null,
-        licenseRequired: true,
+        licenseRequired: false,
         requireNomination: false,
         isActive: true,
       },
       {
-        raceType: "Classic",
+        // Stakes G2 — high tier
+        raceType: "Stakes G2",
         minAge: 3,
-        maxAge: 10,
-        minRacesRun: 5,
-        minRacesWon: 1,
+        maxAge: null,
+        minRacesRun: 0,
+        minRacesWon: 2,
         requiredGender: null,
-        licenseRequired: true,
-        requireNomination: true,
+        licenseRequired: false,
+        requireNomination: false,
         isActive: true,
       },
       {
+        // Stakes G3 — entry-level stakes
+        raceType: "Stakes G3",
+        minAge: 2,
+        maxAge: null,
+        minRacesRun: 0,
+        minRacesWon: 1,
+        requiredGender: null,
+        licenseRequired: false,
+        requireNomination: false,
+        isActive: true,
+      },
+      {
+        // Allowance — won at least once but not stakes-ready; max 2 wins (condition)
+        raceType: "Allowance",
+        minAge: 2,
+        maxAge: null,
+        minRacesRun: 0,
+        minRacesWon: 1,
+        maxRacesWon: 2,
+        requiredGender: null,
+        licenseRequired: false,
+        requireNomination: false,
+        isActive: true,
+      },
+      {
+        // Claiming — any owner can claim the horse at the listed price
+        raceType: "Claiming",
+        minAge: 2,
+        maxAge: null,
+        minRacesRun: 0,
+        minRacesWon: null,
+        requiredGender: null,
+        licenseRequired: false,
+        requireNomination: false,
+        claimingPrice: 40000,
+        isActive: true,
+      },
+      {
+        // Maiden — for horses that have never won a race
         raceType: "Maiden",
         minAge: 2,
-        maxAge: 4,
+        maxAge: null,
         minRacesRun: 0,
-        minRacesWon: 0,
+        minRacesWon: null,
+        maxRacesWon: 0,
         requiredGender: null,
         licenseRequired: false,
         requireNomination: false,
@@ -392,7 +435,7 @@ async function seed() {
     }
 
     /* ================================================
-           4. TOURNAMENT (2)
+           4. TOURNAMENT (3)
            ================================================ */
 
     const tournaments = await Tournament.create([
@@ -416,6 +459,16 @@ async function seed() {
         status: "scheduled",
         prizePool: 150000,
       },
+      {
+        createdByAdminId: admins[0]._id,
+        tournamentName: "Non-tournament",
+        description:
+          "non-tournament",
+        startDate: null,
+        endDate: null,
+        status: "ongoing",
+        prizePool: null,
+      },
     ]);
 
     /* ================================================
@@ -426,7 +479,7 @@ async function seed() {
       {
         tournamentId: tournaments[0]._id,
         createdByAdminId: admins[0]._id,
-        roundName: "Quarter Final — Sprint 1600m",
+        roundName: "Quarter Final — Stakes G1 1600m",
         raceDate: atHour(daysAgo(10), 10),
         trackLength: 1600,
         maxParticipants: 6,
@@ -449,7 +502,7 @@ async function seed() {
       {
         tournamentId: tournaments[0]._id,
         createdByAdminId: admins[0]._id,
-        roundName: "Semi Final — Classic 2000m",
+        roundName: "Semi Final — Allowance 2000m",
         raceDate: atHour(daysLater(5), 14),
         trackLength: 2000,
         maxParticipants: 6,
@@ -463,7 +516,7 @@ async function seed() {
         currencyType: "USD",
         location: "Phu Tho Racetrack",
         address: "1 Ly Thuong Kiet, Ward 8, District 11, Ho Chi Minh City",
-        eligibilityRuleId: rules[1]._id,
+        eligibilityRuleId: rules[3]._id,
         muxLiveStreamId: "mux-live-id-round2",
         muxStreamKey: "mux-stream-key-round2",
         muxPlaybackId: "mux-playback-id-round2",
@@ -486,7 +539,7 @@ async function seed() {
         currencyType: "USD",
         location: "Long An Racecourse",
         address: "50 Highway 1A, Tan An, Long An Province",
-        eligibilityRuleId: rules[2]._id,
+        eligibilityRuleId: rules[5]._id,
         muxLiveStreamId: "mux-live-id-round3",
         muxStreamKey: "mux-stream-key-round3",
         muxPlaybackId: "mux-playback-id-round3",
@@ -500,33 +553,42 @@ async function seed() {
 
     /* ================================================
            6. REGISTRATION
-           — Round 1: horses[0..5], all approved + laneNumber
+           — Round 1: horses[0..5] approved + lanes 1-6
+                      horses[6] cancelled (owner never responded → auto-cancelled at race completion)
            — Round 2: horses[0..4], mix of statuses
            ================================================ */
 
     const registrations = [];
 
-    // Round 1 — 6 horses, all approved, lanes 1-6
+    // Round 1 — 6 horses, referee-verified, lanes 1-6
+    // Flow: admin invited → owner approved → owner created invitation → jockey accepted
+    //       → referee verified → race completed
     for (let i = 0; i < 6; i++) {
       const reg = await Registration.create({
         raceRoundId: round1._id,
         horseId: horses[i]._id,
         horseOwnerId: horses[i].ownerId,
         approvedByAdminId: admins[0]._id,
-        registrationStatus: "approved",
+        registrationStatus: "verified",
         laneNumber: i + 1,
         registeredAt: daysAgo(20),
       });
       registrations.push(reg);
     }
 
-    // Round 2 — 5 horses, mixed statuses
+    // Round 2 — 5 horses, mixed owner-decision statuses
+    // Flow: admin invited owners → owners responded independently
+    //   pending  = owner has not responded yet
+    //   approved = owner accepted and selected a horse
+    //   rejected = owner declined the invitation
+    // Lane numbers are not assigned yet (race is still scheduled, referee has not run pre-check)
+    // verificationFailReason is NOT set here — it is only written by the referee during verifyRegistration
     const round2Statuses = [
-      "pending",
-      "approved",
-      "approved",
-      "rejected",
-      "approved",
+      "pending",   // owner[0] hasn't responded
+      "approved",  // owner[1] accepted
+      "approved",  // owner[2] accepted
+      "rejected",  // owner[3] declined
+      "approved",  // owner[4] accepted
     ];
     for (let i = 0; i < 5; i++) {
       const reg = await Registration.create({
@@ -535,20 +597,29 @@ async function seed() {
         horseOwnerId: horses[i].ownerId,
         approvedByAdminId: admins[0]._id,
         registrationStatus: round2Statuses[i],
-        verificationFailReason:
-          round2Statuses[i] === "rejected"
-            ? "Horse does not meet minimum age requirement"
-            : undefined,
-        laneNumber: round2Statuses[i] !== "rejected" ? i + 1 : undefined,
         registeredAt: daysAgo(5),
       });
       registrations.push(reg);
     }
 
-    // Shorthand refs for Round 1 registrations
+    // Round 1 extra — cancelled registration (no-show)
+    // Owner was invited but never approved before race day;
+    // referee cancelled it as a no-show via cancelRegistration (only valid on pending regs).
+    // No verificationFailReason — cancellation is not a verification failure.
+    const r1CancelledReg = await Registration.create({
+      raceRoundId: round1._id,
+      horseId: horses[6]._id,
+      horseOwnerId: horses[6].ownerId,
+      approvedByAdminId: admins[0]._id,
+      registrationStatus: "cancelled",
+      registeredAt: daysAgo(22),
+    });
+    registrations.push(r1CancelledReg);
+
+    // Shorthand refs for Round 1 registrations (verified — completed race)
     const r1Regs = registrations.slice(0, 6);
-    // Round 2 approved registrations
-    const r2Regs = registrations.slice(6);
+    // Round 2 registrations start at index 7 (index 6 = r1CancelledReg)
+    const r2Regs = registrations.slice(7);
 
     /* ================================================
            7. INVITATION
@@ -569,9 +640,9 @@ async function seed() {
     const r1MainJockeyIdx = [0, 1, 2, 3, 0, 1];
 
     for (let i = 0; i < r1Regs.length; i++) {
-      const reg      = r1Regs[i];
-      const horse    = horses[i];                       // same horse as registration
-      const mainIdx  = r1MainJockeyIdx[i];
+      const reg = r1Regs[i];
+      const horse = horses[i];                       // same horse as registration
+      const mainIdx = r1MainJockeyIdx[i];
 
       // Main — accepted (race already completed)
       const mainInv = await Invitation.create({
@@ -585,7 +656,7 @@ async function seed() {
         percentagePayout: 10,
       });
       invitations.push(mainInv);
-      await Registration.findByIdAndUpdate(reg._id, { jockeyInRaceId: mainInv._id });
+      await Registration.findByIdAndUpdate(reg._id, { jockeyInRaceId: mainInv._id, horseId: horse._id });
 
       // Backup 1 — pending (owner sent, jockey hasn't replied)
       const backup1Jockey = pickBackup(mainIdx);
@@ -618,19 +689,25 @@ async function seed() {
       }
     }
 
-    // ── Round 2 (upcoming) — main + 1 backup per approved registration ────────
-    // r2Regs[0]=pending, [1]=approved, [2]=approved, [3]=rejected, [4]=approved
+    // ── Round 2 (scheduled) — invitations only for approved registrations ────────
+    // r2Regs[0]=pending  → no invitation (owner hasn't approved yet;
+    //                       InvitationService rejects invitations on non-approved regs)
+    // r2Regs[1]=approved → main jockey invited, accepted; backup pending
+    // r2Regs[2]=approved → main jockey invited, not yet responded; backup pending
+    // r2Regs[3]=rejected → no invitation (owner declined; horse won't race)
+    // r2Regs[4]=approved → main jockey invited, accepted; backup pending
+    //
+    // jockeyInRaceId is NOT set here — it is only written by the referee during
+    // verifyRegistration. Race is still scheduled; referee pre-check has not run.
     const r2InvMap = [
-      // [regIdx, horseIdx, mainJockeyIdx] — horses mirror registration order
-      { regIdx: 0, mainIdx: 0, isAccepted: false },   // pending reg — owner sent but jockey not replied
-      { regIdx: 1, mainIdx: 1, isAccepted: true  },
-      { regIdx: 2, mainIdx: 2, isAccepted: true  },
-      { regIdx: 4, mainIdx: 3, isAccepted: true  },
+      { regIdx: 1, mainIdx: 1, isAccepted: true },   // owner1 approved, jockey confirmed
+      { regIdx: 2, mainIdx: 2, isAccepted: false },  // owner2 approved, jockey not yet replied
+      { regIdx: 4, mainIdx: 3, isAccepted: true },   // owner4 approved, jockey confirmed
     ];
 
     for (const entry of r2InvMap) {
-      const reg   = r2Regs[entry.regIdx];
-      const horse = horses[entry.regIdx];              // horseId matches registration
+      const reg = r2Regs[entry.regIdx];
+      const horse = horses[entry.regIdx];
 
       const mainInv = await Invitation.create({
         horseId: horse._id,
@@ -643,11 +720,10 @@ async function seed() {
         percentagePayout: 10,
       });
       invitations.push(mainInv);
-      if (entry.isAccepted) {
-        await Registration.findByIdAndUpdate(reg._id, { jockeyInRaceId: mainInv._id });
-      }
+      await Registration.findByIdAndUpdate(reg._id, { horseId: horse._id });
+      // jockeyInRaceId stays null — referee sets it when verifying the registration
 
-      // Backup — pending for all round 2
+      // Backup — always pending until referee selects the jockey for the race
       const backupJockey = pickBackup(entry.mainIdx);
       const backupInv = await Invitation.create({
         horseId: horse._id,
@@ -705,9 +781,9 @@ async function seed() {
     const resultData = [
       { reg: r1Regs[0], pos: 1, time: "1:38.20", prize: 50000, distance: 3.75 }, // 0.75s gap to 2nd → 3¾L
       { reg: r1Regs[1], pos: 2, time: "1:38.95", prize: 20000, distance: 2.25 }, // 0.45s gap to 3rd → 2¼L
-      { reg: r1Regs[2], pos: 3, time: "1:39.40", prize: 10000, distance: 3.5  }, // 0.70s gap to 4th → 3½L
-      { reg: r1Regs[3], pos: 4, time: "1:40.10", prize: 0,     distance: 6    }, // 1.20s gap to 5th → 6L
-      { reg: r1Regs[4], pos: 5, time: "1:41.30", prize: 0,     distance: 0    }, // last finisher
+      { reg: r1Regs[2], pos: 3, time: "1:39.40", prize: 10000, distance: 3.5 }, // 0.70s gap to 4th → 3½L
+      { reg: r1Regs[3], pos: 4, time: "1:40.10", prize: 0, distance: 6 }, // 1.20s gap to 5th → 6L
+      { reg: r1Regs[4], pos: 5, time: "1:41.30", prize: 0, distance: 0 }, // last finisher
     ];
 
     for (const rd of resultData) {
@@ -742,7 +818,7 @@ async function seed() {
     const round4 = await RaceRound.create({
       tournamentId: tournaments[0]._id,
       createdByAdminId: admins[0]._id,
-      roundName: "Final — Sprint 1400m",
+      roundName: "Final — Stakes G1 1400m",
       raceDate: atHour(daysLater(1), 10),
       trackLength: 1400,
       maxParticipants: 6,
@@ -795,7 +871,7 @@ async function seed() {
         percentagePayout: 10,
       });
       invitations.push(mainInv);
-      await Registration.findByIdAndUpdate(r4Regs[i]._id, { jockeyInRaceId: mainInv._id });
+      await Registration.findByIdAndUpdate(r4Regs[i]._id, { jockeyInRaceId: mainInv._id, horseId: horses[i]._id });
 
       // Backup jockey — same horse, pending response
       const backupJockey = pickBackup(mainIdx);
@@ -853,32 +929,6 @@ async function seed() {
       violationStatus: "confirmed",
     });
 
-    // Unsafe riding — horse[5] (during-race, confirmed → disqualified)
-    await Violation.create({
-      raceRoundId: round1._id,
-      registrationId: r1Regs[5]._id,
-      raceRefereeId: raceReferee1._id,
-      violationTypeId: violationTypes.find(v => v.violationName === "Dangerous Riding")._id,
-      description: "Jockey intentionally cut across lane 4 causing collision risk at the final bend",
-      severity: 3,
-      actualPenalty: "Disqualification from race",
-      stewardAction: "disqualified",
-      violationStatus: "confirmed",
-    });
-
-    // Prohibited substance — horse[5] (after-race, pending investigation)
-    await Violation.create({
-      raceRoundId: round1._id,
-      registrationId: r1Regs[5]._id,
-      raceRefereeId: raceReferee2._id,
-      violationTypeId: violationTypes.find(v => v.violationName === "Positive Drug Test")._id,
-      description: "Post-race blood sample flagged for prohibited stimulant; sent for laboratory confirmation",
-      severity: 5,
-      actualPenalty: "Pending investigation result",
-      stewardAction: "investigation",
-      violationStatus: "pending",
-    });
-
     // Illegal equipment — horse[1] (pre-race, confirmed → fine)
     await Violation.create({
       raceRoundId: round1._id,
@@ -890,19 +940,6 @@ async function seed() {
       actualPenalty: "Fine of $200 issued to owner",
       stewardAction: "fine",
       violationStatus: "confirmed",
-    });
-
-    // Result manipulation — horse[3] (after-race, pending investigation)
-    await Violation.create({
-      raceRoundId: round1._id,
-      registrationId: r1Regs[3]._id,
-      raceRefereeId: raceReferee2._id,
-      violationTypeId: violationTypes.find(v => v.violationName === "Race Fixing")._id,
-      description: "Unusual late deceleration in final 200m inconsistent with horse's training records",
-      severity: 5,
-      actualPenalty: "Under investigation",
-      stewardAction: "investigation",
-      violationStatus: "pending",
     });
 
     // ── Round 4 — pre-race violations (not yet resolved) ─────────────────────
@@ -918,19 +955,6 @@ async function seed() {
       actualPenalty: "Formal warning noted in race dossier",
       stewardAction: "warning",
       violationStatus: "confirmed",
-    });
-
-    // Illegal equipment — horse[5] flagged before race (pending ruling)
-    await Violation.create({
-      raceRoundId: round4._id,
-      registrationId: r4Regs[5]._id,
-      raceRefereeId: raceReferee4b._id,
-      violationTypeId: violationTypes.find(v => v.violationName === "Unauthorized Equipment")._id,
-      description: "Bit type does not match approved equipment list filed with registration",
-      severity: 2,
-      actualPenalty: "Awaiting steward ruling",
-      stewardAction: "investigation",
-      violationStatus: "pending",
     });
 
     /* ================================================
@@ -1455,21 +1479,19 @@ async function seed() {
            12. TRANSACTION
            ================================================ */
 
-    // Reward transactions for correct predictions
-    const rewardPreds = predictionSeeds.filter(
-      (p) => p.status === "correct" && p.points > 0,
-    );
-    for (let i = 0; i < rewardPreds.length; i++) {
-      const ps = rewardPreds[i];
+    // Reward transactions for correct predictions (uses correct field names from predictionSeeds)
+    const rewardPreds = predictionSeeds
+      .map((p, idx) => ({ seed: p, doc: predictions[idx] }))
+      .filter(({ seed }) => seed.predictionStatus === "correct" && seed.rewardPoints > 0);
+    for (const { seed, doc } of rewardPreds) {
       await Transaction.create({
-        userId: ps.spec._id,
+        userId: seed.spectatorId,
         transactionType: "reward",
         date: daysAgo(9),
         status: "completed",
-        amount: ps.points,
-        description: `Prediction reward — ${ps.method.methodName} on Round 1`,
-        referenceId:
-          predictions[predictionSeeds.indexOf(ps)].pred._id.toString(),
+        amount: seed.rewardPoints,
+        description: `Prediction reward on Round 1`,
+        referenceId: doc._id.toString(),
         referenceType: "prediction",
       });
     }

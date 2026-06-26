@@ -95,17 +95,36 @@ function InfoCell({ label, value }: { label: string; value: string }) {
 }
 
 // ── Horse card ────────────────────────────────────────────────────────────────
-function HorseCardItem({ horse, onViewProfile }: { horse: HorseCard; onViewProfile: () => void }) {
+function HorseCardItem({
+  horse,
+  onViewProfile,
+  onOpenUpdate,
+}: {
+  horse: HorseCard;
+  onViewProfile: () => void;
+  onOpenUpdate: () => void;
+}) {
+  const [isPlaceholder, setIsPlaceholder] = useState(
+    horse.image === "/jumping-horse-silhouette-facing-left-side-view.png"
+  );
+
   return (
     <div className="bg-[#1a1a1a] rounded-2xl border border-white/8 overflow-hidden flex flex-col group hover:border-white/15 transition-colors duration-200">
       <div className="relative h-40 overflow-hidden bg-[#111] flex items-center justify-center">
         <img
           src={horse.image}
           alt={horse.name}
-          onError={(e) => { e.currentTarget.src = "/jumping-horse-silhouette-facing-left-side-view.png"; }}
-          className="h-24 w-24 object-contain opacity-25 group-hover:opacity-35 transition-opacity duration-500"
+          onError={(e) => {
+            e.currentTarget.src = "/jumping-horse-silhouette-facing-left-side-view.png";
+            setIsPlaceholder(true);
+          }}
+          className={
+            isPlaceholder
+              ? "h-20 w-20 object-contain opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+              : "absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-65 transition-opacity duration-500"
+          }
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/30 to-transparent" />
         <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
           <span className={`w-1.5 h-1.5 rounded-full ${statusDot(horse.status)}`} />
           <span className={`text-[11px] font-semibold tracking-wide ${statusLabel(horse.status)}`}>
@@ -142,9 +161,127 @@ function HorseCardItem({ horse, onViewProfile }: { horse: HorseCard; onViewProfi
           >
             VIEW PROFILE
           </button>
-          <button className="w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150 shrink-0">
+          <button
+            onClick={onOpenUpdate}
+            className="w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150 shrink-0"
+          >
             <MoreVertical size={15} />
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Update status modal ───────────────────────────────────────────────────────
+interface UpdateTarget {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive' | 'retired';
+  healthStatus: 'healthy' | 'injured' | 'sick';
+}
+
+function UpdateStatusModal({
+  target,
+  onClose,
+  onConfirm,
+}: {
+  target: UpdateTarget;
+  onClose: () => void;
+  onConfirm: (id: string, status: 'active' | 'inactive' | 'retired', healthStatus: 'healthy' | 'injured' | 'sick') => Promise<void>;
+}) {
+  const [status, setStatus] = useState(target.status);
+  const [health, setHealth] = useState(target.healthStatus);
+  const [submitting, setSubmitting] = useState(false);
+
+  const statusOptions: { label: string; value: 'active' | 'inactive' | 'retired'; active: string }[] = [
+    { label: "Active", value: "active", active: "text-green-400 border-green-500/50 bg-green-500/10" },
+    { label: "Inactive", value: "inactive", active: "text-gray-300 border-gray-500/50 bg-gray-500/10" },
+    { label: "Retired", value: "retired", active: "text-blue-400 border-blue-500/50 bg-blue-500/10" },
+  ];
+
+  const healthOptions: { label: string; value: 'healthy' | 'injured' | 'sick'; active: string }[] = [
+    { label: "Healthy", value: "healthy", active: "text-green-400 border-green-500/50 bg-green-500/10" },
+    { label: "Injured", value: "injured", active: "text-red-400 border-red-500/50 bg-red-500/10" },
+    { label: "Sick", value: "sick", active: "text-yellow-400 border-yellow-500/50 bg-yellow-500/10" },
+  ];
+
+  const idle = "text-gray-600 border-white/8 bg-transparent hover:border-white/20 hover:text-gray-400";
+
+  async function handleConfirm() {
+    setSubmitting(true);
+    await onConfirm(target.id, status, health);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-sm bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">Update Horse</p>
+            <h2 className="text-[17px] font-bold text-white mt-0.5" style={{ fontFamily: "'Playfair Display', serif" }}>
+              {target.name}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          <div>
+            <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-2.5">Racing Status</p>
+            <div className="grid grid-cols-3 gap-2">
+              {statusOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setStatus(opt.value)}
+                  className={`py-2.5 rounded-lg border text-[12px] font-semibold transition-all duration-150 ${status === opt.value ? opt.active : idle}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-2.5">Health Status</p>
+            <div className="grid grid-cols-3 gap-2">
+              {healthOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setHealth(opt.value)}
+                  className={`py-2.5 rounded-lg border text-[12px] font-semibold transition-all duration-150 ${health === opt.value ? opt.active : idle}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-lg border border-white/10 text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={submitting}
+              className="flex-1 py-2.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:bg-red-900/50 disabled:text-red-700 text-white text-[12.5px] font-bold tracking-wide transition-all duration-150 flex items-center justify-center gap-2"
+            >
+              {submitting ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : "Apply Changes"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -388,6 +525,7 @@ export default function HorsesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [profileHorseId, setProfileHorseId] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
+  const [updateTarget, setUpdateTarget] = useState<UpdateTarget | null>(null);
   const [refreshSeed, setRefreshSeed] = useState(0);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -418,6 +556,31 @@ export default function HorsesPage() {
     return () => { cancelled = true; };
   }, [page, debouncedSearch, refreshSeed]);
 
+  function handleOpenUpdate(horseId: string) {
+    const raw = userHorse.find(h => h._id === horseId);
+    if (!raw) return;
+    setUpdateTarget({
+      id: raw._id,
+      name: raw.horseName,
+      status: raw.status as 'active' | 'inactive' | 'retired',
+      healthStatus: raw.healthStatus as 'healthy' | 'injured' | 'sick',
+    });
+  }
+
+  async function handleUpdateConfirm(
+    id: string,
+    status: 'active' | 'inactive' | 'retired',
+    healthStatus: 'healthy' | 'injured' | 'sick',
+  ) {
+    const raw = userHorse.find(h => h._id === id);
+    if (raw) {
+      if (raw.status !== status) await horseOwnerService.updateHorseStatus(id, status);
+      if (raw.healthStatus !== healthStatus) await horseOwnerService.updateHorseHealthStatus(id, healthStatus);
+    }
+    setUpdateTarget(null);
+    setRefreshSeed(s => s + 1);
+  }
+
   const horses: HorseCard[] = userHorse.map(mapHorseToCard);
 
   // Status + class filters are client-side (enum fields, small dataset per page)
@@ -434,6 +597,13 @@ export default function HorsesPage() {
       <RegisterHorseModal
         onClose={() => setShowRegister(false)}
         onCreated={() => { setShowRegister(false); setPage(1); setRefreshSeed(s => s + 1); }}
+      />
+    )}
+    {updateTarget && (
+      <UpdateStatusModal
+        target={updateTarget}
+        onClose={() => setUpdateTarget(null)}
+        onConfirm={handleUpdateConfirm}
       />
     )}
     <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -512,6 +682,7 @@ export default function HorsesPage() {
                 key={horse.id}
                 horse={horse}
                 onViewProfile={() => setProfileHorseId(horse.id)}
+                onOpenUpdate={() => handleOpenUpdate(horse.id)}
               />
             ))}
           </div>

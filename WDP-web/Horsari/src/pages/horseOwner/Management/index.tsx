@@ -25,9 +25,11 @@ function ComingSoon({ title }: { title: string }) {
 function ActiveView({
   tab,
   onPendingChange,
+  onTabChange,
 }: {
   tab: ManagementTab;
   onPendingChange: (count: number) => void;
+  onTabChange: (tab: ManagementTab) => void;
 }) {
   switch (tab) {
     case "Horses":      return <HorsesPage />;
@@ -35,7 +37,7 @@ function ActiveView({
     case "Stable":      return <ComingSoon title="Stable" />;
     case "Marketplace": return <ComingSoon title="Marketplace" />;
     case "Financials":  return <FinancialsPage />;
-    case "Races":       return <RacesPage />;
+    case "Races":       return <RacesPage onNavigateToInvitations={() => onTabChange("Invitations")} />;
     case "Invitations": return <InvitationsPage onPendingChange={onPendingChange} />;
   }
 }
@@ -55,7 +57,7 @@ export default function ManagementPage() {
         onTabChange={setActiveTab}
         pendingInvitations={pendingInvitations}
       />
-      <ActiveView tab={activeTab} onPendingChange={setPendingInvitations} />
+      <ActiveView tab={activeTab} onPendingChange={setPendingInvitations} onTabChange={setActiveTab} />
     </div>
   );
 }

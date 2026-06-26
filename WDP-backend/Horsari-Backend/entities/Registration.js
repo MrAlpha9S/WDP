@@ -9,7 +9,7 @@ const registrationSchema = new mongoose.Schema(
         horseId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Horse',
-            required: true,
+            default: null,
         },
         approvedByAdminId: {
             type: mongoose.Schema.Types.ObjectId,

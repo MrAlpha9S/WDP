@@ -25,7 +25,6 @@ export interface Invitation {
   jockey: string;
   prize: string;
   distance: string;
-  grade: string;
   image: string;
   sentBy: string;
   sentAt: string;

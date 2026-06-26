@@ -47,6 +47,12 @@ class InvitationService {
         }
 
         const invitation = await InvitationRepository.create(data);
+
+        // Keep Registration.horseId in sync — set once when the first invitation is created
+        if (!registration.horseId) {
+            await Registration.findByIdAndUpdate(registrationId, { horseId });
+        }
+
         return {
             code: 201,
             message: "Invitation created successfully",

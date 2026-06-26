@@ -431,9 +431,9 @@ function RaceSkeleton() {
 }
 
 // ── Register tile ─────────────────────────────────────────────────────────────
-function RegisterTile() {
+function RegisterTile({ onClick }: { onClick: () => void }) {
   return (
-    <div className="bg-[#161616] rounded-2xl border border-dashed border-white/15 flex flex-col items-center justify-center gap-3 min-h-[280px] cursor-pointer hover:border-red-700/50 hover:bg-red-950/10 transition-all duration-200 group">
+    <div onClick={onClick} className="bg-[#161616] rounded-2xl border border-dashed border-white/15 flex flex-col items-center justify-center gap-3 min-h-[280px] cursor-pointer hover:border-red-700/50 hover:bg-red-950/10 transition-all duration-200 group">
       <div className="w-10 h-10 rounded-full border border-white/15 flex items-center justify-center group-hover:border-red-600/50 transition-colors duration-200">
         <Plus size={18} className="text-gray-600 group-hover:text-red-500 transition-colors duration-200" />
       </div>
@@ -477,7 +477,7 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function RacesPage() {
+export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInvitations: () => void }) {
   const navigate = useNavigate();
   const [races, setRaces] = useState<MyRace[]>([]);
   const [loading, setLoading] = useState(true);
@@ -629,7 +629,7 @@ export default function RacesPage() {
           )}
           {activeFilter === "ALL" && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 w-full mt-4">
-              <RegisterTile />
+              <RegisterTile onClick={onNavigateToInvitations} />
             </div>
           )}
         </div>
@@ -647,7 +647,7 @@ export default function RacesPage() {
                 onLive={() => race.raceRoundId && navigate(`/owner/race-monitor/${race.raceRoundId}`)}
               />
             ))}
-            {activeFilter === "ALL" && page === 1 && <RegisterTile />}
+            {activeFilter === "ALL" && page === 1 && <RegisterTile onClick={onNavigateToInvitations} />}
           </div>
           <PaginationBar page={page} totalPages={totalPages} onPrev={() => setPage(p => p - 1)} onNext={() => setPage(p => p + 1)} />
         </>

@@ -97,10 +97,21 @@ class HorseOwnerService {
             const filter = {};
             if (search) filter.horseName = { $regex: search, $options: 'i' };
             const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
-            const [items, totalItems] = await Promise.all([
+            const [rawItems, totalItems] = await Promise.all([
                 HorseRepository.findByOwnerIdPaginated(ownerId, filter, sortObj, skip, limit),
                 HorseRepository.countByOwnerIdFiltered(ownerId, filter),
             ]);
+
+            const items = await Promise.all(rawItems.map(async (horse) => {
+                const invitations = await Invitation.find({ horseId: horse._id, registrationId: { $ne: null } }).select('registrationId').lean();
+                const registrationIds = invitations.map(inv => inv.registrationId);
+                const raceResults = registrationIds.length > 0
+                    ? await RaceResult.find({ registrationId: { $in: registrationIds } }).select('finishPosition').lean()
+                    : [];
+                const horseObj = horse.toObject ? horse.toObject() : horse;
+                return { ...horseObj, raceResults };
+            }));
+
             return {
                 code: 200,
                 data: {
@@ -641,6 +652,35 @@ class HorseOwnerService {
             horse.healthStatus = healthStatus;
             await horse.save();
             return { code: 200, msg: 'Horse health status updated successfully' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async getRaceEligibilityMetadata(ruleId) {
+        try {
+            // ruleId may be a plain string ID or a nested object when serialized from query params
+            const id = (typeof ruleId === 'object' && ruleId !== null) ? ruleId._id : ruleId;
+            if (!id) return { code: 400, msg: 'ruleId is required' };
+
+            const rule = await RaceEligibilityRule.findById(id).lean();
+            if (!rule) return { code: 404, msg: 'Eligibility rule not found' };
+
+            return {
+                code: 200,
+                data: {
+                    eligibilityRules: [{
+                        raceType: rule.raceType ?? null,
+                        minWins: rule.minRacesWon ?? null,
+                        maxWins: null,
+                        minAge: rule.minAge ?? null,
+                        maxAge: rule.maxAge ?? null,
+                        requiredGender: rule.requiredGender ?? null,
+                        requiredBreed: rule.requiredBreed ?? null,
+                    }],
+                },
+                msg: 'Race eligibility metadata retrieved successfully',
+            };
         } catch (error) {
             return { code: 500, msg: error.message };
         }

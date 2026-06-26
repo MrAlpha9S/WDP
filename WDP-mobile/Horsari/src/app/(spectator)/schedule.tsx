@@ -43,6 +43,9 @@ function formatViDateTime(dateStr: string): string {
   return `${hh}:${mm} • ${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
 }
 
+const isRealTournament = (t: { tournamentName: string } | null | undefined): boolean =>
+  !!t && t.tournamentName !== 'Non-tournament';
+
 function statusLabel(s: string): { label: string; color: string } {
   if (s === 'running')              return { label: 'Đang chạy',      color: Palette.red };
   if (s === 'prepared')             return { label: 'Chuẩn bị',       color: Palette.amber };
@@ -69,9 +72,9 @@ function RaceCard({ item, onPress }: { item: RaceScheduleItem; onPress?: () => v
       <View style={styles.raceCardTop}>
         <View style={{ flex: 1 }}>
           <Text style={styles.raceName} numberOfLines={2}>{item.roundName}</Text>
-          {item.tournament && (
+          {isRealTournament(item.tournament) && (
             <Text style={styles.raceTournament} numberOfLines={1}>
-              {item.tournament.tournamentName}
+              {item.tournament!.tournamentName}
             </Text>
           )}
         </View>
