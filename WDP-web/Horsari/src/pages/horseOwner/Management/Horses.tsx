@@ -173,58 +173,115 @@ function HorseCardItem({
   );
 }
 
-// ── Update status modal ───────────────────────────────────────────────────────
-interface UpdateTarget {
-  id: string;
-  name: string;
+// ── Edit horse modal ──────────────────────────────────────────────────────────
+interface EditHorseForm {
+  horseName: string;
+  breed: string;
+  gender: "male" | "female" | "";
+  dateOfBirth: string;
   status: 'active' | 'inactive' | 'retired';
   healthStatus: 'healthy' | 'injured' | 'sick';
 }
 
-function UpdateStatusModal({
-  target,
+function EditHorseModal({
+  horse,
   onClose,
-  onConfirm,
+  onSaved,
 }: {
-  target: UpdateTarget;
+  horse: Horse;
   onClose: () => void;
-  onConfirm: (id: string, status: 'active' | 'inactive' | 'retired', healthStatus: 'healthy' | 'injured' | 'sick') => Promise<void>;
+  onSaved: () => void;
 }) {
-  const [status, setStatus] = useState(target.status);
-  const [health, setHealth] = useState(target.healthStatus);
+  const currentImg = (horse as Horse & { img?: string }).img ?? null;
+
+  const [form, setForm] = useState<EditHorseForm>({
+    horseName: horse.horseName,
+    breed: horse.breed,
+    gender: (horse.gender as "male" | "female") || "",
+    dateOfBirth: horse.dateOfBirth ? horse.dateOfBirth.split('T')[0] : "",
+    status: (horse.status as 'active' | 'inactive' | 'retired') || 'active',
+    healthStatus: (horse.healthStatus as 'healthy' | 'injured' | 'sick') || 'healthy',
+  });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function handleField<K extends keyof EditHorseForm>(key: K, val: EditHorseForm[K]) {
+    setForm(f => ({ ...f, [key]: val }));
+    setError(null);
+  }
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    setImagePreview(file ? URL.createObjectURL(file) : null);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.horseName.trim()) { setError("Horse name is required."); return; }
+    if (!form.breed.trim())     { setError("Breed is required."); return; }
+    if (!form.gender)           { setError("Please select a gender."); return; }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const updates: Promise<unknown>[] = [
+        horseOwnerService.updateHorse(horse._id, {
+          horseName: form.horseName.trim(),
+          breed: form.breed.trim(),
+          gender: form.gender as "male" | "female",
+          ...(form.dateOfBirth && { dateOfBirth: form.dateOfBirth }),
+        }),
+      ];
+      if (form.status !== horse.status)
+        updates.push(horseOwnerService.updateHorseStatus(horse._id, form.status));
+      if (form.healthStatus !== horse.healthStatus)
+        updates.push(horseOwnerService.updateHorseHealthStatus(horse._id, form.healthStatus));
+      if (imageFile)
+        updates.push(horseOwnerService.uploadHorseImage(horse._id, imageFile));
+      await Promise.all(updates);
+      onSaved();
+    } catch (err: unknown) {
+      const msg = (err as { msg?: string })?.msg ?? (err instanceof Error ? err.message : "Failed to update horse.");
+      setError(msg);
+      setSubmitting(false);
+    }
+  }
+
+  const inputCls = "w-full bg-[#1e1e1e] border border-white/10 rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
+  const labelCls = "block text-[10.5px] font-bold tracking-widest text-gray-500 uppercase mb-1.5";
+  const idle = "text-gray-600 border-white/8 bg-transparent hover:border-white/20 hover:text-gray-400";
 
   const statusOptions: { label: string; value: 'active' | 'inactive' | 'retired'; active: string }[] = [
-    { label: "Active", value: "active", active: "text-green-400 border-green-500/50 bg-green-500/10" },
+    { label: "Active",   value: "active",   active: "text-green-400 border-green-500/50 bg-green-500/10" },
     { label: "Inactive", value: "inactive", active: "text-gray-300 border-gray-500/50 bg-gray-500/10" },
-    { label: "Retired", value: "retired", active: "text-blue-400 border-blue-500/50 bg-blue-500/10" },
+    { label: "Retired",  value: "retired",  active: "text-blue-400 border-blue-500/50 bg-blue-500/10" },
   ];
 
   const healthOptions: { label: string; value: 'healthy' | 'injured' | 'sick'; active: string }[] = [
     { label: "Healthy", value: "healthy", active: "text-green-400 border-green-500/50 bg-green-500/10" },
     { label: "Injured", value: "injured", active: "text-red-400 border-red-500/50 bg-red-500/10" },
-    { label: "Sick", value: "sick", active: "text-yellow-400 border-yellow-500/50 bg-yellow-500/10" },
+    { label: "Sick",    value: "sick",    active: "text-yellow-400 border-yellow-500/50 bg-yellow-500/10" },
   ];
 
-  const idle = "text-gray-600 border-white/8 bg-transparent hover:border-white/20 hover:text-gray-400";
-
-  async function handleConfirm() {
-    setSubmitting(true);
-    await onConfirm(target.id, status, health);
-  }
+  const displayImg = imagePreview ?? currentImg;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-sm bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
         style={{ fontFamily: "'DM Sans', sans-serif" }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
           <div>
-            <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">Update Horse</p>
+            <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">Edit Horse</p>
             <h2 className="text-[17px] font-bold text-white mt-0.5" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {target.name}
+              {horse.horseName}
             </h2>
           </div>
           <button
@@ -235,15 +292,99 @@ function UpdateStatusModal({
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        {/* Scrollable body */}
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5 overflow-y-auto">
+
+          {/* Photo */}
           <div>
-            <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-2.5">Racing Status</p>
+            <p className={labelCls}>Photo</p>
+            <div
+              onClick={() => fileRef.current?.click()}
+              className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-[#1a1a1a] flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group overflow-hidden relative"
+            >
+              {displayImg && (
+                <img
+                  src={displayImg}
+                  alt="preview"
+                  className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-75 transition-opacity"
+                />
+              )}
+              <div className={`relative z-10 flex items-center gap-2 ${displayImg ? "bg-black/50 px-3 py-1.5 rounded-full" : ""}`}>
+                <ImagePlus size={16} className={displayImg ? "text-gray-300" : "text-gray-600 group-hover:text-gray-400 transition-colors"} />
+                <p className={`text-[12px] ${displayImg ? "text-gray-200" : "text-gray-600 group-hover:text-gray-400 transition-colors"}`}>
+                  {displayImg ? "Change photo" : "Upload photo (optional)"}
+                </p>
+              </div>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+            </div>
+          </div>
+
+          {/* Basic info */}
+          <div>
+            <label className={labelCls}>Horse Name *</label>
+            <input
+              type="text"
+              value={form.horseName}
+              onChange={e => handleField("horseName", e.target.value)}
+              placeholder="e.g. Thunder Bolt"
+              maxLength={60}
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Breed *</label>
+            <div className="relative">
+              <select
+                value={form.breed}
+                onChange={e => handleField("breed", e.target.value)}
+                className={`${inputCls} appearance-none pr-8 cursor-pointer`}
+              >
+                <option value="">Select breed…</option>
+                {BREEDS.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Gender *</label>
+              <div className="relative">
+                <select
+                  value={form.gender}
+                  onChange={e => handleField("gender", e.target.value as "male" | "female" | "")}
+                  className={`${inputCls} appearance-none pr-8 cursor-pointer`}
+                >
+                  <option value="">Select…</option>
+                  <option value="male">Male (Colt)</option>
+                  <option value="female">Female (Filly)</option>
+                </select>
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Date of Birth</label>
+              <input
+                type="date"
+                value={form.dateOfBirth}
+                onChange={e => handleField("dateOfBirth", e.target.value)}
+                max={new Date().toISOString().split("T")[0]}
+                className={`${inputCls} cursor-pointer`}
+              />
+            </div>
+          </div>
+
+          {/* Status */}
+          <div>
+            <p className={labelCls}>Racing Status</p>
             <div className="grid grid-cols-3 gap-2">
               {statusOptions.map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => setStatus(opt.value)}
-                  className={`py-2.5 rounded-lg border text-[12px] font-semibold transition-all duration-150 ${status === opt.value ? opt.active : idle}`}
+                  type="button"
+                  onClick={() => handleField("status", opt.value)}
+                  className={`py-2.5 rounded-lg border text-[12px] font-semibold transition-all duration-150 ${form.status === opt.value ? opt.active : idle}`}
                 >
                   {opt.label}
                 </button>
@@ -252,19 +393,26 @@ function UpdateStatusModal({
           </div>
 
           <div>
-            <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-2.5">Health Status</p>
+            <p className={labelCls}>Health Status</p>
             <div className="grid grid-cols-3 gap-2">
               {healthOptions.map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => setHealth(opt.value)}
-                  className={`py-2.5 rounded-lg border text-[12px] font-semibold transition-all duration-150 ${health === opt.value ? opt.active : idle}`}
+                  type="button"
+                  onClick={() => handleField("healthStatus", opt.value)}
+                  className={`py-2.5 rounded-lg border text-[12px] font-semibold transition-all duration-150 ${form.healthStatus === opt.value ? opt.active : idle}`}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
           </div>
+
+          {error && (
+            <p className="text-[12px] text-red-400 bg-red-900/15 border border-red-700/30 rounded-lg px-3 py-2.5">
+              {error}
+            </p>
+          )}
 
           <div className="flex gap-3 pt-1">
             <button
@@ -275,14 +423,14 @@ function UpdateStatusModal({
               Cancel
             </button>
             <button
-              onClick={handleConfirm}
+              type="submit"
               disabled={submitting}
               className="flex-1 py-2.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:bg-red-900/50 disabled:text-red-700 text-white text-[12.5px] font-bold tracking-wide transition-all duration-150 flex items-center justify-center gap-2"
             >
-              {submitting ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : "Apply Changes"}
+              {submitting ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : "Save Changes"}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
@@ -525,7 +673,7 @@ export default function HorsesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [profileHorseId, setProfileHorseId] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
-  const [updateTarget, setUpdateTarget] = useState<UpdateTarget | null>(null);
+  const [editTarget, setEditTarget] = useState<Horse | null>(null);
   const [refreshSeed, setRefreshSeed] = useState(0);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -556,29 +704,9 @@ export default function HorsesPage() {
     return () => { cancelled = true; };
   }, [page, debouncedSearch, refreshSeed]);
 
-  function handleOpenUpdate(horseId: string) {
+  function handleOpenEdit(horseId: string) {
     const raw = userHorse.find(h => h._id === horseId);
-    if (!raw) return;
-    setUpdateTarget({
-      id: raw._id,
-      name: raw.horseName,
-      status: raw.status as 'active' | 'inactive' | 'retired',
-      healthStatus: raw.healthStatus as 'healthy' | 'injured' | 'sick',
-    });
-  }
-
-  async function handleUpdateConfirm(
-    id: string,
-    status: 'active' | 'inactive' | 'retired',
-    healthStatus: 'healthy' | 'injured' | 'sick',
-  ) {
-    const raw = userHorse.find(h => h._id === id);
-    if (raw) {
-      if (raw.status !== status) await horseOwnerService.updateHorseStatus(id, status);
-      if (raw.healthStatus !== healthStatus) await horseOwnerService.updateHorseHealthStatus(id, healthStatus);
-    }
-    setUpdateTarget(null);
-    setRefreshSeed(s => s + 1);
+    if (raw) setEditTarget(raw);
   }
 
   const horses: HorseCard[] = userHorse.map(mapHorseToCard);
@@ -599,11 +727,11 @@ export default function HorsesPage() {
         onCreated={() => { setShowRegister(false); setPage(1); setRefreshSeed(s => s + 1); }}
       />
     )}
-    {updateTarget && (
-      <UpdateStatusModal
-        target={updateTarget}
-        onClose={() => setUpdateTarget(null)}
-        onConfirm={handleUpdateConfirm}
+    {editTarget && (
+      <EditHorseModal
+        horse={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => { setEditTarget(null); setRefreshSeed(s => s + 1); }}
       />
     )}
     <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -682,7 +810,7 @@ export default function HorsesPage() {
                 key={horse.id}
                 horse={horse}
                 onViewProfile={() => setProfileHorseId(horse.id)}
-                onOpenUpdate={() => handleOpenUpdate(horse.id)}
+                onOpenUpdate={() => handleOpenEdit(horse.id)}
               />
             ))}
           </div>

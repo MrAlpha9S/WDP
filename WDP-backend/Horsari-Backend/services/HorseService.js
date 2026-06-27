@@ -4,7 +4,7 @@ class HorseService {
     // Create horse
     async createHorse(horseData) {
         try {
-            const { ownerId, horseName, breed, age, gender, color, healthStatus, registrationDate, status } = horseData;
+            const { ownerId, horseName, breed, age, gender, color, healthStatus, registrationDate, status, dateOfBirth } = horseData;
 
             // Validate required fields
             if (!ownerId || !horseName) {
@@ -24,6 +24,7 @@ class HorseService {
                 healthStatus: healthStatus || 'healthy',
                 registrationDate: registrationDate || new Date(),
                 status: status || 'active',
+                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
             });
 
             return {

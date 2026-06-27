@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import MuxPlayer from "@mux/mux-player-react";
 import { Camera, ChevronDown, ChevronRight, Loader2, ShieldAlert, Trophy } from "lucide-react";
-import { CAMERAS } from "../../shared/data/RaceData";
+import { CAMERAS, horseColor } from "../../shared/data/RaceData";
 import { useRaceSocket } from "../../providers/useRaceSocket";
 import type { LiveHorse } from "../../providers/useRaceSocket";
-
-// ── Constants (ported from mobile) ───────────────────────────────────────────
-const HORSE_COLORS = [
-    "#E74C3C", "#3498DB", "#2ECC71", "#F39C12",
-    "#9B59B6", "#1ABC9C", "#E67E22", "#C0392B",
-];
-function horseColor(num: number) {
-    return HORSE_COLORS[(num - 1) % HORSE_COLORS.length];
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatElapsed(seconds: number) {

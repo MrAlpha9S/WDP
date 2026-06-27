@@ -50,6 +50,95 @@ export interface HorseViolationEntry {
   violationStatus: string;
 }
 
+export interface DashboardActivity {
+  type: 'registration' | 'result' | 'invitation' | 'violation';
+  icon: 'check' | 'user' | 'alert';
+  time: string;
+  text: string;
+  highlight: string;
+}
+
+export interface DashboardSummary {
+  totalHorses: number;
+  upcomingRacesCount: number;
+  activeInvitationsCount: number;
+  recentActivity: DashboardActivity[];
+}
+
+export interface TopPerformer {
+  id: string;
+  name: string;
+  img: string | null;
+  winRate: number;
+  wins: number;
+  totalRaces: number;
+}
+
+export interface BrowsableRace {
+  id: string;
+  name: string;
+  date: string | null;
+  location: string | null;
+  status: string;
+  isLive: boolean;
+  muxPlaybackId: string | null;
+  tournament: { id: string; name: string } | null;
+  prizes: { first: number; second: number; third: number };
+  maxParticipants: number | null;
+  currentParticipants: number;
+  entryFee: number;
+  minimalRidingFees: number;
+  eligibility: { requiredBreed: string | null; requiredGender: string | null; minAge: number | null; maxAge: number | null } | null;
+  ownerRegistration: { status: string; registrationId: string } | null;
+}
+
+export interface JockeyViolationEntry {
+  _id: string;
+  raceRound: { _id: string; roundName: string; raceDate: string; };
+  violationType: { violationName: string; category: string; severity: number; defaultPenalty: string; } | null;
+  description: string;
+  severity: number;
+  actualPenalty: string;
+  stewardAction: string;
+  violationStatus: string;
+}
+
+export interface JockeyProfileData {
+  jockey: {
+    _id: string; matchesRaced: number; totalWins: number; ranking: number;
+    licenseStatus: string; status: string; weight: number;
+    fullName: string; image: string | null; dateOfBirth: string;
+  };
+  stats: { totalRaces: number; wins: number; winRate: number; totalPrize: number; };
+  recentRaces: { race: string; position: string; horse: string; date: string; }[];
+  violations: JockeyViolationEntry[];
+}
+
+export interface FinancialViolation {
+  type: string; category: string | null; severity: number;
+  penalty: string; stewardAction: string; status: string;
+}
+
+export interface FinancialRaceRow {
+  registrationId: string;
+  race: { id: string | null; name: string; date: string | null; location: string | null; };
+  horse: { id: string | null; name: string; };
+  jockey: { id: string | null; name: string; percentagePayout: number; payout: number; } | null;
+  finishPosition: number | null;
+  prizeMoney: number;
+  jockeyPayout: number;
+  netOutcome: number;
+  resultStatus: string | null;
+  registrationStatus: string;
+  violations: FinancialViolation[];
+}
+
+export interface FinancialSummary {
+  totalRaces: number; totalWins: number; totalLosses: number;
+  totalPrize: number; totalJockeyPayout: number; netProfit: number;
+  totalViolations: number; balance: number;
+}
+
 export interface HorseProfileData {
   horse: Horse;
   stats: { totalRaces: number; wins: number; podiums: number; losses: number; winRate: number; totalPrize: number; };
@@ -124,10 +213,11 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  allJockeyInvitations: async (page = 1, limit = 10) => {
+  allJockeyInvitations: async (page = 1, limit = 10, search?: string) => {
     try {
-      const response = await api.get('/horseowner/invitations', { params: { page, limit } });
-      console.log('allJockeyInvitations: ', response.data);
+      const params: Record<string, unknown> = { page, limit };
+      if (search) params.search = search;
+      const response = await api.get('/horseowner/invitations', { params });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -197,6 +287,69 @@ export const horseOwnerService = {
     try {
       const response = await api.get(`/horseowner/horses/${horseId}/profile`);
       return response.data as { data: HorseProfileData };
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  getDashboardSummary: async () => {
+    try {
+      const response = await api.get('/horseowner/dashboard/summary');
+      return response.data as { data: DashboardSummary };
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  getTopPerformers: async (limit = 5) => {
+    try {
+      const response = await api.get('/horseowner/dashboard/top-performers', { params: { limit } });
+      return response.data as { data: TopPerformer[] };
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  browseRaces: async (page = 1, limit = 12, search?: string, status?: string) => {
+    try {
+      const params: any = { page, limit };
+      if (search) params.search = search;
+      if (status) params.status = status;
+      const response = await api.get('/horseowner/races/browse', { params });
+      return response.data as {
+        data: {
+          items: BrowsableRace[];
+          pagination: { totalItems: number; totalPages: number; currentPage: number; limit: number };
+        };
+      };
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  getJockeyProfile: async (jockeyId: string) => {
+    try {
+      const response = await api.get(`/horseowner/jockeys/${jockeyId}/profile`);
+      return response.data as { data: JockeyProfileData };
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  getFinancialSummary: async () => {
+    try {
+      const response = await api.get('/horseowner/financials/summary');
+      return response.data as { data: FinancialSummary };
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  getFinancialRaceResults: async (page = 1, limit = 10, search?: string) => {
+    try {
+      const params: any = { page, limit };
+      if (search) params.search = search;
+      const response = await api.get('/horseowner/financials/race-results', { params });
+      return response.data as {
+        data: {
+          items: FinancialRaceRow[];
+          pagination: { totalItems: number; totalPages: number; currentPage: number; limit: number; };
+        };
+      };
     } catch (error: any) {
       throw error.response?.data || error;
     }

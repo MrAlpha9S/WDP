@@ -40,4 +40,16 @@ router.put('/horses/:horseId/health-status', authMiddleware, authHorseOwner, Hor
 
 router.get('/race-eligibility-metadata', authMiddleware, authHorseOwner, HorseOwnerController.getRaceEligibilityMetadata);
 
+// Dashboard
+router.get('/dashboard/summary',        authMiddleware, authHorseOwner, HorseOwnerController.getDashboardSummary);
+router.get('/dashboard/top-performers', authMiddleware, authHorseOwner, HorseOwnerController.getTopPerformers);
+router.get('/races/browse',             authMiddleware, authHorseOwner, HorseOwnerController.browseRaces);
+
+// Jockey profile (race history + violations) visible to horse owners
+router.get('/jockeys/:jockeyId/profile', authMiddleware, authHorseOwner, HorseOwnerController.getJockeyProfile);
+
+// Financials
+router.get('/financials/summary', authMiddleware, authHorseOwner, HorseOwnerController.getFinancialSummary);
+router.get('/financials/race-results', authMiddleware, authHorseOwner, HorseOwnerController.getFinancialRaceResults);
+
 module.exports = router;

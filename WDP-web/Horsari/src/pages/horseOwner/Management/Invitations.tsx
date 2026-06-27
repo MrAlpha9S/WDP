@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Calendar, MapPin, Flag, Check, X,
-  Info, Ruler, Loader2, Users, Trophy, ChevronLeft, ChevronRight,
+  Info, Ruler, Loader2, Users, Trophy, ChevronLeft, ChevronRight, Search,
 } from "lucide-react";
 import { type Invitation, type InviteJockeyStatus, type InviteStatus } from "../../../types/Racingtypes";
 import { horseOwnerService } from "../../../api/horseOwnerService";
@@ -425,34 +425,56 @@ interface InvitationsPageProps {
 
 type Tab = "race" | "jockey";
 
+const DEBOUNCE_MS = 350;
+
 export default function InvitationsPage({ onPendingChange }: InvitationsPageProps) {
   const [activeTab, setActiveTab] = useState<Tab>("race");
 
   // Race invitations
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [loadingRace, setLoadingRace] = useState(true);
-  const [errorRace, setErrorRace] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Invitation | null>(null);
-  const [racePage, setRacePage] = useState(1);
+  const [invitations, setInvitations]     = useState<Invitation[]>([]);
+  const [raceTotalPages, setRaceTotalPages] = useState(1);
+  const [loadingRace, setLoadingRace]     = useState(true);
+  const [errorRace, setErrorRace]         = useState<string | null>(null);
+  const [selected, setSelected]           = useState<Invitation | null>(null);
+  const [racePage, setRacePage]           = useState(1);
+  const [raceSearch, setRaceSearch]       = useState("");
+  const [raceSearchInput, setRaceSearchInput] = useState("");
 
   // Jockey invitations
-  const [jockeyInvs, setJockeyInvs] = useState<JockeyInvitation[]>([]);
-  const [loadingJockey, setLoadingJockey] = useState(true);
-  const [errorJockey, setErrorJockey] = useState<string | null>(null);
-  const [jockeyPage, setJockeyPage] = useState(1);
+  const [jockeyInvs, setJockeyInvs]           = useState<JockeyInvitation[]>([]);
+  const [jockeyTotalPages, setJockeyTotalPages] = useState(1);
+  const [loadingJockey, setLoadingJockey]     = useState(true);
+  const [errorJockey, setErrorJockey]         = useState<string | null>(null);
+  const [jockeyPage, setJockeyPage]           = useState(1);
+  const [jockeySearch, setJockeySearch]       = useState("");
+  const [jockeySearchInput, setJockeySearchInput] = useState("");
 
-  // Fetch race invitations
+  // Debounce: flush input → committed search and reset page
+  useEffect(() => {
+    const t = setTimeout(() => { setRaceSearch(raceSearchInput); setRacePage(1); }, DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [raceSearchInput]);
+
+  useEffect(() => {
+    const t = setTimeout(() => { setJockeySearch(jockeySearchInput); setJockeyPage(1); }, DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [jockeySearchInput]);
+
+  // Fetch race invitations (re-runs on page or search change)
   useEffect(() => {
     let cancelled = false;
-    async function fetch() {
+    async function load() {
       try {
         setLoadingRace(true);
         setErrorRace(null);
-        const data = await horseOwnerService.getHorseOwnerInvitations();
+        const data = await horseOwnerService.getHorseOwnerInvitations(
+          racePage, INV_PAGE_SIZE, undefined, raceSearch || undefined, 'createdAt', 'desc',
+        );
         if (cancelled) return;
         const raw: unknown[] = data?.data?.items ?? [];
         const mapped = raw.map((item) => mapApiToInvitation(item));
         setInvitations(mapped);
+        setRaceTotalPages(data?.data?.pagination?.totalPages ?? 1);
         onPendingChange?.(mapped.filter((i) => i.status === "pending").length);
       } catch (err: unknown) {
         if (!cancelled) setErrorRace(err instanceof Error ? err.message : "Failed to load invitations.");
@@ -460,30 +482,33 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
         if (!cancelled) setLoadingRace(false);
       }
     }
-    fetch();
+    load();
     return () => { cancelled = true; };
-  }, [onPendingChange]);
+  }, [racePage, raceSearch, onPendingChange]);
 
-  // Fetch jockey invitations
+  // Fetch jockey invitations (re-runs on page or search change)
   useEffect(() => {
     let cancelled = false;
-    async function fetch() {
+    async function load() {
       try {
         setLoadingJockey(true);
         setErrorJockey(null);
-        const data = await horseOwnerService.allJockeyInvitations();
+        const data = await horseOwnerService.allJockeyInvitations(
+          jockeyPage, INV_PAGE_SIZE, jockeySearch || undefined,
+        );
         if (cancelled) return;
         const raw: unknown[] = data?.data?.invitations ?? data?.data ?? (Array.isArray(data) ? data : []);
         setJockeyInvs(raw.map((item, i) => mapApiToJockeyInvitation(item, i)));
+        setJockeyTotalPages(data?.data?.pagination?.totalPages ?? 1);
       } catch (err: unknown) {
         if (!cancelled) setErrorJockey(err instanceof Error ? err.message : "Failed to load jockey invitations.");
       } finally {
         if (!cancelled) setLoadingJockey(false);
       }
     }
-    fetch();
+    load();
     return () => { cancelled = true; };
-  }, []);
+  }, [jockeyPage, jockeySearch]);
 
   // Race handlers
   async function handleAccept(id: string) {
@@ -503,21 +528,12 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     });
   }
 
-
-
-  const racePendingCount = invitations.filter((i) => i.status === "pending").length;
+  const racePendingCount   = invitations.filter((i) => i.status === "pending").length;
   const jockeyPendingCount = jockeyInvs.filter((i) => i.status === "pending").length;
   const selectedLive = selected ? invitations.find((i) => i.id === selected.id) ?? null : null;
 
-  // Sorted full lists (pending first)
-  const sortedInvitations = invitations.slice().sort((a) => (a.status === "pending" ? -1 : 1));
-  const sortedJockeyInvs = jockeyInvs.slice().sort((a) => (a.status === "pending" ? -1 : 1));
-
-  // Paginated slices
-  const raceTotalPages = Math.max(1, Math.ceil(sortedInvitations.length / INV_PAGE_SIZE));
-  const jockeyTotalPages = Math.max(1, Math.ceil(sortedJockeyInvs.length / INV_PAGE_SIZE));
-  const pagedInvitations = sortedInvitations.slice((racePage - 1) * INV_PAGE_SIZE, racePage * INV_PAGE_SIZE);
-  const pagedJockeyInvs = sortedJockeyInvs.slice((jockeyPage - 1) * INV_PAGE_SIZE, jockeyPage * INV_PAGE_SIZE);
+  const pagedInvitations = invitations;
+  const pagedJockeyInvs  = jockeyInvs;
 
   return (
     <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -550,8 +566,8 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
           </div>
         </div>
         <div className="flex items-center gap-1 p-1 bg-[#1a1a1a] border border-white/8 rounded-xl w-fit">
-          <TabButton active={activeTab === "race"} label="Race Invitations" count={racePendingCount} onClick={() => { setActiveTab("race"); setRacePage(1); }} />
-          <TabButton active={activeTab === "jockey"} label="Jockey Invitations" count={jockeyPendingCount} onClick={() => { setActiveTab("jockey"); setJockeyPage(1); }} />
+          <TabButton active={activeTab === "race"} label="Race Invitations" count={racePendingCount} onClick={() => { setActiveTab("race"); setRacePage(1); setRaceSearch(""); setRaceSearchInput(""); }} />
+          <TabButton active={activeTab === "jockey"} label="Jockey Invitations" count={jockeyPendingCount} onClick={() => { setActiveTab("jockey"); setJockeyPage(1); setJockeySearch(""); setJockeySearchInput(""); }} />
         </div>
       </header>
       <div className="flex-1 pt-5">
@@ -559,6 +575,18 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
         {/* Race tab */}
         {activeTab === "race" && (
           <>
+            {/* Search */}
+            <div className="relative mb-5">
+              <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              <input
+                type="text"
+                value={raceSearchInput}
+                onChange={(e) => setRaceSearchInput(e.target.value)}
+                placeholder="Search by race name…"
+                className="w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-[13px] text-white placeholder-gray-600 focus:outline-none focus:border-white/25 transition-colors duration-150"
+              />
+            </div>
+
             {loadingRace && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading invitations…</div>
@@ -569,11 +597,13 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
               <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorRace}</div>
             )}
             {!loadingRace && !errorRace && invitations.length === 0 && (
-              <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">No race invitations found.</div>
+              <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
+                {raceSearch ? `No results for "${raceSearch}".` : "No race invitations found."}
+              </div>
             )}
             {!loadingRace && !errorRace && invitations.length > 0 && (
               <>
-                {racePendingCount > 0 && (
+                {racePendingCount > 0 && !raceSearch && (
                   <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
                     {racePendingCount} pending {racePendingCount === 1 ? "invitation" : "invitations"} awaiting your response.
                   </p>
@@ -592,6 +622,18 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
         {/* Jockey tab */}
         {activeTab === "jockey" && (
           <>
+            {/* Search */}
+            <div className="relative mb-5">
+              <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              <input
+                type="text"
+                value={jockeySearchInput}
+                onChange={(e) => setJockeySearchInput(e.target.value)}
+                placeholder="Search by jockey or horse name…"
+                className="w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-[13px] text-white placeholder-gray-600 focus:outline-none focus:border-white/25 transition-colors duration-150"
+              />
+            </div>
+
             {loadingJockey && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading jockey invitations…</div>
@@ -602,11 +644,13 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
               <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorJockey}</div>
             )}
             {!loadingJockey && !errorJockey && jockeyInvs.length === 0 && (
-              <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">No jockey invitations found.</div>
+              <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
+                {jockeySearch ? `No results for "${jockeySearch}".` : "No jockey invitations found."}
+              </div>
             )}
             {!loadingJockey && !errorJockey && jockeyInvs.length > 0 && (
               <>
-                {jockeyPendingCount > 0 && (
+                {jockeyPendingCount > 0 && !jockeySearch && (
                   <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
                     {jockeyPendingCount} pending {jockeyPendingCount === 1 ? "invitation" : "invitations"} awaiting jockey response.
                   </p>

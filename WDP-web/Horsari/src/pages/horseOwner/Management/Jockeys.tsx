@@ -205,7 +205,22 @@ export default function JockeysPage() {
   const [regionFilter, setRegionFilter] = useState("Region: Global");
   const [visibleCount, setVisibleCount] = useState(8);
   const [selected, setSelected] = useState<Jockey | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [hiring, setHiring] = useState<Jockey | null>(null);
+
+  async function openDetail(jockey: Jockey) {
+    setSelected(jockey); // open modal immediately with base data
+    setProfileLoading(true);
+    try {
+      const res = await horseOwnerService.getJockeyProfile(String(jockey.id));
+      const { recentRaces } = res.data;
+      setSelected(prev => prev ? { ...prev, recentRaces } : prev);
+    } catch {
+      // silently fall back to empty recentRaces already in jockey object
+    } finally {
+      setProfileLoading(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -313,7 +328,7 @@ export default function JockeysPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {visible.map((jockey) => (
-              <JockeyCard key={jockey.id} jockey={jockey} onDetail={() => setSelected(jockey)} onHire={() => setHiring(jockey)} />
+              <JockeyCard key={jockey.id} jockey={jockey} onDetail={() => openDetail(jockey)} onHire={() => setHiring(jockey)} />
             ))}
           </div>
 

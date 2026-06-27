@@ -2,35 +2,31 @@ import { useState } from "react";
 import NavBar, { type Tab } from "../../components/ownerComponents/Navbar";
 import HomePage from "./HomePage";
 import ManagementPage from "./Management";
-
-// ── Placeholder pages for non-Dashboard tabs ──────────────────────────────────
-// function ComingSoon({ title }: { title: string }) {
-//   return (
-//     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-//       <p
-//         className="text-[32px] font-bold text-white"
-//         style={{ fontFamily: "'Playfair Display', serif" }}
-//       >
-//         {title}
-//       </p>
-//       <p className="text-[14px] text-gray-500">This section is coming soon.</p>
-//     </div>
-//   );
-// }
+import { type ManagementTab } from "./Management/SideBar";
 
 // ── Tab → component map ───────────────────────────────────────────────────────
-function ActiveView({ tab }: { tab: Tab }) {
+function ActiveView({ tab, initialMgmtTab, onNavigate }: {
+  tab: Tab;
+  initialMgmtTab: ManagementTab | null;
+  onNavigate: (mgmtTab: ManagementTab) => void;
+}) {
   switch (tab) {
     case "Dashboard":
-      return <HomePage />;
+      return <HomePage onNavigate={onNavigate} />;
     case "Management":
-      return <ManagementPage />;
+      return <ManagementPage initialTab={initialMgmtTab ?? undefined} />;
   }
 }
 
 // ── Dashboard Page ─────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Dashboard");
+  const [initialMgmtTab, setInitialMgmtTab] = useState<ManagementTab | null>(null);
+
+  function handleNavigate(mgmtTab: ManagementTab) {
+    setInitialMgmtTab(mgmtTab);
+    setActiveTab("Management");
+  }
 
   return (
     <div
@@ -38,7 +34,7 @@ export default function DashboardPage() {
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       <NavBar activeTab={activeTab} onTabChange={setActiveTab} />
-      <ActiveView tab={activeTab} />
+      <ActiveView tab={activeTab} initialMgmtTab={initialMgmtTab} onNavigate={handleNavigate} />
     </div>
   );
 }

@@ -342,11 +342,11 @@ export async function getTournamentsForPrediction(): Promise<TournamentForPredic
 
 export async function getRaceDetail(
   raceRoundId: string,
-): Promise<{ raceRound: any; registrations: RaceDetailRegistration[] } | null> {
+): Promise<{ raceRound: any; registrations: RaceDetailRegistration[]; userPredictions: PredictionItem[] } | null> {
   try {
     const res = await apiClient.get<{
       code: number;
-      data: { raceRound: any; registrations: RaceDetailRegistration[] };
+      data: { raceRound: any; registrations: RaceDetailRegistration[]; userPredictions: PredictionItem[] };
       msg: string;
     }>(`/api/spectator/race-rounds/${raceRoundId}/live`);
     return res.data.code === 200 ? res.data.data : null;

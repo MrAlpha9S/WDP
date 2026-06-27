@@ -199,13 +199,30 @@ export const LOGGED_INCIDENTS: LoggedIncident[] = [
     { id: "2", label: "Interference", horse: "#2 Stormbringer", time: "1:10" },
 ];
 
-export const HORSE_COLORS: Record<number, string> = {
-    1: "#f59e0b",
-    2: "#3b82f6",
-    3: "#10b981",
-    4: "#ef4444",
-    5: "#a855f7",
-};
+// Canonical per-lane colour palette — horse #1 → index 0, wraps for large fields.
+// Keep in sync with WDP-mobile/Horsari/src/app/(spectator)/race/[id].tsx HORSE_COLORS.
+const HORSE_COLOR_PALETTE: string[] = [
+    "#f59e0b", // 1  amber
+    "#3b82f6", // 2  blue
+    "#10b981", // 3  emerald
+    "#ef4444", // 4  red
+    "#a855f7", // 5  purple
+    "#f97316", // 6  orange
+    "#06b6d4", // 7  cyan
+    "#ec4899", // 8  pink
+    "#84cc16", // 9  lime
+    "#14b8a6", // 10 teal
+    "#f43f5e", // 11 rose
+    "#8b5cf6", // 12 violet
+];
+
+export const HORSE_COLORS: Record<number, string> = Object.fromEntries(
+    HORSE_COLOR_PALETTE.map((c, i) => [i + 1, c])
+);
+
+export function horseColor(num: number): string {
+    return HORSE_COLOR_PALETTE[(num - 1) % HORSE_COLOR_PALETTE.length];
+}
 
 export const HORSE_PROGRESS: Record<number, number> = {
     1: 62,

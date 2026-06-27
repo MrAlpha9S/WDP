@@ -43,8 +43,8 @@ function ActiveView({
 }
 
 // ── Management Page ───────────────────────────────────────────────────────────
-export default function ManagementPage() {
-  const [activeTab,          setActiveTab]          = useState<ManagementTab>("Horses");
+export default function ManagementPage({ initialTab }: { initialTab?: ManagementTab }) {
+  const [activeTab,          setActiveTab]          = useState<ManagementTab>(initialTab ?? "Horses");
   const [pendingInvitations, setPendingInvitations] = useState(2);
 
   return (

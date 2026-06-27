@@ -4,7 +4,7 @@ import {
     AlertTriangle, Camera, CheckCircle2, ChevronDown, ChevronRight,
     Loader2, Shield, ShieldAlert, Trophy,
 } from "lucide-react";
-import { CAMERAS, HORSE_COLORS } from "../../shared/data/RaceData";
+import { CAMERAS, horseColor } from "../../shared/data/RaceData";
 import type { HorseEntry } from "../../shared/types/RaceTypes";
 import { useRaceSocket } from "../../providers/useRaceSocket";
 import type { LiveHorse } from "../../providers/useRaceSocket";
@@ -241,7 +241,7 @@ function PositionTrack({
                 {displayHorses.map(horse => {
                     const n = displayHorses.length;
                     const topPct = n <= 1 ? 50 : 8 + ((horse.number - 1) / (n - 1)) * 84;
-                    const color = HORSE_COLORS[horse.number] ?? '#374151';
+                    const color = horseColor(horse.number);
                     return (
                         <div key={`gl-${horse.registrationId}`}
                             className="absolute pointer-events-none"
@@ -254,7 +254,7 @@ function PositionTrack({
                 {displayHorses.map(horse => {
                     const n = displayHorses.length;
                     const topPct = n <= 1 ? 50 : 8 + ((horse.number - 1) / (n - 1)) * 84;
-                    const color = HORSE_COLORS[horse.number] ?? '#6b7280';
+                    const color = horseColor(horse.number);
                     return (
                         <div key={`lbl-${horse.registrationId}`}
                             className="absolute left-2 -translate-y-1/2 flex items-center gap-1 pointer-events-none"
@@ -284,7 +284,7 @@ function PositionTrack({
                     const pct = trackLength > 0 ? (horse.currentDistance / trackLength) * 100 : 0;
                     const n = displayHorses.length;
                     const topPct = n <= 1 ? 50 : 8 + ((horse.number - 1) / (n - 1)) * 84;
-                    const color = HORSE_COLORS[horse.number] ?? "#6b7280";
+                    const color = horseColor(horse.number);
                     const isLeader = leader?.registrationId === horse.registrationId;
                     return (
                         <div key={horse.registrationId}
@@ -316,7 +316,7 @@ function PositionTrack({
             <div className="flex items-center gap-4 mt-4 flex-wrap">
                 {[...displayHorses].sort((a, b) => b.currentDistance - a.currentDistance).map(h => (
                     <div key={h.registrationId} className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: HORSE_COLORS[h.number] ?? "#6b7280" }} />
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: horseColor(h.number) }} />
                         <span className="text-[10px] text-gray-400 font-medium">#{h.number} {h.horseName.split(" ")[0]}</span>
                         {h.finishPosition === 1 && <span className="text-[9px] text-yellow-400 font-black">1st</span>}
                         {h.finishPosition === 2 && <span className="text-[9px] text-gray-300 font-black">2nd</span>}
@@ -376,10 +376,10 @@ const [verificationOpen, setVerificationOpen] = useState(false);
     useEffect(() => {
         if (!raceRound?._id) return;
         Promise.all([
-            refereeService.getViolationTypes('during-race'),
+            refereeService.getViolationTypes('during-race', 1, 200),
             refereeService.getRaceRoundViolations(raceRound._id),
         ]).then(([vtRes, vRes]) => {
-            if (Array.isArray(vtRes.data)) setViolationTypes(vtRes.data);
+            if (Array.isArray(vtRes.data?.items)) setViolationTypes(vtRes.data.items);
             if (Array.isArray(vRes.data)) setActiveViolations(vRes.data);
         }).catch(() => {});
     }, [raceRound?._id]);
@@ -552,7 +552,7 @@ const [verificationOpen, setVerificationOpen] = useState(false);
                                         const pct = trackLength > 0 ? (horse.currentDistance / trackLength) * 100 : 0;
                                         const total = liveHorses?.length ?? 1;
                                         const topPct = total <= 1 ? 50 : 10 + ((horse.number - 1) / (total - 1)) * 80;
-                                        const color = HORSE_COLORS[horse.number] ?? "#6b7280";
+                                        const color = horseColor(horse.number);
                                         const isLeader = leader?.registrationId === horse.registrationId;
                                         return (
                                             <div key={horse.registrationId}

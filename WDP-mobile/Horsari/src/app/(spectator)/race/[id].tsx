@@ -41,9 +41,20 @@ const Palette = {
   green: '#22C55E',
 } as const;
 
+// Keep in sync with WDP-web/Horsari/src/shared/data/RaceData.tsx HORSE_COLOR_PALETTE.
 const HORSE_COLORS = [
-  '#E74C3C', '#3498DB', '#2ECC71', '#F39C12',
-  '#9B59B6', '#1ABC9C', '#E67E22', '#C0392B',
+  '#f59e0b', // 1  amber
+  '#3b82f6', // 2  blue
+  '#10b981', // 3  emerald
+  '#ef4444', // 4  red
+  '#a855f7', // 5  purple
+  '#f97316', // 6  orange
+  '#06b6d4', // 7  cyan
+  '#ec4899', // 8  pink
+  '#84cc16', // 9  lime
+  '#14b8a6', // 10 teal
+  '#f43f5e', // 11 rose
+  '#8b5cf6', // 12 violet
 ];
 
 const isRealTournament = (t: { tournamentName: string } | null | undefined): boolean =>
@@ -315,6 +326,7 @@ function PredictionChip({
 
   const horseName =
     prediction.registration?.horse?.horseName ??
+    prediction.predictedHorse?.horseName ??
     horses.find(h => h.registrationId === prediction.registration?._id)?.horseName ??
     '—';
 
@@ -374,7 +386,9 @@ function BetOutcomeBanner({
       outcome = local ?? 'pending';
     }
     const horseName =
-      p.registration?.horse?.horseName ?? '—';
+      p.registration?.horse?.horseName ??
+      p.predictedHorse?.horseName ??
+      '—';
     const methodType = p.predictionMethod?.methodType;
     const methodLabel = methodType === 'race_winner'
       ? 'Thắng'
@@ -504,6 +518,7 @@ export default function LiveRaceScreen() {
 
   const [raceRound, setRaceRound] = useState<any>(null);
   const [registrations, setRegistrations] = useState<RaceDetailRegistration[]>([]);
+  const [userPredictions, setUserPredictions] = useState<PredictionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const { connected, liveUpdate, finishResults, confirmedResults } = useSpectatorRaceSocket(id ?? null);
@@ -517,6 +532,7 @@ export default function LiveRaceScreen() {
       if (data) {
         setRaceRound(data.raceRound);
         setRegistrations(data.registrations);
+        setUserPredictions(data.userPredictions ?? []);
       }
       setLoading(false);
     });
@@ -568,9 +584,9 @@ export default function LiveRaceScreen() {
       });
 
   const leader = sortedHorses[0];
-  const myPredictions = registrations
-    .filter((r) => r.userPrediction !== null)
-    .map((r) => r.userPrediction as PredictionItem);
+  const myPredictions: PredictionItem[] = userPredictions.length > 0
+    ? userPredictions
+    : registrations.filter((r) => r.userPrediction !== null).map((r) => r.userPrediction as PredictionItem);
 
   if (loading) {
     return (
@@ -613,8 +629,8 @@ export default function LiveRaceScreen() {
           </View>
         </View>
 
-        {/* ── Stats strip — locked above scroll, hidden when race finished ── */}
-        {!activeFinishResults && (
+        {/* ── Stats strip — only shown while race is live ── */}
+        {!activeFinishResults && (raceRound?.status === 'running' || liveUpdate !== null) && (
           <View style={styles.statsStrip}>
             <StatChip label="THỜI GIAN" value={elapsed} color={Palette.gold} />
             <View style={styles.statsDivider} />
@@ -632,9 +648,8 @@ export default function LiveRaceScreen() {
           </View>
         )}
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-
-          {/* ── Finished banner (shown when race is done) ── */}
+        {/* ── Fixed top: video / awaiting / finished banner ── */}
+        <View style={styles.topArea}>
           {activeFinishResults && (
             <FinishedBanner
               results={activeFinishResults}
@@ -643,29 +658,53 @@ export default function LiveRaceScreen() {
               onToggleUnit={() => setDistUnit(u => u === 'metres' ? 'lengths' : 'metres')}
             />
           )}
-
-          {/* ── Video ── */}
           {!activeFinishResults && (
-            <View style={[styles.videoPlaceholder, { overflow: 'hidden' }]}>
-              {Platform.OS === 'web' ? (
-                // @ts-ignore — iframe is valid in react-native-web
-                <iframe
-                  src="https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1"
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
-                  allow="autoplay; encrypted-media"
-                />
-              ) : (
-                <WebView
-                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                  source={{ uri: 'https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1' }}
-                  mediaPlaybackRequiresUserAction={false}
-                  allowsInlineMediaPlayback
-                  scrollEnabled={false}
-                  pointerEvents="none"
-                />
-              )}
-            </View>
+            (raceRound?.status === 'running' || liveUpdate !== null) ? (
+              <View style={[styles.videoPlaceholder, { overflow: 'hidden' }]}>
+                {Platform.OS === 'web' ? (
+                  // @ts-ignore — iframe is valid in react-native-web
+                  <iframe
+                    src="https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1"
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
+                    allow="autoplay; encrypted-media"
+                  />
+                ) : (
+                  <WebView
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                    source={{ uri: 'https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1' }}
+                    mediaPlaybackRequiresUserAction={false}
+                    allowsInlineMediaPlayback
+                    scrollEnabled={false}
+                    pointerEvents="none"
+                  />
+                )}
+              </View>
+            ) : (
+              <View style={styles.awaitingCard}>
+                <View style={styles.awaitingIconRing}>
+                  <Ionicons name="time-outline" size={34} color={Palette.muted} />
+                </View>
+                <Text style={styles.awaitingTitle}>Awaiting Race Start</Text>
+                <Text style={styles.awaitingSub}>
+                  The race hasn't started yet. Live video and tracking will appear here once it goes live.
+                </Text>
+                {raceRound?.raceDate && (
+                  <View style={styles.awaitingDateRow}>
+                    <Ionicons name="calendar-outline" size={12} color={Palette.muted} />
+                    <Text style={styles.awaitingDate}>
+                      {new Date(raceRound.raceDate).toLocaleDateString(undefined, {
+                        weekday: 'short', month: 'short', day: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )
           )}
+        </View>
+
+        {/* ── Scrollable: track, standings, predictions ── */}
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
           {/* ── Track visualization ── */}
           {!activeFinishResults && (
@@ -696,7 +735,6 @@ export default function LiveRaceScreen() {
           {/* ── My predictions ── */}
           {myPredictions.length > 0 && (
             <Section title="CƯỢC CỦA BẠN">
-              {/* Outcome banner — shown once race finishes (optimistic) or confirmed (official) */}
               {activeFinishResults && (
                 <BetOutcomeBanner
                   predictions={myPredictions}
@@ -783,6 +821,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
+  topArea: { paddingHorizontal: 16 },
   scroll: { paddingHorizontal: 16 },
 
   // Finished banner
@@ -848,6 +887,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: Palette.cardBorder,
+    marginTop: 16,
   },
   videoText: { fontSize: 13, color: '#333' },
   liveTag: {
@@ -1142,6 +1182,63 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: 'rgba(255,255,255,0.28)',
     fontFamily: Fonts.mono,
+  },
+
+  // Awaiting race placeholder
+  awaitingCard: {
+    aspectRatio: 16 / 9,
+    backgroundColor: Palette.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 24,
+    marginTop: 16,
+  },
+  awaitingIconRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: '#2a2a2d',
+    backgroundColor: '#1a1a1c',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  awaitingTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Palette.text,
+    letterSpacing: 0.2,
+  },
+  awaitingSub: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    color: Palette.muted,
+    textAlign: 'center',
+    lineHeight: 15,
+    letterSpacing: 0.2,
+  },
+  awaitingDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+    backgroundColor: '#1e1e20',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2a2a2d',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  awaitingDate: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    color: Palette.muted,
+    letterSpacing: 0.3,
   },
 
   // Bet outcome banner

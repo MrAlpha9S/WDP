@@ -75,7 +75,7 @@ class RefereeService {
     async getRefereeInvitations(userId, limit = 10, page = 1, status = null) {
         try {
             const skip = (page - 1) * limit;
-            
+
             const filter = { refereeId: userId };
             if (status) {
                 if (status.includes(',')) {
@@ -331,7 +331,7 @@ class RefereeService {
 
             // ── 4. Build lookup maps ──────────────────────────────────────────
             const eligibilityMap = new Map(eligibilityRules.map(e => [e._id.toString(), e]));
-            const ownerMap       = new Map(owners.map(u => [u._id.toString(), u]));
+            const ownerMap = new Map(owners.map(u => [u._id.toString(), u]));
             const invitationsByReg = new Map();
             for (const inv of invitations) {
                 const key = inv.registrationId.toString();
@@ -339,7 +339,7 @@ class RefereeService {
                 invitationsByReg.get(key).push(inv);
             }
             const raceResultMap = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
-            const regsByRound   = new Map();
+            const regsByRound = new Map();
             for (const reg of registrationsAll) {
                 const key = reg.raceRoundId.toString();
                 if (!regsByRound.has(key)) regsByRound.set(key, []);
@@ -358,10 +358,10 @@ class RefereeService {
                     const regInvitations = invitationsByReg.get(reg._id.toString()) || [];
                     return {
                         ...reg,
-                        Horse:       regInvitations[0]?.horseId || null,
+                        Horse: regInvitations[0]?.horseId || null,
                         Invitations: regInvitations,
-                        Owner:       ownerMap.get(reg.horseOwnerId?.toString()) || null,
-                        RaceResult:  raceResultMap.get(reg._id.toString()) || null,
+                        Owner: ownerMap.get(reg.horseOwnerId?.toString()) || null,
+                        RaceResult: raceResultMap.get(reg._id.toString()) || null,
                     };
                 });
 
@@ -604,7 +604,7 @@ class RefereeService {
                 registrationStatus: 'verified',
             });
 
-            const newStatus = verifiedCount > 0 ? 'prepared' : 'cancelled';
+            const newStatus = verifiedCount >= 2 ? 'prepared' : 'cancelled';
             await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus });
 
             if (io) {
@@ -692,7 +692,7 @@ class RefereeService {
                 pageRaceRounds.filter(r => r.eligibilityRuleId).map(r => r.eligibilityRuleId.toString())
             )];
             const registrationsAll = await Registration.find({ raceRoundId: { $in: pageRaceRoundIds } }).lean();
-            const regIds   = registrationsAll.map(r => r._id);
+            const regIds = registrationsAll.map(r => r._id);
             const ownerIds = [...new Set(
                 registrationsAll.filter(r => r.horseOwnerId).map(r => r.horseOwnerId.toString())
             )];
@@ -717,7 +717,7 @@ class RefereeService {
 
             // ── 5. Build lookup maps ──────────────────────────────────────────
             const eligibilityMap = new Map(eligibilityRules.map(e => [e._id.toString(), e]));
-            const ownerMap       = new Map(owners.map(u => [u._id.toString(), u]));
+            const ownerMap = new Map(owners.map(u => [u._id.toString(), u]));
             const invitationsByReg = new Map();
             for (const inv of invitations) {
                 const key = inv.registrationId.toString();
@@ -725,7 +725,7 @@ class RefereeService {
                 invitationsByReg.get(key).push(inv);
             }
             const raceResultMap = new Map(raceResults.map(r => [r.registrationId.toString(), r]));
-            const regsByRound   = new Map();
+            const regsByRound = new Map();
             for (const reg of registrationsAll) {
                 const key = reg.raceRoundId.toString();
                 if (!regsByRound.has(key)) regsByRound.set(key, []);
@@ -747,16 +747,16 @@ class RefereeService {
                         const regInvitations = invitationsByReg.get(reg._id.toString()) || [];
                         return {
                             ...reg,
-                            Horse:       regInvitations[0]?.horseId || null,
+                            Horse: regInvitations[0]?.horseId || null,
                             Invitations: regInvitations,
-                            Owner:       ownerMap.get(reg.horseOwnerId?.toString()) || null,
-                            RaceResult:  raceResultMap.get(reg._id.toString()) || null,
+                            Owner: ownerMap.get(reg.horseOwnerId?.toString()) || null,
+                            RaceResult: raceResultMap.get(reg._id.toString()) || null,
                         };
                     });
                     return {
                         ...r,
-                        RaceType:     raceType,
-                        RaceReferee:  assignmentMap.get(r._id.toString()) || null,
+                        RaceType: raceType,
+                        RaceReferee: assignmentMap.get(r._id.toString()) || null,
                         Registration: registrations,
                     };
                 });

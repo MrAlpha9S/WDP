@@ -9,6 +9,9 @@ const Invitation = require('../entities/Invitation');
 const Horse = require('../entities/Horse');
 const RaceResult = require('../entities/RaceResult');
 const Violation = require('../entities/Violation');
+const Jockey = require('../entities/Jockey');
+const User = require('../entities/User');
+const Transaction = require('../entities/Transaction');
 
 class HorseOwnerService {
     // Create horse owner profile for existing user (public)
@@ -433,8 +436,262 @@ class HorseOwnerService {
         }
     }
 
+    // Dashboard summary: counts + recent activity feed
+    async getDashboardSummary(ownerId) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+
+            const horses = await HorseRepository.findByOwnerId(ownerId);
+            const totalHorses = horses.length;
+            const horseIds = horses.map(h => h._id);
+
+            // Owner's registrations
+            const ownerRegs = await Registration.find({ horseOwnerId: ownerId }).select('_id raceRoundId horseId createdAt').lean();
+            const regIds = ownerRegs.map(r => r._id);
+            const regRaceRoundIds = ownerRegs.map(r => r.raceRoundId).filter(Boolean);
+
+            // Count upcoming/live race rounds the owner is in
+            const activeRaceRounds = regRaceRoundIds.length > 0
+                ? await RaceRound.find({
+                    _id: { $in: regRaceRoundIds },
+                    status: { $in: ['scheduled', 'prepared', 'awaitingConfirmation', 'running'] },
+                }).select('_id').lean()
+                : [];
+            const upcomingRacesCount = activeRaceRounds.length;
+
+            // Count pending jockey invitations sent by this owner
+            const activeInvitationsCount = regIds.length > 0
+                ? await Invitation.countDocuments({ registrationId: { $in: regIds }, invitationStatus: 'pending' })
+                : 0;
+
+            // Recent activity feed (last 14 days, max 10)
+            const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+            const [recentRegs, recentResults, recentInvitations, recentViolations] = await Promise.all([
+                Registration.find({ horseOwnerId: ownerId, createdAt: { $gte: since } })
+                    .populate('horseId', 'horseName')
+                    .populate({ path: 'raceRoundId', select: 'roundName' })
+                    .sort({ createdAt: -1 })
+                    .limit(5)
+                    .lean(),
+                regIds.length > 0
+                    ? RaceResult.find({ registrationId: { $in: regIds }, createdAt: { $gte: since } })
+                        .populate({ path: 'registrationId', populate: [{ path: 'horseId', select: 'horseName' }, { path: 'raceRoundId', select: 'roundName' }] })
+                        .sort({ createdAt: -1 })
+                        .limit(5)
+                        .lean()
+                    : [],
+                regIds.length > 0
+                    ? Invitation.find({ registrationId: { $in: regIds }, updatedAt: { $gte: since }, invitationStatus: { $in: ['accepted', 'declined'] } })
+                        .populate({ path: 'jockeyId', model: 'User', select: 'fullName' })
+                        .sort({ updatedAt: -1 })
+                        .limit(5)
+                        .lean()
+                    : [],
+                regIds.length > 0
+                    ? Violation.find({ registrationId: { $in: regIds }, createdAt: { $gte: since } })
+                        .populate('violationTypeId', 'violationName')
+                        .populate({ path: 'registrationId', populate: { path: 'horseId', select: 'horseName' } })
+                        .sort({ createdAt: -1 })
+                        .limit(5)
+                        .lean()
+                    : [],
+            ]);
+
+            const relativeTime = (date) => {
+                const diff = Date.now() - new Date(date).getTime();
+                const mins = Math.floor(diff / 60000);
+                if (mins < 1) return 'Just now';
+                if (mins < 60) return `${mins}m ago`;
+                const hrs = Math.floor(mins / 60);
+                if (hrs < 24) return `${hrs}h ago`;
+                return `${Math.floor(hrs / 24)}d ago`;
+            };
+
+            const activity = [
+                ...recentRegs.map(r => ({
+                    type: 'registration',
+                    icon: 'check',
+                    time: relativeTime(r.createdAt),
+                    text: `${r.horseId?.horseName ?? 'Your horse'} registered for `,
+                    highlight: r.raceRoundId?.roundName ?? 'a race',
+                    date: r.createdAt,
+                })),
+                ...recentResults.map(r => {
+                    const pos = r.finishPosition;
+                    const ordinals = ['1st', '2nd', '3rd'];
+                    const label = pos != null ? (ordinals[pos - 1] ?? `${pos}th`) : 'DNF';
+                    return {
+                        type: 'result',
+                        icon: pos === 1 ? 'check' : 'user',
+                        time: relativeTime(r.createdAt),
+                        text: `${r.registrationId?.horseId?.horseName ?? 'Your horse'} finished ${label} in `,
+                        highlight: r.registrationId?.raceRoundId?.roundName ?? 'a race',
+                        date: r.createdAt,
+                    };
+                }),
+                ...recentInvitations.map(inv => ({
+                    type: 'invitation',
+                    icon: inv.invitationStatus === 'accepted' ? 'check' : 'alert',
+                    time: relativeTime(inv.updatedAt),
+                    text: `${inv.jockeyId?.fullName ?? 'A jockey'} ${inv.invitationStatus} your hire request for `,
+                    highlight: 'an upcoming race',
+                    date: inv.updatedAt,
+                })),
+                ...recentViolations.map(v => ({
+                    type: 'violation',
+                    icon: 'alert',
+                    time: relativeTime(v.createdAt),
+                    text: `Violation issued on `,
+                    highlight: `${v.registrationId?.horseId?.horseName ?? 'your horse'}: ${v.violationTypeId?.violationName ?? 'Unknown'}`,
+                    date: v.createdAt,
+                })),
+            ]
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .slice(0, 10)
+                .map(({ date, ...rest }) => rest);
+
+            return {
+                code: 200,
+                data: { totalHorses, upcomingRacesCount, activeInvitationsCount, recentActivity: activity },
+                msg: 'Dashboard summary retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Top performing horses by win rate
+    async getTopPerformers(ownerId, limit = 5) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+
+            const horses = await HorseRepository.findByOwnerId(ownerId);
+            if (horses.length === 0) return { code: 200, data: [], msg: 'No horses found' };
+
+            const allRegs = await Registration.find({ horseOwnerId: ownerId }).select('_id horseId').lean();
+            const regIds = allRegs.map(r => r._id);
+            const regHorseMap = new Map(allRegs.map(r => [String(r._id), String(r.horseId)]));
+
+            const results = regIds.length > 0
+                ? await RaceResult.find({ registrationId: { $in: regIds }, finishPosition: { $ne: null }, resultStatus: 'official' }).lean()
+                : [];
+
+            // Aggregate stats per horse
+            const statsMap = new Map();
+            for (const r of results) {
+                const horseId = regHorseMap.get(String(r.registrationId));
+                if (!horseId) continue;
+                if (!statsMap.has(horseId)) statsMap.set(horseId, { totalRaces: 0, wins: 0 });
+                const s = statsMap.get(horseId);
+                s.totalRaces++;
+                if (r.finishPosition === 1) s.wins++;
+            }
+
+            const performers = horses
+                .map(h => {
+                    const s = statsMap.get(String(h._id)) ?? { totalRaces: 0, wins: 0 };
+                    return {
+                        id: h._id,
+                        name: h.horseName,
+                        img: h.img ?? null,
+                        winRate: s.totalRaces > 0 ? Math.round((s.wins / s.totalRaces) * 100) : 0,
+                        wins: s.wins,
+                        totalRaces: s.totalRaces,
+                    };
+                })
+                .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
+                .slice(0, limit);
+
+            return { code: 200, data: performers, msg: 'Top performers retrieved successfully' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Browse all joinable / live race rounds (paginated, searchable)
+    async getAvailableRaces(ownerId, page = 1, limit = 12, search = null, statusFilter = null) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+
+            const filter = { status: { $in: ['scheduled', 'running', 'awaitingConfirmation', 'prepared'] } };
+            if (statusFilter) filter.status = statusFilter;
+            if (search) filter.roundName = { $regex: search, $options: 'i' };
+
+            const skip = (page - 1) * limit;
+            const [totalItems, raceRounds] = await Promise.all([
+                RaceRound.countDocuments(filter),
+                RaceRound.find(filter)
+                    .sort({ raceDate: 1 })
+                    .skip(skip)
+                    .limit(limit)
+                    .lean(),
+            ]);
+
+            const raceIds = raceRounds.map(r => r._id);
+
+            // Batch-fetch supplementary data for this page only
+            const [tournaments, ownerRegs, participantCounts, eligibilityRules] = await Promise.all([
+                Tournament.find({ _id: { $in: raceRounds.map(r => r.tournamentId).filter(Boolean) } })
+                    .select('_id tournamentName')
+                    .lean(),
+                Registration.find({ raceRoundId: { $in: raceIds }, horseOwnerId: ownerId })
+                    .select('raceRoundId registrationStatus')
+                    .lean(),
+                Registration.aggregate([
+                    { $match: { raceRoundId: { $in: raceIds }, registrationStatus: { $in: ['approved', 'verified'] } } },
+                    { $group: { _id: '$raceRoundId', count: { $sum: 1 } } },
+                ]),
+                RaceEligibilityRule.find({
+                    _id: { $in: raceRounds.map(r => r.eligibilityRuleId).filter(Boolean) },
+                }).select('_id requiredBreed requiredGender minAge maxAge minRacesWon').lean(),
+            ]);
+
+            const tournamentMap = new Map(tournaments.map(t => [String(t._id), t]));
+            const ownerRegMap = new Map(ownerRegs.map(r => [String(r.raceRoundId), r]));
+            const countMap = new Map(participantCounts.map(c => [String(c._id), c.count]));
+            const ruleMap = new Map(eligibilityRules.map(r => [String(r._id), r]));
+
+            const items = raceRounds.map(rr => {
+                const tournament = rr.tournamentId ? tournamentMap.get(String(rr.tournamentId)) : null;
+                const ownerReg = ownerRegMap.get(String(rr._id)) ?? null;
+                const rule = rr.eligibilityRuleId ? ruleMap.get(String(rr.eligibilityRuleId)) : null;
+
+                return {
+                    id: rr._id,
+                    name: rr.roundName,
+                    date: rr.raceDate,
+                    location: rr.location ?? null,
+                    status: rr.status,
+                    isLive: rr.status === 'running',
+                    muxPlaybackId: rr.muxPlaybackId ?? null,
+                    tournament: tournament ? { id: tournament._id, name: tournament.tournamentName } : null,
+                    prizes: { first: rr.firstPlacePrize ?? 0, second: rr.secondPlacePrize ?? 0, third: rr.thirdPlacePrize ?? 0 },
+                    maxParticipants: rr.maxParticipants ?? null,
+                    currentParticipants: countMap.get(String(rr._id)) ?? 0,
+                    entryFee: rr.requireEntranceFees ? rr.minimalRidingFees ?? 0 : 0,
+                    minimalRidingFees: rr.minimalRidingFees ?? 0,
+                    eligibility: rule
+                        ? { requiredBreed: rule.requiredBreed ?? null, requiredGender: rule.requiredGender ?? null, minAge: rule.minAge ?? null, maxAge: rule.maxAge ?? null }
+                        : null,
+                    ownerRegistration: ownerReg
+                        ? { status: ownerReg.registrationStatus, registrationId: ownerReg._id }
+                        : null,
+                };
+            });
+
+            return {
+                code: 200,
+                data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                msg: 'Available races retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
     // Get jockey invitations sent by this horse owner (paginated)
-    async getJockeyInvitations(ownerId, page = 1, limit = 10) {
+    async getJockeyInvitations(ownerId, page = 1, limit = 10, search = null) {
         try {
             if (!ownerId) return { code: 400, msg: 'ownerId is required' };
 
@@ -442,20 +699,34 @@ class HorseOwnerService {
             const regs = await Registration.find({ horseOwnerId: ownerId }).select('_id').lean();
             const regIds = regs.map(r => r._id);
 
-            const skip = (page - 1) * limit;
-            const total = await Invitation.countDocuments({ registrationId: { $in: regIds } });
+            const invFilter = { registrationId: { $in: regIds } };
 
-            const invitations = await Invitation.find({ registrationId: { $in: regIds } })
-                .populate({ path: 'jockeyId', model: 'User', select: 'fullName image' })
-                .populate('horseId', 'horseName')
-                .populate({
-                    path: 'registrationId',
-                    populate: { path: 'raceRoundId', select: 'roundName raceDate location' },
-                })
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(limit)
-                .lean();
+            if (search) {
+                const [matchingUsers, matchingHorses] = await Promise.all([
+                    User.find({ fullName: { $regex: search, $options: 'i' } }, '_id').lean(),
+                    Horse.find({ horseName: { $regex: search, $options: 'i' } }, '_id').lean(),
+                ]);
+                invFilter.$or = [
+                    { jockeyId: { $in: matchingUsers.map(u => u._id) } },
+                    { horseId: { $in: matchingHorses.map(h => h._id) } },
+                ];
+            }
+
+            const skip = (page - 1) * limit;
+            const [total, invitations] = await Promise.all([
+                Invitation.countDocuments(invFilter),
+                Invitation.find(invFilter)
+                    .populate({ path: 'jockeyId', model: 'User', select: 'fullName image' })
+                    .populate('horseId', 'horseName')
+                    .populate({
+                        path: 'registrationId',
+                        populate: { path: 'raceRoundId', select: 'roundName raceDate location' },
+                    })
+                    .sort({ createdAt: -1 })
+                    .skip(skip)
+                    .limit(limit)
+                    .lean(),
+            ]);
 
             const mapped = invitations.map(inv => ({
                 _id: inv._id,
@@ -652,6 +923,246 @@ class HorseOwnerService {
             horse.healthStatus = healthStatus;
             await horse.save();
             return { code: 200, msg: 'Horse health status updated successfully' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Get a single jockey's profile: stats + race history + violations (for horse owner view)
+    async getJockeyProfile(jockeyId) {
+        try {
+            if (!jockeyId) return { code: 400, msg: 'jockeyId is required' };
+
+            const [jockeyDoc, user] = await Promise.all([
+                Jockey.findById(jockeyId).lean(),
+                User.findById(jockeyId).select('fullName image dateOfBirth address').lean(),
+            ]);
+            if (!jockeyDoc || !user) return { code: 404, msg: 'Jockey not found' };
+
+            // Accepted invitations → registration IDs this jockey rode in
+            const invitations = await Invitation.find({ jockeyId, invitationStatus: 'accepted' }).lean();
+            const regIds = invitations.map(inv => inv.registrationId).filter(Boolean);
+
+            const [registrations, results, violations] = await Promise.all([
+                regIds.length > 0
+                    ? Registration.find({ _id: { $in: regIds } })
+                        .populate('horseId', 'horseName')
+                        .lean()
+                    : [],
+                regIds.length > 0
+                    ? RaceResult.find({ registrationId: { $in: regIds } }).lean()
+                    : [],
+                regIds.length > 0
+                    ? Violation.find({ registrationId: { $in: regIds } })
+                        .populate('violationTypeId', 'violationName category severity defaultPenalty')
+                        .lean()
+                    : [],
+            ]);
+
+            const raceRoundIds = registrations.map(r => r.raceRoundId).filter(Boolean);
+            const raceRounds = raceRoundIds.length > 0
+                ? await RaceRound.find({ _id: { $in: raceRoundIds } }).lean()
+                : [];
+
+            const raceRoundMap = new Map(raceRounds.map(rr => [String(rr._id), rr]));
+            const resultByRegId = new Map(results.map(r => [String(r.registrationId), r]));
+
+            const ordinals = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
+            const recentRaces = registrations.map(reg => {
+                const result = resultByRegId.get(String(reg._id));
+                const raceRound = raceRoundMap.get(String(reg.raceRoundId));
+                const pos = result?.finishPosition;
+                return {
+                    race: raceRound?.roundName ?? 'Unknown Race',
+                    position: pos != null ? (ordinals[pos - 1] ?? `${pos}th`) : 'DNF',
+                    horse: reg.horseId?.horseName ?? 'Unknown',
+                    date: raceRound?.raceDate
+                        ? new Date(raceRound.raceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : 'N/A',
+                };
+            }).sort((a, b) => 0); // preserve DB order (most recent first via sort below)
+
+            const officialResults = results.filter(r => r.finishPosition != null);
+            const wins = officialResults.filter(r => r.finishPosition === 1).length;
+            const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
+
+            return {
+                code: 200,
+                data: {
+                    jockey: { ...jockeyDoc, ...user },
+                    stats: {
+                        totalRaces: registrations.length,
+                        wins,
+                        winRate: registrations.length > 0 ? Math.round((wins / registrations.length) * 100) : 0,
+                        totalPrize,
+                    },
+                    recentRaces,
+                    violations: violations.map(v => ({
+                        _id: v._id,
+                        raceRound: raceRoundMap.get(String(v.raceRoundId)) ?? { _id: v.raceRoundId },
+                        violationType: v.violationTypeId ?? null,
+                        description: v.description,
+                        severity: v.severity,
+                        actualPenalty: v.actualPenalty,
+                        stewardAction: v.stewardAction,
+                        violationStatus: v.violationStatus,
+                    })),
+                },
+                msg: 'Jockey profile retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Financial summary: wins, losses, prize totals, jockey payouts
+    async getFinancialSummary(ownerId) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+
+            const registrations = await Registration.find({ horseOwnerId: ownerId }).lean();
+            const regIds = registrations.map(r => r._id);
+
+            const [results, invitations, violations, transactions] = await Promise.all([
+                regIds.length > 0 ? RaceResult.find({ registrationId: { $in: regIds } }).lean() : [],
+                regIds.length > 0
+                    ? Invitation.find({ registrationId: { $in: regIds }, invitationStatus: 'accepted' }).lean()
+                    : [],
+                regIds.length > 0 ? Violation.find({ registrationId: { $in: regIds } }).lean() : [],
+                Transaction.find({ userId: ownerId, status: 'completed' }).lean(),
+            ]);
+
+            const officialResults = results.filter(r => r.finishPosition != null && r.resultStatus === 'official');
+            const wins = officialResults.filter(r => r.finishPosition === 1).length;
+            const losses = officialResults.filter(r => r.finishPosition !== 1).length;
+            const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
+
+            const resultByRegId = new Map(results.map(r => [String(r.registrationId), r]));
+            let totalJockeyPayout = 0;
+            for (const inv of invitations) {
+                const result = resultByRegId.get(String(inv.registrationId));
+                if (result && inv.percentagePayout) {
+                    totalJockeyPayout += (inv.percentagePayout / 100) * (result.prizeMoney || 0);
+                }
+            }
+            totalJockeyPayout = Math.round(totalJockeyPayout);
+
+            const balance = transactions.reduce((sum, t) => {
+                if (t.transactionType === 'deposit' || t.transactionType === 'reward' || t.transactionType === 'refund')
+                    return sum + t.amount;
+                if (t.transactionType === 'withdrawal') return sum - t.amount;
+                return sum;
+            }, 0);
+
+            return {
+                code: 200,
+                data: {
+                    totalRaces: officialResults.length,
+                    totalWins: wins,
+                    totalLosses: losses,
+                    totalPrize,
+                    totalJockeyPayout,
+                    netProfit: totalPrize - totalJockeyPayout,
+                    totalViolations: violations.length,
+                    balance,
+                },
+                msg: 'Financial summary retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Paginated race activity for financials table
+    async getFinancialRaceResults(ownerId, page = 1, limit = 10, search = null) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+
+            const allRegs = await Registration.find({ horseOwnerId: ownerId })
+                .populate('horseId', 'horseName')
+                .populate('raceRoundId', 'roundName raceDate location')
+                .sort({ createdAt: -1 })
+                .lean();
+
+            const filteredRegs = search
+                ? allRegs.filter(r => {
+                    const sl = search.toLowerCase();
+                    return (r.raceRoundId?.roundName ?? '').toLowerCase().includes(sl)
+                        || (r.horseId?.horseName ?? '').toLowerCase().includes(sl);
+                })
+                : allRegs;
+
+            const totalItems = filteredRegs.length;
+            const skip = (page - 1) * limit;
+            const pagedRegs = filteredRegs.slice(skip, skip + limit);
+            const pagedRegIds = pagedRegs.map(r => r._id);
+
+            const [results, invitations, violations] = await Promise.all([
+                pagedRegIds.length > 0 ? RaceResult.find({ registrationId: { $in: pagedRegIds } }).lean() : [],
+                pagedRegIds.length > 0
+                    ? Invitation.find({ registrationId: { $in: pagedRegIds }, invitationStatus: 'accepted' })
+                        .populate({ path: 'jockeyId', model: 'User', select: 'fullName' })
+                        .lean()
+                    : [],
+                pagedRegIds.length > 0
+                    ? Violation.find({ registrationId: { $in: pagedRegIds } })
+                        .populate('violationTypeId', 'violationName category severity defaultPenalty')
+                        .lean()
+                    : [],
+            ]);
+
+            const resultByRegId = new Map(results.map(r => [String(r.registrationId), r]));
+            const invByRegId = new Map(invitations.map(inv => [String(inv.registrationId), inv]));
+            const violsByRegId = {};
+            for (const v of violations) {
+                const key = String(v.registrationId);
+                if (!violsByRegId[key]) violsByRegId[key] = [];
+                violsByRegId[key].push(v);
+            }
+
+            const items = pagedRegs.map(reg => {
+                const result = resultByRegId.get(String(reg._id));
+                const inv = invByRegId.get(String(reg._id));
+                const regViolations = violsByRegId[String(reg._id)] ?? [];
+                const prizeMoney = result?.prizeMoney ?? 0;
+                const jockeyPayout = inv?.percentagePayout
+                    ? Math.round((inv.percentagePayout / 100) * prizeMoney)
+                    : 0;
+
+                return {
+                    registrationId: reg._id,
+                    race: {
+                        id: reg.raceRoundId?._id ?? null,
+                        name: reg.raceRoundId?.roundName ?? 'Unknown',
+                        date: reg.raceRoundId?.raceDate ?? null,
+                        location: reg.raceRoundId?.location ?? null,
+                    },
+                    horse: { id: reg.horseId?._id ?? null, name: reg.horseId?.horseName ?? 'Unknown' },
+                    jockey: inv
+                        ? { id: inv.jockeyId?._id ?? null, name: inv.jockeyId?.fullName ?? 'Unknown', percentagePayout: inv.percentagePayout, payout: jockeyPayout }
+                        : null,
+                    finishPosition: result?.finishPosition ?? null,
+                    prizeMoney,
+                    jockeyPayout,
+                    netOutcome: prizeMoney - jockeyPayout,
+                    resultStatus: result?.resultStatus ?? null,
+                    registrationStatus: reg.registrationStatus,
+                    violations: regViolations.map(v => ({
+                        type: v.violationTypeId?.violationName ?? 'Unknown',
+                        category: v.violationTypeId?.category ?? null,
+                        severity: v.severity,
+                        penalty: v.actualPenalty,
+                        stewardAction: v.stewardAction,
+                        status: v.violationStatus,
+                    })),
+                };
+            });
+
+            return {
+                code: 200,
+                data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                msg: 'Financial race results retrieved successfully',
+            };
         } catch (error) {
             return { code: 500, msg: error.message };
         }

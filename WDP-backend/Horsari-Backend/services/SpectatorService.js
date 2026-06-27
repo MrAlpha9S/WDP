@@ -491,23 +491,34 @@ class SpectatorService {
     }
 
     // Shared helper: batch-fetch invitations, horses, and jockeys for a set of registrations.
-    // Horse lives on Invitation (not Registration), accessed via Registration.jockeyInRaceId.
+    // Primary: jockeyInRaceId → Invitation (referee-verified races).
+    // Fallback: registrationId → main Invitation (scheduled/approved, no jockey locked yet).
     async _enrichRegistrationsWithInvitationData(registrations) {
-        const invitationIds = registrations.filter(r => r.jockeyInRaceId).map(r => r.jockeyInRaceId);
-        if (invitationIds.length === 0) {
-            return registrations.map(r => ({ ...r, horse: null, jockey: null }));
-        }
+        const allRegIds = registrations.map(r => r._id);
+        const lockedInvIds = registrations.filter(r => r.jockeyInRaceId).map(r => r.jockeyInRaceId);
 
-        const invitations = await Invitation.find({ _id: { $in: invitationIds } }).lean();
-        const invitationMap = {};
-        invitations.forEach(inv => { invitationMap[inv._id.toString()] = inv; });
+        // Fetch locked invitations (by id) + all main invitations for this set of registrations
+        const [lockedInvitations, mainInvitations] = await Promise.all([
+            lockedInvIds.length > 0
+                ? Invitation.find({ _id: { $in: lockedInvIds } }).lean()
+                : Promise.resolve([]),
+            Invitation.find({ registrationId: { $in: allRegIds }, isBackup: false }).lean(),
+        ]);
 
-        const horseIds = invitations.map(inv => inv.horseId).filter(Boolean);
-        const jockeyIds = invitations.map(inv => inv.jockeyId).filter(Boolean);
+        // Build maps: invId → inv (locked), regId → inv (main fallback)
+        const lockedInvMap = {};
+        lockedInvitations.forEach(inv => { lockedInvMap[inv._id.toString()] = inv; });
+        const mainInvByRegMap = {};
+        mainInvitations.forEach(inv => { mainInvByRegMap[inv.registrationId.toString()] = inv; });
+
+        // Collect all horse + jockey ids to batch-fetch
+        const allInvs = [...lockedInvitations, ...mainInvitations];
+        const horseIds = [...new Set(allInvs.map(inv => inv.horseId).filter(Boolean).map(String))];
+        const jockeyIds = [...new Set(allInvs.map(inv => inv.jockeyId).filter(Boolean).map(String))];
 
         const [horses, jockeys] = await Promise.all([
             horseIds.length > 0 ? Horse.find({ _id: { $in: horseIds } }).lean() : Promise.resolve([]),
-            jockeyIds.length > 0 ? Jockey.find({ _id: { $in: jockeyIds } }).populate('_id').lean() : Promise.resolve([]),
+            jockeyIds.length > 0 ? Jockey.find({ _id: { $in: jockeyIds } }).lean() : Promise.resolve([]),
         ]);
 
         const horseMap = {};
@@ -518,12 +529,13 @@ class SpectatorService {
         return registrations.map(reg => {
             let horse = null;
             let jockey = null;
-            if (reg.jockeyInRaceId) {
-                const inv = invitationMap[reg.jockeyInRaceId.toString()];
-                if (inv) {
-                    horse = inv.horseId ? horseMap[inv.horseId.toString()] || null : null;
-                    jockey = inv.jockeyId ? jockeyMap[inv.jockeyId.toString()] || null : null;
-                }
+            // Prefer the referee-locked invitation; fall back to the main invitation by registrationId
+            const inv = reg.jockeyInRaceId
+                ? lockedInvMap[reg.jockeyInRaceId.toString()]
+                : mainInvByRegMap[reg._id.toString()];
+            if (inv) {
+                horse = inv.horseId ? horseMap[inv.horseId.toString()] || null : null;
+                jockey = inv.jockeyId ? jockeyMap[inv.jockeyId.toString()] || null : null;
             }
             return { ...reg, horse, jockey };
         });
@@ -544,7 +556,7 @@ class SpectatorService {
 
             const registrationIds = registrations.map(r => r._id);
 
-            const [enriched, predictions, raceResults] = await Promise.all([
+            const [enriched, rawPredictions, raceResults] = await Promise.all([
                 this._enrichRegistrationsWithInvitationData(registrations),
                 registrationIds.length > 0
                     ? PredictionRepository.findBySpectatorAndRegistrations(userId, registrationIds)
@@ -554,8 +566,43 @@ class SpectatorService {
                     : Promise.resolve([]),
             ]);
 
+            // Build registrationId → enriched reg map for fast horse lookup
+            const regMap = {};
+            enriched.forEach(r => { regMap[r._id.toString()] = r; });
+
+            // Enrich predictions: populate predictionMethod + build registration.horse
+            const userPredictions = await Promise.all(rawPredictions.map(async pred => {
+                const method = pred.predictionMethodId
+                    ? await PredictionMethod.findById(pred.predictionMethodId).lean()
+                    : null;
+                const reg = pred.registrationId ? regMap[pred.registrationId.toString()] : null;
+                return {
+                    _id: pred._id,
+                    predictedRank: pred.predictedRank ?? null,
+                    predictionStatus: pred.predictionStatus,
+                    rewardPoints: pred.rewardPoints,
+                    created_at: pred.created_at,
+                    predictionMethod: method ? {
+                        _id: method._id,
+                        methodName: method.methodName,
+                        methodDescription: method.methodDescription,
+                        methodType: method.methodType,
+                    } : null,
+                    registration: reg ? {
+                        _id: reg._id,
+                        laneNumber: reg.laneNumber ?? null,
+                        horse: reg.horse ? { _id: reg.horse._id, horseName: reg.horse.horseName, img: reg.horse.img || null } : null,
+                    } : null,
+                    tournament: null,
+                    predictedHorse: null,
+                };
+            }));
+
+            // Keep per-registration embed for backwards compatibility
             const predMap = {};
-            predictions.forEach(p => { predMap[p.registrationId.toString()] = p; });
+            userPredictions.forEach(p => {
+                if (p.registration?._id) predMap[p.registration._id.toString()] = p;
+            });
 
             const resultMap = {};
             raceResults.forEach(r => { resultMap[r.registrationId.toString()] = r; });
@@ -568,7 +615,7 @@ class SpectatorService {
 
             return {
                 code: 200,
-                data: { raceRound, registrations: enrichedRegistrations },
+                data: { raceRound, registrations: enrichedRegistrations, userPredictions },
                 msg: 'Live race detail retrieved successfully',
             };
         } catch (error) {
@@ -732,6 +779,14 @@ class SpectatorService {
 
             const registration = await Registration.findById(registrationId).lean();
             if (!registration) return { code: 404, msg: 'Registration not found' };
+            if (!['approved', 'verified'].includes(registration.registrationStatus)) {
+                return { code: 400, msg: 'Predictions can only be placed on approved registrations' };
+            }
+
+            const mainInvitation = await Invitation.findOne({ registrationId, isBackup: false }).lean();
+            if (!mainInvitation) {
+                return { code: 400, msg: 'This horse does not have an assigned jockey yet — predictions are not available' };
+            }
 
             const raceRound = await RaceRound.findById(registration.raceRoundId).lean();
             if (!raceRound) return { code: 404, msg: 'Race round not found' };
@@ -755,6 +810,7 @@ class SpectatorService {
             const prediction = await PredictionRepository.create({
                 spectatorId: userId,
                 registrationId,
+                predictedHorseId: mainInvitation.horseId || null,
                 predictionMethodId,
                 predictedRank: method.methodType === 'race_winner' ? 1 : predictedRank,
                 predictionStatus: 'pending',
@@ -824,8 +880,10 @@ class SpectatorService {
                     const registration = await Registration.findById(pred.registrationId).lean();
 
                     let horse = null;
-                    if (registration?.jockeyInRaceId) {
-                        const inv = await Invitation.findById(registration.jockeyInRaceId).lean();
+                    if (registration) {
+                        const inv = registration.jockeyInRaceId
+                            ? await Invitation.findById(registration.jockeyInRaceId).lean()
+                            : await Invitation.findOne({ registrationId: registration._id, isBackup: false }).lean();
                         if (inv?.horseId) {
                             const h = await Horse.findById(inv.horseId).lean();
                             if (h) horse = { _id: h._id, horseName: h.horseName, img: h.img || null };
@@ -969,10 +1027,12 @@ class SpectatorService {
                 Registration.findById(prediction.registrationId).lean(),
             ]);
 
-            // Horse lives on Invitation, not Registration
+            // Horse lives on Invitation — prefer referee-locked jockeyInRaceId, fall back to main invitation
             let horse = null;
-            if (registration?.jockeyInRaceId) {
-                const inv = await Invitation.findById(registration.jockeyInRaceId).lean();
+            if (registration) {
+                const inv = registration.jockeyInRaceId
+                    ? await Invitation.findById(registration.jockeyInRaceId).lean()
+                    : await Invitation.findOne({ registrationId: registration._id, isBackup: false }).lean();
                 if (inv?.horseId) horse = await Horse.findById(inv.horseId).lean();
             }
 

@@ -73,7 +73,8 @@ class HorseOwnerController {
     async getJockeyInvitations(req, res) {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const response = await HorseOwnerService.getJockeyInvitations(req.userId, page, limit);
+        const { search } = req.query;
+        const response = await HorseOwnerService.getJockeyInvitations(req.userId, page, limit, search || null);
         return res.status(response.code).json(response);
     }
 
@@ -114,6 +115,44 @@ class HorseOwnerController {
     async getRaceEligibilityMetadata(req, res) {
         const { ruleId } = req.query;
         const response = await HorseOwnerService.getRaceEligibilityMetadata(ruleId);
+        return res.status(response.code).json(response);
+    }
+
+    async getDashboardSummary(req, res) {
+        const response = await HorseOwnerService.getDashboardSummary(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    async getTopPerformers(req, res) {
+        const limit = parseInt(req.query.limit) || 5;
+        const response = await HorseOwnerService.getTopPerformers(req.userId, limit);
+        return res.status(response.code).json(response);
+    }
+
+    async browseRaces(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+        const { search, status } = req.query;
+        const response = await HorseOwnerService.getAvailableRaces(req.userId, page, limit, search || null, status || null);
+        return res.status(response.code).json(response);
+    }
+
+    async getJockeyProfile(req, res) {
+        const { jockeyId } = req.params;
+        const response = await HorseOwnerService.getJockeyProfile(jockeyId);
+        return res.status(response.code).json(response);
+    }
+
+    async getFinancialSummary(req, res) {
+        const response = await HorseOwnerService.getFinancialSummary(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    async getFinancialRaceResults(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { search } = req.query;
+        const response = await HorseOwnerService.getFinancialRaceResults(req.userId, page, limit, search || null);
         return res.status(response.code).json(response);
     }
 }
