@@ -180,6 +180,16 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    async getTournamentDetail(req, res) {
+        const response = await AdminService.getTournamentDetail(req.params.id);
+        return res.status(response.code).json(response);
+    }
+
+    async getTournamentRanking(req, res) {
+        const response = await AdminService.getTournamentRanking(req.params.id);
+        return res.status(response.code).json(response);
+    }
+
     async getRaceViolations(req, res) {
         const response = await AdminService.getRaceViolations(req.params.id);
         return res.status(response.code).json(response);

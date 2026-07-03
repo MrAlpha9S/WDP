@@ -33,6 +33,12 @@ router.get('/tournaments', authMiddleware, authAdmin, AdminController.getTournam
 // Set tournament champion and settle all champion predictions
 router.post('/tournaments/:tournamentId/champion', authMiddleware, authAdmin, AdminController.setTournamentChampion);
 
+// Tournament detail: basic info + race rounds + auto-complete if end date passed
+router.get('/tournaments/:id/detail', authMiddleware, authAdmin, AdminController.getTournamentDetail);
+
+// Tournament ranking: horses ranked by cumulative score from official race results
+router.get('/tournaments/:id/ranking', authMiddleware, authAdmin, AdminController.getTournamentRanking);
+
 // Get race rounds grouped by tournament with deep nested entities
 router.get('/race-rounds', authMiddleware, authAdmin, AdminController.getRaceRounds);
 

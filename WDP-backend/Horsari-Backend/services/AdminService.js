@@ -1742,4 +1742,163 @@ AdminService.prototype.settleTournamentPredictions = async function (tournamentI
     }
 };
 
+// Get single tournament with its race rounds and auto-complete if end date passed.
+AdminService.prototype.getTournamentDetail = async function (tournamentId) {
+    try {
+        const Tournament   = require('../entities/Tournament');
+        const RaceRound    = require('../entities/RaceRound');
+        const Registration = require('../entities/Registration');
+        const Horse        = require('../entities/Horse');
+
+        let tournament = await Tournament.findById(tournamentId).lean();
+        if (!tournament) return { code: 404, msg: 'Tournament not found' };
+
+        // Auto-complete: if endDate has passed and tournament is still 'ongoing'
+        const now = new Date();
+        if (tournament.endDate && new Date(tournament.endDate) <= now && tournament.status === 'ongoing') {
+            const rankResult = await this.getTournamentRanking(tournamentId);
+            if (rankResult.code === 200 && rankResult.data.length > 0) {
+                const topHorseId = rankResult.data[0].horseId;
+                await Tournament.findByIdAndUpdate(tournamentId, { status: 'completed' });
+                await this.settleTournamentPredictions(tournamentId, topHorseId);
+                tournament = await Tournament.findById(tournamentId).lean();
+            }
+        }
+
+        const raceRounds = await RaceRound.find({ tournamentId }).sort({ raceDate: 1 }).lean();
+
+        const raceRoundsWithCount = await Promise.all(
+            raceRounds.map(async (rr) => {
+                const participantCount = await Registration.countDocuments({
+                    raceRoundId: rr._id,
+                    registrationStatus: { $in: ['approved', 'verified'] },
+                });
+                return { ...rr, participantCount };
+            })
+        );
+
+        let championHorseName = null;
+        if (tournament.championHorseId) {
+            const champ = await Horse.findById(tournament.championHorseId, 'horseName').lean();
+            championHorseName = champ?.horseName ?? null;
+        }
+
+        return {
+            code: 200,
+            data: {
+                tournament: { ...tournament, championHorseName },
+                raceRounds: raceRoundsWithCount,
+            },
+            msg: 'Tournament detail retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Aggregate official race results across all rounds of a tournament and rank horses by score.
+AdminService.prototype.getTournamentRanking = async function (tournamentId) {
+    try {
+        const RaceRound    = require('../entities/RaceRound');
+        const Registration = require('../entities/Registration');
+        const RaceResult   = require('../entities/RaceResult');
+        const Horse        = require('../entities/Horse');
+        const User         = require('../entities/User');
+
+        const SCORE_MAP = { 1: 60, 2: 40, 3: 30, 4: 20 };
+        const calcScore = (pos) => SCORE_MAP[pos] ?? 10;
+
+        const raceRounds = await RaceRound.find({ tournamentId }).lean();
+        if (!raceRounds.length) return { code: 200, data: [], msg: 'No race rounds in this tournament' };
+
+        const roundIds = raceRounds.map(r => r._id);
+        const roundMap = Object.fromEntries(raceRounds.map(r => [r._id.toString(), r]));
+
+        const registrations = await Registration.find({ raceRoundId: { $in: roundIds } }).lean();
+        const regMap = Object.fromEntries(registrations.map(r => [r._id.toString(), r]));
+        const regIds = registrations.map(r => r._id);
+
+        const results = await RaceResult.find({
+            registrationId: { $in: regIds },
+            resultStatus: 'official',
+        }).lean();
+
+        // Group by horseId and accumulate stats
+        const horseStats = {};
+        for (const result of results) {
+            const reg = regMap[result.registrationId.toString()];
+            if (!reg?.horseId) continue;
+            const key = reg.horseId.toString();
+            if (!horseStats[key]) {
+                horseStats[key] = {
+                    horseId: reg.horseId,
+                    ownerId: reg.horseOwnerId,
+                    score: 0, totalRaces: 0, wins: 0, podiums: 0,
+                    totalPrizeMoney: 0, roundBreakdown: [],
+                };
+            }
+            const s = horseStats[key];
+            const pos = result.finishPosition;
+            s.score += calcScore(pos);
+            s.totalRaces += 1;
+            if (pos === 1) s.wins += 1;
+            if (pos <= 3)  s.podiums += 1;
+            s.totalPrizeMoney += result.prizeMoney || 0;
+            const rr = roundMap[reg.raceRoundId.toString()];
+            s.roundBreakdown.push({
+                roundId: reg.raceRoundId,
+                roundName: rr?.roundName ?? '—',
+                raceDate:  rr?.raceDate  ?? null,
+                finishPosition: pos,
+                prizeMoney: result.prizeMoney || 0,
+            });
+        }
+
+        const entries = Object.values(horseStats);
+        if (!entries.length) return { code: 200, data: [], msg: 'No official results yet' };
+
+        // Batch-fetch names (HorseOwner._id === User._id, so query User directly)
+        const horseIds = [...new Set(entries.map(e => e.horseId.toString()))];
+        const ownerIds = [...new Set(entries.map(e => e.ownerId?.toString()).filter(Boolean))];
+        const [horses, owners] = await Promise.all([
+            Horse.find({ _id: { $in: horseIds } }, 'horseName img').lean(),
+            User.find({ _id: { $in: ownerIds } }, 'fullName').lean(),
+        ]);
+        const horseNameMap = Object.fromEntries(horses.map(h => [h._id.toString(), h]));
+        const ownerNameMap = Object.fromEntries(owners.map(u => [u._id.toString(), u.fullName]));
+
+        // Sort: score desc, then wins desc, then totalPrizeMoney desc
+        entries.sort((a, b) =>
+            b.score - a.score ||
+            b.wins  - a.wins  ||
+            b.totalPrizeMoney - a.totalPrizeMoney
+        );
+
+        // Assign ranks (equal score = equal rank)
+        let rank = 1;
+        const ranked = entries.map((e, i) => {
+            if (i > 0 && e.score < entries[i - 1].score) rank = i + 1;
+            const h = horseNameMap[e.horseId.toString()] ?? {};
+            return {
+                rank,
+                horseId:         e.horseId,
+                horseName:       h.horseName ?? 'Unknown',
+                horseImg:        h.img ?? null,
+                ownerId:         e.ownerId,
+                ownerName:       ownerNameMap[e.ownerId?.toString()] ?? 'Unknown',
+                score:           e.score,
+                totalRaces:      e.totalRaces,
+                wins:            e.wins,
+                podiums:         e.podiums,
+                totalPrizeMoney: e.totalPrizeMoney,
+                roundBreakdown:  e.roundBreakdown,
+            };
+        });
+
+        return { code: 200, data: ranked, msg: 'Ranking retrieved successfully' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
 module.exports = new AdminService();
