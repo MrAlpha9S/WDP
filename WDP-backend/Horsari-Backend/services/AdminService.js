@@ -1797,6 +1797,7 @@ AdminService.prototype.getTournamentDetail = async function (tournamentId) {
 };
 
 // Aggregate official race results across all rounds of a tournament and rank horses by score.
+// roundBreakdown covers every tournament round — type:'result'|'no_result'|'not_registered'.
 AdminService.prototype.getTournamentRanking = async function (tournamentId) {
     try {
         const RaceRound    = require('../entities/RaceRound');
@@ -1808,54 +1809,69 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
         const SCORE_MAP = { 1: 60, 2: 40, 3: 30, 4: 20 };
         const calcScore = (pos) => SCORE_MAP[pos] ?? 10;
 
-        const raceRounds = await RaceRound.find({ tournamentId }).lean();
+        // Sort by date so roundBreakdown columns are in chronological order
+        const raceRounds = await RaceRound.find({ tournamentId }).sort({ raceDate: 1 }).lean();
         if (!raceRounds.length) return { code: 200, data: [], msg: 'No race rounds in this tournament' };
 
         const roundIds = raceRounds.map(r => r._id);
-        const roundMap = Object.fromEntries(raceRounds.map(r => [r._id.toString(), r]));
 
+        // All registrations across all rounds
         const registrations = await Registration.find({ raceRoundId: { $in: roundIds } }).lean();
-        const regMap = Object.fromEntries(registrations.map(r => [r._id.toString(), r]));
-        const regIds = registrations.map(r => r._id);
+        const regById = Object.fromEntries(registrations.map(r => [r._id.toString(), r]));
+        const regIds  = registrations.map(r => r._id);
 
+        // horseRoundReg[horseId][roundId] = registration
+        const horseRoundReg = {};
+        for (const reg of registrations) {
+            if (!reg.horseId) continue;
+            const hk = reg.horseId.toString();
+            const rk = reg.raceRoundId.toString();
+            if (!horseRoundReg[hk]) horseRoundReg[hk] = {};
+            horseRoundReg[hk][rk] = reg;
+        }
+
+        // Official results only
         const results = await RaceResult.find({
             registrationId: { $in: regIds },
             resultStatus: 'official',
         }).lean();
+        const resultByRegId = Object.fromEntries(results.map(r => [r.registrationId.toString(), r]));
 
-        // Group by horseId and accumulate stats
+        // Accumulate score/wins/podiums from official results
         const horseStats = {};
         for (const result of results) {
-            const reg = regMap[result.registrationId.toString()];
+            const reg = regById[result.registrationId.toString()];
             if (!reg?.horseId) continue;
             const key = reg.horseId.toString();
             if (!horseStats[key]) {
                 horseStats[key] = {
-                    horseId: reg.horseId,
-                    ownerId: reg.horseOwnerId,
-                    score: 0, totalRaces: 0, wins: 0, podiums: 0,
-                    totalPrizeMoney: 0, roundBreakdown: [],
+                    horseId: reg.horseId, ownerId: reg.horseOwnerId,
+                    score: 0, totalRaces: 0, wins: 0, podiums: 0, totalPrizeMoney: 0,
                 };
             }
             const s = horseStats[key];
             const pos = result.finishPosition;
-            s.score += calcScore(pos);
-            s.totalRaces += 1;
-            if (pos === 1) s.wins += 1;
+            s.score         += calcScore(pos);
+            s.totalRaces    += 1;
+            if (pos === 1) s.wins    += 1;
             if (pos <= 3)  s.podiums += 1;
             s.totalPrizeMoney += result.prizeMoney || 0;
-            const rr = roundMap[reg.raceRoundId.toString()];
-            s.roundBreakdown.push({
-                roundId: reg.raceRoundId,
-                roundName: rr?.roundName ?? '—',
-                raceDate:  rr?.raceDate  ?? null,
-                finishPosition: pos,
-                prizeMoney: result.prizeMoney || 0,
-            });
+        }
+
+        // Also surface horses that only have registrations (score stays 0)
+        for (const reg of registrations) {
+            if (!reg.horseId) continue;
+            const key = reg.horseId.toString();
+            if (!horseStats[key]) {
+                horseStats[key] = {
+                    horseId: reg.horseId, ownerId: reg.horseOwnerId,
+                    score: 0, totalRaces: 0, wins: 0, podiums: 0, totalPrizeMoney: 0,
+                };
+            }
         }
 
         const entries = Object.values(horseStats);
-        if (!entries.length) return { code: 200, data: [], msg: 'No official results yet' };
+        if (!entries.length) return { code: 200, data: [], msg: 'No registered horses yet' };
 
         // Batch-fetch names (HorseOwner._id === User._id, so query User directly)
         const horseIds = [...new Set(entries.map(e => e.horseId.toString()))];
@@ -1867,7 +1883,7 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
         const horseNameMap = Object.fromEntries(horses.map(h => [h._id.toString(), h]));
         const ownerNameMap = Object.fromEntries(owners.map(u => [u._id.toString(), u.fullName]));
 
-        // Sort: score desc, then wins desc, then totalPrizeMoney desc
+        // Sort: score desc, wins desc, totalPrizeMoney desc
         entries.sort((a, b) =>
             b.score - a.score ||
             b.wins  - a.wins  ||
@@ -1878,7 +1894,23 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
         let rank = 1;
         const ranked = entries.map((e, i) => {
             if (i > 0 && e.score < entries[i - 1].score) rank = i + 1;
-            const h = horseNameMap[e.horseId.toString()] ?? {};
+            const horseKey = e.horseId.toString();
+            const h = horseNameMap[horseKey] ?? {};
+
+            // One breakdown entry per tournament round, in chronological order
+            const roundBreakdown = raceRounds.map(rr => {
+                const roundKey = rr._id.toString();
+                const reg = horseRoundReg[horseKey]?.[roundKey];
+                if (!reg) {
+                    return { roundId: rr._id, roundName: rr.roundName, raceDate: rr.raceDate, roundStatus: rr.status, type: 'not_registered' };
+                }
+                const result = resultByRegId[reg._id.toString()];
+                if (result) {
+                    return { roundId: rr._id, roundName: rr.roundName, raceDate: rr.raceDate, roundStatus: rr.status, type: 'result', finishPosition: result.finishPosition, prizeMoney: result.prizeMoney || 0 };
+                }
+                return { roundId: rr._id, roundName: rr.roundName, raceDate: rr.raceDate, roundStatus: rr.status, type: 'no_result', registrationStatus: reg.registrationStatus };
+            });
+
             return {
                 rank,
                 horseId:         e.horseId,
@@ -1891,7 +1923,7 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
                 wins:            e.wins,
                 podiums:         e.podiums,
                 totalPrizeMoney: e.totalPrizeMoney,
-                roundBreakdown:  e.roundBreakdown,
+                roundBreakdown,
             };
         });
 
