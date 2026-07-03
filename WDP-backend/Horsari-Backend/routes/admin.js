@@ -39,6 +39,15 @@ router.get('/tournaments/:id/detail', authMiddleware, authAdmin, AdminController
 // Tournament ranking: horses ranked by cumulative score from official race results
 router.get('/tournaments/:id/ranking', authMiddleware, authAdmin, AdminController.getTournamentRanking);
 
+// All violations across every race (paginated, filterable by status/severity/raceRoundId)
+router.get('/violations', authMiddleware, authAdmin, AdminController.getAllViolations);
+
+// ViolationType CRUD
+router.get('/violation-types',                 authMiddleware, authAdmin, AdminController.getAllViolationTypes);
+router.post('/violation-types',                authMiddleware, authAdmin, AdminController.createViolationType);
+router.put('/violation-types/:id',             authMiddleware, authAdmin, AdminController.updateViolationType);
+router.patch('/violation-types/:id/active',    authMiddleware, authAdmin, AdminController.toggleViolationTypeActive);
+
 // Get race rounds grouped by tournament with deep nested entities
 router.get('/race-rounds', authMiddleware, authAdmin, AdminController.getRaceRounds);
 

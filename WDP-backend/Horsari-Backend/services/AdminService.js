@@ -81,7 +81,7 @@ class AdminService {
     }
 
     // Get all users (admin only)
-    async getAllUsers(role, search, limit = 10, skip = 0) {
+    async getAllUsers(role, search, limit = 10, skip = 0, sortBy = 'createdAt', order = 'desc') {
         try {
             const filter = {};
             if (role && role !== 'All') {
@@ -94,8 +94,13 @@ class AdminService {
                     { email: { $regex: search, $options: 'i' } }
                 ];
             }
-            const users = await UserRepository.findAll(filter, limit, skip);
-            const totalUsers = await UserRepository.count(filter);
+            const allowedUserSortFields = ['fullName', 'username', 'email', 'role', 'status', 'createdAt', 'updatedAt'];
+            const sortField = allowedUserSortFields.includes(sortBy) ? sortBy : 'createdAt';
+            const sortOrder = order === 'asc' ? 1 : -1;
+            const [users, totalUsers] = await Promise.all([
+                User.find(filter).sort({ [sortField]: sortOrder }).limit(limit).skip(skip),
+                UserRepository.count(filter),
+            ]);
 
             const totalPages = Math.ceil(totalUsers / limit);
             return {
@@ -1928,6 +1933,113 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
         });
 
         return { code: 200, data: ranked, msg: 'Ranking retrieved successfully' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// List all violations across every race, with pagination and optional filters.
+AdminService.prototype.getAllViolations = async function (page, limit, { status, severity, raceRoundId, sortBy = 'createdAt', order = 'desc' } = {}) {
+    try {
+        const Violation = require('../entities/Violation');
+        const filter = {};
+        if (status)      filter.violationStatus = status;
+        if (severity)    filter.severity = Number(severity);
+        if (raceRoundId) filter.raceRoundId = raceRoundId;
+
+        const allowedViolationSortFields = ['createdAt', 'severity', 'violationStatus'];
+        const sortField = allowedViolationSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortOrder = order === 'asc' ? 1 : -1;
+
+        const skip = (page - 1) * limit;
+        const [items, totalItems] = await Promise.all([
+            Violation.find(filter)
+                .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                .populate('registrationId', 'horseId registrationStatus')
+                .populate('raceRefereeId', 'refereeId')
+                .populate('raceRoundId', 'roundName raceDate')
+                .sort({ [sortField]: sortOrder })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Violation.countDocuments(filter),
+        ]);
+
+        return {
+            code: 200,
+            data: {
+                items,
+                pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) || 1 },
+            },
+            msg: 'Violations retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// List all violation types with pagination, search, filters and sort.
+AdminService.prototype.getAllViolationTypes = async function (page, limit, { search, type, category, sortBy = 'createdAt', order = 'desc' } = {}) {
+    try {
+        const ViolationType = require('../entities/ViolationType');
+        const filter = {};
+        if (search)   filter.violationName = { $regex: search, $options: 'i' };
+        if (type)     filter.type = type;
+        if (category) filter.category = category;
+
+        const allowedSortFields = ['violationName', 'severity', 'type', 'category', 'createdAt', 'updatedAt'];
+        const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortOrder = order === 'asc' ? 1 : -1;
+
+        const skip = (page - 1) * limit;
+        const [items, totalItems] = await Promise.all([
+            ViolationType.find(filter).sort({ [sortField]: sortOrder }).skip(skip).limit(limit).lean(),
+            ViolationType.countDocuments(filter),
+        ]);
+
+        return {
+            code: 200,
+            data: {
+                items,
+                pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) || 1 },
+            },
+            msg: 'Violation types retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Create a new violation type.
+AdminService.prototype.createViolationType = async function (data) {
+    try {
+        const ViolationType = require('../entities/ViolationType');
+        const vt = await new ViolationType(data).save();
+        return { code: 201, data: vt, msg: 'Violation type created successfully' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Update an existing violation type.
+AdminService.prototype.updateViolationType = async function (id, data) {
+    try {
+        const ViolationType = require('../entities/ViolationType');
+        const vt = await ViolationType.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
+        if (!vt) return { code: 404, msg: 'Violation type not found' };
+        return { code: 200, data: vt, msg: 'Violation type updated successfully' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Toggle isActive on a violation type (soft delete / restore).
+AdminService.prototype.toggleViolationTypeActive = async function (id, isActive) {
+    try {
+        const ViolationType = require('../entities/ViolationType');
+        const vt = await ViolationType.findByIdAndUpdate(id, { isActive }, { new: true }).lean();
+        if (!vt) return { code: 404, msg: 'Violation type not found' };
+        return { code: 200, data: vt, msg: `Violation type ${isActive ? 'activated' : 'deactivated'} successfully` };
     } catch (error) {
         return { code: 500, msg: error.message };
     }

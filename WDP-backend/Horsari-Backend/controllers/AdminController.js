@@ -23,10 +23,10 @@ class AdminController {
 
     // Get all users
     async getAllUsers(req, res) {
-        const { role, search } = req.query;
+        const { role, search, sortBy = 'createdAt', order = 'desc' } = req.query;
         const limit = parseInt(req.query.limit) || 10;
         const skip = parseInt(req.query.skip) || 0;
-        const response = await AdminService.getAllUsers(role, search, limit, skip);
+        const response = await AdminService.getAllUsers(role, search, limit, skip, sortBy, order);
         return res.status(response.code).json(response);
     }
 
@@ -190,6 +190,14 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    async getAllViolations(req, res) {
+        const page  = parseInt(req.query.page)  || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { status, severity, raceRoundId, sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await AdminService.getAllViolations(page, limit, { status, severity, raceRoundId, sortBy, order });
+        return res.status(response.code).json(response);
+    }
+
     async getRaceViolations(req, res) {
         const response = await AdminService.getRaceViolations(req.params.id);
         return res.status(response.code).json(response);
@@ -197,6 +205,30 @@ class AdminController {
 
     async dismissViolation(req, res) {
         const response = await AdminService.dismissViolation(req.params.violationId);
+        return res.status(response.code).json(response);
+    }
+
+    async getAllViolationTypes(req, res) {
+        const page  = parseInt(req.query.page)  || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { search, type, category, sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await AdminService.getAllViolationTypes(page, limit, { search, type, category, sortBy, order });
+        return res.status(response.code).json(response);
+    }
+
+    async createViolationType(req, res) {
+        const response = await AdminService.createViolationType(req.body);
+        return res.status(response.code).json(response);
+    }
+
+    async updateViolationType(req, res) {
+        const response = await AdminService.updateViolationType(req.params.id, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    async toggleViolationTypeActive(req, res) {
+        const { isActive } = req.body;
+        const response = await AdminService.toggleViolationTypeActive(req.params.id, isActive);
         return res.status(response.code).json(response);
     }
 
