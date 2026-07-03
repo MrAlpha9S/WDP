@@ -27,9 +27,9 @@ interface CachedEntry<T> {
 
 function normalizePagination(raw: any, fallbackPage: number): PaginationMeta {
     return {
-        total: raw?.total ?? 0,
+        total: raw?.totalItems ?? raw?.total ?? 0,
         totalPages: raw?.totalPages ?? 1,
-        page: raw?.page ?? fallbackPage,
+        page: raw?.currentPage ?? raw?.page ?? fallbackPage,
         limit: raw?.limit ?? 10,
     };
 }

@@ -64,9 +64,10 @@ export default function InboxPage() {
         const statusParam = tab === "all" ? undefined : (STATUS_TO_DB[tab] ?? tab);
         const res = await refereeService.getRefereeInvitations(5, page, statusParam);
         if (res.code !== 200 || !res.data) throw new Error(res.msg ?? 'Failed to fetch invitations');
+        const payload = res.data as unknown as { items: any[]; pagination: any };
         return {
-            items: (res.data as any[]).map(mapInvitation),
-            pagination: res.pagination,
+            items: payload.items.map(mapInvitation),
+            pagination: payload.pagination,
         };
     }, [tab]);
 
