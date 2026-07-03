@@ -1,4 +1,5 @@
 import api from './axios';
+import type { TournamentDetailData, TournamentRankEntry } from '../shared/types/TournamentTypes';
 
 export interface RaceRegistration {
   _id: string;
@@ -246,6 +247,24 @@ export const adminService = {
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
+    }
+  },
+
+  getTournamentDetail: async (id: string): Promise<{ code: number; data: TournamentDetailData; msg: string }> => {
+    try {
+      const response = await api.get(`/admin/tournaments/${id}/detail`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch tournament detail' };
+    }
+  },
+
+  getTournamentRanking: async (id: string): Promise<{ code: number; data: TournamentRankEntry[]; msg: string }> => {
+    try {
+      const response = await api.get(`/admin/tournaments/${id}/ranking`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch tournament ranking' };
     }
   },
 

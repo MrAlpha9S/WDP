@@ -58,3 +58,56 @@ export interface LeaderEntry {
     /** Placement per race round, in order. null = pending/future, number = finishing position */
     placements: (number | null)[];
 }
+
+// ── Admin Tournament Detail ────────────────────────────────────────────────────
+
+export interface TournamentDetailData {
+    tournament: {
+        _id: string;
+        tournamentName: string;
+        description: string;
+        startDate: string | null;
+        endDate: string | null;
+        status: 'draft' | 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
+        prizePool: number;
+        championHorseId: string | null;
+        championHorseName: string | null;
+    };
+    raceRounds: TournamentRaceRoundSummary[];
+}
+
+export interface TournamentRaceRoundSummary {
+    _id: string;
+    roundName: string;
+    raceDate: string;
+    status: string;
+    trackLength: number;
+    maxParticipants: number;
+    firstPlacePrize: number;
+    secondPlacePrize: number;
+    thirdPlacePrize: number;
+    currencyType: string;
+    location: string;
+    participantCount: number;
+}
+
+export interface TournamentRankEntry {
+    rank: number;
+    horseId: string;
+    horseName: string;
+    horseImg: string | null;
+    ownerId: string;
+    ownerName: string;
+    score: number;
+    totalRaces: number;
+    wins: number;
+    podiums: number;
+    totalPrizeMoney: number;
+    roundBreakdown: Array<{
+        roundId: string;
+        roundName: string;
+        raceDate: string;
+        finishPosition: number;
+        prizeMoney: number;
+    }>;
+}

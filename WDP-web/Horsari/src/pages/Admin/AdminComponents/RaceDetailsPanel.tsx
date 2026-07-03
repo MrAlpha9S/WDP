@@ -15,14 +15,14 @@ interface RaceDetailsPanelProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    approved:  "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-    pending:   "bg-amber-500/15  text-amber-400  border-amber-500/30",
-    rejected:  "bg-red-500/15    text-red-400    border-red-500/30",
-    assigned:  "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    approved: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    pending: "bg-amber-500/15  text-amber-400  border-amber-500/30",
+    rejected: "bg-red-500/15    text-red-400    border-red-500/30",
+    assigned: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
 };
 const STATUS_LABEL: Record<string, string> = {
     approved: "Approved",
-    pending:  "Pending",
+    pending: "Pending",
     rejected: "Rejected",
     assigned: "Assigned",
 };
@@ -34,7 +34,7 @@ function CopyButton({ text }: { text: string }) {
             await navigator.clipboard.writeText(text);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        } catch {}
+        } catch { }
     };
     return (
         <button
@@ -62,12 +62,12 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const fmtLength = (l: number | null | undefined) => {
         if (l == null || l === 0) return '—';
         if (distUnit === 'metres') return `+${(l * 2.4).toFixed(1)} m`;
-        if (l <= 0.1)  return 'Nse';
-        if (l <= 0.2)  return 'Hd';
+        if (l <= 0.1) return 'Nse';
+        if (l <= 0.2) return 'Hd';
         if (l <= 0.35) return 'Nk';
         const whole = Math.floor(l);
-        const frac  = Math.round((l - whole) * 4) / 4;
-        const f     = frac === 0 ? '' : frac === 0.25 ? '¼' : frac === 0.5 ? '½' : '¾';
+        const frac = Math.round((l - whole) * 4) / 4;
+        const f = frac === 0 ? '' : frac === 0.25 ? '¼' : frac === 0.5 ? '½' : '¾';
         return whole === 0 ? `${f}L` : `${whole}${f}L`;
     };
 
@@ -176,10 +176,10 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         }
     }, [selectedRace?.id]);
 
-    // When stream tab is opened for a running race, auto-fetch
+    // When stream tab is opened for a running/awaitingConfirmation race, auto-fetch
     useEffect(() => {
         if (activeTab === 'stream' && selectedRace?.id) {
-            if (selectedRace.status === 'running' && !streamInfo && !streamLoading) {
+            if ((selectedRace.status === 'running' || selectedRace.status === 'awaitingConfirmation') && !streamInfo && !streamLoading) {
                 fetchStreamInfo();
             }
             if (selectedRace.status === 'completed' && !vodInfo && !vodLoading) {
@@ -256,6 +256,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const status = selectedRace.status;
     const isPrepared = status === 'prepared';
     const isRunning = status === 'running';
+    const isAwaitingConfirmation = status === 'awaitingConfirmation';
     const isCompleted = status === 'completed';
     const isCancelled = status === 'cancelled';
 
@@ -265,8 +266,8 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         { key: 'referees', label: 'Referees' },
         { key: 'pools', label: 'Pools' },
     ];
-    if (isRunning || isCompleted) {
-        tabs.push({ key: 'stream', label: isRunning ? '🔴 Stream' : 'VOD' });
+    if (isRunning || isAwaitingConfirmation || isCompleted) {
+        tabs.push({ key: 'stream', label: isRunning || isAwaitingConfirmation ? '🔴 Stream' : 'VOD' });
     }
 
     return (
@@ -286,14 +287,14 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                     {selectedRace.title}
                                 </h2>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block ${
-                                        isCancelled  ? 'bg-red-500/15 text-red-400 border-red-500/30' :
-                                        status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
-                                        isRunning    ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
-                                        isCompleted  ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
-                                        isPrepared   ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
-                                        'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                                    }`}>
+                                    <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block ${isCancelled ? 'bg-red-500/15 text-red-400 border-red-500/30' :
+                                            status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
+                                                isRunning ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
+                                                    isAwaitingConfirmation ? 'bg-orange-500/15 text-orange-400 border-orange-500/30' :
+                                                        isCompleted ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
+                                                            isPrepared ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
+                                                                'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                        }`}>
                                         {isRunning ? (
                                             <span className="flex items-center gap-1">
                                                 <Radio size={8} className="animate-pulse" /> {status}
@@ -311,7 +312,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 >
                                     <Pencil size={14} />
                                 </button>
-                                {!isCancelled && !isCompleted && !isRunning && (
+                                {!isCancelled && !isCompleted && !isRunning && !isAwaitingConfirmation && (
                                     <button
                                         onClick={() => setIsCancelModalOpen(true)}
                                         className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded border border-red-500/20 transition-colors"
@@ -339,7 +340,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     </div>
 
                     {/* ── Action Buttons ── */}
-                    {(isPrepared || isRunning) && (
+                    {(isPrepared || isRunning || isAwaitingConfirmation) && (
                         <div className="mt-4 flex flex-col gap-2">
                             {/* Stream setup — required before starting */}
                             {isPrepared && (
@@ -419,14 +420,18 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 </button>
                             )}
                             {isRunning && (
-                                <button
-                                    onClick={() => setIsConfirmResultModalOpen(true)}
-                                    disabled={isConfirming}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
-                                >
-                                    {isConfirming ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-                                    {isConfirming ? 'Confirming…' : 'Confirm Race Results'}
-                                </button>
+                                <div className="flex items-start gap-2 text-[12px] text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2.5">
+                                    <Loader2 size={13} className="animate-spin shrink-0 mt-0.5" />
+                                    <span>Race is in progress. Waiting for the race to finish and referee to submit results before you can confirm.</span>
+                                </div>
+                            )}
+                            {isAwaitingConfirmation && (
+                                <>
+                                    <div className="flex items-start gap-2 text-[12px] text-orange-300 bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2.5">
+                                        <CheckCircle2 size={13} className="shrink-0 mt-0.5 text-orange-400" />
+                                        <span>Awaiting Referee race results confirmation</span>
+                                    </div>
+                                </>
                             )}
                             {actionError && (
                                 <div className="flex items-center gap-2 text-[12px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
@@ -444,11 +449,10 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         <button
                             key={key}
                             onClick={() => setActiveTab(key)}
-                            className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 ${
-                                activeTab === key
+                            className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === key
                                     ? "text-[#f3b2a5] border-[#f3b2a5] bg-[#f3b2a5]/5"
                                     : "text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5"
-                            }`}
+                                }`}
                         >
                             {label}
                         </button>
@@ -557,33 +561,35 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                 </span>
                                             </div>
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12}/> Prediction Pool</span>
+                                                <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prediction Pool</span>
                                                 <span className="text-[#f3b2a5] font-semibold">{p.sum_prediction != null ? `${p.sum_prediction} pts` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
                                             </div>
-                                            {p.raceResult && (
+                                            {isCompleted && p.raceResult && (
                                                 <>
                                                     <div className="flex flex-col gap-1">
-                                                        <span className="text-gray-500 font-medium flex items-center gap-1"><Trophy size={12}/> Finish Pos</span>
+                                                        <span className="text-gray-500 font-medium flex items-center gap-1"><Trophy size={12} /> Finish Pos</span>
                                                         <span className="text-amber-400 font-semibold">#{p.raceResult.finishPosition}</span>
                                                     </div>
                                                     <div className="flex flex-col gap-1">
-                                                        <span className="text-gray-500 font-medium flex items-center gap-1"><Clock size={12}/> Finish Time</span>
+                                                        <span className="text-gray-500 font-medium flex items-center gap-1"><Clock size={12} /> Finish Time</span>
                                                         <span className="text-gray-300 font-semibold">{p.raceResult.finishTime}</span>
                                                     </div>
                                                     <div className="flex flex-col gap-1">
-                                                        <span className="text-gray-500 font-medium flex items-center gap-1"><Clock size={12}/> Margin</span>
+                                                        <span className="text-gray-500 font-medium flex items-center gap-1"><Clock size={12} /> Margin</span>
                                                         <span className="text-gray-400 font-semibold">{fmtLength(p.raceResult.distance)}</span>
                                                     </div>
                                                     <div className="flex flex-col gap-1">
-                                                        <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12}/> Prize</span>
+                                                        <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prize</span>
                                                         <span className="text-[#f3b2a5] font-semibold">{p.raceResult.prizeMoney > 0 ? `${detailedOverview?.currencyType ?? 'USD'} ${p.raceResult.prizeMoney.toLocaleString()}` : '-'}</span>
                                                     </div>
                                                 </>
                                             )}
-                                            {!p.raceResult && (
+                                            {(!isCompleted || !p.raceResult) && (
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-gray-500 font-medium flex items-center gap-1"><Trophy size={12}/> Result</span>
-                                                    <span className="text-gray-600 italic font-normal">N/A</span>
+                                                    <span className="text-gray-500 font-medium flex items-center gap-1"><Trophy size={12} /> Result</span>
+                                                    <span className="text-gray-600 italic font-normal">
+                                                        {isAwaitingConfirmation ? 'Pending confirmation' : 'N/A'}
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
@@ -666,17 +672,17 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                             )}
 
                             {detailedPools.map((pool: any) => {
-                                const isLive     = pool.poolStatus === 'live';
-                                const isSettled  = pool.poolStatus === 'settled';
+                                const isLive = pool.poolStatus === 'live';
+                                const isSettled = pool.poolStatus === 'settled';
                                 const isRefunded = pool.poolStatus === 'refunded';
-                                const isEmpty    = pool.poolStatus === 'empty';
+                                const isEmpty = pool.poolStatus === 'empty';
                                 const label = pool.methodType === 'race_winner' ? 'Win Prediction Pool' : 'Rank Prediction Pool';
 
                                 const statusChip = isLive
                                     ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse inline-block" />Live</span>
-                                    : isSettled  ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Settled</span>
-                                    : isRefunded ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">Refunded</span>
-                                    :              <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-gray-500 border border-white/10">No Bets</span>;
+                                    : isSettled ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Settled</span>
+                                        : isRefunded ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">Refunded</span>
+                                            : <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-gray-500 border border-white/10">No Bets</span>;
 
                                 return (
                                     <div key={pool.methodType} className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-3">
@@ -766,8 +772,8 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     {/* ── Stream / VOD Tab ── */}
                     {activeTab === 'stream' && (
                         <div className="flex flex-col gap-4">
-                            {/* ── LIVE Stream Info (running races) ── */}
-                            {isRunning && (
+                            {/* ── LIVE Stream Info (running / awaiting confirmation) ── */}
+                            {(isRunning || isAwaitingConfirmation) && (
                                 <div className="bg-[#1a1a1a] p-4 rounded-xl border border-blue-500/20 flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-[13px] font-bold text-white uppercase tracking-wider flex items-center gap-2">

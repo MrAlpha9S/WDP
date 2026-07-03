@@ -9,19 +9,19 @@ import { refereeService } from "../../api/refereeService";
 
 function regStatusBadge(status?: string) {
     switch (status) {
-        case "verified":  return <span className="text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-700/40 px-1.5 py-0.5 rounded-md">Verified</span>;
-        case "failed":    return <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-1.5 py-0.5 rounded-md">Failed</span>;
-        case "approved":  return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-700/40 px-1.5 py-0.5 rounded-md">Approved</span>;
+        case "verified": return <span className="text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-700/40 px-1.5 py-0.5 rounded-md">Verified</span>;
+        case "failed": return <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-1.5 py-0.5 rounded-md">Failed</span>;
+        case "approved": return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-700/40 px-1.5 py-0.5 rounded-md">Approved</span>;
         case "cancelled": return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-md">Cancelled</span>;
-        default:          return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-md">Pending</span>;
+        default: return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-md">Pending</span>;
     }
 }
 
 function gateCircleClass(status?: string, isChecked?: boolean) {
-    if (status === "failed")   return "bg-red-700 text-white";
+    if (status === "failed") return "bg-red-700 text-white";
     if (status === "verified") return "bg-green-700 text-white";
     if (status === "approved") return "bg-amber-700 text-white";
-    if (isChecked)             return "bg-green-700 text-white";
+    if (isChecked) return "bg-green-700 text-white";
     return "bg-white/8 text-gray-400";
 }
 
@@ -52,7 +52,7 @@ export default function PreRacePage() {
                     setLocalStatus(res.data.status);
                 }
             }
-        } catch {}
+        } catch { }
     };
 
     const registrations = localRegistrations ?? raceRound?.Registration ?? [];
@@ -141,10 +141,10 @@ export default function PreRacePage() {
                                         key={registrationId}
                                         className={[
                                             "rounded-xl border px-4 py-3 transition-all duration-150",
-                                            regStatus === "failed"   ? "border-red-800/40 bg-red-500/5" :
-                                            regStatus === "verified" ? "border-green-800/40 bg-green-500/5" :
-                                            regStatus === "approved" ? "border-amber-800/30 bg-amber-500/5" :
-                                            "border-white/8 bg-white/[0.02]",
+                                            regStatus === "failed" ? "border-red-800/40 bg-red-500/5" :
+                                                regStatus === "verified" ? "border-green-800/40 bg-green-500/5" :
+                                                    regStatus === "approved" ? "border-amber-800/30 bg-amber-500/5" :
+                                                        "border-white/8 bg-white/[0.02]",
                                         ].join(" ")}
                                     >
                                         <div className="flex items-center gap-3">
@@ -254,32 +254,43 @@ export default function PreRacePage() {
 
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Inspection Progress</h2>
-                        {[
-                            {
-                                label: "Verified",
-                                ok: true,
-                                value: `${registrations.filter(r => r.registrationStatus === "verified").length} / ${registrations.length}`,
-                            },
-                            {
-                                label: "Failed",
-                                ok: registrations.filter(r => r.registrationStatus === "failed").length === 0,
-                                value: `${registrations.filter(r => r.registrationStatus === "failed").length}`,
-                            },
-                            {
-                                label: "Pending",
-                                ok: registrations.filter(r => r.registrationStatus !== "verified" && r.registrationStatus !== "failed" && r.registrationStatus !== "cancelled" && r.registrationStatus !== "rejected").length === 0,
-                                value: `${registrations.filter(r => r.registrationStatus !== "verified" && r.registrationStatus !== "failed" && r.registrationStatus !== "cancelled" && r.registrationStatus !== "rejected").length}`,
-                            },
-                            { label: "Track Inspection", ok: true, value: "Cleared" },
-                        ].map(item => (
-                            <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                                <span className="text-[12px] text-gray-500">{item.label}</span>
-                                {item.ok
-                                    ? <span className="flex items-center gap-1 text-[11px] font-bold text-green-400"><CheckCircle2 size={11} />{item.value}</span>
-                                    : <span className="flex items-center gap-1 text-[11px] font-bold text-yellow-400"><Clock size={11} />{item.value}</span>
-                                }
-                            </div>
-                        ))}
+                        {(() => {
+                            const verifiedCount = registrations.filter(r => r.registrationStatus === "verified").length;
+                            const failedCount = registrations.filter(r => r.registrationStatus === "failed").length;
+                            const cancelledCount = registrations.filter(r => r.registrationStatus === "cancelled" || r.registrationStatus === "rejected").length;
+                            const pendingCount = registrations.filter(r => r.registrationStatus !== "verified" && r.registrationStatus !== "failed" && r.registrationStatus !== "cancelled" && r.registrationStatus !== "rejected").length;
+                            return [
+                                {
+                                    label: "Verified",
+                                    ok: verifiedCount === registrations.length,
+                                    value: `${verifiedCount} / ${registrations.length}`,
+                                },
+                                {
+                                    label: "Failed",
+                                    ok: failedCount === 0,
+                                    value: `${failedCount}`,
+                                },
+                                {
+                                    label: "Pending",
+                                    ok: pendingCount === 0,
+                                    value: `${pendingCount}`,
+                                },
+                                {
+                                    label: "Cancelled",
+                                    ok: true,
+                                    value: `${cancelledCount}`,
+                                },
+                                { label: "Track Inspection", ok: true, value: "Cleared" },
+                            ].map(item => (
+                                <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                                    <span className="text-[12px] text-gray-500">{item.label}</span>
+                                    {item.ok
+                                        ? <span className="flex items-center gap-1 text-[11px] font-bold text-green-400"><CheckCircle2 size={11} />{item.value}</span>
+                                        : <span className="flex items-center gap-1 text-[11px] font-bold text-yellow-400"><Clock size={11} />{item.value}</span>
+                                    }
+                                </div>
+                            ));
+                        })()}
                     </div>
 
                     {/* Finalize button / status */}
