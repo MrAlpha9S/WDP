@@ -91,6 +91,17 @@ export interface TournamentRaceRoundSummary {
     participantCount: number;
 }
 
+export interface RoundBreakdownEntry {
+    roundId: string;
+    roundName: string;
+    raceDate: string;
+    roundStatus: string;
+    type: 'result' | 'no_result' | 'not_registered';
+    finishPosition?: number;
+    prizeMoney?: number;
+    registrationStatus?: string;
+}
+
 export interface TournamentRankEntry {
     rank: number;
     horseId: string;
@@ -103,11 +114,5 @@ export interface TournamentRankEntry {
     wins: number;
     podiums: number;
     totalPrizeMoney: number;
-    roundBreakdown: Array<{
-        roundId: string;
-        roundName: string;
-        raceDate: string;
-        finishPosition: number;
-        prizeMoney: number;
-    }>;
+    roundBreakdown: RoundBreakdownEntry[];
 }

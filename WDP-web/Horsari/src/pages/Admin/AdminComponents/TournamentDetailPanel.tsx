@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     X, Loader2, Trophy, Calendar, DollarSign, Users, Flag,
-    AlertCircle, CheckCircle2, Award, MapPin, BarChart2
+    AlertCircle, CheckCircle2, Award, MapPin
 } from "lucide-react";
-import type { TournamentDetailData, TournamentRankEntry } from "../../../shared/types/TournamentTypes";
+import type { TournamentDetailData, TournamentRankEntry, RoundBreakdownEntry } from "../../../shared/types/TournamentTypes";
 import { adminService } from "../../../api/adminService";
 
 interface TournamentDetailPanelProps {
@@ -37,8 +37,48 @@ function fmtDate(raw: string | null | undefined) {
     return new Date(raw).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function ordinal(n: number) {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function RoundResultCell({ rd }: { rd: RoundBreakdownEntry }) {
+    if (rd.type === 'result') {
+        const pos = rd.finishPosition!;
+        const cls = pos === 1 ? 'text-amber-400 font-bold'
+            : pos === 2 ? 'text-gray-200 font-semibold'
+            : pos === 3 ? 'text-amber-600 font-semibold'
+            : 'text-gray-400';
+        return <span className={`text-[11px] ${cls}`}>{ordinal(pos)}</span>;
+    }
+    if (rd.type === 'not_registered') {
+        return <span className="text-gray-700 text-[10px]">—</span>;
+    }
+    const s = rd.registrationStatus;
+    if (s === 'cancelled') {
+        return <span className="text-[9px] font-bold text-gray-500 bg-gray-500/10 border border-gray-500/20 px-1.5 py-0.5 rounded">DNS</span>;
+    }
+    if (s === 'failed') {
+        return <span className="text-[9px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded">Failed</span>;
+    }
+    if (s === 'rejected') {
+        return <span className="text-[9px] font-bold text-red-300/60 bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded">Rejected</span>;
+    }
+    // approved / verified — differentiate by round status
+    if (rd.roundStatus === 'awaitingConfirmation') {
+        return <span className="text-[9px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded">Awaiting</span>;
+    }
+    if (rd.roundStatus === 'completed') {
+        return <span className="text-[9px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded">DNF</span>;
+    }
+    if (rd.roundStatus === 'running') {
+        return <span className="text-[9px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded">Live</span>;
+    }
+    return <span className="text-gray-600 text-[10px]">—</span>;
+}
+
 export default function TournamentDetailPanel({ selectedTournamentId, onRefresh, onClose }: TournamentDetailPanelProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'rounds'>('overview');
     const [detail, setDetail] = useState<TournamentDetailData | null>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [detailError, setDetailError] = useState<string | null>(null);
@@ -64,7 +104,6 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
         setRanking([]);
         setRankingError(null);
         setShowRanking(false);
-        setActiveTab('overview');
         fetchDetail();
     }, [selectedTournamentId]);
 
@@ -87,11 +126,6 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
     const t = detail?.tournament;
     const statusColor = t ? (TOURNAMENT_STATUS_COLORS[t.status] ?? 'bg-amber-500/15 text-amber-400 border-amber-500/30') : '';
     const isCompleted = t?.status === 'completed';
-
-    const tabs: Array<{ key: 'overview' | 'rounds'; label: string }> = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'rounds',   label: `Race Rounds${detail ? ` (${detail.raceRounds.length})` : ''}` },
-    ];
 
     return (
         <aside
@@ -145,6 +179,28 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                 )}
                             </div>
 
+                            {/* Description */}
+                            {t.description && (
+                                <p className="mt-2 text-[12px] text-gray-500 leading-relaxed line-clamp-2">
+                                    {t.description}
+                                </p>
+                            )}
+
+                            {/* Race summary chips */}
+                            {detail && (
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                    {(['scheduled','prepared','running','awaitingConfirmation','completed','cancelled','draft'] as const).map(s => {
+                                        const count = detail.raceRounds.filter(r => r.status === s).length;
+                                        if (!count) return null;
+                                        return (
+                                            <span key={s} className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded border ${ROUND_STATUS_COLORS[s]}`}>
+                                                {s} {count}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
                             {/* Champion banner */}
                             {isCompleted && t.championHorseName && (
                                 <div className="mt-3 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
@@ -165,24 +221,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                     )}
                 </div>
 
-                {/* ── Tabs ── */}
-                <div className="flex items-center border-b border-white/[0.05] shrink-0 bg-[#161616]">
-                    {tabs.map(({ key, label }) => (
-                        <button
-                            key={key}
-                            onClick={() => setActiveTab(key)}
-                            className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 ${
-                                activeTab === key
-                                    ? 'text-[#f3b2a5] border-[#f3b2a5] bg-[#f3b2a5]/5'
-                                    : 'text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5'
-                            }`}
-                        >
-                            {label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* ── Tab Content ── */}
+                {/* ── Content ── */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-4 relative">
                     {loadingDetail && (
                         <div className="absolute inset-0 z-10 bg-[#161616]/80 backdrop-blur-sm flex items-center justify-center">
@@ -190,81 +229,10 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                         </div>
                     )}
 
-                    {/* ── Overview Tab ── */}
-                    {activeTab === 'overview' && t && (
-                        <div className="flex flex-col gap-4">
-                            <div className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-4">
-                                <h3 className="text-[13px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                                    <Flag size={16} className="text-gray-500" /> Tournament Info
-                                </h3>
-                                <div className="grid grid-cols-[110px_1fr] gap-y-3 gap-x-4 text-[13px]">
-                                    <span className="text-gray-500 font-medium">Name</span>
-                                    <span className="text-white">{t.tournamentName}</span>
-                                    <span className="text-gray-500 font-medium">Status</span>
-                                    <span className={`self-start text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusColor}`}>
-                                        {t.status}
-                                    </span>
-                                    <span className="text-gray-500 font-medium">Start</span>
-                                    <span className="text-white">{fmtDate(t.startDate ?? undefined)}</span>
-                                    <span className="text-gray-500 font-medium">End</span>
-                                    <span className="text-white">{fmtDate(t.endDate ?? undefined)}</span>
-                                    {t.prizePool != null && (
-                                        <>
-                                            <span className="text-gray-500 font-medium">Prize Pool</span>
-                                            <span className="text-[#f3b2a5] font-semibold">{t.prizePool.toLocaleString()} pts</span>
-                                        </>
-                                    )}
-                                    {t.description && (
-                                        <>
-                                            <span className="text-gray-500 font-medium">Description</span>
-                                            <span className="text-gray-300 leading-relaxed">{t.description}</span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {isCompleted && t.championHorseName && (
-                                <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex flex-col gap-2">
-                                    <h3 className="text-[13px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-2">
-                                        <Trophy size={16} className="text-amber-400" /> Tournament Champion
-                                    </h3>
-                                    <div className="flex items-center gap-3">
-                                        <Award size={32} className="text-amber-400 shrink-0" />
-                                        <div>
-                                            <p className="text-[16px] font-bold text-white">{t.championHorseName}</p>
-                                            <p className="text-[11px] text-amber-400/70">Official tournament winner</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {detail && (
-                                <div className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-3">
-                                    <h3 className="text-[13px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                                        <BarChart2 size={16} className="text-gray-500" /> Race Summary
-                                    </h3>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {(['draft','scheduled','prepared','running','awaitingConfirmation','completed','cancelled'] as const).map(s => {
-                                            const count = detail.raceRounds.filter(r => r.status === s).length;
-                                            if (!count) return null;
-                                            return (
-                                                <div key={s} className={`rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border ${ROUND_STATUS_COLORS[s]}`}>
-                                                    <span className="text-[9px] font-bold uppercase tracking-wider opacity-80">{s}</span>
-                                                    <span className="text-[15px] font-bold">{count}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* ── Race Rounds Tab ── */}
-                    {activeTab === 'rounds' && (
-                        <div className="flex flex-col gap-3">
-                            {/* View Ranking button */}
-                            <button
+                    {/* ── Race Rounds ── */}
+                    <div className="flex flex-col gap-3">
+                        {/* View Ranking button */}
+                        <button
                                 onClick={handleViewRanking}
                                 disabled={loadingRanking}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[12px] font-bold rounded-lg border transition-colors disabled:opacity-60 disabled:cursor-not-allowed bg-[#f3b2a5]/10 text-[#f3b2a5] border-[#f3b2a5]/20 hover:bg-[#f3b2a5]/20"
@@ -289,17 +257,22 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                         <span className="text-[12px] font-bold text-white uppercase tracking-wider">Current Standings</span>
                                     </div>
                                     <div className="overflow-x-auto">
-                                        <table className="w-full text-left border-collapse">
+                                        <table className="text-left border-collapse" style={{ minWidth: '100%' }}>
                                             <thead>
                                                 <tr className="bg-[#111] border-b border-white/5">
-                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500">Rank</th>
-                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500">Horse</th>
-                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500">Owner</th>
-                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-right">Score</th>
-                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-center">Races</th>
-                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-center">Wins</th>
-                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-center">Podiums</th>
-                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-right">Prize</th>
+                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">Rank</th>
+                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">Horse</th>
+                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">Owner</th>
+                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-right whitespace-nowrap">Score</th>
+                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-center whitespace-nowrap">Races</th>
+                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-center whitespace-nowrap">Wins</th>
+                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-center whitespace-nowrap">Podiums</th>
+                                                    {detail?.raceRounds.map((rr, ri) => (
+                                                        <th key={rr._id} title={rr.roundName} className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-[#f3b2a5]/70 text-center whitespace-nowrap border-l border-white/[0.04]">
+                                                            R{ri + 1}
+                                                        </th>
+                                                    ))}
+                                                    <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-right whitespace-nowrap border-l border-white/[0.04]">Prize</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/[0.03]">
@@ -308,7 +281,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                                         key={entry.horseId + idx}
                                                         className={`transition-colors hover:bg-white/[0.02] ${entry.rank === 1 ? 'bg-amber-500/5' : ''}`}
                                                     >
-                                                        <td className="px-3 py-2.5">
+                                                        <td className="px-3 py-2.5 whitespace-nowrap">
                                                             <div className="flex items-center gap-1.5">
                                                                 <span className="text-[12px] font-bold text-gray-400">
                                                                     {RANK_MEDALS[entry.rank] ?? `#${entry.rank}`}
@@ -328,19 +301,24 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                                                 {entry.ownerName}
                                                             </span>
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-right">
+                                                        <td className="px-3 py-2.5 text-right whitespace-nowrap">
                                                             <span className="text-[13px] font-bold text-[#f3b2a5]">{entry.score}</span>
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-center">
+                                                        <td className="px-3 py-2.5 text-center whitespace-nowrap">
                                                             <span className="text-[12px] text-gray-300">{entry.totalRaces}</span>
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-center">
+                                                        <td className="px-3 py-2.5 text-center whitespace-nowrap">
                                                             <span className="text-[12px] text-emerald-400 font-semibold">{entry.wins}</span>
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-center">
+                                                        <td className="px-3 py-2.5 text-center whitespace-nowrap">
                                                             <span className="text-[12px] text-amber-400">{entry.podiums}</span>
                                                         </td>
-                                                        <td className="px-3 py-2.5 text-right">
+                                                        {entry.roundBreakdown.map((rd, rdIdx) => (
+                                                            <td key={rd.roundId?.toString() ?? rdIdx} className="px-3 py-2.5 text-center whitespace-nowrap border-l border-white/[0.04]">
+                                                                <RoundResultCell rd={rd} />
+                                                            </td>
+                                                        ))}
+                                                        <td className="px-3 py-2.5 text-right whitespace-nowrap border-l border-white/[0.04]">
                                                             <span className="text-[11px] text-gray-300">
                                                                 {entry.totalPrizeMoney > 0 ? `$${entry.totalPrizeMoney.toLocaleString()}` : '—'}
                                                             </span>
@@ -420,7 +398,6 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                 );
                             })}
                         </div>
-                    )}
                 </div>
             </div>
         </aside>
