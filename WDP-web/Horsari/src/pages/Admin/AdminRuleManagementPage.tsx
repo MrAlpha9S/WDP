@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ScrollText, CheckCircle, XCircle } from "lucide-react";
+import { Search, ScrollText, CheckCircle, XCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import RuleDetailPanel from "./AdminComponents/RuleDetailPanel";
 import RuleModal from "./AdminComponents/RuleModal";
 import { adminService } from "../../api/adminService";
@@ -44,16 +44,35 @@ export default function AdminRuleManagementPage() {
     const [modalRule, setModalRule] = useState<RaceEligibilityRule | null>(null);
     const [page, setPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
+    const [sortBy, setSortBy] = useState<string>('createdAt');
+    const [order, setOrder] = useState<'asc' | 'desc'>('desc');
     const LIMIT = 10;
     const totalPages = Math.ceil(totalItems / LIMIT) || 1;
 
+    const handleSort = (field: string) => {
+        if (sortBy === field) {
+            setOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setOrder('asc');
+        }
+        setPage(1);
+    };
+
+    const SortIcon = ({ field }: { field: string }) => {
+        if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
+        return order === 'asc'
+            ? <ArrowUp size={11} className="text-[#f3b2a5] ml-1 inline" />
+            : <ArrowDown size={11} className="text-[#f3b2a5] ml-1 inline" />;
+    };
+
     useEffect(() => { setPage(1); }, [search]);
-    useEffect(() => { fetchRules(); }, [page, search]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { fetchRules(); }, [page, search, sortBy, order]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchRules = async () => {
         try {
             setLoading(true);
-            const res = await adminService.getRules(page, LIMIT, search || undefined);
+            const res = await adminService.getRules(page, LIMIT, search || undefined, sortBy, order);
             const items: RaceEligibilityRule[] = res.data?.items ?? res.data ?? [];
             setRules(items);
             setTotalItems(res.data?.pagination?.totalItems ?? items.length);
@@ -149,6 +168,25 @@ export default function AdminRuleManagementPage() {
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
+                            <select
+                                value={`${sortBy}:${order}`}
+                                onChange={e => {
+                                    const [field, dir] = e.target.value.split(':');
+                                    setSortBy(field);
+                                    setOrder(dir as 'asc' | 'desc');
+                                    setPage(1);
+                                }}
+                                className="w-[175px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            >
+                                <option value="createdAt:desc">Newest First</option>
+                                <option value="createdAt:asc">Oldest First</option>
+                                <option value="raceType:asc">Race Type A–Z</option>
+                                <option value="raceType:desc">Race Type Z–A</option>
+                                <option value="minAge:asc">Age Limit Low–High</option>
+                                <option value="minAge:desc">Age Limit High–Low</option>
+                                <option value="isActive:desc">Active First</option>
+                                <option value="isActive:asc">Inactive First</option>
+                            </select>
                         </div>
                     </header>
 
@@ -158,12 +196,22 @@ export default function AdminRuleManagementPage() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-[#1a1a1a] border-b border-white/5">
-                                        {(panelOpen
-                                            ? ["Race Type", "Age Limit", "Requirements", "Status"]
-                                            : ["Race Type", "Age Limit", "Requirements", "Licenses", "Status", "Updated"]
-                                        ).map(h => (
-                                            <th key={h} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">{h}</th>
-                                        ))}
+                                        <th onClick={() => handleSort('raceType')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                            Race Type <SortIcon field="raceType" />
+                                        </th>
+                                        <th onClick={() => handleSort('minAge')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                            Age Limit <SortIcon field="minAge" />
+                                        </th>
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Requirements</th>
+                                        {!panelOpen && (
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Licenses</th>
+                                        )}
+                                        <th onClick={() => handleSort('isActive')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                            Status <SortIcon field="isActive" />
+                                        </th>
+                                        {!panelOpen && (
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Updated</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">

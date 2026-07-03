@@ -7,6 +7,8 @@ import TournamentManagementPage from "./TournamentManagementPage";
 import AdminUsersPage from "./AdminUsersPage";
 import AdminHorsesPage from "./AdminHorsesPage";
 import AdminRuleManagementPage from "./AdminRuleManagementPage";
+import ViolationManagementPage from "./ViolationManagementPage";
+import ViolationTypeManagementPage from "./ViolationTypeManagementPage";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { AdminSocketContext } from "../../providers/useAdminSocket";
@@ -48,6 +50,10 @@ function ActiveView({ tab, setActiveTab }: { tab: AdminTab, setActiveTab: (tab: 
             return <AdminHorsesPage />;
         case "Rules Managment":
             return <AdminRuleManagementPage />;
+        case "Violations":
+            return <ViolationManagementPage />;
+        case "Violation Types":
+            return <ViolationTypeManagementPage />;
         default:
             return <ComingSoon title={tab} />;
     }
@@ -126,7 +132,9 @@ export default function AdminDashboardPage() {
         "Roles & Permissions",
         "Horses",
         "Rules Managment",
-        "Activity Logs"
+        "Activity Logs",
+        "Violations",
+        "Violation Types",
     ] as AdminTab[];
 
     const initialTab = allTabs.find(

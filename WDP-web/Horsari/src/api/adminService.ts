@@ -1,5 +1,6 @@
 import api from './axios';
 import type { TournamentDetailData, TournamentRankEntry } from '../shared/types/TournamentTypes';
+import type { ViolationEntity, ViolationTypeEntity } from '../shared/types/ViolationTypes';
 
 export interface RaceRegistration {
   _id: string;
@@ -96,9 +97,16 @@ export const adminService = {
     }
   },
 
-  getAllUsers: async (role?: string, search?: string, limit: number = 10, skip: number = 0) => {
+  getAllUsers: async (
+    role?: string,
+    search?: string,
+    limit: number = 10,
+    skip: number = 0,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ) => {
     try {
-      const params: any = { limit, skip };
+      const params: any = { limit, skip, sortBy, order };
       if (role && role !== 'All') params.role = role;
       if (search) params.search = search;
       const response = await api.get('/admin/users/all', { params });
@@ -275,6 +283,79 @@ export const adminService = {
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
+    }
+  },
+
+  // --- Violations ---
+
+  getAllViolations: async (
+    page = 1,
+    limit = 10,
+    status?: string,
+    severity?: number,
+    raceRoundId?: string,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ): Promise<{ code: number; data: { items: ViolationEntity[]; pagination: { page: number; limit: number; totalItems: number; totalPages: number } }; msg: string }> => {
+    try {
+      const params: any = { page, limit, sortBy, order };
+      if (status)      params.status = status;
+      if (severity)    params.severity = severity;
+      if (raceRoundId) params.raceRoundId = raceRoundId;
+      const response = await api.get('/admin/violations', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch violations' };
+    }
+  },
+
+  // --- Violation Types ---
+
+  getAllViolationTypes: async (
+    page = 1,
+    limit = 10,
+    search?: string,
+    type?: string,
+    category?: string,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ): Promise<{ code: number; data: { items: ViolationTypeEntity[]; pagination: { page: number; limit: number; totalItems: number; totalPages: number } }; msg: string }> => {
+    try {
+      const params: any = { page, limit, sortBy, order };
+      if (search)   params.search = search;
+      if (type)     params.type = type;
+      if (category) params.category = category;
+      const response = await api.get('/admin/violation-types', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch violation types' };
+    }
+  },
+
+  createViolationType: async (data: Partial<ViolationTypeEntity>): Promise<{ code: number; data: ViolationTypeEntity; msg: string }> => {
+    try {
+      const response = await api.post('/admin/violation-types', data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to create violation type' };
+    }
+  },
+
+  updateViolationType: async (id: string, data: Partial<ViolationTypeEntity>): Promise<{ code: number; data: ViolationTypeEntity; msg: string }> => {
+    try {
+      const response = await api.put(`/admin/violation-types/${id}`, data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to update violation type' };
+    }
+  },
+
+  toggleViolationTypeActive: async (id: string, isActive: boolean): Promise<{ code: number; data: ViolationTypeEntity; msg: string }> => {
+    try {
+      const response = await api.patch(`/admin/violation-types/${id}/active`, { isActive });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to toggle violation type status' };
     }
   },
 

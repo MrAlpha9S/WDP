@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
-    Search, User, CheckCircle, XCircle, Clock, Loader2
+    Search, User, CheckCircle, XCircle, Clock, Loader2,
+    ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import UserDetailPanel from "./AdminComponents/UserDetailPanel";
 import { adminService } from "../../api/adminService";
@@ -302,7 +303,26 @@ export default function AdminUsersPage() {
     const [detailLoading, setDetailLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
+    const [sortBy, setSortBy] = useState<string>('createdAt');
+    const [order, setOrder] = useState<'asc' | 'desc'>('desc');
     const totalPages = Math.ceil(totalItems / limit) || 1;
+
+    const handleSort = (field: string) => {
+        if (sortBy === field) {
+            setOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setOrder('asc');
+        }
+        setPage(1);
+    };
+
+    const SortIcon = ({ field }: { field: string }) => {
+        if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
+        return order === 'asc'
+            ? <ArrowUp size={11} className="text-[#f3b2a5] ml-1 inline" />
+            : <ArrowDown size={11} className="text-[#f3b2a5] ml-1 inline" />;
+    };
 
     // Reset to page 1 when filters change
     useEffect(() => { setPage(1); }, [roleFilter, search, limit]);
@@ -312,7 +332,7 @@ export default function AdminUsersPage() {
             try {
                 setLoading(true);
                 const skip = (page - 1) * limit;
-                const res = await adminService.getAllUsers(roleFilter, search, limit, skip);
+                const res = await adminService.getAllUsers(roleFilter, search, limit, skip, sortBy, order);
                 const mapped = (res?.data?.items || []).map(mapUser);
                 setUsers(mapped);
                 setTotalItems(res?.data?.pagination?.totalItems ?? mapped.length);
@@ -324,7 +344,7 @@ export default function AdminUsersPage() {
         };
         const timer = setTimeout(fetchUsers, 300);
         return () => clearTimeout(timer);
-    }, [roleFilter, search, limit, page]);
+    }, [roleFilter, search, limit, page, sortBy, order]);
 
     useEffect(() => {
         if (!selectedUser) return;
@@ -409,6 +429,23 @@ export default function AdminUsersPage() {
                                 <option value="Spectator">Spectator</option>
                                 <option value="Admin">Admin</option>
                             </select>
+                            <select
+                                value={`${sortBy}:${order}`}
+                                onChange={e => {
+                                    const [field, dir] = e.target.value.split(':');
+                                    setSortBy(field);
+                                    setOrder(dir as 'asc' | 'desc');
+                                    setPage(1);
+                                }}
+                                className="w-[175px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            >
+                                <option value="createdAt:desc">Newest First</option>
+                                <option value="createdAt:asc">Oldest First</option>
+                                <option value="fullName:asc">Name A–Z</option>
+                                <option value="fullName:desc">Name Z–A</option>
+                                <option value="role:asc">Group by Role</option>
+                                <option value="status:asc">Group by Status</option>
+                            </select>
                         </div>
                     </header>
 
@@ -418,12 +455,24 @@ export default function AdminUsersPage() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-[#1a1a1a] border-b border-white/5">
-                                        {(panelOpen
-                                            ? ["User", "Role", "Status"]
-                                            : ["User", "Email", "Role", "Status", "Confirmed", "Updated"]
-                                        ).map(h => (
-                                            <th key={h} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">{h}</th>
-                                        ))}
+                                        <th onClick={() => handleSort('fullName')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                            User <SortIcon field="fullName" />
+                                        </th>
+                                        {!panelOpen && (
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Email</th>
+                                        )}
+                                        <th onClick={() => handleSort('role')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                            Role <SortIcon field="role" />
+                                        </th>
+                                        <th onClick={() => handleSort('status')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                            Status <SortIcon field="status" />
+                                        </th>
+                                        {!panelOpen && (
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Confirmed</th>
+                                        )}
+                                        {!panelOpen && (
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Updated</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
