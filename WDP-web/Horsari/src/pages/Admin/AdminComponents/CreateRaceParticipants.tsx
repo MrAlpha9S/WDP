@@ -16,12 +16,13 @@ interface ParticipantsProps {
 
 export default function CreateRaceParticipants(props: ParticipantsProps) {
     const { metadata, createRaceType, checkEligibility } = props;
+    const selectedRuleName = metadata?.eligibilityRules?.find((r: any) => r._id === createRaceType)?.raceType ?? createRaceType;
 
     return (
         <div className="flex flex-col gap-4">
             <div>
                 <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
-                    Invite Horse Owners <span className="text-gray-500 normal-case ml-1 font-normal">(Auto-filtered for {createRaceType} eligibility)</span>
+                    Invite Horse Owners <span className="text-gray-500 normal-case ml-1 font-normal">(Auto-filtered for {selectedRuleName} eligibility)</span>
                 </label>
                 <div className="p-3 bg-[#111] border border-white/10 rounded flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar">
                     {metadata?.owners?.filter((owner: any) => owner.horses.some((h: any) => checkEligibility(h, createRaceType))).map((owner: any) => {

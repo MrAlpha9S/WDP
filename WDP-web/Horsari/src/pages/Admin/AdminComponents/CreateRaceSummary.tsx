@@ -19,6 +19,7 @@ interface SummaryProps {
 
 export default function CreateRaceSummary(props: SummaryProps) {
     const { metadata } = props;
+    const raceTypeName = metadata?.eligibilityRules?.find((r: any) => r._id === props.createRaceType)?.raceType ?? props.createRaceType;
 
     return (
         <div className="flex flex-col gap-4 text-white">
@@ -43,7 +44,7 @@ export default function CreateRaceSummary(props: SummaryProps) {
                     <div className="font-medium">{props.trackLength}m</div>
 
                     <div className="text-gray-500">Race Type</div>
-                    <div className="font-medium">{props.createRaceType}</div>
+                    <div className="font-medium">{raceTypeName}</div>
 
                     <div className="text-gray-500">Prize Pool</div>
                     <div className="font-medium text-[#f3b2a5]">{props.currencyType} {props.firstPlacePrize || 0} / {props.secondPlacePrize || 0} / {props.thirdPlacePrize || 0}</div>

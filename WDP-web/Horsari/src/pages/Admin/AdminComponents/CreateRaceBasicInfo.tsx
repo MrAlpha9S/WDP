@@ -69,7 +69,7 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                         className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none"
                     >
                         {metadata?.eligibilityRules?.map((rule: any) => (
-                            <option className="bg-[#1a1a1a] text-white" key={rule._id} value={rule.raceType}>{rule.raceType}</option>
+                            <option className="bg-[#1a1a1a] text-white" key={rule._id} value={rule._id}>{rule.raceType}</option>
                         ))}
                     </select>
                 </div>
