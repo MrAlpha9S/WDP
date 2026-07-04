@@ -14,8 +14,6 @@ const PredictionMethod = require('../entities/PredictionMethod');
 class SpectatorService {
     async createSpectator(spectatorId, data) {
         try {
-            const { wallet } = data || {};
-
             if (!spectatorId) {
                 return { code: 400, msg: 'spectatorId is required' };
             }
@@ -32,7 +30,6 @@ class SpectatorService {
 
             const spectatorProfile = await SpectatorRepository.create({
                 _id: spectatorId,
-                wallet: wallet || 0,
             });
 
             return { code: 201, data: spectatorProfile, msg: 'Spectator profile created successfully' };
@@ -62,7 +59,7 @@ class SpectatorService {
             return {
                 code: 200,
                 data: {
-                    spectator: { _id: spectator._id, wallet: spectator.wallet },
+                    spectator: { _id: spectator._id },
                     user: user ? {
                         fullName: user.fullName,
                         username: user.username,
@@ -72,6 +69,7 @@ class SpectatorService {
                         image: user.image || null,
                         address: user.address || null,
                         status: user.status,
+                        wallet: user.wallet,
                     } : null,
                     stats: { totalPredictions, totalCorrectPredictions, winRate },
                 },
@@ -98,7 +96,8 @@ class SpectatorService {
             if (!spectator) {
                 return { code: 404, msg: 'Spectator not found' };
             }
-            return { code: 200, data: { wallet: spectator.wallet }, msg: 'Wallet balance retrieved successfully' };
+            const user = await UserRepository.findById(spectatorId);
+            return { code: 200, data: { wallet: user.wallet }, msg: 'Wallet balance retrieved successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -113,8 +112,8 @@ class SpectatorService {
             if (!spectator) {
                 return { code: 404, msg: 'Spectator not found' };
             }
-            const updatedSpectator = await SpectatorRepository.addRewardPoints(spectator._id, points);
-            return { code: 200, data: updatedSpectator, msg: `${points} reward points added successfully` };
+            const updatedUser = await UserRepository.addWalletBalance(spectatorId, points);
+            return { code: 200, data: updatedUser, msg: `${points} reward points added successfully` };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -129,11 +128,12 @@ class SpectatorService {
             if (!spectator) {
                 return { code: 404, msg: 'Spectator not found' };
             }
-            if (spectator.wallet < points) {
+            const user = await UserRepository.findById(spectatorId);
+            if (user.wallet < points) {
                 return { code: 400, msg: 'Insufficient wallet balance' };
             }
-            const updatedSpectator = await SpectatorRepository.addRewardPoints(spectator._id, -points);
-            return { code: 200, data: updatedSpectator, msg: `${points} reward points deducted successfully` };
+            const updatedUser = await UserRepository.addWalletBalance(spectatorId, -points);
+            return { code: 200, data: updatedUser, msg: `${points} reward points deducted successfully` };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -141,8 +141,8 @@ class SpectatorService {
 
     async getTopSpectators(limit = 10) {
         try {
-            const spectators = await SpectatorRepository.findAll(limit, 0);
-            const sorted = spectators.sort((a, b) => b.wallet - a.wallet);
+            const users = await UserRepository.findByRole('spectator');
+            const sorted = users.sort((a, b) => b.wallet - a.wallet);
             return { code: 200, data: { spectators: sorted.slice(0, limit), count: sorted.length }, msg: 'Top spectators retrieved successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
@@ -175,12 +175,13 @@ class SpectatorService {
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
 
+            const user = await UserRepository.findById(userId);
             const totalEarned = await TransactionRepository.sumAmountByUserId(userId, { transactionType: 'deposit' });
 
             return {
                 code: 200,
                 data: {
-                    spectator: { _id: spectator._id, wallet: spectator.wallet },
+                    user: { _id: user._id, wallet: user.wallet },
                     stats: { totalEarned: totalEarned || 0 },
                 },
                 msg: 'Wallet info retrieved successfully',
@@ -244,7 +245,7 @@ class SpectatorService {
                 status: 'completed',
             });
 
-            const updated = await SpectatorRepository.addRewardPoints(userId, amount);
+            const updated = await UserRepository.addWalletBalance(userId, amount);
             return {
                 code: 201,
                 data: { newBalance: updated.wallet },
@@ -263,7 +264,8 @@ class SpectatorService {
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
 
-            if (spectator.wallet < amount) {
+            const user = await UserRepository.findById(userId);
+            if (user.wallet < amount) {
                 return { code: 400, msg: 'Insufficient balance' };
             }
 
@@ -275,7 +277,7 @@ class SpectatorService {
                 status: 'completed',
             });
 
-            const updated = await SpectatorRepository.addRewardPoints(userId, -amount);
+            const updated = await UserRepository.addWalletBalance(userId, -amount);
             return {
                 code: 201,
                 data: { newBalance: updated.wallet },
@@ -292,6 +294,7 @@ class SpectatorService {
         try {
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
+            const user = await UserRepository.findById(userId);
 
             const [liveRaceRaw, upcomingRacesRaw, featuredHorsesRaw] = await Promise.all([
                 RaceRound.findOne({ status: 'running' })
@@ -407,7 +410,7 @@ class SpectatorService {
                     liveRace,
                     upcomingRaces,
                     featuredHorses,
-                    spectator: { wallet: spectator.wallet },
+                    user: { wallet: user.wallet },
                 },
                 msg: 'Home feed retrieved successfully',
             };
@@ -724,7 +727,8 @@ class SpectatorService {
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
 
-            if ((spectator.wallet || 0) < rewardPoints) {
+            const user = await UserRepository.findById(userId);
+            if ((user.wallet || 0) < rewardPoints) {
                 return { code: 400, msg: 'Insufficient wallet balance' };
             }
 
@@ -749,7 +753,7 @@ class SpectatorService {
                 const existing = await PredictionRepository.findOne({ spectatorId: userId, tournamentId, predictionMethodId });
                 if (existing) return { code: 400, msg: 'You have already predicted the champion for this tournament' };
 
-                await SpectatorRepository.addRewardPoints(spectator._id, -rewardPoints);
+                await UserRepository.addWalletBalance(spectator._id, -rewardPoints);
                 await TransactionRepository.create({
                     userId,
                     transactionType: 'reward',
@@ -797,7 +801,7 @@ class SpectatorService {
             const existing = await PredictionRepository.findOne({ spectatorId: userId, registrationId, predictionMethodId });
             if (existing) return { code: 400, msg: 'You have already predicted for this registration with this method' };
 
-            await SpectatorRepository.addRewardPoints(spectator._id, -rewardPoints);
+            await UserRepository.addWalletBalance(spectator._id, -rewardPoints);
             await TransactionRepository.create({
                 userId,
                 transactionType: 'reward',

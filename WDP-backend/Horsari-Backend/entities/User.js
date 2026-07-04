@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema(
             enum: ['active', 'inactive', 'suspended'],
             default: 'active',
         },
+        wallet: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );

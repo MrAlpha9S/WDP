@@ -3,7 +3,7 @@ import apiClient from './axios';
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
 export interface SpectatorProfile {
-  spectator: { _id: string; wallet: number };
+  spectator: { _id: string };
   user: {
     fullName: string;
     username: string;
@@ -13,6 +13,7 @@ export interface SpectatorProfile {
     image: string | null;
     address: string | null;
     status: string;
+    wallet: number;
   };
   stats: { totalPredictions: number; totalCorrectPredictions: number; winRate: number };
 }
@@ -60,7 +61,7 @@ export interface HomeFeed {
   liveRace: HomeFeedLiveRace | null;
   upcomingRaces: HomeFeedUpcomingRace[];
   featuredHorses: HomeFeedHorse[];
-  spectator: { wallet: number } | null;
+  user: { wallet: number } | null;
 }
 
 // ─── Race Schedule ────────────────────────────────────────────────────────────
@@ -165,7 +166,7 @@ export interface PredictionDetail extends PredictionItem {
 // ─── Wallet ───────────────────────────────────────────────────────────────────
 
 export interface WalletInfo {
-  spectator: { _id: string; wallet: number };
+  user: { _id: string; wallet: number };
   stats: { totalEarned: number };
 }
 
@@ -315,7 +316,7 @@ export interface RaceDetailRegistration {
   horse: { _id: string; horseName: string; img: string | null } | null;
   jockey?: { _id: string; fullName: string } | null;
   userPrediction: PredictionItem | null;
-  raceResult?: { finishPosition: number; finishTime: string; distance?: number | null } | null;
+  raceResult?: { finishPosition: number; finishTime: string; distance?: number | null; resultStatus?: string } | null;
 }
 
 export interface TournamentForPrediction {

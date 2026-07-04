@@ -175,8 +175,15 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     rewardPoints: { type: number }
- *                     totalEarned: { type: number }
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         _id: { type: string }
+ *                         wallet: { type: number }
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         totalEarned: { type: number }
  *                 msg: { type: string }
  *
  * /api/spectator/transactions:

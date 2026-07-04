@@ -233,11 +233,11 @@ export default function SpectatorHomeScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>TRANG CHỦ</Text>
-          {feed?.spectator != null && (
+          {feed?.user != null && (
             <View style={styles.pointsBadge}>
               <Ionicons name="star-outline" size={12} color={Palette.gold} />
               <Text style={styles.pointsBadgeText}>
-                {feed.spectator.wallet.toLocaleString()} điểm
+                {feed.user.wallet.toLocaleString()} điểm
               </Text>
             </View>
           )}

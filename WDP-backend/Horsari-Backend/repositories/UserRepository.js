@@ -37,6 +37,10 @@ class UserRepository {
         return await User.findOneAndUpdate({ username }, updateData, { new: true });
     }
 
+    async addWalletBalance(userId, amount) {
+        return await User.findByIdAndUpdate(userId, { $inc: { wallet: amount } }, { new: true });
+    }
+
     // Delete
     async deleteById(id) {
         return await User.findByIdAndDelete(id);

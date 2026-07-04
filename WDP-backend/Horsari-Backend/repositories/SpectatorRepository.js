@@ -23,12 +23,6 @@ class SpectatorRepository {
             .skip(skip);
     }
 
-    async findByWalletRange(minPoints, maxPoints) {
-        return await Spectator.find({
-            wallet: { $gte: minPoints, $lte: maxPoints },
-        }).populate('_id');
-    }
-
     // Update
     async updateById(id, updateData) {
         return await Spectator.findByIdAndUpdate(id, updateData, {
@@ -40,14 +34,6 @@ class SpectatorRepository {
         return await Spectator.findByIdAndUpdate(spectatorId, updateData, {
             new: true,
         }).populate('_id');
-    }
-
-    async addRewardPoints(spectatorId, points) {
-        return await Spectator.findByIdAndUpdate(
-            spectatorId,
-            { $inc: { wallet: points } },
-            { new: true }
-        ).populate('_id');
     }
 
     // Delete
