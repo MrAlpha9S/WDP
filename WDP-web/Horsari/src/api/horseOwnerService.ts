@@ -231,6 +231,14 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
+  payJockey: async (raceResultId: string) => {
+    try {
+      const response = await api.post(`/horseowner/race-results/${raceResultId}/pay-jockey`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
   createHorse: async (data: Omit<Horse, '_id' | 'ownerId' | 'createdAt' | 'updatedAt' | '__v'>) => {
     try {
       const response = await api.post('/horse', data);

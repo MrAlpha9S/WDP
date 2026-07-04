@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { adminService } from "../../api/adminService";
-import { Users, Trophy, ClipboardList, Eye, Settings, CheckSquare, Radio } from "lucide-react";
+import { Users, Trophy, ClipboardList, Eye, Settings, CheckSquare, Radio, DollarSign, AlertCircle, Flag, Rabbit } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -190,6 +190,36 @@ export default function SystemDashboardPage() {
                     subColor={stats?.jockeys?.pending > 0 ? "text-amber-500" : "text-gray-500"}
                     icon={<Users size={16} />}
                     highlight={stats?.jockeys?.pending > 0}
+                />
+            </div>
+
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                <StatCard
+                    label="Race Rounds"
+                    value={loading ? "..." : (stats?.raceRounds?.total || 0).toString()}
+                    sub={loading ? "..." : `${stats?.raceRounds?.active || 0} Active · ${stats?.races?.run || 0} Run · ${stats?.races?.waiting || 0} Waiting`}
+                    icon={<Flag size={16} />}
+                />
+                <StatCard
+                    label="Active Horses"
+                    value={loading ? "..." : (stats?.horses?.active || 0).toString()}
+                    sub="Currently active horses"
+                    icon={<Rabbit size={16} />}
+                />
+                <StatCard
+                    label="Betting Revenue"
+                    value={loading ? "..." : `$${(stats?.bettingRevenue || 0).toLocaleString()}`}
+                    sub="House cut from settled pools"
+                    subColor="text-emerald-500"
+                    icon={<DollarSign size={16} />}
+                />
+                <StatCard
+                    label="Payments Due"
+                    value={loading ? "..." : (stats?.paymentsDue?.totalCount || 0).toString()}
+                    sub={loading ? "..." : `$${(stats?.paymentsDue?.totalAmount || 0).toLocaleString()} owed · ${stats?.paymentsDue?.ownerCount || 0} Owner · ${stats?.paymentsDue?.refereeCount || 0} Referee`}
+                    subColor={stats?.paymentsDue?.totalCount > 0 ? "text-red-500" : "text-gray-500"}
+                    icon={<AlertCircle size={16} />}
+                    highlight={stats?.paymentsDue?.totalCount > 0}
                 />
             </div>
 

@@ -4,7 +4,7 @@ import { Pagination } from "../../../components/Pagination";
 import { usePaginatedFetch } from "../../../hooks/usePaginatedFetch";
 
 export type ApprovalRole = "Horse Owner" | "Jockey" | "Referee" | "Trainer";
-export type InvitationStatus = "Pending" | "Accepted" | "Declined";
+export type InvitationStatus = "Pending" | "Accepted" | "Declined" | "FailToShow";
 
 export interface Invitee {
     id: string;
@@ -38,11 +38,12 @@ export function StatusBadge({ status }: { status: InvitationStatus }) {
     const colors = {
         Pending: "text-amber-400 bg-amber-400/10 border border-amber-400/20",
         Accepted: "text-emerald-400 bg-emerald-400/10 border border-emerald-400/20",
-        Declined: "text-red-400 bg-red-400/10 border border-red-400/20"
+        Declined: "text-red-400 bg-red-400/10 border border-red-400/20",
+        FailToShow: "text-orange-400 bg-orange-400/10 border border-orange-400/20"
     };
     return (
         <span className={`text-[12px] px-2.5 py-1.5 rounded font-medium ${colors[status]}`}>
-            {status}
+            {status === "FailToShow" ? "No Show" : status}
         </span>
     );
 }
@@ -52,9 +53,10 @@ export function JockeyStatusText({ status }: { status?: InvitationStatus }) {
     const colors = {
         Pending: "text-amber-400",
         Accepted: "text-emerald-400",
-        Declined: "text-red-400"
+        Declined: "text-red-400",
+        FailToShow: "text-orange-400"
     };
-    return <span className={`font-medium ${colors[status]}`}>{status}</span>;
+    return <span className={`font-medium ${colors[status]}`}>{status === "FailToShow" ? "No Show" : status}</span>;
 }
 
 export function InvitationTable({
@@ -273,10 +275,14 @@ async function fetchMappedData(
                 raceTotalSlots: item.raceRound?.maxParticipants,
                 horseSelected: item.horse?.horseName,
                 mainJockeyName: mainJockey ? mainJockey.jockeyName : "N/A",
-                mainJockeyStatus: mainJockey ? "Accepted" : undefined,
+                mainJockeyStatus: mainJockey
+                    ? (mainJockey.status === 'failToShow' ? 'FailToShow' : mainJockey.status === 'declined' ? 'Declined' : 'Accepted')
+                    : undefined,
                 mainJockeyInvitationId: mainJockey ? mainJockey.invitationsId : undefined,
                 backupJockeyName: backupJockey ? backupJockey.jockeyName : "N/A",
-                backupJockeyStatus: backupJockey ? "Accepted" : undefined,
+                backupJockeyStatus: backupJockey
+                    ? (backupJockey.status === 'failToShow' ? 'FailToShow' : backupJockey.status === 'declined' ? 'Declined' : 'Accepted')
+                    : undefined,
                 backupJockeyInvitationId: backupJockey ? backupJockey.invitationsId : undefined,
             } as Invitee;
         });
@@ -313,6 +319,7 @@ async function fetchMappedData(
             let status: InvitationStatus = "Pending";
             if (item.status === "accepted") status = "Accepted";
             else if (item.status === "declined") status = "Declined";
+            else if (item.status === "failToShow") status = "FailToShow";
             const mainJockey = item.invitations?.find((i: any) => !i.isBackup);
             const backupJockey = item.invitations?.find((i: any) => i.isBackup);
             return {
@@ -329,12 +336,12 @@ async function fetchMappedData(
                 horseSelected: item.horse?.horseName,
                 mainJockeyName: mainJockey ? mainJockey.jockeyName : "N/A",
                 mainJockeyStatus: mainJockey
-                    ? (mainJockey.invitationStatus === 'accepted' ? 'Accepted' : mainJockey.invitationStatus === 'declined' ? 'Declined' : 'Pending')
+                    ? (mainJockey.invitationStatus === 'accepted' ? 'Accepted' : mainJockey.invitationStatus === 'declined' ? 'Declined' : mainJockey.invitationStatus === 'failToShow' ? 'FailToShow' : 'Pending')
                     : undefined,
                 mainJockeyInvitationId: mainJockey ? mainJockey.invitationId : undefined,
                 backupJockeyName: backupJockey ? backupJockey.jockeyName : "N/A",
                 backupJockeyStatus: backupJockey
-                    ? (backupJockey.invitationStatus === 'accepted' ? 'Accepted' : backupJockey.invitationStatus === 'declined' ? 'Declined' : 'Pending')
+                    ? (backupJockey.invitationStatus === 'accepted' ? 'Accepted' : backupJockey.invitationStatus === 'declined' ? 'Declined' : backupJockey.invitationStatus === 'failToShow' ? 'FailToShow' : 'Pending')
                     : undefined,
                 backupJockeyInvitationId: backupJockey ? backupJockey.invitationId : undefined,
                 isBackup: item.isBackup,

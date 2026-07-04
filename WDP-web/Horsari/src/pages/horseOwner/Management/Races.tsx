@@ -54,10 +54,11 @@ const REG_STATUS_CFG: Record<string, { label: string; color: string; bg: string 
 };
 
 const INV_STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: "PENDING",   color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/30"   },
-  accepted:  { label: "ACCEPTED",  color: "text-green-400",  bg: "bg-green-500/10 border-green-600/40" },
-  declined:  { label: "DECLINED",  color: "text-red-400",    bg: "bg-red-500/10 border-red-700/40"     },
-  cancelled: { label: "CANCELLED", color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/30"   },
+  pending:    { label: "PENDING",   color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/30"   },
+  accepted:   { label: "ACCEPTED",  color: "text-green-400",  bg: "bg-green-500/10 border-green-600/40" },
+  declined:   { label: "DECLINED",  color: "text-red-400",    bg: "bg-red-500/10 border-red-700/40"     },
+  cancelled:  { label: "CANCELLED", color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/30"   },
+  failToShow: { label: "NO SHOW",   color: "text-orange-400", bg: "bg-orange-500/10 border-orange-600/40" },
 };
 
 function severityColor(s?: number) {
@@ -80,6 +81,9 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingPayJockey, setConfirmingPayJockey] = useState(false);
+  const [payJockeyState, setPayJockeyState] = useState<"idle" | "paying" | "paid" | "error">("idle");
+  const [payJockeyError, setPayJockeyError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +100,25 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
 
   const raceRound = detail?.raceRound;
   const reg = detail?.registration;
+
+  const handlePayJockey = async () => {
+    if (!reg?.raceResult?._id) return;
+    setPayJockeyState("paying");
+    setPayJockeyError(null);
+    try {
+      await horseOwnerService.payJockey(reg.raceResult._id);
+      setPayJockeyState("paid");
+    } catch (err: any) {
+      if (err?.code === 409) {
+        setPayJockeyState("paid");
+      } else {
+        setPayJockeyState("error");
+        setPayJockeyError(err?.msg ?? "Failed to pay jockey.");
+      }
+    } finally {
+      setConfirmingPayJockey(false);
+    }
+  };
 
   return (
     <div
@@ -275,7 +298,14 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                   {/* Race result */}
                   {reg.raceResult && (
                     <div className="bg-[#111] rounded-xl border border-white/8 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Race Result</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Race Result</p>
+                        {reg.raceResult.resultStatus === "official_paid" && (
+                          <span className="text-[9px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-600/30 px-1.5 py-0.5 rounded-full">
+                            Prize Paid
+                          </span>
+                        )}
+                      </div>
                       {reg.raceResult.resultStatus === "cancelled" ? (
                         <div className="flex items-center gap-2 text-red-400 text-[13px] font-bold">
                           <ShieldAlert size={14} /> DISQUALIFIED
@@ -301,6 +331,64 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                             </div>
                           )}
                         </div>
+                      )}
+
+                      {/* Pay Jockey — only once the owner has actually received the prize */}
+                      {reg.raceResult.resultStatus === "official_paid" && reg.raceResult.prizeMoney > 0 && payJockeyState !== "paid" && (
+                        <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                          {(() => {
+                            const jockeyInv = reg.invitations?.find((i: any) =>
+                              reg.jockeyInRaceId ? String(i._id) === String(reg.jockeyInRaceId) : !i.isBackup
+                            );
+                            const noShow = jockeyInv?.invitationStatus === "failToShow";
+                            return (
+                              <>
+                                {noShow && (
+                                  <p className="text-[11px] text-orange-400 font-semibold mb-2">
+                                    ⚠ This jockey did not show up for the race. You may still choose to pay them.
+                                  </p>
+                                )}
+                                {!confirmingPayJockey ? (
+                                  <button
+                                    onClick={() => setConfirmingPayJockey(true)}
+                                    className="w-full text-[12px] font-bold px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-600/40 text-yellow-400 hover:bg-yellow-500/20"
+                                  >
+                                    Pay Jockey
+                                  </button>
+                                ) : (
+                                  <div className="flex flex-col gap-2">
+                                    <p className="text-[12px] text-gray-300">
+                                      Pay {jockeyInv?.jockey?.fullName ?? "the jockey"} their {jockeyInv?.percentagePayout ?? 0}% cut of this race's prize?
+                                    </p>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={handlePayJockey}
+                                        disabled={payJockeyState === "paying"}
+                                        className="flex-1 text-[12px] font-bold px-3 py-1.5 rounded-lg bg-yellow-500 text-black disabled:opacity-50"
+                                      >
+                                        {payJockeyState === "paying" ? "Paying..." : "Yes, Pay"}
+                                      </button>
+                                      <button
+                                        onClick={() => setConfirmingPayJockey(false)}
+                                        className="flex-1 text-[12px] font-bold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                                {payJockeyState === "error" && (
+                                  <p className="text-[11px] text-red-400 mt-1.5">{payJockeyError}</p>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                      {payJockeyState === "paid" && (
+                        <p className="text-[11px] text-emerald-400 font-semibold mt-3 pt-3 border-t border-white/[0.06]">
+                          ✓ Jockey has been paid for this race.
+                        </p>
                       )}
                     </div>
                   )}

@@ -358,6 +358,9 @@ function MyHorsePanel({
                                 <div>
                                     <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>
                                     <p className="text-[14px] font-bold text-yellow-400">${ownerResult.prizeMoney.toLocaleString()}</p>
+                                    {ownerResult.resultStatus === "official_paid" && (
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-emerald-400">Paid</span>
+                                    )}
                                 </div>
                             )}
                         </>

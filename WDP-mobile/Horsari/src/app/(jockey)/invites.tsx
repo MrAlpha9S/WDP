@@ -60,6 +60,7 @@ function formatFee(minFee: number | undefined, pct: number | undefined): string 
 // ─── Status colour helper (shared by card + sheet) ───────────────────────────
 
 function getStatusStyle(inv: InvitationItem): { color: string; label: string } {
+  if (inv.invitationStatus === 'failToShow') return { color: '#F97316',       label: 'Vắng mặt'     };
   if (inv.invitationStatus === 'declined')  return { color: Palette.red,     label: 'Đã từ chối'   };
   if (inv.invitationStatus === 'accepted')  return { color: '#22C55E',        label: 'Đã chấp nhận' };
   if (inv.invitationStatus === 'cancelled') return { color: Palette.textMuted, label: 'Đã hủy'      };
@@ -311,9 +312,9 @@ function applyFilter(all: InvitationItem[], filter: FilterKey): InvitationItem[]
     case 'pending':
       return all.filter((i) => i.invitationStatus === 'pending' && !i.jockeyConfirmation);
     case 'confirmed':
-      return all.filter((i) => i.jockeyConfirmation === true);
+      return all.filter((i) => i.jockeyConfirmation === true && i.invitationStatus !== 'failToShow');
     case 'declined':
-      return all.filter((i) => i.invitationStatus === 'declined');
+      return all.filter((i) => i.invitationStatus === 'declined' || i.invitationStatus === 'failToShow');
   }
 }
 

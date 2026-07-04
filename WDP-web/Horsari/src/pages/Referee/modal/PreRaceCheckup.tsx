@@ -116,6 +116,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
         ?? null;
     const [selectedInvitationId, setSelectedInvitationId] = useState<string | null>(seedInvId);
     const [noJockeyFail, setNoJockeyFail] = useState(false);
+    const [noShowInvitationId, setNoShowInvitationId] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -180,6 +181,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                 verificationFailReason: hasFails ? builtViolationReason : undefined,
                 selectedInvitationId: !hasFails ? (selectedInvitationId ?? undefined) : undefined,
                 failedChecks: hasFails ? failedChecks : undefined,
+                noShowInvitationId: noShowInvitationId ?? undefined,
             });
             onVerified(registration._id, status);
             onClose();
@@ -341,45 +343,71 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                             ) : invitations.map(inv => {
                                 const jockeyName = (inv.jockeyId?._id as any)?.fullName ?? "Unknown Jockey";
                                 const confirmed = inv.jockeyConfirmation ?? false;
-                                const isSelected = !noJockeyFail && selectedInvitationId === inv._id;
+                                const isNoShow = noShowInvitationId === inv._id;
+                                const isSelected = !noJockeyFail && !isNoShow && selectedInvitationId === inv._id;
                                 return (
-                                    <button
+                                    <div
                                         key={inv._id}
-                                        onClick={() => { if (confirmed) { setSelectedInvitationId(inv._id); setNoJockeyFail(false); } }}
-                                        disabled={!confirmed}
-                                        className={["w-full text-left rounded-xl border overflow-hidden transition-all duration-150",
+                                        className={["w-full rounded-xl border overflow-hidden transition-all duration-150",
+                                            isNoShow ? "border-orange-700/60 bg-orange-500/8" :
                                             isSelected ? "border-green-700/60 bg-green-500/8" :
-                                            confirmed ? "border-white/8 bg-white/[0.02] hover:border-white/15 cursor-pointer" :
-                                            "border-white/8 bg-white/[0.02] cursor-not-allowed opacity-60",
+                                            confirmed ? "border-white/8 bg-white/[0.02]" :
+                                            "border-white/8 bg-white/[0.02] opacity-60",
                                         ].join(" ")}
                                     >
-                                        <div className="flex items-center gap-3 px-4 py-3">
-                                            <div className={["w-7 h-7 rounded-full flex items-center justify-center shrink-0",
-                                                isSelected ? "bg-green-700" : confirmed ? "bg-green-700" : "bg-amber-700",
-                                            ].join(" ")}>
-                                                {confirmed
-                                                    ? <CheckCircle2 size={14} className="text-white" />
-                                                    : <AlertTriangle size={13} className="text-white" />}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <p className={["text-[13.5px] font-bold",
-                                                        isSelected ? "text-green-400" : confirmed ? "text-white" : "text-amber-400",
-                                                    ].join(" ")}>{jockeyName}</p>
-                                                    {inv.isBackup && (
-                                                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-blue-700/50 text-blue-400 bg-blue-500/10">
-                                                            Backup
-                                                        </span>
-                                                    )}
+                                        <button
+                                            onClick={() => { if (confirmed && !isNoShow) { setSelectedInvitationId(inv._id); setNoJockeyFail(false); } }}
+                                            disabled={!confirmed || isNoShow}
+                                            className={["w-full text-left", confirmed && !isNoShow ? "cursor-pointer" : "cursor-not-allowed"].join(" ")}
+                                        >
+                                            <div className="flex items-center gap-3 px-4 py-3">
+                                                <div className={["w-7 h-7 rounded-full flex items-center justify-center shrink-0",
+                                                    isNoShow ? "bg-orange-700" : isSelected ? "bg-green-700" : confirmed ? "bg-green-700" : "bg-amber-700",
+                                                ].join(" ")}>
+                                                    {isNoShow
+                                                        ? <AlertTriangle size={13} className="text-white" />
+                                                        : confirmed
+                                                            ? <CheckCircle2 size={14} className="text-white" />
+                                                            : <AlertTriangle size={13} className="text-white" />}
                                                 </div>
-                                                <p className="text-[11.5px] text-gray-500 mt-0.5">
-                                                    {confirmed ? "Confirmed" : "Pending Confirmation"}
-                                                </p>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className={["text-[13.5px] font-bold",
+                                                            isNoShow ? "text-orange-400" : isSelected ? "text-green-400" : confirmed ? "text-white" : "text-amber-400",
+                                                        ].join(" ")}>{jockeyName}</p>
+                                                        {inv.isBackup && (
+                                                            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-blue-700/50 text-blue-400 bg-blue-500/10">
+                                                                Backup
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[11.5px] text-gray-500 mt-0.5">
+                                                        {isNoShow ? "Marked No-Show" : confirmed ? "Confirmed" : "Pending Confirmation"}
+                                                    </p>
+                                                </div>
+                                                {isSelected && <span className="text-[11px] font-bold text-green-400 shrink-0">Selected ✓</span>}
+                                                {!isSelected && !isNoShow && confirmed && <span className="text-[11px] text-gray-500 shrink-0">Tap to select</span>}
                                             </div>
-                                            {isSelected && <span className="text-[11px] font-bold text-green-400 shrink-0">Selected ✓</span>}
-                                            {!isSelected && confirmed && <span className="text-[11px] text-gray-500 shrink-0">Tap to select</span>}
-                                        </div>
-                                    </button>
+                                        </button>
+                                        {confirmed && (
+                                            <button
+                                                onClick={() => {
+                                                    setNoShowInvitationId(prev => {
+                                                        const next = prev === inv._id ? null : inv._id;
+                                                        if (next && selectedInvitationId === inv._id) setSelectedInvitationId(null);
+                                                        return next;
+                                                    });
+                                                }}
+                                                className={["w-full text-[11px] font-bold uppercase tracking-wider px-4 py-2 border-t transition-colors",
+                                                    isNoShow
+                                                        ? "border-orange-700/40 text-orange-400 bg-orange-500/10 hover:bg-orange-500/15"
+                                                        : "border-white/6 text-gray-600 hover:text-orange-400 hover:bg-orange-500/5",
+                                                ].join(" ")}
+                                            >
+                                                {isNoShow ? "Unmark No-Show" : "Mark as No-Show"}
+                                            </button>
+                                        )}
+                                    </div>
                                 );
                             })}
 

@@ -186,6 +186,7 @@ export const refereeService = {
             selectedInvitationId?: string;
             failedChecks?: string[];
             selectedViolationTypeId?: string;
+            noShowInvitationId?: string;
         },
     ): Promise<{ code: number; data: any; msg: string }> => {
         try {

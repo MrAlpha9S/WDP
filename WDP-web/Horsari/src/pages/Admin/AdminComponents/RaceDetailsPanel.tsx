@@ -77,6 +77,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const [detailedPools, setDetailedPools] = useState<any[]>([]);
     const [detailedTrackEarnings, setDetailedTrackEarnings] = useState<any>(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    const [confirmingPaymentId, setConfirmingPaymentId] = useState<string | null>(null);
 
     // Stream / VOD state
     const [streamInfo, setStreamInfo] = useState<any>(null);
@@ -119,9 +120,11 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     setDetailedParticipants(parts);
 
                     const refs = (res.data.Referee || []).map((ref: any) => ({
+                        raceRefereeId: ref.raceRefereeId,
                         refereeId: ref.refereeId,
                         fullName: ref.fullName ?? null,
                         assignmentStatus: ref.assignmentStatus ?? 'pending',
+                        paymentStatus: ref.paymentStatus ?? 'unpaid',
                         fee: ref.fee,
                     }));
                     setDetailedReferees(refs);
@@ -248,6 +251,32 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
             setActionError(error?.msg || 'Failed to confirm results');
         } finally {
             setIsConfirming(false);
+        }
+    };
+
+    const handleConfirmOwnerPayment = async (raceResultId: string) => {
+        setConfirmingPaymentId(raceResultId);
+        setActionError(null);
+        try {
+            await adminService.confirmOwnerPayment(raceResultId);
+            fetchDetails();
+        } catch (error: any) {
+            setActionError(error?.msg || 'Failed to confirm owner payment');
+        } finally {
+            setConfirmingPaymentId(null);
+        }
+    };
+
+    const handleConfirmRefereePayment = async (raceRefereeId: string) => {
+        setConfirmingPaymentId(raceRefereeId);
+        setActionError(null);
+        try {
+            await adminService.confirmRefereePayment(raceRefereeId);
+            fetchDetails();
+        } catch (error: any) {
+            setActionError(error?.msg || 'Failed to confirm referee payment');
+        } finally {
+            setConfirmingPaymentId(null);
         }
     };
 
@@ -582,6 +611,22 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                         <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prize</span>
                                                         <span className="text-[#f3b2a5] font-semibold">{p.raceResult.prizeMoney > 0 ? `${detailedOverview?.currencyType ?? 'USD'} ${p.raceResult.prizeMoney.toLocaleString()}` : '-'}</span>
                                                     </div>
+                                                    {p.raceResult.prizeMoney > 0 && p.raceResult.resultStatus === 'official' && (
+                                                        <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
+                                                            <button
+                                                                onClick={() => handleConfirmOwnerPayment(p.raceResult._id)}
+                                                                disabled={confirmingPaymentId === p.raceResult._id}
+                                                                className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-600/40 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50"
+                                                            >
+                                                                {confirmingPaymentId === p.raceResult._id ? 'Confirming...' : 'Confirm Payment'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {p.raceResult.resultStatus === 'official_paid' && (
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Paid ✓</span>
+                                                        </div>
+                                                    )}
                                                 </>
                                             )}
                                             {(!isCompleted || !p.raceResult) && (
@@ -618,9 +663,23 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                 {STATUS_LABEL[ref.assignmentStatus] ?? ref.assignmentStatus}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-[12px]">
-                                            <span className="text-gray-500 font-medium">Fee:</span>
-                                            <span className="text-[#f3b2a5] font-semibold">{ref.fee != null ? `$${ref.fee}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                        <div className="flex items-center justify-between gap-2 text-[12px]">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-gray-500 font-medium">Fee:</span>
+                                                <span className="text-[#f3b2a5] font-semibold">{ref.fee != null ? `$${ref.fee}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                            </div>
+                                            {ref.fee > 0 && ref.paymentStatus === 'processing' && (
+                                                <button
+                                                    onClick={() => handleConfirmRefereePayment(ref.raceRefereeId)}
+                                                    disabled={confirmingPaymentId === ref.raceRefereeId}
+                                                    className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-600/40 text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50"
+                                                >
+                                                    {confirmingPaymentId === ref.raceRefereeId ? 'Confirming...' : 'Confirm Payment'}
+                                                </button>
+                                            )}
+                                            {ref.fee > 0 && ref.paymentStatus === 'paid' && (
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Paid ✓</span>
+                                            )}
                                         </div>
                                     </div>
                                 );

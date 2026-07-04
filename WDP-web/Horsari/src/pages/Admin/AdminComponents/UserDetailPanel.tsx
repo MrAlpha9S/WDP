@@ -459,8 +459,13 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                                                 <p className="text-[11px] text-gray-500 mt-0.5">{race.date}</p>
                                             </div>
                                             {race.resultStatus && (
-                                                <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${race.resultStatus === 'official' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                                                    {race.resultStatus}
+                                                <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
+                                                    race.resultStatus === 'official_paid' ? 'bg-emerald-500/10 text-emerald-400'
+                                                    : race.resultStatus === 'official' ? 'bg-blue-500/10 text-blue-400'
+                                                    : race.resultStatus === 'pending_confirmation' ? 'bg-amber-500/10 text-amber-400'
+                                                    : 'bg-red-500/10 text-red-400'
+                                                }`}>
+                                                    {race.resultStatus === 'official' ? 'Payment Due' : race.resultStatus === 'official_paid' ? 'Paid' : race.resultStatus}
                                                 </span>
                                             )}
                                         </div>

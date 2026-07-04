@@ -208,7 +208,7 @@ function HorseDetailPanel({
     const raceHistory  = detail?.raceHistory ?? [];
     const allViolations = raceHistory.flatMap(r => r.violations);
     const totalPrize   = raceHistory.reduce((s, r) => s + (r.prizeMoney ?? 0), 0);
-    const wins         = raceHistory.filter(r => r.finishPosition === 1 && r.resultStatus === "official").length;
+    const wins         = raceHistory.filter(r => r.finishPosition === 1 && (r.resultStatus === "official" || r.resultStatus === "official_paid")).length;
 
     const TABS: { id: DetailTab; label: string; count?: number }[] = [
         { id: "overview",   label: "Overview" },
@@ -346,8 +346,13 @@ function HorseDetailPanel({
                                         </div>
                                     </div>
                                     {r.resultStatus && (
-                                        <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${r.resultStatus === "official" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
-                                            {r.resultStatus}
+                                        <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
+                                            r.resultStatus === "official_paid" ? "bg-emerald-500/10 text-emerald-400"
+                                            : r.resultStatus === "official" ? "bg-blue-500/10 text-blue-400"
+                                            : r.resultStatus === "pending_confirmation" ? "bg-amber-500/10 text-amber-400"
+                                            : "bg-red-500/10 text-red-400"
+                                        }`}>
+                                            {r.resultStatus === "official" ? "Payment Due" : r.resultStatus === "official_paid" ? "Paid" : r.resultStatus}
                                         </span>
                                     )}
                                 </div>

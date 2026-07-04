@@ -449,6 +449,35 @@ export const adminService = {
     }
   },
 
+  // --- Payments Due ---
+
+  getPaymentsDue: async () => {
+    try {
+      const response = await api.get('/admin/payments-due');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch payments due' };
+    }
+  },
+
+  confirmOwnerPayment: async (raceResultId: string) => {
+    try {
+      const response = await api.post(`/admin/race-results/${raceResultId}/confirm-payment`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to confirm owner payment' };
+    }
+  },
+
+  confirmRefereePayment: async (raceRefereeId: string) => {
+    try {
+      const response = await api.post(`/admin/race-referees/${raceRefereeId}/confirm-payment`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to confirm referee payment' };
+    }
+  },
+
   // --- Mux Stream & VOD ---
 
   createStream: async (id: string) => {

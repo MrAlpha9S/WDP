@@ -35,7 +35,7 @@ export interface ScheduleItem {
 
 export interface InvitationItem {
   invitationId: string;
-  invitationStatus: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  invitationStatus: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'failToShow';
   ownerConfirmation: boolean;
   jockeyConfirmation: boolean;
   isBackup: boolean;
