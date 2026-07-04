@@ -1,4 +1,5 @@
 const tournamentRepository = require('../repositories/TournamentRepository');
+const { broadcastAdminEvent } = require('./AdminEventBroadcaster');
 
 class TournamentService {
     async createTournament(tournamentData) {
@@ -44,14 +45,31 @@ class TournamentService {
             return { code: 500, msg: 'Internal server error' };
         }
     }
-    async updateTournament(id, updateData) {
+    async updateTournament(id, updateData, io) {
         try {
-
             const tournament = await tournamentRepository.getTournamentById(id);
             if (!tournament) {
                 return { code: 404, msg: 'Tournament not found' };
             }
-            return { code: 200, data: await tournamentRepository.updateTournament(id, updateData), msg: 'Tournament updated successfully' };
+            const updated = await tournamentRepository.updateTournament(id, updateData);
+
+            // Emit real-time event if status changed
+            if (io && updateData.status && updateData.status !== tournament.status) {
+                io.emit('tournament:status_changed', {
+                    tournamentId: String(id),
+                    status: updateData.status,
+                });
+                if (updateData.status === 'ongoing') {
+                    await broadcastAdminEvent(
+                        io,
+                        'system_alert',
+                        'Tournament Started',
+                        `"${tournament.tournamentName}" has been moved to Ongoing.`
+                    );
+                }
+            }
+
+            return { code: 200, data: updated, msg: 'Tournament updated successfully' };
         } catch (error) {
             console.error('Error updating tournament:', error);
             return { code: 500, msg: 'Internal server error' };

@@ -7,6 +7,7 @@ import { CreateTournamentModal } from "./modal/CreateTournamentModal";
 import { DeleteTournamentModal } from "./modal/DeleteTournamentModal";
 import { adminService } from "../../api/adminService";
 import TournamentDetailPanel from "./AdminComponents/TournamentDetailPanel";
+import { useAdminSocket } from "../../providers/useAdminSocket";
 
 type AdminViewMode = "table" | "calendar";
 
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function TournamentManagementPage({ setActiveTab }: Props) {
+    const { socket } = useAdminSocket();
     const [viewMode, setViewMode] = useState<AdminViewMode>("table");
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [allTournamentsForCalendar, setAllTournamentsForCalendar] = useState<Tournament[]>([]);
@@ -55,6 +57,21 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
     }, [page]);
 
     useEffect(() => { fetchTournaments(); }, [fetchTournaments]);
+
+    // Real-time: auto-update status when the scheduler (or admin) changes it
+    useEffect(() => {
+        if (!socket) return;
+        const onStatusChanged = ({ tournamentId, status }: { tournamentId: string; status: string }) => {
+            // Map backend status → frontend display status
+            const displayStatus = (status === 'ongoing' ? 'live' : status === 'scheduled' ? 'upcoming' : status) as any;
+            const updater = (prev: Tournament[]) =>
+                prev.map(t => t.id === tournamentId ? { ...t, status: displayStatus } : t);
+            setTournaments(updater);
+            setAllTournamentsForCalendar(updater);
+        };
+        socket.on('tournament:status_changed', onStatusChanged);
+        return () => { socket.off('tournament:status_changed', onStatusChanged); };
+    }, [socket]);
 
     // Load all tournaments once for the calendar view
     useEffect(() => {
