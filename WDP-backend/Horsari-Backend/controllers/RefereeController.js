@@ -109,7 +109,8 @@ class RefereeController {
     // Verify or fail a registration after pre-race inspection
     async verifyRegistration(req, res) {
         const { raceRoundId, registrationId } = req.params;
-        const response = await RefereeService.verifyRegistration(req.userId, raceRoundId, registrationId, req.body);
+        const io = req.app.get('io');
+        const response = await RefereeService.verifyRegistration(req.userId, raceRoundId, registrationId, req.body, io);
         return res.status(response.code).json(response);
     }
 

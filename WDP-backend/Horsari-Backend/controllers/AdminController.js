@@ -238,6 +238,24 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // List horse owner prize / referee fee payments awaiting admin confirmation
+    async getPaymentsDue(req, res) {
+        const response = await AdminService.getPaymentsDue();
+        return res.status(response.code).json(response);
+    }
+
+    // Confirm a single horse owner prize payment — credits their wallet
+    async confirmOwnerPayment(req, res) {
+        const response = await AdminService.confirmOwnerPayment(req.params.id);
+        return res.status(response.code).json(response);
+    }
+
+    // Confirm a single referee fee payment — credits their wallet
+    async confirmRefereePayment(req, res) {
+        const response = await AdminService.confirmRefereePayment(req.params.id);
+        return res.status(response.code).json(response);
+    }
+
     async getSimulationState(req, res) {
         const response = AdminService.getSimulationState(req.params.id);
         return res.status(response.code).json(response);

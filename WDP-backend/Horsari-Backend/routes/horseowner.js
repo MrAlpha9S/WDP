@@ -52,4 +52,7 @@ router.get('/jockeys/:jockeyId/profile', authMiddleware, authHorseOwner, HorseOw
 router.get('/financials/summary', authMiddleware, authHorseOwner, HorseOwnerController.getFinancialSummary);
 router.get('/financials/race-results', authMiddleware, authHorseOwner, HorseOwnerController.getFinancialRaceResults);
 
+// Owner pays the jockey their cut of a race's prize money (only once the owner has been paid)
+router.post('/race-results/:id/pay-jockey', authMiddleware, authHorseOwner, HorseOwnerController.payJockey);
+
 module.exports = router;

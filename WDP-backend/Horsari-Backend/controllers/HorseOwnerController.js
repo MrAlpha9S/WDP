@@ -155,6 +155,11 @@ class HorseOwnerController {
         const response = await HorseOwnerService.getFinancialRaceResults(req.userId, page, limit, search || null);
         return res.status(response.code).json(response);
     }
+
+    async payJockey(req, res) {
+        const response = await HorseOwnerService.payJockey(req.userId, req.params.id);
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new HorseOwnerController();

@@ -2,7 +2,8 @@ const Prediction = require('../entities/Prediction');
 const PredictionMethod = require('../entities/PredictionMethod');
 const RaceResult = require('../entities/RaceResult');
 const Registration = require('../entities/Registration');
-const SpectatorRepository = require('../repositories/SpectatorRepository');
+const RaceReferee = require('../entities/RaceReferee');
+const UserRepository = require('../repositories/UserRepository');
 const TransactionRepository = require('../repositories/TransactionRepository');
 
 // Takeout rates by bet type (PDF reference: Win/Place/Show 17%, multi-race 22%)
@@ -76,6 +77,12 @@ class PayoutService {
     collectFull(stake, grossPool, takeoutRate, stakeOnHorse) {
         if (!stakeOnHorse || stakeOnHorse <= 0) return 0;
         return stake * (grossPool * (1 - takeoutRate)) / stakeOnHorse;
+    }
+
+    // House/system account that receives the takeout (P - N) of every settled pool
+    async _getHouseAdminId() {
+        const admins = await UserRepository.findByRole('admin');
+        return admins[0]?._id ?? null;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -153,7 +160,7 @@ class PayoutService {
         try {
             const results = await RaceResult.find({
                 raceRoundId,
-                resultStatus: 'official',
+                resultStatus: { $in: ['official', 'official_paid'] },
             }).lean();
 
             if (!results.length) return { code: 400, msg: 'No results for this race round' };
@@ -191,12 +198,27 @@ class PayoutService {
             }
 
             const settled = [];
+            const houseAdminId = await this._getHouseAdminId();
 
             for (const [methodId, { stakes, preds }] of Object.entries(byMethod)) {
                 const isWin = winnerMethod && methodId === winnerMethod._id.toString();
                 const T = isWin ? TAKEOUT.race_winner : TAKEOUT.race_rank;
                 const P = this.grossPool(Object.values(stakes));
                 const N = this.netPool(P, T);
+
+                const houseCut = P - N;
+                if (houseCut > 0 && houseAdminId) {
+                    await UserRepository.addWalletBalance(houseAdminId, houseCut);
+                    await TransactionRepository.create({
+                        userId:          houseAdminId,
+                        transactionType: 'house_cut',
+                        amount:          houseCut,
+                        status:          'completed',
+                        description:     `House commission — race pool (${isWin ? 'race_winner' : 'race_rank'})`,
+                        referenceId:     raceRoundId.toString(),
+                        referenceType:   'race_result',
+                    });
+                }
 
                 for (const pred of preds) {
                     const rid       = pred.registrationId.toString();
@@ -218,7 +240,7 @@ class PayoutService {
                     });
 
                     if (isCorrect && earn > 0) {
-                        await SpectatorRepository.addRewardPoints(pred.spectatorId, earn);
+                        await UserRepository.addWalletBalance(pred.spectatorId, earn);
                         await TransactionRepository.create({
                             userId:          pred.spectatorId,
                             transactionType: 'reward',
@@ -281,6 +303,21 @@ class PayoutService {
             const N  = this.netPool(P, T);
             const Bi = stakeByHorse[championHorseId.toString()] || 0;
 
+            const houseCut = P - N;
+            const houseAdminId = await this._getHouseAdminId();
+            if (houseCut > 0 && houseAdminId) {
+                await UserRepository.addWalletBalance(houseAdminId, houseCut);
+                await TransactionRepository.create({
+                    userId:          houseAdminId,
+                    transactionType: 'house_cut',
+                    amount:          houseCut,
+                    status:          'completed',
+                    description:     `House commission — tournament pool ${tournamentId}`,
+                    referenceId:     tournamentId.toString(),
+                    referenceType:   'prediction',
+                });
+            }
+
             const settled = [];
 
             for (const pred of predictions) {
@@ -296,7 +333,7 @@ class PayoutService {
                 });
 
                 if (isCorrect && earn > 0) {
-                    await SpectatorRepository.addRewardPoints(pred.spectatorId, earn);
+                    await UserRepository.addWalletBalance(pred.spectatorId, earn);
                     await TransactionRepository.create({
                         userId:          pred.spectatorId,
                         transactionType: 'reward',
@@ -344,7 +381,7 @@ class PayoutService {
                     rewardPoints: 0,
                 });
                 if (stake > 0) {
-                    await SpectatorRepository.addRewardPoints(pred.spectatorId, stake);
+                    await UserRepository.addWalletBalance(pred.spectatorId, stake);
                     await TransactionRepository.create({
                         userId:          pred.spectatorId,
                         transactionType: 'refund',
@@ -380,7 +417,7 @@ class PayoutService {
                     rewardPoints: 0,
                 });
                 if (stake > 0) {
-                    await SpectatorRepository.addRewardPoints(pred.spectatorId, stake);
+                    await UserRepository.addWalletBalance(pred.spectatorId, stake);
                     await TransactionRepository.create({
                         userId:          pred.spectatorId,
                         transactionType: 'refund',
@@ -394,6 +431,90 @@ class PayoutService {
             }
         } catch (err) {
             console.error('[PayoutService] refundRegistrationPredictions error:', err);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CONFIRM OWNER PAYMENT — credits prizeMoney to the winning horse's owner
+    // and flips RaceResult.resultStatus 'official' → 'official_paid'. Until an
+    // admin calls this, an 'official' result with prizeMoney > 0 is a payment
+    // due to the owner (see AdminService.getStatistics/getPaymentsDue).
+    // Guarded so a repeat confirm on an already-paid result is a no-op 404.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    async confirmOwnerPayment(raceResultId) {
+        try {
+            const result = await RaceResult.findOne({ _id: raceResultId, resultStatus: 'official' });
+            if (!result) return { code: 404, msg: 'No pending payment found for this race result' };
+            if (!(result.prizeMoney > 0)) return { code: 400, msg: 'This race result has no prize money to pay' };
+
+            const registration = await Registration.findById(result.registrationId).lean();
+            if (!registration?.horseOwnerId) return { code: 404, msg: 'Horse owner not found for this registration' };
+
+            await UserRepository.addWalletBalance(registration.horseOwnerId, result.prizeMoney);
+            await TransactionRepository.create({
+                userId:          registration.horseOwnerId,
+                transactionType: 'prize',
+                amount:          result.prizeMoney,
+                status:          'completed',
+                description:     `Race prize money — race ${result.raceRoundId}`,
+                referenceId:     result._id.toString(),
+                referenceType:   'race_result',
+            });
+            result.resultStatus = 'official_paid';
+            await result.save();
+
+            return { code: 200, data: result, msg: 'Owner payment confirmed' };
+        } catch (err) {
+            return { code: 500, msg: err.message };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MARK REFEREE FEES DUE — flips assigned RaceReferee fees from 'unpaid' to
+    // 'processing'. Does NOT credit any wallet — an admin must explicitly
+    // confirm the payment (see confirmRefereePayment) before money moves.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    async markRefereePaymentsDue(raceRoundId) {
+        try {
+            await RaceReferee.updateMany(
+                {
+                    raceRoundId,
+                    status: 'assigned',
+                    paymentStatus: 'unpaid',
+                    fee: { $gt: 0 },
+                },
+                { paymentStatus: 'processing' }
+            );
+        } catch (err) {
+            console.error('[PayoutService] markRefereePaymentsDue error:', err);
+        }
+    }
+
+    // Admin confirms a single referee's fee payment — credits the wallet and
+    // flips 'processing' → 'paid'. Guarded so a repeat confirm is a no-op.
+    async confirmRefereePayment(raceRefereeId) {
+        try {
+            const assignment = await RaceReferee.findOne({ _id: raceRefereeId, paymentStatus: 'processing' });
+            if (!assignment) return { code: 404, msg: 'No pending payment found for this referee assignment' };
+
+            await UserRepository.addWalletBalance(assignment.refereeId, assignment.fee);
+            await TransactionRepository.create({
+                userId:          assignment.refereeId,
+                transactionType: 'referee_fee',
+                amount:          assignment.fee,
+                status:          'completed',
+                description:     `Referee fee — race ${assignment.raceRoundId}`,
+                referenceId:     assignment.raceRoundId.toString(),
+                referenceType:   'race_result',
+            });
+            assignment.paymentStatus = 'paid';
+            await assignment.save();
+
+            return { code: 200, data: assignment, msg: 'Referee payment confirmed' };
+        } catch (err) {
+            return { code: 500, msg: err.message };
         }
     }
 }

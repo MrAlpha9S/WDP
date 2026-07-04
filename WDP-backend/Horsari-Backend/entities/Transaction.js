@@ -9,7 +9,7 @@ const transactionSchema = new mongoose.Schema(
         },
         transactionType: {
             type: String,
-            enum: ['reward', 'deposit', 'withdrawal', 'refund'],
+            enum: ['reward', 'deposit', 'withdrawal', 'refund', 'house_cut', 'prize', 'referee_fee', 'jockey_payment', 'jockey_payout'],
             required: true,
         },
         date: {
@@ -39,7 +39,7 @@ const transactionSchema = new mongoose.Schema(
         },
         referenceType: {
             type: String,
-            enum: ['prediction', 'payment'],
+            enum: ['prediction', 'payment', 'race_result'],
             default: null,
         },
     },

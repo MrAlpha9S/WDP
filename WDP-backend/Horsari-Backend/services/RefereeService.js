@@ -452,9 +452,9 @@ class RefereeService {
     }
 
     // Verify or fail a single registration (referee pre-race checkup)
-    async verifyRegistration(refereeId, raceRoundId, registrationId, body) {
+    async verifyRegistration(refereeId, raceRoundId, registrationId, body, io) {
         try {
-            const { status, verificationFailReason, selectedInvitationId, failedChecks = [] } = body || {};
+            const { status, verificationFailReason, selectedInvitationId, failedChecks = [], noShowInvitationId } = body || {};
 
             if (!['verified', 'failed'].includes(status)) {
                 return { code: 400, msg: 'status must be "verified" or "failed"' };
@@ -535,6 +535,24 @@ class RefereeService {
             // Note: The race status is no longer automatically updated to 'prepared'.
             // The referee must now explicitly call authorizeRaceStart via the UI.
 
+            // 6. Mark a jockey as a no-show, if flagged during this checkup.
+            // Independent of overall verified/failed outcome — a no-show main
+            // jockey doesn't necessarily disqualify the horse if a backup took over.
+            let noShowInvitation = null;
+            if (noShowInvitationId) {
+                noShowInvitation = await Invitation.findById(noShowInvitationId);
+                if (noShowInvitation && noShowInvitation.registrationId.toString() === registrationId) {
+                    noShowInvitation.invitationStatus = 'failToShow';
+                    await noShowInvitation.save();
+                    if (io) {
+                        io.to(`race:${raceRoundId}`).emit('jockey_no_show', {
+                            registrationId,
+                            invitationId: noShowInvitation._id,
+                            jockeyId: noShowInvitation.jockeyId,
+                        });
+                    }
+                }
+            }
 
             return { code: 200, data: updated, msg: `Registration marked as "${status}" successfully.` };
         } catch (error) {

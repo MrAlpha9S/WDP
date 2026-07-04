@@ -1,5 +1,6 @@
 const AdminRepository = require('../repositories/AdminRepository');
 const UserRepository = require('../repositories/UserRepository');
+const TransactionRepository = require('../repositories/TransactionRepository');
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const JockeyRepository = require('../repositories/JockeyRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
@@ -316,11 +317,10 @@ class AdminService {
                     break;
                 }
                 case 'spectator': {
-                    const Spectator = require('../entities/Spectator');
                     const Transaction = require('../entities/Transaction');
 
-                    const [spectator, predictions, transactions] = await Promise.all([
-                        Spectator.findById(id).lean(),
+                    const [spectatorUser, predictions, transactions] = await Promise.all([
+                        UserRepository.findById(id),
                         Prediction.find({ spectatorId: id })
                             .sort({ created_at: -1 })
                             .populate('predictionMethodId', 'methodName methodType')
@@ -337,7 +337,7 @@ class AdminService {
                     ]);
 
                     roleProfile = {
-                        wallet: spectator?.wallet ?? 0,
+                        wallet: spectatorUser?.wallet ?? 0,
                         predictions: predictions.map(p => ({
                             predictionId:     p._id,
                             methodName:       p.predictionMethodId?.methodName  ?? null,
@@ -467,6 +467,35 @@ class AdminService {
             const tournamentScheduled = await TournamentRepository.countByStatus('scheduled');
             const tournamentOngoing = await TournamentRepository.countByStatus('ongoing');
 
+            // Races — run vs. still waiting to run
+            const raceRuns = await RaceRound.countDocuments({ status: 'completed' });
+            const raceWaiting = await RaceRound.countDocuments({
+                status: { $in: ['scheduled', 'prepared', 'awaitingConfirmation'] },
+            });
+
+            // Race rounds — total and currently in progress
+            const raceRoundTotal = await RaceRound.countDocuments({});
+            const raceRoundActive = await RaceRound.countDocuments({ status: 'running' });
+
+            // Horses — active count
+            const horseActive = await Horse.countDocuments({ status: 'active' });
+
+            // Betting revenue — house's cut of every settled prediction pool
+            const bettingRevenue = await TransactionRepository.sumAmount({
+                transactionType: 'house_cut',
+                status: 'completed',
+            });
+
+            // Payments due — horse owner prize money / referee fees awaiting admin confirmation
+            const [duePrizeResults, dueRefereeAssignments] = await Promise.all([
+                RaceResult.find({ resultStatus: 'official', prizeMoney: { $gt: 0 } }).select('prizeMoney').lean(),
+                RaceReferee.find({ paymentStatus: 'processing' }).select('fee').lean(),
+            ]);
+            const ownerPaymentsDueCount = duePrizeResults.length;
+            const ownerPaymentsDueAmount = duePrizeResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
+            const refereePaymentsDueCount = dueRefereeAssignments.length;
+            const refereePaymentsDueAmount = dueRefereeAssignments.reduce((sum, a) => sum + (a.fee || 0), 0);
+
             return {
                 code: 200,
                 data: {
@@ -486,12 +515,92 @@ class AdminService {
                         scheduled: tournamentScheduled,
                         ongoing: tournamentOngoing,
                     },
+                    races: {
+                        run: raceRuns,
+                        waiting: raceWaiting,
+                    },
+                    raceRounds: {
+                        total: raceRoundTotal,
+                        active: raceRoundActive,
+                    },
+                    horses: {
+                        active: horseActive,
+                    },
+                    bettingRevenue,
+                    paymentsDue: {
+                        ownerCount: ownerPaymentsDueCount,
+                        ownerAmount: ownerPaymentsDueAmount,
+                        refereeCount: refereePaymentsDueCount,
+                        refereeAmount: refereePaymentsDueAmount,
+                        totalCount: ownerPaymentsDueCount + refereePaymentsDueCount,
+                        totalAmount: ownerPaymentsDueAmount + refereePaymentsDueAmount,
+                    },
                 },
                 msg: 'Statistics retrieved successfully',
             };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
+    }
+
+    // List horse owner prize / referee fee payments awaiting admin confirmation
+    async getPaymentsDue() {
+        try {
+            const [dueResults, dueAssignments] = await Promise.all([
+                RaceResult.find({ resultStatus: 'official', prizeMoney: { $gt: 0 } })
+                    .populate({ path: 'registrationId', populate: { path: 'horseOwnerId raceRoundId' } })
+                    .lean(),
+                RaceReferee.find({ paymentStatus: 'processing' })
+                    .populate('refereeId raceRoundId')
+                    .lean(),
+            ]);
+
+            const ownerPayments = await Promise.all(dueResults.map(async (r) => {
+                const owner = r.registrationId?.horseOwnerId;
+                const ownerUser = owner ? await User.findById(owner._id ?? owner).select('fullName').lean() : null;
+                return {
+                    raceResultId: r._id,
+                    raceRoundId: r.raceRoundId,
+                    roundName: r.registrationId?.raceRoundId?.roundName ?? null,
+                    horseOwnerId: owner?._id ?? owner ?? null,
+                    horseOwnerName: ownerUser?.fullName ?? null,
+                    amount: r.prizeMoney,
+                };
+            }));
+
+            const refereePayments = await Promise.all(dueAssignments.map(async (a) => {
+                const refereeId = a.refereeId?._id ?? a.refereeId;
+                const refereeUser = refereeId ? await User.findById(refereeId).select('fullName').lean() : null;
+                return {
+                    raceRefereeId: a._id,
+                    raceRoundId: a.raceRoundId?._id ?? a.raceRoundId,
+                    roundName: a.raceRoundId?.roundName ?? null,
+                    refereeId,
+                    refereeName: refereeUser?.fullName ?? null,
+                    amount: a.fee,
+                };
+            }));
+
+            return {
+                code: 200,
+                data: { ownerPayments, refereePayments },
+                msg: 'Payments due retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Admin confirms a single horse owner prize payment — credits the wallet
+    async confirmOwnerPayment(raceResultId) {
+        const PayoutService = require('./PayoutService');
+        return PayoutService.confirmOwnerPayment(raceResultId);
+    }
+
+    // Admin confirms a single referee fee payment — credits the wallet
+    async confirmRefereePayment(raceRefereeId) {
+        const PayoutService = require('./PayoutService');
+        return PayoutService.confirmRefereePayment(raceRefereeId);
     }
     // Get all horse owner registrations enriched with race, horse, and jockey invitation data
     async getHorseOwnerInvitations(page = 1, limit = 5) {
@@ -875,9 +984,11 @@ class AdminService {
                         ? await User.findById(rr.refereeId, 'fullName').lean()
                         : null;
                     return {
+                        raceRefereeId: rr._id,
                         refereeId: rr.refereeId,
                         fullName: refereeUser?.fullName ?? null,
                         assignmentStatus: rr.status,
+                        paymentStatus: rr.paymentStatus,
                         fee: rr.fee
                     };
                 })
@@ -1422,6 +1533,16 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
             console.error('[confirmRaceResult] settle predictions error:', err.message)
         );
 
+        // Mark referee fees as due in the background (non-blocking) — an admin
+        // must separately confirm each payment (confirmOwnerPayment /
+        // confirmRefereePayment) before wallets are credited. Horse owner
+        // prizes need no separate "mark due" step — resultStatus is already
+        // 'official' at this point, which itself means "prize payment due".
+        const PayoutService = require('./PayoutService');
+        PayoutService.markRefereePaymentsDue(raceRoundId).catch(err =>
+            console.error('[confirmRaceResult] mark referee payments due error:', err.message)
+        );
+
         if (io) {
             io.to(`race:${raceRoundId}`).emit('race_status_changed', {
                 raceRoundId,
@@ -1838,7 +1959,7 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
         // Official results only
         const results = await RaceResult.find({
             registrationId: { $in: regIds },
-            resultStatus: 'official',
+            resultStatus: { $in: ['official', 'official_paid'] },
         }).lean();
         const resultByRegId = Object.fromEntries(results.map(r => [r.registrationId.toString(), r]));
 

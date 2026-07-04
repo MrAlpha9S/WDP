@@ -6,6 +6,10 @@ class TransactionRepository {
         return Transaction.create(data);
     }
 
+    async findOne(filter = {}) {
+        return Transaction.findOne(filter).lean();
+    }
+
     async findByUserId(userId, filter = {}, limit = 10, skip = 0, sortObj = {}) {
         return Transaction.find({ userId, ...filter }).sort(sortObj).skip(skip).limit(limit).lean();
     }
@@ -17,6 +21,14 @@ class TransactionRepository {
     async sumAmountByUserId(userId, filter = {}) {
         const result = await Transaction.aggregate([
             { $match: { userId: new mongoose.Types.ObjectId(String(userId)), ...filter } },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]);
+        return result[0]?.total || 0;
+    }
+
+    async sumAmount(filter = {}) {
+        const result = await Transaction.aggregate([
+            { $match: filter },
             { $group: { _id: null, total: { $sum: '$amount' } } },
         ]);
         return result[0]?.total || 0;

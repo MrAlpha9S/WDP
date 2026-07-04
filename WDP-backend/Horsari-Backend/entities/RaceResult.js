@@ -31,7 +31,7 @@ const raceResultSchema = new mongoose.Schema(
         },
         resultStatus: {
             type: String,
-            enum: ['pending_confirmation', 'official', 'cancelled'],
+            enum: ['pending_confirmation', 'official', 'cancelled', 'official_paid'],
             default: 'pending_confirmation',
         },
     },

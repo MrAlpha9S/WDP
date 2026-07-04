@@ -57,8 +57,8 @@ async function seed() {
     const referees = [];
     const spectators = [];
 
-    // --- Admins (2) ---
-    for (let i = 1; i <= 2; i++) {
+    // --- Admin (1 — house/system account) ---
+    for (let i = 1; i <= 1; i++) {
       const user = await User.create({
         username: `admin${i}`,
         passwordHash: PASSWORD_HASH,
@@ -206,10 +206,10 @@ async function seed() {
         role: "spectator",
         status: "active",
         dateOfBirth: new Date("2000-11-25"),
+        wallet: spectatorData[i].points,
       });
       await Spectator.create({
         _id: user._id,
-        wallet: spectatorData[i].points,
       });
       spectators.push(user);
     }
@@ -450,7 +450,7 @@ async function seed() {
         prizePool: 200000,
       },
       {
-        createdByAdminId: admins[1]._id,
+        createdByAdminId: admins[0]._id,
         tournamentName: "Horsari Summer Invitational 2025",
         description:
           "Invitational summer tournament for elite registered horses.",
@@ -524,7 +524,7 @@ async function seed() {
       },
       {
         tournamentId: tournaments[1]._id,
-        createdByAdminId: admins[1]._id,
+        createdByAdminId: admins[0]._id,
         roundName: "Opening Race — Maiden 1200m",
         raceDate: atHour(daysLater(62), 10),
         trackLength: 1200,

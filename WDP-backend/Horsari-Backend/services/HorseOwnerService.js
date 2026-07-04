@@ -1,6 +1,7 @@
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const HorseRepository = require('../repositories/HorseRepository');
 const UserRepository = require('../repositories/UserRepository');
+const TransactionRepository = require('../repositories/TransactionRepository');
 const Registration = require('../entities/Registration');
 const RaceRound = require('../entities/RaceRound');
 const Tournament = require('../entities/Tournament');
@@ -482,7 +483,7 @@ class HorseOwnerService {
                         .lean()
                     : [],
                 regIds.length > 0
-                    ? Invitation.find({ registrationId: { $in: regIds }, updatedAt: { $gte: since }, invitationStatus: { $in: ['accepted', 'declined'] } })
+                    ? Invitation.find({ registrationId: { $in: regIds }, updatedAt: { $gte: since }, invitationStatus: { $in: ['accepted', 'declined', 'failToShow'] } })
                         .populate({ path: 'jockeyId', model: 'User', select: 'fullName' })
                         .sort({ updatedAt: -1 })
                         .limit(5)
@@ -534,7 +535,9 @@ class HorseOwnerService {
                     type: 'invitation',
                     icon: inv.invitationStatus === 'accepted' ? 'check' : 'alert',
                     time: relativeTime(inv.updatedAt),
-                    text: `${inv.jockeyId?.fullName ?? 'A jockey'} ${inv.invitationStatus} your hire request for `,
+                    text: inv.invitationStatus === 'failToShow'
+                        ? `${inv.jockeyId?.fullName ?? 'A jockey'} did not show up for `
+                        : `${inv.jockeyId?.fullName ?? 'A jockey'} ${inv.invitationStatus} your hire request for `,
                     highlight: 'an upcoming race',
                     date: inv.updatedAt,
                 })),
@@ -574,7 +577,7 @@ class HorseOwnerService {
             const regHorseMap = new Map(allRegs.map(r => [String(r._id), String(r.horseId)]));
 
             const results = regIds.length > 0
-                ? await RaceResult.find({ registrationId: { $in: regIds }, finishPosition: { $ne: null }, resultStatus: 'official' }).lean()
+                ? await RaceResult.find({ registrationId: { $in: regIds }, finishPosition: { $ne: null }, resultStatus: { $in: ['official', 'official_paid'] } }).lean()
                 : [];
 
             // Aggregate stats per horse
@@ -1032,7 +1035,7 @@ class HorseOwnerService {
                 Transaction.find({ userId: ownerId, status: 'completed' }).lean(),
             ]);
 
-            const officialResults = results.filter(r => r.finishPosition != null && r.resultStatus === 'official');
+            const officialResults = results.filter(r => r.finishPosition != null && ['official', 'official_paid'].includes(r.resultStatus));
             const wins = officialResults.filter(r => r.finishPosition === 1).length;
             const losses = officialResults.filter(r => r.finishPosition !== 1).length;
             const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
@@ -1163,6 +1166,73 @@ class HorseOwnerService {
                 data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
                 msg: 'Financial race results retrieved successfully',
             };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Owner pays the jockey their percentagePayout cut of a race's prize money.
+    // Only allowed once the owner has actually received the prize
+    // (RaceResult.resultStatus === 'official_paid') — the owner can't pay out
+    // of money they haven't been credited yet. Guarded against double payment
+    // via an existing 'jockey_payout' Transaction for this race result.
+    async payJockey(ownerId, raceResultId) {
+        try {
+            const result = await RaceResult.findById(raceResultId).lean();
+            if (!result) return { code: 404, msg: 'Race result not found' };
+            if (result.resultStatus !== 'official_paid') {
+                return { code: 400, msg: 'Prize money has not been paid to the owner yet' };
+            }
+            if (!(result.prizeMoney > 0)) return { code: 400, msg: 'This race result has no prize money' };
+
+            const registration = await Registration.findById(result.registrationId).lean();
+            if (!registration || String(registration.horseOwnerId) !== String(ownerId)) {
+                return { code: 403, msg: 'This race result does not belong to you' };
+            }
+
+            const alreadyPaid = await TransactionRepository.findOne({
+                referenceType: 'race_result',
+                referenceId: result._id.toString(),
+                transactionType: 'jockey_payout',
+            });
+            if (alreadyPaid) return { code: 409, msg: 'Jockey has already been paid for this race' };
+
+            // Prefer the referee-locked invitation (authoritative once verified); fall back
+            // to the accepted main invitation pre-verification. Avoids ambiguity once a
+            // no-show ('failToShow') invitation can coexist with a promoted backup.
+            const invitation = registration.jockeyInRaceId
+                ? await Invitation.findById(registration.jockeyInRaceId).lean()
+                : await Invitation.findOne({ registrationId: result.registrationId, isBackup: false }).lean();
+            if (!invitation?.jockeyId || !invitation.percentagePayout) {
+                return { code: 404, msg: 'No jockey payout percentage found for this registration' };
+            }
+
+            const jockeyCut = Math.round((invitation.percentagePayout / 100) * result.prizeMoney);
+            if (jockeyCut <= 0) return { code: 400, msg: 'Computed jockey payout is 0' };
+
+            await UserRepository.addWalletBalance(ownerId, -jockeyCut);
+            await TransactionRepository.create({
+                userId:          ownerId,
+                transactionType: 'jockey_payment',
+                amount:          -jockeyCut,
+                status:          'completed',
+                description:     `Jockey payout — race ${result.raceRoundId}`,
+                referenceId:     result._id.toString(),
+                referenceType:   'race_result',
+            });
+
+            await UserRepository.addWalletBalance(invitation.jockeyId, jockeyCut);
+            await TransactionRepository.create({
+                userId:          invitation.jockeyId,
+                transactionType: 'jockey_payout',
+                amount:          jockeyCut,
+                status:          'completed',
+                description:     `Jockey payout — race ${result.raceRoundId}`,
+                referenceId:     result._id.toString(),
+                referenceType:   'race_result',
+            });
+
+            return { code: 200, data: { jockeyCut }, msg: 'Jockey paid successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }

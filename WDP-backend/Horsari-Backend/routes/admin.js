@@ -67,6 +67,11 @@ router.patch('/violations/:violationId/dismiss', authMiddleware, authAdmin, Admi
 
 // Confirm race results → mark official, close race (Moved to referee)
 
+// Payments due — horse owner prize money / referee fees awaiting confirmation
+router.get('/payments-due', authMiddleware, authAdmin, AdminController.getPaymentsDue);
+router.post('/race-results/:id/confirm-payment', authMiddleware, authAdmin, AdminController.confirmOwnerPayment);
+router.post('/race-referees/:id/confirm-payment', authMiddleware, authAdmin, AdminController.confirmRefereePayment);
+
 // Provision a Mux live stream (must be done before starting the race)
 router.post('/race-rounds/:id/stream', authMiddleware, authAdmin, AdminController.createStream);
 // Mux live stream info (RTMP URL + stream key for OBS operator)

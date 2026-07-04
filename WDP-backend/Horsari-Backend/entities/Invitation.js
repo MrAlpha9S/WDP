@@ -21,7 +21,7 @@ const invitationSchema = new mongoose.Schema(
         },
         invitationStatus: {
             type: String,
-            enum: ['pending', 'accepted', 'declined', 'cancelled'],
+            enum: ['pending', 'accepted', 'declined', 'cancelled', 'failToShow'],
             default: 'pending',
         },
         isBackup: {
