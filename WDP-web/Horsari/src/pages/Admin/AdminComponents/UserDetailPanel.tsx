@@ -320,7 +320,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
 
     return (
         <div
-            className="flex flex-col bg-[#141414] border border-white/[0.07] rounded-xl overflow-hidden"
+            className="flex flex-col bg-[#141414] border border-white/[0.07] rounded-xl overflow-hidden h-full"
             style={{ animation: "panelIn 0.18s ease-out" }}
         >
             <style>{`@keyframes panelIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }`}</style>
@@ -337,7 +337,8 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
             </div>
 
             {/* Body */}
-            <div className="flex-1 px-5 py-4 flex flex-col gap-4 min-h-0">
+            <div className="flex-1 px-5 py-4 flex flex-col gap-4 min-h-0 overflow-hidden">
+
 
                 {/* Avatar + identity */}
                 <div className="flex items-center gap-3">

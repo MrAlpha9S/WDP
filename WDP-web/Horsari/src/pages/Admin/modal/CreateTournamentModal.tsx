@@ -18,8 +18,8 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
     // Use raw backend statuses: draft, scheduled, ongoing, completed, cancelled
     const [status, setStatus] = useState(
         editingTournament?.status === "upcoming" ? "scheduled" :
-        editingTournament?.status === "live" ? "ongoing" :
-        editingTournament?.status || "draft"
+            editingTournament?.status === "live" ? "ongoing" :
+                editingTournament?.status || "scheduled"
     );
 
     const [error, setError] = useState("");
@@ -32,16 +32,16 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
             setStartDate(editingTournament.startISO || "");
             setEndDate(editingTournament.endISO || "");
             setStatus(
-                editingTournament.status === 'upcoming' ? 'scheduled' : 
-                editingTournament.status === 'live' ? 'ongoing' : 
-                editingTournament.status || 'draft'
+                editingTournament.status === 'upcoming' ? 'scheduled' :
+                    editingTournament.status === 'live' ? 'ongoing' :
+                        editingTournament.status || 'scheduled'
             );
         } else {
             setName("");
             setDescription("");
             setStartDate("");
             setEndDate("");
-            setStatus("draft");
+            setStatus("scheduled");
         }
         setError("");
     }, [editingTournament, isOpen]);
@@ -81,7 +81,7 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
         }
 
         setStartDate(date);
-        
+
         const oneWeekAgo = new Date(today);
         oneWeekAgo.setDate(today.getDate() - 7);
         const oneWeekAgoStr = oneWeekAgo.getFullYear() + "-" + String(oneWeekAgo.getMonth() + 1).padStart(2, '0') + "-" + String(oneWeekAgo.getDate()).padStart(2, '0');
@@ -196,21 +196,18 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                             <input value={endDate} onChange={e => handleEndDateChange(e.target.value)} type="date" className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
                         </div>
                     </div>
-
-                    <div>
-                        <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Status</label>
-                        <select value={status} onChange={e => handleStatusChange(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none">
-                            <option value="draft">Draft</option>
-                            <option value="scheduled">Scheduled</option>
-                            {editingTournament && (
-                                <>
-                                    <option value="ongoing">Ongoing</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </>
-                            )}
-                        </select>
-                    </div>
+                    {editingTournament && (
+                        <div>
+                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Status</label>
+                            <select value={status} onChange={e => handleStatusChange(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none">
+                                <option value="draft">Draft</option>
+                                <option value="scheduled">Scheduled</option>
+                                <option value="ongoing">Ongoing</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">

@@ -39,6 +39,11 @@ const io = new Server(server, {
 // Make `io` accessible in any route/controller via req.app.get('io')
 app.set('io', io);
 
+// Start the daily scheduler that auto-activates tournaments on their startDate
+const { startTournamentScheduler } = require('../services/TournamentScheduler');
+startTournamentScheduler(io);
+
+
 io.on('connection', (socket) => {
   console.log('[WS] client connected:', socket.id);
 

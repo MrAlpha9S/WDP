@@ -2,6 +2,8 @@ import {
     House,
     FileText,
     User,
+    AlertTriangle,
+    ShieldAlert,
 } from "lucide-react";
 import { type AdminTab } from "./NavBar";
 import { useAdminSocket } from "../../../providers/useAdminSocket";
@@ -20,12 +22,14 @@ interface SidebarItem {
 }
 
 const ITEMS: SidebarItem[] = [
-    { tab: "Dashboard",       icon: <House    size={17} /> },
-    { tab: "Horses",          icon: <User     size={17} /> },
-    { tab: "Users",           icon: <User     size={17} />, badgeKey: "users" },
-    { tab: "Rules Managment", icon: <FileText size={17} /> },
-    { tab: "Tournaments",     icon: <FileText size={17} /> },
-    { tab: "Races",           icon: <FileText size={17} />, badgeKey: "races" },
+    { tab: "Dashboard",       icon: <House         size={17} /> },
+    { tab: "Horses",          icon: <User          size={17} /> },
+    { tab: "Users",           icon: <User          size={17} />, badgeKey: "users" },
+    { tab: "Rules Managment", icon: <FileText      size={17} /> },
+    { tab: "Tournaments",     icon: <FileText      size={17} /> },
+    { tab: "Races",           icon: <FileText      size={17} />, badgeKey: "races" },
+    { tab: "Violations",      icon: <AlertTriangle size={17} /> },
+    { tab: "Violation Types", icon: <ShieldAlert   size={17} /> },
 ];
 
 export default function AdminSidebar({ activeTab, onTabChange }: SidebarProps) {

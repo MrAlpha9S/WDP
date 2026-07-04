@@ -14,7 +14,7 @@ interface CreateRaceModalProps {
 }
 
 export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit }: CreateRaceModalProps) {
-    const [createRaceType, setCreateRaceType] = useState<string>("Stakes");
+    const [createRaceType, setCreateRaceType] = useState<string>("");
     const [refereeSearchQuery, setRefereeSearchQuery] = useState("");
 
     // Form States
@@ -70,7 +70,9 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                         setSecondPlacePrize(raceToEdit.secondPlacePrize ?? "");
                         setThirdPlacePrize(raceToEdit.thirdPlacePrize ?? "");
                         setCurrencyType(raceToEdit.currencyType ?? "USD");
-                        setCreateRaceType(raceToEdit.raceType || (data.data?.eligibilityRules?.length > 0 ? data.data.eligibilityRules[0].raceType : "Stakes"));
+                        // Match the saved raceType string back to a rule _id
+                        const matchedRule = data.data?.eligibilityRules?.find((r: any) => r.raceType === raceToEdit.raceType);
+                        setCreateRaceType(matchedRule?._id || (data.data?.eligibilityRules?.length > 0 ? data.data.eligibilityRules[0]._id : ""));
 
                         const owners = raceToEdit.Registration?.filter((r: any) => r.registrationStatus !== 'cancelled').map((r: any) => r.Owner?._id || r.horseOwnerId).filter(Boolean) || [];
                         const referees = raceToEdit.Referee?.filter((r: any) => r.assignmentStatus !== 'cancelled') || [];
@@ -88,7 +90,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                         setRefereeFees(fees);
                     } else {
                         if (data.data?.eligibilityRules?.length > 0) {
-                            setCreateRaceType(data.data.eligibilityRules[0].raceType);
+                            setCreateRaceType(data.data.eligibilityRules[0]._id);
                         }
                         if (data.data?.tournaments?.length > 0) {
                             setTournamentId(data.data.tournaments[0]._id);
@@ -134,17 +136,23 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         }
     }, [location, metadata]);
 
-    const checkEligibility = (horse: any, selectedRaceType: string) => {
-        if (!metadata || !metadata.eligibilityRules) return false;
+    // selectedRuleId is the rule._id (matches the selector value)
+    // Backend schema fields: minRacesWon, minRacesRun, minAge, maxAge, requiredGender, requiredBreed
+    const checkEligibility = (horse: any, selectedRuleId: string) => {
+        if (!metadata || !metadata.eligibilityRules) return true;
 
-        const rule = metadata.eligibilityRules.find((r: any) => r.raceType === selectedRaceType);
-        if (!rule) return false;
+        // Use String() coercion to safely compare ObjectId vs string
+        const rule = metadata.eligibilityRules.find((r: any) => String(r._id) === String(selectedRuleId));
+        if (!rule) return true;
         if (horse.status !== 'active' || horse.healthStatus !== 'healthy') return false;
 
         const wins = horse.raceResults ? horse.raceResults.filter((r: any) => r.finishPosition === 1).length : 0;
+        const racesRun = horse.raceResults ? horse.raceResults.length : 0;
 
-        if (rule.minWins !== undefined && rule.minWins !== null && wins < rule.minWins) return false;
-        if (rule.maxWins !== undefined && rule.maxWins !== null && wins > rule.maxWins) return false;
+        // minRacesWon — replaces the old (wrong) minWins/maxWins field names
+        if (rule.minRacesWon !== undefined && rule.minRacesWon !== null && wins < rule.minRacesWon) return false;
+        // minRacesRun
+        if (rule.minRacesRun !== undefined && rule.minRacesRun !== null && racesRun < rule.minRacesRun) return false;
 
         const currentYear = new Date().getFullYear();
         const horseAge = horse.dateOfBirth ? (currentYear - new Date(horse.dateOfBirth).getFullYear()) : 0;
@@ -153,6 +161,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         if (rule.maxAge !== undefined && rule.maxAge !== null && horseAge > rule.maxAge) return false;
 
         if (rule.requiredGender && rule.requiredGender !== 'both' && rule.requiredGender !== horse.gender) {
+            return false;
+        }
+
+        if (rule.requiredBreed && rule.requiredBreed !== horse.breed) {
             return false;
         }
 
@@ -210,7 +222,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             }
         }
 
-        const rule = metadata?.eligibilityRules?.find((r: any) => r.raceType === createRaceType);
+        const rule = metadata?.eligibilityRules?.find((r: any) => r._id === createRaceType);
         if (!rule) {
             setError("Invalid race type selected.");
             return;
@@ -221,7 +233,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
 
     const executeCreateRace = async () => {
         setError(null);
-        const rule = metadata?.eligibilityRules?.find((r: any) => r.raceType === createRaceType);
+        const rule = metadata?.eligibilityRules?.find((r: any) => r._id === createRaceType);
         if (!rule) return;
 
         // Create a local datetime and convert to ISO

@@ -3,6 +3,7 @@ import {
     X, Search, CheckCircle, XCircle, Clock, AlertTriangle,
     Image as ImageIcon, ExternalLink, Calendar,
     ShieldCheck, User, Trophy, Timer, Loader2, Shield,
+    ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
@@ -460,16 +461,35 @@ export default function AdminHorsesPage() {
     const [search,       setSearch]       = useState("");
     const [statusFilter, setStatusFilter] = useState<HorseStatus | "">("");
     const [loading,      setLoading]      = useState(true);
+    const [sortBy,       setSortBy]       = useState<string>('createdAt');
+    const [order,        setOrder]        = useState<'asc' | 'desc'>('desc');
 
     const [selectedHorse,  setSelectedHorse]  = useState<AdminHorse | null>(null);
     const [horseDetail,    setHorseDetail]    = useState<HorseDetail | null>(null);
     const [detailLoading,  setDetailLoading]  = useState(false);
     const [statusLoading,  setStatusLoading]  = useState(false);
 
+    const handleSort = (field: string) => {
+        if (sortBy === field) {
+            setOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setOrder('asc');
+        }
+        setPage(1);
+    };
+
+    const SortIcon = ({ field }: { field: string }) => {
+        if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
+        return order === 'asc'
+            ? <ArrowUp size={11} className="text-[#f3b2a5] ml-1 inline" />
+            : <ArrowDown size={11} className="text-[#f3b2a5] ml-1 inline" />;
+    };
+
     // Fetch list
     useEffect(() => {
         setLoading(true);
-        adminService.getAllHorses(page, LIMIT, search || undefined, statusFilter || undefined)
+        adminService.getAllHorses(page, LIMIT, search || undefined, statusFilter || undefined, sortBy, order)
             .then((res: any) => {
                 const d = res?.data ?? {};
                 setHorses(d.items ?? []);
@@ -478,7 +498,7 @@ export default function AdminHorsesPage() {
             })
             .catch(() => {})
             .finally(() => setLoading(false));
-    }, [page, search, statusFilter]);
+    }, [page, search, statusFilter, sortBy, order]);
 
     // Reset page on filter change
     const handleSearch = useCallback((v: string) => { setSearch(v); setPage(1); }, []);
@@ -555,6 +575,23 @@ export default function AdminHorsesPage() {
                                 <option value="inactive">Suspended</option>
                                 <option value="retired">Retired</option>
                             </select>
+                            <select
+                                value={`${sortBy}:${order}`}
+                                onChange={e => {
+                                    const [field, dir] = e.target.value.split(':');
+                                    setSortBy(field);
+                                    setOrder(dir as 'asc' | 'desc');
+                                    setPage(1);
+                                }}
+                                className="w-[175px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer"
+                            >
+                                <option value="createdAt:desc">Newest First</option>
+                                <option value="createdAt:asc">Oldest First</option>
+                                <option value="horseName:asc">Name A–Z</option>
+                                <option value="horseName:desc">Name Z–A</option>
+                                <option value="status:asc">Group by Status</option>
+                                <option value="healthStatus:asc">Group by Health</option>
+                            </select>
                         </div>
                     </header>
 
@@ -564,12 +601,24 @@ export default function AdminHorsesPage() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-[#1a1a1a] border-b border-white/5">
-                                        {(panelOpen
-                                            ? ["Horse", "Breed", "Status"]
-                                            : ["Horse", "Owner", "Breed", "Gender", "Health", "Status"]
-                                        ).map(h => (
-                                            <th key={h} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">{h}</th>
-                                        ))}
+                                        <th onClick={() => handleSort('horseName')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                            Horse <SortIcon field="horseName" />
+                                        </th>
+                                        {!panelOpen && (
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Owner</th>
+                                        )}
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Breed</th>
+                                        {!panelOpen && (
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Gender</th>
+                                        )}
+                                        {!panelOpen && (
+                                            <th onClick={() => handleSort('healthStatus')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                                Health <SortIcon field="healthStatus" />
+                                            </th>
+                                        )}
+                                        <th onClick={() => handleSort('status')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                            Status <SortIcon field="status" />
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">

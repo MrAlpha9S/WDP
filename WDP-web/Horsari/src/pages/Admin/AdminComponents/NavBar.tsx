@@ -6,7 +6,7 @@ import { useAdminSocket } from "../../../providers/useAdminSocket";
 import NotificationPopup from "./NotificationPopup";
 import type { AdminNotification } from "../../../types/AdminNotification";
 
-export type AdminTab = "Dashboard" | "Home" | "Tournaments" | "Users" | "Financial" | "Races" | "Rules Managment" | "Horses" | "Inbox";
+export type AdminTab = "Dashboard" | "Home" | "Tournaments" | "Users" | "Financial" | "Races" | "Rules Managment" | "Horses" | "Inbox" | "Violations" | "Violation Types";
 
 export const ADMIN_TABS: AdminTab[] = [];
 

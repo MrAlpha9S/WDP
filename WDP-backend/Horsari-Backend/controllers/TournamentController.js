@@ -31,7 +31,8 @@ class TournamentController {
     async updateTournament(req, res, next) {
         const { id } = req.params;
         try {
-            const response = await TournamentService.updateTournament(id, req.body);
+            const io = req.app.get('io');
+            const response = await TournamentService.updateTournament(id, req.body, io);
             return res.status(response.code).json(response);
         } catch (error) {
             next(error);

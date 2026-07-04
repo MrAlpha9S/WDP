@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
 import { type AdminTab } from "./AdminComponents/NavBar";
@@ -6,6 +6,8 @@ import type { Tournament } from "../../shared/types/TournamentTypes";
 import { CreateTournamentModal } from "./modal/CreateTournamentModal";
 import { DeleteTournamentModal } from "./modal/DeleteTournamentModal";
 import { adminService } from "../../api/adminService";
+import TournamentDetailPanel from "./AdminComponents/TournamentDetailPanel";
+import { useAdminSocket } from "../../providers/useAdminSocket";
 
 type AdminViewMode = "table" | "calendar";
 
@@ -14,6 +16,7 @@ interface Props {
 }
 
 export default function TournamentManagementPage({ setActiveTab }: Props) {
+    const { socket } = useAdminSocket();
     const [viewMode, setViewMode] = useState<AdminViewMode>("table");
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [allTournamentsForCalendar, setAllTournamentsForCalendar] = useState<Tournament[]>([]);
@@ -26,35 +29,49 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
     useEffect(() => { setPage(1); }, [searchQuery]);
 
-    useEffect(() => {
-        async function fetchTournaments() {
-            setLoading(true);
-            try {
-                const res = await adminService.getTournamentsWithDetails(page, LIMIT);
-                if (res?.data?.items) {
-                    const map = (item: any) => ({
-                        id: item.tournament._id,
-                        name: item.tournament.tournamentName,
-                        description: item.tournament.description || "",
-                        startDate: item.tournament.startDate ? new Date(item.tournament.startDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
-                        endDate: item.tournament.endDate ? new Date(item.tournament.endDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
-                        status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
-                        prizePool: `${item.priceTotalPool || 0} Pts`,
-                        startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
-                        endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
-                    } as Tournament);
-                    const mapped = res.data.items.filter((item: any) => item.tournament.tournamentName !== "Non-tournament").map(map);
-                    setTournaments(mapped);
-                    setTotalItems(res.data.pagination?.totalItems ?? mapped.length);
-                }
-            } catch (error) {
-                console.error("Failed to load tournaments:", error);
-            } finally {
-                setLoading(false);
+    const fetchTournaments = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await adminService.getTournamentsWithDetails(page, LIMIT);
+            if (res?.data?.items) {
+                const map = (item: any) => ({
+                    id: item.tournament._id,
+                    name: item.tournament.tournamentName,
+                    description: item.tournament.description || "",
+                    startDate: item.tournament.startDate ? new Date(item.tournament.startDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
+                    endDate: item.tournament.endDate ? new Date(item.tournament.endDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
+                    status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
+                    prizePool: `${item.priceTotalPool || 0} Pts`,
+                    startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
+                    endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
+                } as Tournament);
+                const mapped = res.data.items.filter((item: any) => item.tournament.tournamentName !== "Non-tournament").map(map);
+                setTournaments(mapped);
+                setTotalItems(res.data.pagination?.totalItems ?? mapped.length);
             }
+        } catch (error) {
+            console.error("Failed to load tournaments:", error);
+        } finally {
+            setLoading(false);
         }
-        fetchTournaments();
     }, [page]);
+
+    useEffect(() => { fetchTournaments(); }, [fetchTournaments]);
+
+    // Real-time: auto-update status when the scheduler (or admin) changes it
+    useEffect(() => {
+        if (!socket) return;
+        const onStatusChanged = ({ tournamentId, status }: { tournamentId: string; status: string }) => {
+            // Map backend status → frontend display status
+            const displayStatus = (status === 'ongoing' ? 'live' : status === 'scheduled' ? 'upcoming' : status) as any;
+            const updater = (prev: Tournament[]) =>
+                prev.map(t => t.id === tournamentId ? { ...t, status: displayStatus } : t);
+            setTournaments(updater);
+            setAllTournamentsForCalendar(updater);
+        };
+        socket.on('tournament:status_changed', onStatusChanged);
+        return () => { socket.off('tournament:status_changed', onStatusChanged); };
+    }, [socket]);
 
     // Load all tournaments once for the calendar view
     useEffect(() => {
@@ -77,6 +94,8 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
             }
         }).catch(() => {});
     }, []);
+
+    const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -136,10 +155,10 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
         <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
             {/* ── Top Content Area ── */}
-            <div className="flex-1 grid grid-cols-[280px_1fr] gap-8 p-8 min-h-0">
+            <div className="flex-1 flex gap-6 p-8 min-h-0 overflow-hidden">
 
                 {/* ── Left Panel (Overview & Filters) ── */}
-                <aside className="h-full bg-[#161616] border border-white/[0.05] rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20">
+                <aside className="w-[240px] shrink-0 h-full bg-[#161616] border border-white/[0.05] rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20">
                     <div className="px-5 py-6 shrink-0 border-b border-white/[0.05] bg-[#1a1a1a]">
                         <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">Overview</h2>
                         <p className="text-[12px] text-gray-400 mt-1">Filter and view tournament stats.</p>
@@ -187,7 +206,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                 </aside>
 
                 {/* ── Main Area ── */}
-                <main className="flex flex-col min-w-0 h-full">
+                <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${selectedTournamentId ? 'flex-[0_0_50%]' : 'flex-1'}`}>
 
                     {/* ── Header ── */}
                     <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
@@ -247,7 +266,11 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
                                         {filteredTournaments.map(t => (
-                                            <tr key={t.id} className="hover:bg-white/[0.02] transition-colors">
+                                            <tr
+                                                key={t.id}
+                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${selectedTournamentId === t.id ? 'bg-[#f3b2a5]/5 border-l-2 border-[#f3b2a5]' : ''}`}
+                                                onClick={() => setSelectedTournamentId(prev => prev === t.id ? null : t.id)}
+                                            >
                                                 <td className="p-4">
                                                     <div className="text-[13px] font-semibold text-white">{t.name}</div>
                                                     <div className="text-[11px] text-gray-500 mt-0.5">{t.description}</div>
@@ -270,19 +293,19 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                                 <td className="p-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
-                                                            onClick={() => setActiveTab("Races")}
+                                                            onClick={(e) => { e.stopPropagation(); setActiveTab("Races"); }}
                                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded text-[12px] text-gray-300 transition-colors"
                                                         >
                                                             Manage Races <ArrowRight size={12} />
                                                         </button>
                                                         <button
-                                                            onClick={() => openModal(t)}
+                                                            onClick={(e) => { e.stopPropagation(); openModal(t); }}
                                                             className="p-1.5 text-gray-500 hover:text-white hover:bg-white/5 rounded transition-colors"
                                                         >
                                                             <Edit size={14} />
                                                         </button>
                                                         <button
-                                                            onClick={() => openDeleteModal(t)}
+                                                            onClick={(e) => { e.stopPropagation(); openDeleteModal(t); }}
                                                             className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                                                         >
                                                             <Trash2 size={14} />
@@ -380,6 +403,17 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                         )}
                     </div>
                 </main>
+
+                {/* ── Tournament Detail Panel ── */}
+                {selectedTournamentId && (
+                    <div className="flex-1 min-w-[360px] min-h-0">
+                        <TournamentDetailPanel
+                            selectedTournamentId={selectedTournamentId}
+                            onRefresh={fetchTournaments}
+                            onClose={() => setSelectedTournamentId(null)}
+                        />
+                    </div>
+                )}
             </div>
 
             <CreateTournamentModal

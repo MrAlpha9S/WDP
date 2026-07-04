@@ -81,7 +81,7 @@ class AdminService {
     }
 
     // Get all users (admin only)
-    async getAllUsers(role, search, limit = 10, skip = 0) {
+    async getAllUsers(role, search, limit = 10, skip = 0, sortBy = 'createdAt', order = 'desc') {
         try {
             const filter = {};
             if (role && role !== 'All') {
@@ -94,8 +94,13 @@ class AdminService {
                     { email: { $regex: search, $options: 'i' } }
                 ];
             }
-            const users = await UserRepository.findAll(filter, limit, skip);
-            const totalUsers = await UserRepository.count(filter);
+            const allowedUserSortFields = ['fullName', 'username', 'email', 'role', 'status', 'createdAt', 'updatedAt'];
+            const sortField = allowedUserSortFields.includes(sortBy) ? sortBy : 'createdAt';
+            const sortOrder = order === 'asc' ? 1 : -1;
+            const [users, totalUsers] = await Promise.all([
+                User.find(filter).sort({ [sortField]: sortOrder }).limit(limit).skip(skip),
+                UserRepository.count(filter),
+            ]);
 
             const totalPages = Math.ceil(totalUsers / limit);
             return {
@@ -1737,6 +1742,304 @@ AdminService.prototype.settleTournamentPredictions = async function (tournamentI
             data: result.data,
             msg: `Tournament champion set and predictions settled`,
         };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Get single tournament with its race rounds and auto-complete if end date passed.
+AdminService.prototype.getTournamentDetail = async function (tournamentId) {
+    try {
+        const Tournament   = require('../entities/Tournament');
+        const RaceRound    = require('../entities/RaceRound');
+        const Registration = require('../entities/Registration');
+        const Horse        = require('../entities/Horse');
+
+        let tournament = await Tournament.findById(tournamentId).lean();
+        if (!tournament) return { code: 404, msg: 'Tournament not found' };
+
+        // Auto-complete: if endDate has passed and tournament is still 'ongoing'
+        const now = new Date();
+        if (tournament.endDate && new Date(tournament.endDate) <= now && tournament.status === 'ongoing') {
+            const rankResult = await this.getTournamentRanking(tournamentId);
+            if (rankResult.code === 200 && rankResult.data.length > 0) {
+                const topHorseId = rankResult.data[0].horseId;
+                await Tournament.findByIdAndUpdate(tournamentId, { status: 'completed' });
+                await this.settleTournamentPredictions(tournamentId, topHorseId);
+                tournament = await Tournament.findById(tournamentId).lean();
+            }
+        }
+
+        const raceRounds = await RaceRound.find({ tournamentId }).sort({ raceDate: 1 }).lean();
+
+        const raceRoundsWithCount = await Promise.all(
+            raceRounds.map(async (rr) => {
+                const participantCount = await Registration.countDocuments({
+                    raceRoundId: rr._id,
+                    registrationStatus: { $in: ['approved', 'verified'] },
+                });
+                return { ...rr, participantCount };
+            })
+        );
+
+        let championHorseName = null;
+        if (tournament.championHorseId) {
+            const champ = await Horse.findById(tournament.championHorseId, 'horseName').lean();
+            championHorseName = champ?.horseName ?? null;
+        }
+
+        return {
+            code: 200,
+            data: {
+                tournament: { ...tournament, championHorseName },
+                raceRounds: raceRoundsWithCount,
+            },
+            msg: 'Tournament detail retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Aggregate official race results across all rounds of a tournament and rank horses by score.
+// roundBreakdown covers every tournament round — type:'result'|'no_result'|'not_registered'.
+AdminService.prototype.getTournamentRanking = async function (tournamentId) {
+    try {
+        const RaceRound    = require('../entities/RaceRound');
+        const Registration = require('../entities/Registration');
+        const RaceResult   = require('../entities/RaceResult');
+        const Horse        = require('../entities/Horse');
+        const User         = require('../entities/User');
+
+        const SCORE_MAP = { 1: 60, 2: 40, 3: 30, 4: 20 };
+        const calcScore = (pos) => SCORE_MAP[pos] ?? 10;
+
+        // Sort by date so roundBreakdown columns are in chronological order
+        const raceRounds = await RaceRound.find({ tournamentId }).sort({ raceDate: 1 }).lean();
+        if (!raceRounds.length) return { code: 200, data: [], msg: 'No race rounds in this tournament' };
+
+        const roundIds = raceRounds.map(r => r._id);
+
+        // All registrations across all rounds
+        const registrations = await Registration.find({ raceRoundId: { $in: roundIds } }).lean();
+        const regById = Object.fromEntries(registrations.map(r => [r._id.toString(), r]));
+        const regIds  = registrations.map(r => r._id);
+
+        // horseRoundReg[horseId][roundId] = registration
+        const horseRoundReg = {};
+        for (const reg of registrations) {
+            if (!reg.horseId) continue;
+            const hk = reg.horseId.toString();
+            const rk = reg.raceRoundId.toString();
+            if (!horseRoundReg[hk]) horseRoundReg[hk] = {};
+            horseRoundReg[hk][rk] = reg;
+        }
+
+        // Official results only
+        const results = await RaceResult.find({
+            registrationId: { $in: regIds },
+            resultStatus: 'official',
+        }).lean();
+        const resultByRegId = Object.fromEntries(results.map(r => [r.registrationId.toString(), r]));
+
+        // Accumulate score/wins/podiums from official results
+        const horseStats = {};
+        for (const result of results) {
+            const reg = regById[result.registrationId.toString()];
+            if (!reg?.horseId) continue;
+            const key = reg.horseId.toString();
+            if (!horseStats[key]) {
+                horseStats[key] = {
+                    horseId: reg.horseId, ownerId: reg.horseOwnerId,
+                    score: 0, totalRaces: 0, wins: 0, podiums: 0, totalPrizeMoney: 0,
+                };
+            }
+            const s = horseStats[key];
+            const pos = result.finishPosition;
+            s.score         += calcScore(pos);
+            s.totalRaces    += 1;
+            if (pos === 1) s.wins    += 1;
+            if (pos <= 3)  s.podiums += 1;
+            s.totalPrizeMoney += result.prizeMoney || 0;
+        }
+
+        // Also surface horses that only have registrations (score stays 0)
+        for (const reg of registrations) {
+            if (!reg.horseId) continue;
+            const key = reg.horseId.toString();
+            if (!horseStats[key]) {
+                horseStats[key] = {
+                    horseId: reg.horseId, ownerId: reg.horseOwnerId,
+                    score: 0, totalRaces: 0, wins: 0, podiums: 0, totalPrizeMoney: 0,
+                };
+            }
+        }
+
+        const entries = Object.values(horseStats);
+        if (!entries.length) return { code: 200, data: [], msg: 'No registered horses yet' };
+
+        // Batch-fetch names (HorseOwner._id === User._id, so query User directly)
+        const horseIds = [...new Set(entries.map(e => e.horseId.toString()))];
+        const ownerIds = [...new Set(entries.map(e => e.ownerId?.toString()).filter(Boolean))];
+        const [horses, owners] = await Promise.all([
+            Horse.find({ _id: { $in: horseIds } }, 'horseName img').lean(),
+            User.find({ _id: { $in: ownerIds } }, 'fullName').lean(),
+        ]);
+        const horseNameMap = Object.fromEntries(horses.map(h => [h._id.toString(), h]));
+        const ownerNameMap = Object.fromEntries(owners.map(u => [u._id.toString(), u.fullName]));
+
+        // Sort: score desc, wins desc, totalPrizeMoney desc
+        entries.sort((a, b) =>
+            b.score - a.score ||
+            b.wins  - a.wins  ||
+            b.totalPrizeMoney - a.totalPrizeMoney
+        );
+
+        // Assign ranks (equal score = equal rank)
+        let rank = 1;
+        const ranked = entries.map((e, i) => {
+            if (i > 0 && e.score < entries[i - 1].score) rank = i + 1;
+            const horseKey = e.horseId.toString();
+            const h = horseNameMap[horseKey] ?? {};
+
+            // One breakdown entry per tournament round, in chronological order
+            const roundBreakdown = raceRounds.map(rr => {
+                const roundKey = rr._id.toString();
+                const reg = horseRoundReg[horseKey]?.[roundKey];
+                if (!reg) {
+                    return { roundId: rr._id, roundName: rr.roundName, raceDate: rr.raceDate, roundStatus: rr.status, type: 'not_registered' };
+                }
+                const result = resultByRegId[reg._id.toString()];
+                if (result) {
+                    return { roundId: rr._id, roundName: rr.roundName, raceDate: rr.raceDate, roundStatus: rr.status, type: 'result', finishPosition: result.finishPosition, prizeMoney: result.prizeMoney || 0 };
+                }
+                return { roundId: rr._id, roundName: rr.roundName, raceDate: rr.raceDate, roundStatus: rr.status, type: 'no_result', registrationStatus: reg.registrationStatus };
+            });
+
+            return {
+                rank,
+                horseId:         e.horseId,
+                horseName:       h.horseName ?? 'Unknown',
+                horseImg:        h.img ?? null,
+                ownerId:         e.ownerId,
+                ownerName:       ownerNameMap[e.ownerId?.toString()] ?? 'Unknown',
+                score:           e.score,
+                totalRaces:      e.totalRaces,
+                wins:            e.wins,
+                podiums:         e.podiums,
+                totalPrizeMoney: e.totalPrizeMoney,
+                roundBreakdown,
+            };
+        });
+
+        return { code: 200, data: ranked, msg: 'Ranking retrieved successfully' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// List all violations across every race, with pagination and optional filters.
+AdminService.prototype.getAllViolations = async function (page, limit, { status, severity, raceRoundId, sortBy = 'createdAt', order = 'desc' } = {}) {
+    try {
+        const Violation = require('../entities/Violation');
+        const filter = {};
+        if (status)      filter.violationStatus = status;
+        if (severity)    filter.severity = Number(severity);
+        if (raceRoundId) filter.raceRoundId = raceRoundId;
+
+        const allowedViolationSortFields = ['createdAt', 'severity', 'violationStatus'];
+        const sortField = allowedViolationSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortOrder = order === 'asc' ? 1 : -1;
+
+        const skip = (page - 1) * limit;
+        const [items, totalItems] = await Promise.all([
+            Violation.find(filter)
+                .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                .populate('registrationId', 'horseId registrationStatus')
+                .populate('raceRefereeId', 'refereeId')
+                .populate('raceRoundId', 'roundName raceDate')
+                .sort({ [sortField]: sortOrder })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Violation.countDocuments(filter),
+        ]);
+
+        return {
+            code: 200,
+            data: {
+                items,
+                pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) || 1 },
+            },
+            msg: 'Violations retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// List all violation types with pagination, search, filters and sort.
+AdminService.prototype.getAllViolationTypes = async function (page, limit, { search, type, category, sortBy = 'createdAt', order = 'desc' } = {}) {
+    try {
+        const ViolationType = require('../entities/ViolationType');
+        const filter = {};
+        if (search)   filter.violationName = { $regex: search, $options: 'i' };
+        if (type)     filter.type = type;
+        if (category) filter.category = category;
+
+        const allowedSortFields = ['violationName', 'severity', 'type', 'category', 'createdAt', 'updatedAt'];
+        const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortOrder = order === 'asc' ? 1 : -1;
+
+        const skip = (page - 1) * limit;
+        const [items, totalItems] = await Promise.all([
+            ViolationType.find(filter).sort({ [sortField]: sortOrder }).skip(skip).limit(limit).lean(),
+            ViolationType.countDocuments(filter),
+        ]);
+
+        return {
+            code: 200,
+            data: {
+                items,
+                pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) || 1 },
+            },
+            msg: 'Violation types retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Create a new violation type.
+AdminService.prototype.createViolationType = async function (data) {
+    try {
+        const ViolationType = require('../entities/ViolationType');
+        const vt = await new ViolationType(data).save();
+        return { code: 201, data: vt, msg: 'Violation type created successfully' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Update an existing violation type.
+AdminService.prototype.updateViolationType = async function (id, data) {
+    try {
+        const ViolationType = require('../entities/ViolationType');
+        const vt = await ViolationType.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
+        if (!vt) return { code: 404, msg: 'Violation type not found' };
+        return { code: 200, data: vt, msg: 'Violation type updated successfully' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Toggle isActive on a violation type (soft delete / restore).
+AdminService.prototype.toggleViolationTypeActive = async function (id, isActive) {
+    try {
+        const ViolationType = require('../entities/ViolationType');
+        const vt = await ViolationType.findByIdAndUpdate(id, { isActive }, { new: true }).lean();
+        if (!vt) return { code: 404, msg: 'Violation type not found' };
+        return { code: 200, data: vt, msg: `Violation type ${isActive ? 'activated' : 'deactivated'} successfully` };
     } catch (error) {
         return { code: 500, msg: error.message };
     }
