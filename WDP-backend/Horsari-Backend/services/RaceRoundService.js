@@ -104,25 +104,6 @@ class RaceRoundService {
             },
         };
     }
-    async getRaceRoundsByTournamentId(tournamentId) {
-        const tournament = await TournamentRepository.findById(tournamentId);
-        if (!tournament) {
-            return { code: 404, message: 'Tournament not found' };
-        }
-        const raceRounds = await RaceRoundRepository.findByTournamentId(tournamentId);
-        return { code: 200, message: 'Race rounds retrieved successfully', data: raceRounds };
-    }
-    async getRaceRoundById(id) {
-        const raceRound = await RaceRoundRepository.findById(id);
-        if (!raceRound) {
-            return { code: 404, message: 'Race round not found' };
-        }
-        return { code: 200, message: 'Race round retrieved successfully', data: raceRound };
-    }
-    async getAllRaceRounds(page, limit) {
-        const raceRounds = await RaceRoundRepository.findAll(page, limit);
-        return { code: 200, message: 'Race rounds retrieved successfully', data: raceRounds };
-    }
     async updateRaceRound(id, payload, adminID) {
         const { TournamentId, RaceRound: updateData, HorseOwnerInvitation, RefereeInvitation } = payload;
         const toId = (v) => (v && typeof v === 'object') ? (v._id ?? v).toString() : (v ? v.toString() : v);
@@ -327,18 +308,6 @@ class RaceRoundService {
             },
         };
     }
-    async deleteRaceRound(id) {
-        const deletedRaceRound = await RaceRoundRepository.delete(id);
-        if (!deletedRaceRound) {
-            return { code: 404, message: 'Race round not found' };
-        }
-        return { code: 200, message: 'Race round deleted successfully', data: deletedRaceRound };
-    }
-    async getRaceRoundsByStatus(status) {
-        const raceRounds = await RaceRoundRepository.findByStatus(status);
-        return { code: 200, message: 'Race rounds retrieved successfully', data: raceRounds };
-    }
-
     async cancelRaceRound(id) {
         const raceRound = await RaceRoundRepository.findById(id);
         if (!raceRound) {

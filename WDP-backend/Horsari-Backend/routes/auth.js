@@ -14,12 +14,9 @@ const router = express.Router();
 // Public routes
 router.post('/register', upload.single('license'), AuthController.register);
 router.post('/login', AuthController.login);
-router.post('/google/login', AuthController.googleLogin);
 
 // Protected routes
-router.post('/google/login/additional-info', authMiddleware, AuthController.googleLoginAdditionalInfo);
 router.get('/current-user', authMiddleware, AuthController.getCurrentUser);
-router.get('/user/:id', authMiddleware, AuthController.getUserById);
 router.post('/logout', authMiddleware, AuthController.logout);
 
 module.exports = router;

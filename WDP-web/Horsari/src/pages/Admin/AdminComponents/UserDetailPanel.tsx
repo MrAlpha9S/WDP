@@ -67,16 +67,47 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 function FileLink({ label, href, type }: { label: string; href: string; type: "pdf" | "image" }) {
     const [confirming, setConfirming] = useState(false);
+    const [loading, setLoading] = useState(false);
     if (!href) return <DetailRow label={label} value={null} />;
+
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
+    const openFile = async () => {
+        setConfirming(false);
+        if (type === 'image') {
+            window.open(href, '_blank', 'noopener,noreferrer');
+            return;
+        }
+        // For PDFs: fetch through the backend proxy (sends Bearer token for auth)
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('velo_token');
+            const proxyUrl = `${API_BASE}/admin/proxy-license?url=${encodeURIComponent(href)}`;
+            const response = await fetch(proxyUrl, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+            const win = window.open(blobUrl, '_blank');
+            // Release the blob URL after the new tab has loaded
+            if (win) win.addEventListener('load', () => URL.revokeObjectURL(blobUrl), { once: true });
+        } catch (err) {
+            alert('Failed to open the PDF. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <>
             <button
                 onClick={() => setConfirming(true)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.08] hover:border-white/[0.14] transition-all group text-left"
+                disabled={loading}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.08] hover:border-white/[0.14] transition-all group text-left disabled:opacity-60 disabled:cursor-not-allowed"
             >
                 <div className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 ${type === "pdf" ? "bg-red-500/15 text-red-400" : "bg-blue-500/15 text-blue-400"}`}>
-                    {type === "pdf" ? <FileText size={13} /> : <ImageIcon size={13} />}
+                    {loading ? <Loader2 size={13} className="animate-spin" /> : type === "pdf" ? <FileText size={13} /> : <ImageIcon size={13} />}
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-[12px] text-gray-200 font-medium truncate">{label}</p>
@@ -108,7 +139,7 @@ function FileLink({ label, href, type }: { label: string; href: string; type: "p
                                 Cancel
                             </button>
                             <button
-                                onClick={() => { window.open(href, '_blank', 'noopener,noreferrer'); setConfirming(false); }}
+                                onClick={openFile}
                                 className="flex-1 py-2 rounded-lg text-[12px] font-semibold bg-[#ab3030] hover:bg-[#8f2828] text-white transition-colors"
                             >
                                 Open

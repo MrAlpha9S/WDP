@@ -3,8 +3,6 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
 const authRouter = require('./routes/auth');
 const horseRouter = require('./routes/horse');
 const adminRouter = require('./routes/admin');
@@ -12,15 +10,12 @@ const jockeyRouter = require('./routes/jockey');
 const horseOwnerRouter = require('./routes/horseowner');
 const refereeRouter = require('./routes/referee');
 const spectatorRouter = require('./routes/spectator');
-const uploadRouter = require('./routes/upload');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swaggerConfig');
 const raceRound = require('./routes/raceround');
-const raceRefereeRouter = require('./routes/racereferee');
-const registrationRouter = require('./routes/registration');
 dotenv.config();
 var app = express();
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
@@ -63,8 +58,6 @@ app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   },
 }));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/horse', horseRouter);
 app.use('/api/admin', adminRouter);
@@ -73,13 +66,9 @@ app.use('/api/horseowner', horseOwnerRouter);
 app.use('/api/tournament', require('./routes/tournament'));
 app.use('/api/referee', refereeRouter);
 app.use('/api/spectator', spectatorRouter);
-app.use('/api/upload', uploadRouter);
 app.use('/api/invitations', require('./routes/invitations'));
 app.use('/api/raceround', raceRound);
-app.use('/api/racereferee', raceRefereeRouter);
-app.use('/api/registration', registrationRouter);
 app.use('/api/eligibility-rules', require('./routes/raceEligibilityRule'));
-app.use('/api/cloudinary', require('./routes/demoUpload'));
 // catch 404 and forward to error handler
 // app.use(function (req, res, next) {
 //   next(createError(404));

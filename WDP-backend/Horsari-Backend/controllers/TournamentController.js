@@ -10,24 +10,6 @@ class TournamentController {
             next(error);
         }
     }
-    async getTournaments(req, res, next) {
-        const { keywords, page, limit } = req.query;
-        try {
-            const response = await TournamentService.getTournaments(keywords, page, limit);
-            return res.status(response.code).json(response);
-        } catch (error) {
-            next(error);
-        }
-    }
-    async getTournamentById(req, res, next) {
-        const { id } = req.params;
-        try {
-            const response = await TournamentService.getTournamentById(id);
-            return res.status(response.code).json(response);
-        } catch (error) {
-            next(error);
-        }
-    }
     async updateTournament(req, res, next) {
         const { id } = req.params;
         try {

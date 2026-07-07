@@ -23,28 +23,6 @@ class TournamentService {
             return { code: 500, msg: 'Internal server error' };
         }
     }
-    async getTournaments(keywords, page = 1, limit = 10) {
-        try {
-            const tournaments = await tournamentRepository.getTournaments(keywords, page, limit);
-            return { code: 200, data: tournaments, msg: 'Tournaments retrieved successfully' };
-        } catch (error) {
-            console.error('Error retrieving tournaments:', error);
-            return { code: 500, msg: 'Internal server error' };
-        }
-
-    }
-    async getTournamentById(id) {
-        try {
-            const tournament = await tournamentRepository.getTournamentById(id);
-            if (!tournament) {
-                return { code: 404, msg: 'Tournament not found' };
-            }
-            return { code: 200, data: tournament, msg: 'Tournament retrieved successfully' };
-        } catch (error) {
-            console.error('Error retrieving tournament:', error);
-            return { code: 500, msg: 'Internal server error' };
-        }
-    }
     async updateTournament(id, updateData, io) {
         try {
             const tournament = await tournamentRepository.getTournamentById(id);

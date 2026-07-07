@@ -1,56 +1,8 @@
 const SpectatorService = require('../services/SpectatorService');
 
 class SpectatorController {
-    async createSpectator(req, res) {
-        const { uid } = req.params;
-        const response = await SpectatorService.createSpectator(uid, req.body);
-        return res.status(response.code).json(response);
-    }
-
     async getSpectatorProfile(req, res) {
         const response = await SpectatorService.getSpectatorProfile(req.userId);
-        return res.status(response.code).json(response);
-    }
-
-    async getAllSpectators(req, res) {
-        const limit = parseInt(req.query.limit) || 10;
-        const skip = parseInt(req.query.skip) || 0;
-        const response = await SpectatorService.getAllSpectators(limit, skip);
-        return res.status(response.code).json(response);
-    }
-
-    async getRewardPoints(req, res) {
-        const response = await SpectatorService.getRewardPoints(req.userId);
-        return res.status(response.code).json(response);
-    }
-
-    async addRewardPoints(req, res) {
-        const { points } = req.body;
-        const response = await SpectatorService.addRewardPoints(req.userId, points);
-        return res.status(response.code).json(response);
-    }
-
-    async deductRewardPoints(req, res) {
-        const { points } = req.body;
-        const response = await SpectatorService.deductRewardPoints(req.userId, points);
-        return res.status(response.code).json(response);
-    }
-
-    async getTopSpectators(req, res) {
-        const limit = parseInt(req.query.limit) || 10;
-        const response = await SpectatorService.getTopSpectators(limit);
-        return res.status(response.code).json(response);
-    }
-
-    async updateSpectatorProfile(req, res) {
-        const response = await SpectatorService.updateSpectatorProfile(req.userId, req.body);
-        return res.status(response.code).json(response);
-    }
-
-    // ─── Auth ─────────────────────────────────────────────────────────────────
-
-    async changePassword(req, res) {
-        const response = await SpectatorService.changePassword(req.userId, req.body);
         return res.status(response.code).json(response);
     }
 
@@ -99,18 +51,6 @@ class SpectatorController {
     async getLiveRaceDetail(req, res) {
         const { raceRoundId } = req.params;
         const response = await SpectatorService.getLiveRaceDetail(req.userId, raceRoundId);
-        return res.status(response.code).json(response);
-    }
-
-    async getRaceResult(req, res) {
-        const { raceRoundId } = req.params;
-        const response = await SpectatorService.getRaceResult(req.userId, raceRoundId);
-        return res.status(response.code).json(response);
-    }
-
-    async getRaceLeaderboard(req, res) {
-        const { raceRoundId } = req.params;
-        const response = await SpectatorService.getRaceLeaderboard(req.userId, raceRoundId);
         return res.status(response.code).json(response);
     }
 

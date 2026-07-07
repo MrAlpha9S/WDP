@@ -2,7 +2,6 @@ const SpectatorRepository = require('../repositories/SpectatorRepository');
 const UserRepository = require('../repositories/UserRepository');
 const TransactionRepository = require('../repositories/TransactionRepository');
 const PredictionRepository = require('../repositories/PredictionRepository');
-const UserService = require('./UserService');
 const RaceRound = require('../entities/RaceRound');
 const Registration = require('../entities/Registration');
 const RaceResult = require('../entities/RaceResult');
@@ -12,35 +11,6 @@ const Jockey = require('../entities/Jockey');
 const PredictionMethod = require('../entities/PredictionMethod');
 
 class SpectatorService {
-    async createSpectator(spectatorId, data) {
-        try {
-            const { wallet } = data || {};
-
-            if (!spectatorId) {
-                return { code: 400, msg: 'spectatorId is required' };
-            }
-
-            const user = await UserRepository.findById(spectatorId);
-            if (!user) {
-                return { code: 404, msg: 'User not found' };
-            }
-
-            const existing = await SpectatorRepository.findBySpectatorId(spectatorId);
-            if (existing) {
-                return { code: 409, msg: 'Spectator profile already exists' };
-            }
-
-            const spectatorProfile = await SpectatorRepository.create({
-                _id: spectatorId,
-                wallet: wallet || 0,
-            });
-
-            return { code: 201, data: spectatorProfile, msg: 'Spectator profile created successfully' };
-        } catch (error) {
-            return { code: 500, msg: error.message };
-        }
-    }
-
     async getSpectatorProfile(spectatorId) {
         try {
             const spectator = await SpectatorRepository.findBySpectatorId(spectatorId);
@@ -80,92 +50,6 @@ class SpectatorService {
         } catch (error) {
             return { code: 500, msg: error.message };
         }
-    }
-
-    async getAllSpectators(limit = 10, skip = 0) {
-        try {
-            const spectators = await SpectatorRepository.findAll(limit, skip);
-            const count = await SpectatorRepository.count();
-            return { code: 200, data: { spectators, count }, msg: 'Spectators retrieved successfully' };
-        } catch (error) {
-            return { code: 500, msg: error.message };
-        }
-    }
-
-    async getRewardPoints(spectatorId) {
-        try {
-            const spectator = await SpectatorRepository.findBySpectatorId(spectatorId);
-            if (!spectator) {
-                return { code: 404, msg: 'Spectator not found' };
-            }
-            return { code: 200, data: { wallet: spectator.wallet }, msg: 'Wallet balance retrieved successfully' };
-        } catch (error) {
-            return { code: 500, msg: error.message };
-        }
-    }
-
-    async addRewardPoints(spectatorId, points) {
-        try {
-            if (!points || points <= 0) {
-                return { code: 400, msg: 'Points must be greater than 0' };
-            }
-            const spectator = await SpectatorRepository.findBySpectatorId(spectatorId);
-            if (!spectator) {
-                return { code: 404, msg: 'Spectator not found' };
-            }
-            const updatedSpectator = await SpectatorRepository.addRewardPoints(spectator._id, points);
-            return { code: 200, data: updatedSpectator, msg: `${points} reward points added successfully` };
-        } catch (error) {
-            return { code: 500, msg: error.message };
-        }
-    }
-
-    async deductRewardPoints(spectatorId, points) {
-        try {
-            if (!points || points <= 0) {
-                return { code: 400, msg: 'Points must be greater than 0' };
-            }
-            const spectator = await SpectatorRepository.findBySpectatorId(spectatorId);
-            if (!spectator) {
-                return { code: 404, msg: 'Spectator not found' };
-            }
-            if (spectator.wallet < points) {
-                return { code: 400, msg: 'Insufficient wallet balance' };
-            }
-            const updatedSpectator = await SpectatorRepository.addRewardPoints(spectator._id, -points);
-            return { code: 200, data: updatedSpectator, msg: `${points} reward points deducted successfully` };
-        } catch (error) {
-            return { code: 500, msg: error.message };
-        }
-    }
-
-    async getTopSpectators(limit = 10) {
-        try {
-            const spectators = await SpectatorRepository.findAll(limit, 0);
-            const sorted = spectators.sort((a, b) => b.wallet - a.wallet);
-            return { code: 200, data: { spectators: sorted.slice(0, limit), count: sorted.length }, msg: 'Top spectators retrieved successfully' };
-        } catch (error) {
-            return { code: 500, msg: error.message };
-        }
-    }
-
-    async updateSpectatorProfile(spectatorId, updateData) {
-        try {
-            const spectator = await SpectatorRepository.findBySpectatorId(spectatorId);
-            if (!spectator) {
-                return { code: 404, msg: 'Spectator not found' };
-            }
-            const updatedSpectator = await SpectatorRepository.updateById(spectator._id, updateData);
-            return { code: 200, data: updatedSpectator, msg: 'Spectator profile updated successfully' };
-        } catch (error) {
-            return { code: 500, msg: error.message };
-        }
-    }
-
-    // ─── Auth ────────────────────────────────────────────────────────────────
-
-    async changePassword(userId, body) {
-        return UserService.changePassword(userId, body);
     }
 
     // ─── Wallet ──────────────────────────────────────────────────────────────
@@ -618,57 +502,6 @@ class SpectatorService {
                 data: { raceRound, registrations: enrichedRegistrations, userPredictions },
                 msg: 'Live race detail retrieved successfully',
             };
-        } catch (error) {
-            return { code: 500, msg: error.message };
-        }
-    }
-
-    async _buildRaceResultData(raceRoundId) {
-        const raceRound = await RaceRound.findById(raceRoundId).populate('tournamentId').lean();
-        if (!raceRound) return null;
-
-        const registrations = await Registration.find({ raceRoundId }).lean();
-        const registrationIds = registrations.map(r => r._id);
-
-        const [raceResults, enrichedRegs] = await Promise.all([
-            RaceResult.find({ registrationId: { $in: registrationIds } }).sort({ finishPosition: 1 }).lean(),
-            this._enrichRegistrationsWithInvitationData(registrations),
-        ]);
-
-        const enrichedRegMap = {};
-        enrichedRegs.forEach(r => { enrichedRegMap[r._id.toString()] = r; });
-
-        const enrichedResults = raceResults.map(result => {
-            const reg = enrichedRegMap[result.registrationId.toString()] || null;
-            return { ...result, registration: reg, horse: reg?.horse || null, jockey: reg?.jockey || null };
-        });
-
-        return { raceRound, results: enrichedResults };
-    }
-
-    async getRaceResult(userId, raceRoundId) {
-        try {
-            const spectator = await SpectatorRepository.findBySpectatorId(userId);
-            if (!spectator) return { code: 404, msg: 'Spectator not found' };
-
-            const data = await this._buildRaceResultData(raceRoundId);
-            if (!data) return { code: 404, msg: 'Race round not found' };
-
-            return { code: 200, data, msg: 'Race result retrieved successfully' };
-        } catch (error) {
-            return { code: 500, msg: error.message };
-        }
-    }
-
-    async getRaceLeaderboard(userId, raceRoundId) {
-        try {
-            const spectator = await SpectatorRepository.findBySpectatorId(userId);
-            if (!spectator) return { code: 404, msg: 'Spectator not found' };
-
-            const data = await this._buildRaceResultData(raceRoundId);
-            if (!data) return { code: 404, msg: 'Race round not found' };
-
-            return { code: 200, data, msg: 'Race leaderboard retrieved successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }

@@ -1,15 +1,27 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./providers/AuthProvider";
+import { AuthProvider, useAuth } from "./providers/AuthProvider";
 import ProtectedRoute from "./ProtectedRoute";
-import NavBar from "./components/NavBar";
 import LoginPage from "./pages/LoginPage";
 import GoogleRegisterPage from "./pages/GoogleRegisterPage";
-import HomePage from "./pages/HomePage";
 import RefereeDashboardPage from "./pages/Referee/Index";
 import RaceMonitorPage from "./pages/Referee/RaceMonitorIndex";
 import AdminDashboardPage from "./pages/Admin/Index";
 import DashboardPage from "./pages/horseOwner";
 import OwnerRaceMonitorPage from "./pages/horseOwner/RaceMonitorIndex";
+
+// Redirects the user to their role-specific dashboard after login.
+function RoleRedirect() {
+  const { user } = useAuth();
+  const role = user?.role?.toLowerCase();
+
+  if (role === "admin")      return <Navigate to="/admin"    replace />;
+  if (role === "referee")    return <Navigate to="/referee"  replace />;
+  if (role === "horseowner") return <Navigate to="/owner"    replace />;
+
+  // spectator or unknown — send to login for now
+  return <Navigate to="/login" replace />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -19,17 +31,15 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/google-register" element={<GoogleRegisterPage />} />
 
-          {/* Protected */}
+          {/* Root — redirect to role-specific dashboard */}
           <Route
             path="/"
             element={
               <ProtectedRoute>
-                <NavBar />
-                <HomePage />
+                <RoleRedirect />
               </ProtectedRoute>
             }
           />
-
 
           <Route
             path="/referee"
@@ -69,7 +79,6 @@ export default function App() {
               </ProtectedRoute>
             } />
 
-
           <Route
             path="/owner"
             element={
@@ -92,4 +101,4 @@ export default function App() {
       </AuthProvider>
     </BrowserRouter>
   );
-}
+}

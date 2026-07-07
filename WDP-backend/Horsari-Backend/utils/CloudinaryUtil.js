@@ -11,16 +11,25 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 class CloudinaryUtil {
     // Upload file to Cloudinary
-    static async uploadFile(fileBuffer, filename, folder = 'horsari') {
+    // resourceType: 'image' → for PDFs and images. Cloudinary serves PDFs with
+    //                          Content-Type: application/pdf → browser opens inline.
+    //               'raw'   → generic binary; browser forces a download (avoid for PDFs).
+    //               'auto'  → let Cloudinary decide.
+    static async uploadFile(fileBuffer, filename, folder = 'horsari', resourceType = 'image') {
         try {
             return new Promise((resolve, reject) => {
                 // Generate unique public_id using timestamp
                 const timestamp = Date.now();
-                const uniqueFilename = `${timestamp}_${filename.replace(/\.[^/.]+$/, '')}`;
+                const safeBase = filename
+                    .replace(/\.[^/.]+$/, '')    // strip extension
+                    .replace(/\s+/g, '_')         // spaces → underscores
+                    .replace(/[^\w.-]/g, '_')     // other special chars → underscores
+                    .toLowerCase();
+                const uniqueFilename = `${timestamp}_${safeBase}`;
 
                 const stream = cloudinary.uploader.upload_stream(
                     {
-                        resource_type: 'auto',
+                        resource_type: resourceType,
                         folder: folder,
                         public_id: uniqueFilename,
                     },
@@ -47,7 +56,7 @@ class CloudinaryUtil {
     }
 
     // Update file (delete old, upload new)
-    static async updateFile(oldPublicId, newFileBuffer, newFilename, folder = 'horsari') {
+    static async updateFile(oldPublicId, newFileBuffer, newFilename, folder = 'horsari', resourceType = 'image') {
         try {
             // Delete old file
             await CloudinaryUtil.deleteFile(oldPublicId);
@@ -56,7 +65,8 @@ class CloudinaryUtil {
             const result = await CloudinaryUtil.uploadFile(
                 newFileBuffer,
                 newFilename,
-                folder
+                folder,
+                resourceType
             );
 
             return result;

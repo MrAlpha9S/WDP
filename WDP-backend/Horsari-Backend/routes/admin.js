@@ -6,17 +6,16 @@ const router = express.Router();
 
 require('../swagger/adminSwagger');
 
-// Admin-only - create admin profile for existing user
-router.get('/profile', authMiddleware, authAdmin, AdminController.getAdminProfile);
 // Admin statistics
 router.get('/statistics', authMiddleware, authAdmin, AdminController.getStatistics);
 router.get('/users/all', authMiddleware, authAdmin, AdminController.getAllUsers);
 router.get('/users/:userId', authMiddleware, authAdmin, AdminController.getUsersDetail);
 
-router.put('/users/:userId/status', authMiddleware, authAdmin, AdminController.updateUserStatus);
+// PDF proxy — serve a Cloudinary license URL inline with correct Content-Type
+// Usage: GET /api/admin/proxy-license?url=<cloudinary_url>
+router.get('/proxy-license', authMiddleware, authAdmin, AdminController.proxyLicense);
+
 router.patch('/users/:userId/certification', authMiddleware, authAdmin, AdminController.verifyCertification);
-// admin level endpoints removed
-router.delete('/users/:userId', authMiddleware, authAdmin, AdminController.deleteUser);
 
 // Horse owner invitation list (enriched with race round, horse, jockeys, owner info)
 router.get('/horse-owner-invitations', authMiddleware, authAdmin, AdminController.getHorseOwnerInvitations);
@@ -29,9 +28,6 @@ router.get('/jockey-invitations', authMiddleware, authAdmin, AdminController.get
 
 // Get tournaments with details and prediction pool
 router.get('/tournaments', authMiddleware, authAdmin, AdminController.getTournamentsWithDetails);
-
-// Set tournament champion and settle all champion predictions
-router.post('/tournaments/:tournamentId/champion', authMiddleware, authAdmin, AdminController.setTournamentChampion);
 
 // Tournament detail: basic info + race rounds + auto-complete if end date passed
 router.get('/tournaments/:id/detail', authMiddleware, authAdmin, AdminController.getTournamentDetail);
@@ -56,17 +52,6 @@ router.get('/race-rounds/:id/detail', authMiddleware, authAdmin, AdminController
 // Admin starts or cancels a prepared race round
 router.put('/race-rounds/:id/status', authMiddleware, authAdmin, AdminController.setRaceRoundStatus);
 
-// Live simulation snapshot
-router.get('/race-rounds/:id/simulation', authMiddleware, authAdmin, AdminController.getSimulationState);
-
-// All violations for a race (all referees combined)
-router.get('/race-rounds/:id/violations', authMiddleware, authAdmin, AdminController.getRaceViolations);
-
-// Soft-delete (dismiss) a violation
-router.patch('/violations/:violationId/dismiss', authMiddleware, authAdmin, AdminController.dismissViolation);
-
-// Confirm race results → mark official, close race (Moved to referee)
-
 // Provision a Mux live stream (must be done before starting the race)
 router.post('/race-rounds/:id/stream', authMiddleware, authAdmin, AdminController.createStream);
 // Mux live stream info (RTMP URL + stream key for OBS operator)
@@ -88,11 +73,8 @@ router.patch('/horses/:horseId/status', authMiddleware, authAdmin, AdminControll
 
 // --- Race Eligibility Rule Routes ---
 router.get('/rules', authMiddleware, authAdmin, AdminController.getAllRules);
-router.get('/rules/:id', authMiddleware, authAdmin, AdminController.getRuleById);
 router.post('/rules', authMiddleware, authAdmin, AdminController.createRule);
 router.put('/rules/:id', authMiddleware, authAdmin, AdminController.updateRule);
 router.delete('/rules/:id', authMiddleware, authAdmin, AdminController.deleteRule);
-
-router.post('/:uid', authMiddleware, authAdmin, AdminController.createAdmin);
 
 module.exports = router;

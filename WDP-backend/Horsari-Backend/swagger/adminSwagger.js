@@ -60,82 +60,9 @@
  *       404:
  *         description: User not found
  *
- * /api/admin/users/{userId}/certification:
- *   patch:
- *     summary: Approve or reject a user license certification
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema: { type: string }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [action]
- *             properties:
- *               action:
- *                 type: string
- *                 enum: [approve, reject]
- *     responses:
- *       200:
- *         description: Certification status updated
  *
- * /api/admin/horse-owner-invitations:
- *   get:
- *     summary: Get all horse owner registrations with race, horse, and invitation details
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 5 }
- *     responses:
- *       200:
- *         description: Paginated list of registrations
  *
- * /api/admin/referee-invitations:
- *   get:
- *     summary: Get all referee race assignments
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 5 }
- *     responses:
- *       200:
- *         description: Paginated list of referee invitations
  *
- * /api/admin/jockey-invitations:
- *   get:
- *     summary: Get all jockey invitations across all races
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 5 }
- *     responses:
- *       200:
- *         description: Paginated list of jockey invitations
  *
  * /api/admin/tournaments:
  *   get:
@@ -208,31 +135,6 @@
  *       404:
  *         description: Not found
  *
- * /api/admin/race-rounds/{id}/status:
- *   put:
- *     summary: Set race round status (running or cancelled)
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [status]
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [running, cancelled]
- *     responses:
- *       200:
- *         description: Status updated
  *
  * /api/admin/race-rounds/{id}/confirm-result:
  *   post:
@@ -249,58 +151,8 @@
  *       200:
  *         description: Results confirmed
  *
- * /api/admin/race-rounds/{id}/stream:
- *   post:
- *     summary: Create a Mux live stream for the race round
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Stream created — returns streamKey and playbackId
- *   get:
- *     summary: Get live stream info for a race round
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Stream info
  *
- * /api/admin/race-rounds/{id}/vod:
- *   get:
- *     summary: Get VOD (video on demand) info after race completes
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: VOD info
  *
- * /api/admin/create-race-metadata:
- *   get:
- *     summary: Get metadata needed to create a race round (tournaments, eligibility rules)
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Metadata object
  *
  * /api/tournament:
  *   post:
@@ -453,166 +305,9 @@
  *       200:
  *         description: Race round cancelled
  *
- * /api/admin/rules:
- *   get:
- *     summary: Get all race eligibility rules (paginated)
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
- *       - in: query
- *         name: search
- *         schema: { type: string }
- *       - in: query
- *         name: sortBy
- *         schema: { type: string, default: createdAt }
- *       - in: query
- *         name: order
- *         schema: { type: string, enum: [asc, desc], default: desc }
- *     responses:
- *       200:
- *         description: Paginated eligibility rules
- *   post:
- *     summary: Create an eligibility rule
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               raceType: { type: string }
- *               minAge: { type: number }
- *               maxAge: { type: number }
- *               minWeight: { type: number }
- *               maxWeight: { type: number }
- *     responses:
- *       201:
- *         description: Rule created
  *
- * /api/admin/rules/{id}:
- *   put:
- *     summary: Update an eligibility rule
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema: { type: object }
- *     responses:
- *       200:
- *         description: Rule updated
- *   delete:
- *     summary: Delete an eligibility rule
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Rule deleted
  *
- * /api/admin/horses:
- *   get:
- *     summary: Get all horses (paginated, filterable)
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
- *       - in: query
- *         name: search
- *         schema: { type: string }
- *       - in: query
- *         name: status
- *         schema: { type: string, enum: [active, inactive, retired] }
- *       - in: query
- *         name: sortBy
- *         schema: { type: string, default: createdAt }
- *       - in: query
- *         name: order
- *         schema: { type: string, enum: [asc, desc], default: desc }
- *     responses:
- *       200:
- *         description: Paginated horse list
  *
- * /api/admin/horses/{horseId}:
- *   get:
- *     summary: Get horse detail with owner and race history
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: horseId
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Horse detail
- *       404:
- *         description: Horse not found
  *
- * /api/admin/horses/{horseId}/status:
- *   patch:
- *     summary: Update horse status
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: horseId
- *         required: true
- *         schema: { type: string }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [status]
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [active, inactive, retired]
- *     responses:
- *       200:
- *         description: Horse status updated
  *
- * /api/admin/important-events:
- *   get:
- *     summary: Get upcoming and important race events
- *     tags: [Admin]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: List of important events
  */
-
-module.exports = {};

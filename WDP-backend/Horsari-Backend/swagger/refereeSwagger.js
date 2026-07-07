@@ -60,15 +60,6 @@
  *       200:
  *         description: Paginated tournament list
  *
- * /api/eligibility-rules:
- *   get:
- *     summary: Get all active eligibility rules
- *     tags: [Referee]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: List of active eligibility rules
  *
  * /api/referee/invitations:
  *   get:

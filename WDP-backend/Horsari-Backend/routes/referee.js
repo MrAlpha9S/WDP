@@ -6,17 +6,7 @@ const router = express.Router();
 
 require('../swagger/refereeSwagger');
 
-// Public routes
-router.get('/all', RefereeController.getAllReferees);
-router.get('/credentials/:certificationNumber', RefereeController.getRefereeByCredentials);
-router.get('/license/:licenseNumber', RefereeController.getRefereeByLicense);
-
 // Protected routes - Referee only
-router.get('/profile', authMiddleware, authReferee, RefereeController.getRefereeProfile);
-router.put('/profile', authMiddleware, authReferee, RefereeController.updateRefereeProfile);
-router.post('/verify-credentials', authMiddleware, authReferee, RefereeController.verifyRefereeCredentials);
-router.post('/renew-certification', authMiddleware, authReferee, RefereeController.renewCertification);
-
 router.get('/race-rounds', authMiddleware, authReferee, RefereeController.getRefereeRaceRounds);
 router.get('/race-rounds/:id', authMiddleware, authReferee, RefereeController.getRaceRoundById);
 router.get('/race-rounds/:id/violations', authMiddleware, authReferee, RefereeController.getRaceRoundViolations);
@@ -32,8 +22,5 @@ router.get('/violation-types', authMiddleware, authReferee, RefereeController.ge
 router.post('/violations', authMiddleware, authReferee, RefereeController.createViolation);
 router.put('/violations/:violationId/confirm', authMiddleware, authReferee, RefereeController.confirmViolation);
 router.delete('/violations/:violationId', authMiddleware, authReferee, RefereeController.deleteViolation);
-
-// Public - create referee profile for existing user (wildcard must be last to avoid shadowing specific routes)
-router.post('/:uid', RefereeController.createReferee);
 
 module.exports = router;

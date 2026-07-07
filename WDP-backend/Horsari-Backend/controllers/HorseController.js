@@ -1,5 +1,5 @@
 const HorseService = require('../services/HorseService');
-const CloudinaryUtil = require('../utils/CloudinaryUtil');
+const { CloudinaryUtil } = require('../utils/CloudinaryUtil');
 const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
 
 class HorseController {
@@ -15,36 +15,6 @@ class HorseController {
         return res.status(response.code).json(response);
     }
 
-    // Get horse by ID
-    async getHorseById(req, res) {
-        const response = await HorseService.getHorseById(req.params.id);
-        return res.status(response.code).json(response);
-    }
-
-    // Get all horses
-    async getAllHorses(req, res) {
-        const limit = parseInt(req.query.limit) || 10;
-        const skip = parseInt(req.query.skip) || 0;
-        const response = await HorseService.getAllHorses(limit, skip);
-        return res.status(response.code).json(response);
-    }
-
-    // Get horses by owner ID
-    async getHorsesByOwnerId(req, res) {
-        const response = await HorseService.getHorsesByOwnerId(req.userId);
-        return res.status(response.code).json(response);
-    }
-
-    // Search horses by owner ID with keywords
-    async searchHorsesByOwnerWithKeywords(req, res) {
-        const { keywords } = req.body;
-        const response = await HorseService.searchHorsesByOwnerWithKeywords(
-            req.userId,
-            keywords
-        );
-        return res.status(response.code).json(response);
-    }
-
     // Update horse
     async updateHorse(req, res) {
         const response = await HorseService.updateHorse(req.params.id, req.body);
@@ -57,11 +27,6 @@ class HorseController {
         return res.status(response.code).json(response);
     }
 
-    // Get horse stats
-    async getHorseStats(req, res) {
-        const response = await HorseService.getHorseStats();
-        return res.status(response.code).json(response);
-    }
     // Upload horse image (uploads to Cloudinary)
     async uploadHorseImage(req, res) {
         try {
@@ -83,7 +48,7 @@ class HorseController {
             }
 
             // Upload buffer to Cloudinary under folder 'horses'
-            const secureUrl = await CloudinaryUtil.CloudinaryUtil.uploadFile(req.file.buffer, req.file.originalname, 'horses');
+            const secureUrl = await CloudinaryUtil.uploadFile(req.file.buffer, req.file.originalname, 'horses', 'image');
 
             // Save URL to horse record
             const response = await HorseService.updateHorse(horseId, { img: secureUrl });

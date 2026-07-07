@@ -1,54 +1,7 @@
 /**
  * @swagger
- * /api/spectator/{uid}:
- *   post:
- *     summary: Create spectator profile for an existing user
- *     tags: [Spectator]
- *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema: { type: string }
- *         description: User ID
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               rewardPoints: { type: number, default: 0 }
- *     responses:
- *       201:
- *         description: Spectator profile created
- *       409:
- *         description: Spectator profile already exists
  *
- * /api/spectator/top:
- *   get:
- *     summary: Get top spectators by reward points
- *     tags: [Spectator]
- *     parameters:
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
- *     responses:
- *       200:
- *         description: Top spectators list
  *
- * /api/spectator/all:
- *   get:
- *     summary: Get all spectators (paginated)
- *     tags: [Spectator]
- *     parameters:
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
- *       - in: query
- *         name: skip
- *         schema: { type: integer, default: 0 }
- *     responses:
- *       200:
- *         description: Spectator list with count
  *
  * /api/spectator/profile:
  *   get:
@@ -82,80 +35,9 @@
  *       200:
  *         description: Profile updated
  *
- * /api/spectator/change-password:
- *   post:
- *     summary: Change password for the authenticated spectator
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [oldPassword, newPassword, confirmPassword]
- *             properties:
- *               oldPassword: { type: string }
- *               newPassword: { type: string }
- *               confirmPassword: { type: string }
- *     responses:
- *       200:
- *         description: Password changed successfully
- *       400:
- *         description: Validation error (weak password, passwords don't match, Google account)
- *       401:
- *         description: Old password is incorrect
  *
- * /api/spectator/rewards:
- *   get:
- *     summary: Get reward point balance
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Reward points balance
  *
- * /api/spectator/rewards/add:
- *   post:
- *     summary: Add reward points (admin action)
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [points]
- *             properties:
- *               points: { type: number, minimum: 1 }
- *     responses:
- *       200:
- *         description: Points added
  *
- * /api/spectator/rewards/deduct:
- *   post:
- *     summary: Deduct reward points (admin action)
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [points]
- *             properties:
- *               points: { type: number, minimum: 1 }
- *     responses:
- *       200:
- *         description: Points deducted
- *       400:
- *         description: Insufficient points
  *
  * /api/spectator/wallet:
  *   get:
@@ -230,49 +112,7 @@
  *                         limit: { type: integer }
  *                 msg: { type: string }
  *
- * /api/spectator/deposit:
- *   post:
- *     summary: Deposit points into wallet
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [amount]
- *             properties:
- *               amount: { type: number, minimum: 1 }
- *               description: { type: string }
- *     responses:
- *       200:
- *         description: Points deposited, returns new balance
- *       400:
- *         description: Invalid amount
  *
- * /api/spectator/withdraw:
- *   post:
- *     summary: Withdraw points from wallet
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [amount]
- *             properties:
- *               amount: { type: number, minimum: 1 }
- *               description: { type: string }
- *     responses:
- *       200:
- *         description: Points withdrawn, returns new balance
- *       400:
- *         description: Invalid amount or insufficient balance
  *
  * /api/spectator/home-feed:
  *   get:
@@ -372,56 +212,8 @@
  *       404:
  *         description: Race round not found
  *
- * /api/spectator/race-rounds/{raceRoundId}/result:
- *   get:
- *     summary: Get race results sorted by finish position
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: raceRoundId
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Race results with raceRound, each result includes registration, horse, and jockey
- *       404:
- *         description: Race round not found
  *
- * /api/spectator/race-rounds/{raceRoundId}/leaderboard:
- *   get:
- *     summary: Get race leaderboard (same as result, sorted by finish position ASC)
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: raceRoundId
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Leaderboard with registration, horse, and jockey data
- *       404:
- *         description: Race round not found
  *
- * /api/spectator/race-rounds/{raceRoundId}/prediction-methods:
- *   get:
- *     summary: Get available prediction methods for a race — includes userAlreadyPredicted flag
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: raceRoundId
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Active prediction methods enriched with userAlreadyPredicted and existingPredictions
- *       404:
- *         description: Race round not found
  *
  * /api/spectator/predictions:
  *   post:

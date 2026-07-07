@@ -71,106 +71,6 @@ class HorseService {
         }
     }
 
-    // Get all horses
-    async getAllHorses(limit = 10, skip = 0) {
-        try {
-            const horses = await HorseRepository.findAll(limit, skip);
-            const count = await HorseRepository.count();
-
-            return {
-                code: 200,
-                data: {
-                    horses,
-                    total: count,
-                    limit,
-                    skip,
-                },
-                msg: 'Horses retrieved successfully',
-            };
-        } catch (error) {
-            return {
-                code: 500,
-                msg: error.message,
-            };
-        }
-    }
-
-    // Get horses by owner ID
-    async getHorsesByOwnerId(ownerId) {
-        try {
-            if (!ownerId) {
-                return {
-                    code: 400,
-                    msg: 'Owner ID is required',
-                };
-            }
-
-            const horses = await HorseRepository.findByOwnerId(ownerId);
-            const count = await HorseRepository.countByOwnerId(ownerId);
-
-            return {
-                code: 200,
-                data: {
-                    horses,
-                    count,
-                },
-                msg: 'Horses retrieved successfully',
-            };
-        } catch (error) {
-            return {
-                code: 500,
-                msg: error.message,
-            };
-        }
-    }
-
-    // Search horses by owner ID with keywords
-    async searchHorsesByOwnerWithKeywords(ownerId, keywords) {
-        try {
-            if (!ownerId) {
-                return {
-                    code: 400,
-                    msg: 'Owner ID is required',
-                };
-            }
-
-            if (!keywords || keywords.trim() === '') {
-                return {
-                    code: 400,
-                    msg: 'Keywords are required',
-                };
-            }
-
-            // Get all horses for owner
-            const allHorses = await HorseRepository.findByOwnerId(ownerId);
-
-            // Filter by keywords (search in horseName, breed, color, healthStatus)
-            const keyword = keywords.toLowerCase();
-            const filteredHorses = allHorses.filter(
-                (horse) =>
-                    horse.horseName.toLowerCase().includes(keyword) ||
-                    (horse.breed && horse.breed.toLowerCase().includes(keyword)) ||
-                    (horse.color && horse.color.toLowerCase().includes(keyword)) ||
-                    (horse.healthStatus && horse.healthStatus.toLowerCase().includes(keyword))
-            );
-
-            return {
-                code: 200,
-                data: {
-                    horses: filteredHorses,
-                    count: filteredHorses.length,
-                    keyword,
-                },
-                msg: 'Search completed successfully',
-            };
-        } catch (error) {
-            return {
-                code: 500,
-                msg: error.message,
-            };
-        }
-    }
-
     // Update horse
     async updateHorse(horseId, updateData) {
         try {
@@ -236,23 +136,6 @@ class HorseService {
         }
     }
 
-    // Get horse stats
-    async getHorseStats() {
-        try {
-            const stats = await HorseRepository.getStats();
-
-            return {
-                code: 200,
-                data: stats[0] || {},
-                msg: 'Stats retrieved successfully',
-            };
-        } catch (error) {
-            return {
-                code: 500,
-                msg: error.message,
-            };
-        }
-    }
 }
 
 module.exports = new HorseService();
