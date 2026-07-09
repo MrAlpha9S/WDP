@@ -27,7 +27,14 @@ class JockeyController {
   async respondToInvitationById(req, res) {
     const { invitationId } = req.params;
     const { jockeyConfirmation } = req.body;
-    const response = await JockeyService.respondToInvitationById(req.userId, invitationId, jockeyConfirmation);
+    const io = req.app.get('io');
+    const response = await JockeyService.respondToInvitationById(req.userId, invitationId, jockeyConfirmation, io);
+    return res.status(response.code).json(response);
+  }
+
+  // GET /wallet — wallet statistic + payment stats
+  async getWalletInfo(req, res) {
+    const response = await JockeyService.getWalletInfo(req.userId);
     return res.status(response.code).json(response);
   }
 }

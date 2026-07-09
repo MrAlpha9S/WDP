@@ -6,6 +6,7 @@ const Horse = require("../entities/Horse");
 const HorseOwner = require("../entities/HorseOwner");
 const RaceRound = require("../entities/RaceRound");
 const Tournament = require("../entities/Tournament");
+const NotificationService = require("./NotificationService");
 
 class JockeyService {
   // Get all jockeys
@@ -36,7 +37,7 @@ class JockeyService {
   }
 
   // Respond to invitation
-  async respondToInvitation(jockeyId, invitationData) {
+  async respondToInvitation(jockeyId, invitationData, io) {
     try {
       const { invitationId, jockeyConfirmation } = invitationData;
 
@@ -89,6 +90,20 @@ class JockeyService {
       }
 
       await invitation.save();
+
+      if (invitation.registrationId) {
+        const registration = await Registration.findById(invitation.registrationId).lean();
+        if (registration?.horseOwnerId) {
+          NotificationService.notify({
+            recipientIds: [registration.horseOwnerId],
+            type: jockeyConfirmation === 'accepted' ? 'invitation_accepted' : 'invitation_declined',
+            title: jockeyConfirmation === 'accepted' ? 'Jockey Accepted Invitation' : 'Jockey Declined Invitation',
+            message: `A jockey has ${invitation.invitationStatus} your race invitation.`,
+            relatedEntityType: 'Invitation',
+            relatedEntityId: invitation._id,
+          }, io).catch(err => console.error('[respondToInvitation] notify owner error:', err.message));
+        }
+      }
 
       return {
         code: 200,
@@ -259,8 +274,35 @@ class JockeyService {
   }
 
   // Mobile: respond by invitationId from URL param
-  async respondToInvitationById(jockeyId, invitationId, jockeyConfirmation) {
-    return this.respondToInvitation(jockeyId, { invitationId, jockeyConfirmation });
+  async respondToInvitationById(jockeyId, invitationId, jockeyConfirmation, io) {
+    return this.respondToInvitation(jockeyId, { invitationId, jockeyConfirmation }, io);
+  }
+
+  // ─── Wallet ──────────────────────────────────────────────────────────────
+
+  async getWalletInfo(jockeyId) {
+    try {
+      const jockey = await JockeyRepository.findByJockeyId(jockeyId);
+      if (!jockey) return { code: 404, msg: 'Jockey not found' };
+
+      const Transaction = require('../entities/Transaction');
+      const totalPaymentsReceived = await Transaction.countDocuments({
+        payeeId: jockeyId,
+        payeeRole: 'jockey',
+        paymentStatus: 'paid',
+      });
+
+      return {
+        code: 200,
+        data: {
+          jockey: { _id: jockey._id, wallet: jockey.wallet },
+          stats: { totalPaymentsReceived },
+        },
+        msg: 'Wallet info retrieved successfully',
+      };
+    } catch (error) {
+      return { code: 500, msg: error.message };
+    }
   }
 }
 
