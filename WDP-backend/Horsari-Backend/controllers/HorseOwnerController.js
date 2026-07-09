@@ -25,6 +25,13 @@ class HorseOwnerController {
         return res.status(response.code).json(response);
     }
 
+    // Lightweight status endpoint for polling
+    async getRaceRoundStatus(req, res) {
+        const { raceRoundId } = req.params;
+        const response = await HorseOwnerService.getRaceRoundStatus(req.userId, raceRoundId);
+        return res.status(response.code).json(response);
+    }
+
     async getHorseProfile(req, res) {
         const { horseId } = req.params;
         const response = await HorseOwnerService.getHorseProfile(req.userId, horseId);

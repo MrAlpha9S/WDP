@@ -182,7 +182,7 @@ class HorseOwnerService {
     }
 
     // Approve a registration (owner action)
-    async approveRegistration(ownerId, registrationId) {
+    async approveRegistration(ownerId, registrationId, io) {
         try {
             if (!ownerId) return { code: 400, msg: 'ownerId is required' };
             if (!registrationId) return { code: 400, msg: 'registrationId is required' };
@@ -202,6 +202,16 @@ class HorseOwnerService {
 
             reg.registrationStatus = 'approved';
             await reg.save();
+
+            const NotificationService = require('./NotificationService');
+            NotificationService.notify({
+                role: 'admin',
+                type: 'registration_approved',
+                title: 'Registration Approved',
+                message: 'A horse owner has approved their race registration.',
+                relatedEntityType: 'Registration',
+                relatedEntityId: reg._id,
+            }, io).catch(err => console.error('[approveRegistration] notify admin error:', err.message));
 
             return { code: 200, data: reg, msg: 'Registration approved' };
         } catch (error) {
@@ -598,6 +608,35 @@ class HorseOwnerService {
         }
     }
 
+    // Lightweight, poll-friendly status check — no populate, minimal projection.
+    async getRaceRoundStatus(ownerId, raceRoundId) {
+        try {
+            const registration = await Registration.findOne({ raceRoundId, horseOwnerId: ownerId }).lean();
+            if (!registration) {
+                return { code: 403, msg: 'You are not associated with this race round.' };
+            }
+
+            const raceRound = await RaceRound.findById(raceRoundId, 'status roundName raceDate muxPlaybackId').lean();
+            if (!raceRound) {
+                return { code: 404, msg: 'Race round not found.' };
+            }
+
+            return {
+                code: 200,
+                data: {
+                    raceRoundId: raceRound._id,
+                    status: raceRound.status,
+                    registrationStatus: registration.registrationStatus,
+                    isLive: raceRound.status === 'running',
+                    hasResults: ['awaitingConfirmation', 'completed'].includes(raceRound.status),
+                },
+                msg: 'Race round status retrieved.',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
     async getHorseProfile(ownerId, horseId) {
         try {
             if (!ownerId || !horseId) return { code: 400, msg: 'Missing ownerId or horseId' };
@@ -827,6 +866,8 @@ class HorseOwnerService {
                 return sum;
             }, 0);
 
+            const horseOwner = await HorseOwnerRepository.findById(ownerId);
+
             return {
                 code: 200,
                 data: {
@@ -838,6 +879,7 @@ class HorseOwnerService {
                     netProfit: totalPrize - totalJockeyPayout,
                     totalViolations: violations.length,
                     balance,
+                    wallet: horseOwner?.wallet || 0,
                 },
                 msg: 'Financial summary retrieved successfully',
             };
