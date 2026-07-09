@@ -22,6 +22,9 @@ const Violation = require('../entities/Violation');
 const ViolationType = require('../entities/ViolationType');
 const SimulationService = require('./SimulationService');
 const MuxService = require('./MuxService');
+const PaymentService = require('./PaymentService');
+const NotificationService = require('./NotificationService');
+const CurrencyConverter = require('./CurrencyConverter');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
@@ -467,6 +470,14 @@ class AdminService {
             const tournamentScheduled = await TournamentRepository.countByStatus('scheduled');
             const tournamentOngoing = await TournamentRepository.countByStatus('ongoing');
 
+            // Finance (wallet statistics — "thống kê" only, no real money movement)
+            const [horseOwnerWalletAgg, jockeyWalletAgg, refereeWalletAgg, mainAdmin] = await Promise.all([
+                HorseOwner.aggregate([{ $group: { _id: null, total: { $sum: '$wallet' } } }]),
+                Jockey.aggregate([{ $group: { _id: null, total: { $sum: '$wallet' } } }]),
+                Referee.aggregate([{ $group: { _id: null, total: { $sum: '$wallet' } } }]),
+                AdminRepository.findMainAdmin(),
+            ]);
+
             return {
                 code: 200,
                 data: {
@@ -485,6 +496,12 @@ class AdminService {
                         count: countTournament,
                         scheduled: tournamentScheduled,
                         ongoing: tournamentOngoing,
+                    },
+                    finance: {
+                        totalHorseOwnerWallets: horseOwnerWalletAgg[0]?.total || 0,
+                        totalJockeyWallets: jockeyWalletAgg[0]?.total || 0,
+                        totalRefereeWallets: refereeWalletAgg[0]?.total || 0,
+                        mainAdminWallet: mainAdmin?.wallet || 0,
                     },
                 },
                 msg: 'Statistics retrieved successfully',
@@ -868,6 +885,13 @@ class AdminService {
                 Registration: []
             };
 
+            // Payment-verification rows for this race round (referee_fee, race_prize,
+            // jockey_payout) — only exist once confirmRaceResult has run; absent before
+            // that, which is the correct "no payment yet" state, not an error.
+            const Transaction = require('../entities/Transaction');
+            const payments = await Transaction.find({ raceRoundId: raceRound._id, paymentType: { $ne: null } }).lean();
+            const paymentBySource = new Map(payments.map(p => [`${p.sourceType}:${p.sourceId}`, p]));
+
             const raceReferees = await RaceReferee.find({ raceRoundId: raceRound._id }).lean();
             rrObj.Referee = await Promise.all(
                 raceReferees.map(async (rr) => {
@@ -878,7 +902,8 @@ class AdminService {
                         refereeId: rr.refereeId,
                         fullName: refereeUser?.fullName ?? null,
                         assignmentStatus: rr.status,
-                        fee: rr.fee
+                        fee: rr.fee,
+                        payment: paymentBySource.get(`RaceReferee:${rr._id}`) || null,
                     };
                 })
             );
@@ -920,7 +945,9 @@ class AdminService {
                     Jockey: invitation ? invitation.jockeyId : null,
                     isJockeyInRace: !!reg.jockeyInRaceId,
                     Owner: ownerUser,
-                    RaceResult: raceResult || null
+                    RaceResult: raceResult || null,
+                    prizePayment: raceResult ? (paymentBySource.get(`RaceResult:${raceResult._id}`) || null) : null,
+                    jockeyPayment: invitation ? (paymentBySource.get(`Invitation:${invitation._id}`) || null) : null,
                 });
             }
 
@@ -1345,6 +1372,24 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
             );
         }
 
+        // Persisted notifications to associated participants
+        const [participantRegs, participantRefs] = await Promise.all([
+            Registration.find({ raceRoundId }, 'horseOwnerId').lean(),
+            RaceReferee.find({ raceRoundId }, 'refereeId').lean(),
+        ]);
+        const participantRecipients = [
+            ...participantRegs.map(r => r.horseOwnerId),
+            ...participantRefs.map(r => r.refereeId),
+        ];
+        NotificationService.notify({
+            recipientIds: participantRecipients,
+            type: newStatus === 'running' ? 'race_started' : 'race_round_cancelled',
+            title: newStatus === 'running' ? 'Race Round Started' : 'Race Round Cancelled',
+            message: `Race round "${raceRound.roundName}" is now ${newStatus}.`,
+            relatedEntityType: 'RaceRound',
+            relatedEntityId: raceRoundId,
+        }, io).catch(err => console.error('[setRaceRoundStatus] notify error:', err.message));
+
         return { code: 200, data: updated, msg: `Race round status updated to "${newStatus}".` };
     } catch (error) {
         console.error('Error setting race round status:', error);
@@ -1416,6 +1461,108 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
             .populate('registrationId')
             .sort({ finishPosition: 1 })
             .lean();
+
+        // ── Payment records: race_prize (admin→horseOwner) + jockey_payout (horseOwner→jockey) ──
+        const originalCurrency = raceRound.currencyType || 'USD';
+        const createdPayments = [];
+        const participantJockeyIds = [];
+        for (const result of results) {
+            const registration = result.registrationId;
+            if (!registration) continue;
+
+            if (result.prizeMoney > 0 && registration.horseOwnerId) {
+                const payment = await PaymentService.createIfNotExists({
+                    paymentType: 'race_prize',
+                    payerRole: 'admin',
+                    payerId: adminId,
+                    payeeRole: 'horseowner',
+                    payeeId: registration.horseOwnerId,
+                    amount: CurrencyConverter.convertToVnd(result.prizeMoney, originalCurrency),
+                    originalAmount: result.prizeMoney,
+                    originalCurrency,
+                    sourceType: 'RaceResult',
+                    sourceId: result._id,
+                    raceRoundId,
+                });
+                createdPayments.push(payment);
+            }
+
+            if (registration.jockeyInRaceId) {
+                const invitation = await Invitation.findById(registration.jockeyInRaceId).lean();
+                if (invitation && invitation.jockeyId) {
+                    participantJockeyIds.push(String(invitation.jockeyId));
+                    const isNoShow = invitation.invitationStatus === 'didNotAttend';
+                    const percentageCut = (!isNoShow && result.prizeMoney > 0)
+                        ? Math.round((invitation.percentagePayout / 100) * result.prizeMoney)
+                        : 0;
+                    const payoutAmount = (invitation.bookingFees || 0) + percentageCut;
+
+                    if (payoutAmount > 0 && registration.horseOwnerId) {
+                        const payment = await PaymentService.createIfNotExists({
+                            paymentType: 'jockey_payout',
+                            payerRole: 'horseowner',
+                            payerId: registration.horseOwnerId,
+                            payeeRole: 'jockey',
+                            payeeId: invitation.jockeyId,
+                            amount: CurrencyConverter.convertToVnd(payoutAmount, originalCurrency),
+                            originalAmount: payoutAmount,
+                            originalCurrency,
+                            sourceType: 'Invitation',
+                            sourceId: invitation._id,
+                            raceRoundId,
+                        });
+                        createdPayments.push(payment);
+                    }
+                }
+            }
+        }
+
+        // ── Payment records: referee_fee (admin→referee) ──
+        const refereeAssignments = await RaceReferee.find({ raceRoundId, status: 'assigned' }).lean();
+        for (const assignment of refereeAssignments) {
+            if (assignment.fee > 0) {
+                const payment = await PaymentService.createIfNotExists({
+                    paymentType: 'referee_fee',
+                    payerRole: 'admin',
+                    payerId: adminId,
+                    payeeRole: 'referee',
+                    payeeId: assignment.refereeId,
+                    amount: CurrencyConverter.convertToVnd(assignment.fee, originalCurrency),
+                    originalAmount: assignment.fee,
+                    originalCurrency,
+                    sourceType: 'RaceReferee',
+                    sourceId: assignment._id,
+                    raceRoundId,
+                });
+                createdPayments.push(payment);
+            }
+        }
+
+        // ── Persisted notifications: race_completed to participants, payment_created per new payment ──
+        const participantHorseOwnerIds = [...new Set(
+            results.map(r => r.registrationId?.horseOwnerId).filter(Boolean).map(String)
+        )];
+        const participantRefereeIds = refereeAssignments.map(a => String(a.refereeId));
+        NotificationService.notify({
+            recipientIds: [...participantHorseOwnerIds, ...participantJockeyIds, ...participantRefereeIds],
+            type: 'race_completed',
+            title: 'Race Results Confirmed',
+            message: `Results for "${raceRound.roundName}" have been officially confirmed.`,
+            relatedEntityType: 'RaceRound',
+            relatedEntityId: raceRoundId,
+        }, io).catch(err => console.error('[confirmRaceResult] race_completed notify error:', err.message));
+
+        for (const payment of createdPayments) {
+            if (!payment) continue;
+            NotificationService.notify({
+                recipientIds: [payment.payeeId],
+                type: 'payment_created',
+                title: 'New Payment Awaiting Confirmation',
+                message: `A payment of ${payment.amount} (${payment.paymentType}) has been recorded for you to confirm.`,
+                relatedEntityType: 'Transaction',
+                relatedEntityId: payment._id,
+            }, io).catch(err => console.error('[confirmRaceResult] payment_created notify error:', err.message));
+        }
 
         // Settle pending race predictions in the background (non-blocking)
         this._settlePredictionsForRace(raceRoundId).catch(err =>
