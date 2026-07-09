@@ -21,6 +21,65 @@ class TransactionRepository {
         ]);
         return result[0]?.total || 0;
     }
+
+    // ── Payment verification (statistical wallet tracking rows) ────────────────
+
+    async findOne(filter) {
+        return Transaction.findOne(filter);
+    }
+
+    async findById(id) {
+        return Transaction.findById(id);
+    }
+
+    async findByParty(userId, role, { direction = 'all', status, page = 1, limit = 10 } = {}) {
+        const skip = (page - 1) * limit;
+        const filter = {};
+
+        if (direction === 'payer') {
+            filter.payerId = userId;
+            filter.payerRole = role;
+        } else if (direction === 'payee') {
+            filter.payeeId = userId;
+            filter.payeeRole = role;
+        } else {
+            filter.$or = [
+                { payerId: userId, payerRole: role },
+                { payeeId: userId, payeeRole: role },
+            ];
+        }
+
+        if (status) filter.paymentStatus = status;
+
+        const [items, totalItems] = await Promise.all([
+            Transaction.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+            Transaction.countDocuments(filter),
+        ]);
+
+        return { items, totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit };
+    }
+
+    async updateById(id, updateData) {
+        return Transaction.findByIdAndUpdate(id, updateData, { new: true });
+    }
+
+    // Sum `amount` for payment-verification rows where the given user is the
+    // payer or payee, optionally filtered further (e.g. { paymentStatus: 'paid' }).
+    async sumAmountByParty(userId, role, direction, filter = {}) {
+        const match = { ...filter };
+        if (direction === 'payer') {
+            match.payerId = new mongoose.Types.ObjectId(String(userId));
+            match.payerRole = role;
+        } else {
+            match.payeeId = new mongoose.Types.ObjectId(String(userId));
+            match.payeeRole = role;
+        }
+        const result = await Transaction.aggregate([
+            { $match: match },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]);
+        return result[0]?.total || 0;
+    }
 }
 
 module.exports = new TransactionRepository();
