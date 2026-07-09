@@ -69,6 +69,7 @@ app.use('/api/spectator', spectatorRouter);
 app.use('/api/invitations', require('./routes/invitations'));
 app.use('/api/raceround', raceRound);
 app.use('/api/eligibility-rules', require('./routes/raceEligibilityRule'));
+app.use('/api/notifications', require('./routes/notification'));
 // catch 404 and forward to error handler
 // app.use(function (req, res, next) {
 //   next(createError(404));

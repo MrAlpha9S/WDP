@@ -91,6 +91,28 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Any authenticated, active user (any role) joins their personal room to
+  // receive real-time `notification` events pushed by NotificationService.
+  socket.on('join_notifications', async ({ token } = {}) => {
+    try {
+      const raw = (token ?? '').replace(/^Bearer\s+/i, '');
+      const payload = jwt.verify(raw, process.env.JWT_SECRET);
+
+      const UserRepository = require('../repositories/UserRepository');
+      const user = await UserRepository.findById(payload.userId);
+
+      if (!user || user.status !== 'active') {
+        socket.emit('join_notifications_error', { msg: 'User not found or inactive' });
+        return;
+      }
+      socket.join(`user:${payload.userId}`);
+      console.log(`[WS] ${socket.id} (uid=${payload.userId}) joined user:${payload.userId}`);
+    } catch (err) {
+      console.error('[WS] join_notifications error:', err.message);
+      socket.emit('join_notifications_error', { msg: 'Invalid or expired token' });
+    }
+  });
+
   // Client joins a specific race room for live simulation events.
   // Requires any valid JWT — spectators, referees, and admins can all watch.
   socket.on('join_race', async ({ raceRoundId, token } = {}) => {
