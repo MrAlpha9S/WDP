@@ -27,6 +27,27 @@ const STATUS_LABEL: Record<string, string> = {
     assigned: "Assigned",
 };
 
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+    unpaid: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+    processing: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    paid: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+};
+
+function PaymentStatusBadge({ payment }: { payment?: { paymentStatus: string } | null }) {
+    if (!payment) {
+        return (
+            <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border bg-white/[0.03] text-gray-600 border-white/10">
+                No payment yet
+            </span>
+        );
+    }
+    return (
+        <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${PAYMENT_STATUS_COLORS[payment.paymentStatus] ?? PAYMENT_STATUS_COLORS.unpaid}`}>
+            {payment.paymentStatus}
+        </span>
+    );
+}
+
 function CopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false);
     const handleCopy = async () => {
@@ -52,8 +73,6 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
     const [isCreatingStream, setIsCreatingStream] = useState(false);
-    const [isConfirming, setIsConfirming] = useState(false);
-    const [isConfirmResultModalOpen, setIsConfirmResultModalOpen] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
 
     // Tab State
@@ -114,7 +133,9 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         isJockeyInRace: reg.isJockeyInRace ?? false,
                         status: reg.registrationStatus ?? 'pending',
                         sum_prediction: reg.sum_prediction,
-                        raceResult: reg.RaceResult
+                        raceResult: reg.RaceResult,
+                        prizePayment: reg.prizePayment ?? null,
+                        jockeyPayment: reg.jockeyPayment ?? null,
                     }));
                     setDetailedParticipants(parts);
 
@@ -123,6 +144,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         fullName: ref.fullName ?? null,
                         assignmentStatus: ref.assignmentStatus ?? 'pending',
                         fee: ref.fee,
+                        payment: ref.payment ?? null,
                     }));
                     setDetailedReferees(refs);
 
@@ -232,22 +254,6 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
             setActionError(error?.msg || 'Failed to cancel race');
         } finally {
             setIsCancelling(false);
-        }
-    };
-
-    const handleConfirmResult = async () => {
-        if (!selectedRace) return;
-        setIsConfirming(true);
-        setActionError(null);
-        try {
-            await adminService.confirmRaceResult(selectedRace.id);
-            setIsConfirmResultModalOpen(false);
-            if (onRefresh) onRefresh({ type: 'UPDATE', raceRound_id: selectedRace.id });
-            fetchDetails();
-        } catch (error: any) {
-            setActionError(error?.msg || 'Failed to confirm results');
-        } finally {
-            setIsConfirming(false);
         }
     };
 
@@ -559,6 +565,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                 <span className={`font-semibold ${p.isJockeyInRace ? 'text-emerald-300' : 'text-gray-300'}`}>
                                                     {p.jockeyName || <span className="text-gray-600 italic font-normal">N/A</span>}
                                                 </span>
+                                                {p.isJockeyInRace && <PaymentStatusBadge payment={p.jockeyPayment} />}
                                             </div>
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prediction Pool</span>
@@ -581,6 +588,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prize</span>
                                                         <span className="text-[#f3b2a5] font-semibold">{p.raceResult.prizeMoney > 0 ? `${detailedOverview?.currencyType ?? 'USD'} ${p.raceResult.prizeMoney.toLocaleString()}` : '-'}</span>
+                                                        {p.raceResult.prizeMoney > 0 && <PaymentStatusBadge payment={p.prizePayment} />}
                                                     </div>
                                                 </>
                                             )}
@@ -621,6 +629,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         <div className="flex items-center gap-2 text-[12px]">
                                             <span className="text-gray-500 font-medium">Fee:</span>
                                             <span className="text-[#f3b2a5] font-semibold">{ref.fee != null ? `$${ref.fee}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                            <PaymentStatusBadge payment={ref.payment} />
                                         </div>
                                     </div>
                                 );
@@ -964,59 +973,6 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                 </div>
             )}
 
-            {/* ── Confirm Results Modal ── */}
-            {isConfirmResultModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#161616] border border-white/10 rounded-xl shadow-2xl w-[420px] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-5 border-b border-white/5 bg-[#1a1a1a]">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-emerald-500/20 rounded-full">
-                                    <CheckCircle2 className="text-emerald-400" size={20} />
-                                </div>
-                                <h3 className="text-[16px] font-bold text-white">Confirm Race Results</h3>
-                            </div>
-                            <button
-                                onClick={() => !isConfirming && setIsConfirmResultModalOpen(false)}
-                                disabled={isConfirming}
-                                className="text-gray-500 hover:text-white transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-[14px] text-gray-300 leading-relaxed">
-                                Confirm and officially publish the results for <strong className="text-white">{selectedRace?.title}</strong>?
-                            </p>
-                            <p className="text-[13px] text-gray-400 mt-2">
-                                All pending results will be marked as <strong className="text-white">official</strong>, the race will be closed, and notifications will be sent. This action cannot be undone.
-                            </p>
-                            {actionError && (
-                                <p className="text-[12px] text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">{actionError}</p>
-                            )}
-                        </div>
-                        <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsConfirmResultModalOpen(false)}
-                                disabled={isConfirming}
-                                className="px-4 py-2 text-[13px] font-medium text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded transition-colors disabled:opacity-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleConfirmResult}
-                                disabled={isConfirming}
-                                className="px-4 py-2 text-[13px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors flex items-center gap-2 disabled:opacity-50"
-                            >
-                                {isConfirming ? (
-                                    <><Loader2 size={14} className="animate-spin" /> Confirming...</>
-                                ) : (
-                                    <><CheckCircle2 size={14} /> Yes, Confirm Results</>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </aside>
     );
 }
