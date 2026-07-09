@@ -11,7 +11,8 @@ class RaceInvitationsController {
 
     async approveRegistration(req, res) {
         const { registrationId } = req.params;
-        const response = await HorseOwnerService.approveRegistration(req.userId, registrationId);
+        const io = req.app.get('io');
+        const response = await HorseOwnerService.approveRegistration(req.userId, registrationId, io);
         return res.status(response.code).json(response);
     }
 }

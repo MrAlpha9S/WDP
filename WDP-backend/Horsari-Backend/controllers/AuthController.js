@@ -1,5 +1,6 @@
 const AuthService = require('../services/AuthService');
 const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
+const NotificationService = require('../services/NotificationService');
 
 class AuthController {
     // Unified register with role support
@@ -22,6 +23,12 @@ class AuthController {
                 'New User Registered',
                 `${name} joined as ${role}.`,
             );
+            NotificationService.notify({
+                role: 'admin',
+                type: 'new_user',
+                title: 'New User Registered',
+                message: `${name} joined as ${role}.`,
+            }, io).catch(err => console.error('[register] notify admin error:', err.message));
         }
 
         return res.status(response.code).json(response);

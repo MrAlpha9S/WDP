@@ -1,16 +1,26 @@
 const HorseService = require('../services/HorseService');
 const { CloudinaryUtil } = require('../utils/CloudinaryUtil');
 const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
+const NotificationService = require('../services/NotificationService');
 
 class HorseController {
     // Create horse
     async createHorse(req, res) {
         const response = await HorseService.createHorse({ ...req.body, ownerId: req.userId });
         if (response.code === 200 || response.code === 201) {
-            broadcastAdminEvent(req.app.get('io'), 'new_horse',
+            const io = req.app.get('io');
+            broadcastAdminEvent(io, 'new_horse',
                 'New Horse Added',
                 `${req.body.horseName ?? 'A horse'} has been registered.`,
             );
+            NotificationService.notify({
+                role: 'admin',
+                type: 'new_horse',
+                title: 'New Horse Added',
+                message: `${req.body.horseName ?? 'A horse'} has been registered.`,
+                relatedEntityType: 'Horse',
+                relatedEntityId: response.data?._id,
+            }, io).catch(err => console.error('[createHorse] notify admin error:', err.message));
         }
         return res.status(response.code).json(response);
     }
