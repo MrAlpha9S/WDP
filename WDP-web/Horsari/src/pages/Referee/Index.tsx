@@ -7,6 +7,7 @@ import RefereeDashboard from "./Homepage";
 import ManagementPage from "./ManagementPage";
 import InboxPage from "./InboxPage";
 import TournamentListPage from "./TournamentListPage";
+import StatisticsPage from "./StatisticsPage";
 import { useParams } from "react-router-dom";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -19,6 +20,7 @@ function ActiveView({ tab }: { tab: RefereeTab }) {
         case "Management":   return <ManagementPage />;
         case "Inbox":        return <InboxPage />;
         case "Tournaments":  return <TournamentListPage />;
+        case "Statistics":   return <StatisticsPage />;
         default:             return <RefereeDashboard />;
     }
 }

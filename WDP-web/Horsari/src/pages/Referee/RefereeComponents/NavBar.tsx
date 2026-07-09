@@ -3,9 +3,9 @@ import { Bell, ChevronDown, Trophy, User, LogOut } from "lucide-react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 
-export type RefereeTab = "Dashboard" | "Tournaments" | "Inbox" | "Management";
+export type RefereeTab = "Dashboard" | "Tournaments" | "Inbox" | "Management" | "Statistics";
 
-export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Inbox"];
+export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Inbox", "Statistics"];
 
 interface NavBarProps {
     activeTab: RefereeTab;

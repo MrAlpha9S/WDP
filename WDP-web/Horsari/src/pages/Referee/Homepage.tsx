@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Wallet } from "lucide-react";
 import type { RecentInvite, RaceType, GradeLevel, InviteStatus } from "../../shared/types/HomepageTypes";
 import HomeCalendar from "./RefereeComponents/HomeCalendar";
 import InviteSidebar from "./RefereeComponents/InviteSidebar";
 import { refereeService } from "../../api/refereeService";
 import type { RaceRoundData } from "../../api/adminService";
+import type { RefereeWalletInfo } from "../../api/refereeService";
+import PaymentsPanel from "../../components/PaymentsPanel";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -13,15 +15,21 @@ export default function HomePage() {
     const [activeRules, setActiveRules] = useState<any[]>([]);
     const [invites, setInvites] = useState<RecentInvite[]>([]);
     const [loading, setLoading] = useState(true);
+    const [walletInfo, setWalletInfo] = useState<RefereeWalletInfo | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [res, rulesRes, invitesRes] = await Promise.all([
+                const [res, rulesRes, invitesRes, walletRes] = await Promise.all([
                     refereeService.getRefereeRaceRounds(),
                     refereeService.getActiveRules(),
-                    refereeService.getRefereeInvitations(5, 1)
+                    refereeService.getRefereeInvitations(5, 1),
+                    refereeService.getWalletInfo(),
                 ]);
+
+                if (walletRes.code === 200 && walletRes.data) {
+                    setWalletInfo(walletRes.data);
+                }
 
                 if (res.code === 200 && res.data) {
                     const activeRaces = res.data.items.filter((r) => r.status !== 'cancelled');
@@ -74,16 +82,29 @@ export default function HomePage() {
             <div className="max-w-5xl mx-auto px-6 py-8">
 
                 {/* Header */}
-                <div className="mb-7">
-                    <h1
-                        className="text-[26px] font-bold text-white tracking-tight"
-                        style={{ fontFamily: "'Playfair Display', serif" }}
-                    >
-                        Dashboard
-                    </h1>
-                    <p className="text-[13px] text-gray-500 mt-0.5">
-                        Your upcoming race schedule and recent invitations.
-                    </p>
+                <div className="mb-7 flex items-start justify-between gap-4">
+                    <div>
+                        <h1
+                            className="text-[26px] font-bold text-white tracking-tight"
+                            style={{ fontFamily: "'Playfair Display', serif" }}
+                        >
+                            Dashboard
+                        </h1>
+                        <p className="text-[13px] text-gray-500 mt-0.5">
+                            Your upcoming race schedule and recent invitations.
+                        </p>
+                    </div>
+                    <div className="bg-red-800 border border-red-700/60 rounded-xl px-5 py-3 text-center shadow-lg shadow-red-900/40">
+                        <p className="text-[10px] font-semibold tracking-widest text-red-200 uppercase flex items-center gap-1 justify-center">
+                            <Wallet size={11} /> Wallet
+                        </p>
+                        <p
+                            className="text-[20px] font-bold text-white leading-tight mt-1"
+                            style={{ fontFamily: "'Playfair Display', serif" }}
+                        >
+                            {walletInfo ? walletInfo.referee.wallet.toLocaleString() : "..."}
+                        </p>
+                    </div>
                 </div>
 
                 {/* Main grid */}
@@ -97,6 +118,18 @@ export default function HomePage() {
                         <HomeCalendar races={upcomingRaces} activeRules={activeRules} />
                     )}
                     <InviteSidebar invites={invites} />
+                </div>
+
+                {/* Payments awaiting referee confirmation (referee fee) */}
+                <div className="mt-6">
+                    <PaymentsPanel
+                        title="Payments Awaiting Your Confirmation"
+                        fetchPayments={(page) => refereeService.getPayments(page, 10, undefined, 'payee')}
+                        onConfirm={refereeService.confirmPaymentReceived}
+                        myRoleSide="payee"
+                        confirmLabel="Confirm Received"
+                        cacheKey="referee-payments-payee"
+                    />
                 </div>
             </div>
         </div>
