@@ -21,7 +21,7 @@ const invitationSchema = new mongoose.Schema(
         },
         invitationStatus: {
             type: String,
-            enum: ['pending', 'accepted', 'declined', 'cancelled'],
+            enum: ['pending', 'accepted', 'declined', 'cancelled', 'didNotAttend'],
             default: 'pending',
         },
         isBackup: {
@@ -36,6 +36,10 @@ const invitationSchema = new mongoose.Schema(
             type: Number,
             min: 0,
             max: 100,
+            default: 0,
+        },
+        bookingFees: {
+            type: Number,
             default: 0,
         },
     },
