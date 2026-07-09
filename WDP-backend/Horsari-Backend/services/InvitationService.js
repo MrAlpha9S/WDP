@@ -2,6 +2,7 @@ const InvitationRepository = require('../repositories/InvitationRepository');
 const Registration = require('../entities/Registration');
 const Invitation = require('../entities/Invitation');
 const Horse = require('../entities/Horse');
+const NotificationService = require('./NotificationService');
 /**
  * return {
  * code: 200,
@@ -10,7 +11,7 @@ const Horse = require('../entities/Horse');
  * }
  */
 class InvitationService {
-    async createInvitation(ownerId, data) {
+    async createInvitation(ownerId, data, io) {
         const { registrationId, horseId, jockeyId } = data || {};
 
         if (!registrationId) return { code: 400, message: 'registrationId is required' };
@@ -50,6 +51,15 @@ class InvitationService {
         if (!registration.horseId) {
             await Registration.findByIdAndUpdate(registrationId, { horseId });
         }
+
+        NotificationService.notify({
+            recipientIds: [jockeyId],
+            type: 'jockey_invited',
+            title: 'New Race Invitation',
+            message: 'A horse owner has invited you to race.',
+            relatedEntityType: 'Invitation',
+            relatedEntityId: invitation._id,
+        }, io).catch(err => console.error('[createInvitation] notify jockey error:', err.message));
 
         return {
             code: 201,
