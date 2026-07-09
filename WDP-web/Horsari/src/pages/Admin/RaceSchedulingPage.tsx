@@ -30,7 +30,7 @@ export default function RaceSchedulingPage() {
             setTournaments(tournamentsRes.data?.items || []);
 
             const raceRoundsRes = await adminService.getRaceRounds();
-            setRaceRoundsData((raceRoundsRes.data as any)?.items ?? raceRoundsRes.data ?? []);
+            setRaceRoundsData(raceRoundsRes.data?.items ?? []);
         } catch (err) {
             console.error("Failed to fetch scheduling data", err);
         } finally {
@@ -48,14 +48,14 @@ export default function RaceSchedulingPage() {
         try {
             if (updateInfo.type === 'CREATE' && updateInfo.tournament_id) {
                 const res = await adminService.getRaceRounds(updateInfo.tournament_id, null);
-                const items: RaceRoundData[] = (res.data as any)?.items ?? res.data ?? [];
+                const items: RaceRoundData[] = res.data?.items ?? [];
                 setRaceRoundsData(prev => {
                     const filtered = prev.filter(rr => rr.tournamentId !== updateInfo.tournament_id);
                     return [...filtered, ...items];
                 });
             } else if (updateInfo.type === 'UPDATE' && updateInfo.raceRound_id) {
                 const res = await adminService.getRaceRounds(null, updateInfo.raceRound_id);
-                const items: RaceRoundData[] = (res.data as any)?.items ?? res.data ?? [];
+                const items: RaceRoundData[] = res.data?.items ?? [];
                 setRaceRoundsData(prev => {
                     return prev.map(rr => rr._id === updateInfo.raceRound_id ? (items[0] || rr) : rr);
                 });
