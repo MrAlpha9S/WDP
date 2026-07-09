@@ -1,6 +1,7 @@
 import api from './axios';
 import type { TournamentDetailData, TournamentRankEntry } from '../shared/types/TournamentTypes';
 import type { ViolationEntity, ViolationTypeEntity } from '../shared/types/ViolationTypes';
+import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
 
 export interface RaceRegistration {
   _id: string;
@@ -11,6 +12,8 @@ export interface RaceRegistration {
   Jockey?: { _id?: { fullName?: string } } | null;
   Owner?: { fullName?: string } | null;
   RaceResult?: any | null;
+  prizePayment?: PaymentEntity | null;
+  jockeyPayment?: PaymentEntity | null;
 }
 
 export interface RaceRefereeAssignment {
@@ -18,6 +21,7 @@ export interface RaceRefereeAssignment {
   fullName: string | null;
   assignmentStatus: string;
   fee?: number;
+  payment?: PaymentEntity | null;
 }
 
 export interface PoolHorseEntry {
@@ -82,12 +86,25 @@ export interface TournamentRaceData {
 
 export interface RaceRoundsResponse {
   code: number;
-  data: RaceRoundData[];
+  data: { items: RaceRoundData[]; pagination: { totalItems: number; totalPages: number; currentPage: number; limit: number } };
   msg: string;
 }
 
+export interface AdminStatistics {
+  users: { countActive: number };
+  horseOwners: { count: number; pending: number; approved: number };
+  jockeys: { count: number; pending: number; approved: number };
+  tournaments: { count: number; scheduled: number; ongoing: number };
+  finance: {
+    totalHorseOwnerWallets: number;
+    totalJockeyWallets: number;
+    totalRefereeWallets: number;
+    mainAdminWallet: number;
+  };
+}
+
 export const adminService = {
-  getStatistics: async () => {
+  getStatistics: async (): Promise<{ code: number; data: AdminStatistics; msg: string }> => {
     try {
       const response = await api.get('/admin/statistics');
       console.log('API Response:', response.data);
@@ -440,15 +457,6 @@ export const adminService = {
     }
   },
 
-  confirmRaceResult: async (id: string) => {
-    try {
-      const response = await api.post(`/admin/race-rounds/${id}/confirm-result`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to confirm race result' };
-    }
-  },
-
   // --- Mux Stream & VOD ---
 
   createStream: async (id: string) => {
@@ -525,6 +533,36 @@ export const adminService = {
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to fetch important events' };
+    }
+  },
+
+  // --- Payment Verification ---
+  // Admin is the payer for race_prize (owed to horseOwner) and referee_fee
+  // (owed to referee). These are statistical wallet records only — the
+  // actual money changes hands outside the system.
+
+  getPayments: async (
+    page = 1,
+    limit = 10,
+    status?: PaymentStatus,
+    direction: 'payer' | 'payee' | 'all' = 'all',
+  ): Promise<PaymentsResponse> => {
+    try {
+      const params: any = { page, limit, direction };
+      if (status) params.status = status;
+      const response = await api.get('/admin/payments', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch payments' };
+    }
+  },
+
+  confirmPaymentPaid: async (paymentId: string): Promise<{ code: number; data: PaymentEntity; msg: string }> => {
+    try {
+      const response = await api.put(`/admin/payments/${paymentId}/confirm-paid`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to confirm payment' };
     }
   },
 };
