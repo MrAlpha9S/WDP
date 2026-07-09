@@ -1,5 +1,6 @@
 const express = require('express');
 const AdminController = require('../controllers/AdminController');
+const PaymentController = require('../controllers/PaymentController');
 const { authMiddleware, authAdmin } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
@@ -76,5 +77,9 @@ router.get('/rules', authMiddleware, authAdmin, AdminController.getAllRules);
 router.post('/rules', authMiddleware, authAdmin, AdminController.createRule);
 router.put('/rules/:id', authMiddleware, authAdmin, AdminController.updateRule);
 router.delete('/rules/:id', authMiddleware, authAdmin, AdminController.deleteRule);
+
+// --- Payment verification (admin pays horseOwner prize money / referee fee) ---
+router.get('/payments', authMiddleware, authAdmin, PaymentController.listMyPayments);
+router.put('/payments/:paymentId/confirm-paid', authMiddleware, authAdmin, PaymentController.confirmPaid);
 
 module.exports = router;
