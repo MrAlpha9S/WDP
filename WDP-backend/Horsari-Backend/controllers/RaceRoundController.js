@@ -4,7 +4,8 @@ class RaceRoundController {
     async createRaceRound(req, res, next) {
         try {
             const adminID = req.userId; // from authMiddleware
-            const response = await RaceRoundService.createRaceRound(req.body, adminID);
+            const io = req.app.get('io');
+            const response = await RaceRoundService.createRaceRound(req.body, adminID, io);
             return res.status(response.code).json(response);
         } catch (error) {
             next(error);
@@ -14,7 +15,8 @@ class RaceRoundController {
         const { id } = req.params;
         try {
             const adminID = req.userId;
-            const response = await RaceRoundService.updateRaceRound(id, req.body, adminID);
+            const io = req.app.get('io');
+            const response = await RaceRoundService.updateRaceRound(id, req.body, adminID, io);
             return res.status(response.code).json(response);
         } catch (error) {
             next(error);
@@ -24,7 +26,8 @@ class RaceRoundController {
     async cancelRaceRound(req, res, next) {
         const { id } = req.params;
         try {
-            const response = await RaceRoundService.cancelRaceRound(id);
+            const io = req.app.get('io');
+            const response = await RaceRoundService.cancelRaceRound(id, io);
             return res.status(response.code).json(response);
         } catch (error) {
             next(error);

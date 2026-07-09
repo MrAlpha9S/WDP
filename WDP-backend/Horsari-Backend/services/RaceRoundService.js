@@ -4,9 +4,10 @@ const TournamentRepository = require('../repositories/TournamentRepository');
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const RegistrationRepository = require('../repositories/RegistrationRepository');
 const InvitationRepository = require('../repositories/InvitationRepository');
+const NotificationService = require('./NotificationService');
 
 class RaceRoundService {
-    async createRaceRound(payload, adminID) {
+    async createRaceRound(payload, adminID, io) {
         const { TournamentId, RaceRound: raceRoundData, HorseOwnerInvitation = [], RefereeInvitation = [] } = payload;
 
         // Safely extract a plain string/ObjectId from a value that might be a populated object
@@ -93,6 +94,37 @@ class RaceRoundService {
             tournament = null;
         }
 
+        NotificationService.notify({
+            role: 'admin',
+            type: 'race_round_created',
+            title: 'Race Round Created',
+            message: `Race round "${raceRound.roundName}" has been created.`,
+            relatedEntityType: 'RaceRound',
+            relatedEntityId: raceRound._id,
+        }, io).catch(e => console.error('[createRaceRound] notify admin error:', e.message));
+
+        for (const raceReferee of raceReferees) {
+            NotificationService.notify({
+                recipientIds: [raceReferee.refereeId],
+                type: 'referee_assigned',
+                title: 'New Race Referee Assignment',
+                message: `You have been assigned to referee "${raceRound.roundName}".`,
+                relatedEntityType: 'RaceReferee',
+                relatedEntityId: raceReferee._id,
+            }, io).catch(e => console.error('[createRaceRound] notify referee error:', e.message));
+        }
+
+        for (const registration of registrations) {
+            NotificationService.notify({
+                recipientIds: [registration.horseOwnerId],
+                type: 'race_registration_created',
+                title: 'New Race Registration',
+                message: `You have been registered for "${raceRound.roundName}". Please review and approve.`,
+                relatedEntityType: 'Registration',
+                relatedEntityId: registration._id,
+            }, io).catch(e => console.error('[createRaceRound] notify owner error:', e.message));
+        }
+
         return {
             code: 201,
             message: 'Race round created successfully',
@@ -104,7 +136,7 @@ class RaceRoundService {
             },
         };
     }
-    async updateRaceRound(id, payload, adminID) {
+    async updateRaceRound(id, payload, adminID, io) {
         const { TournamentId, RaceRound: updateData, HorseOwnerInvitation, RefereeInvitation } = payload;
         const toId = (v) => (v && typeof v === 'object') ? (v._id ?? v).toString() : (v ? v.toString() : v);
 
@@ -241,13 +273,15 @@ class RaceRoundService {
         }
 
         // Process RefereeInvitation
+        const unassignedRefereeIds = [];
         if (RefereeInvitation) {
             const newRefereeIds = new Set(RefereeInvitation.map(item => toId(item?.refereeId || item)));
-            
+
             for (const ref of existingReferees) {
                 const refIdStr = ref.refereeId.toString();
                 if (!newRefereeIds.has(refIdStr) && ref.status !== 'cancelled') {
                     await RaceRefereeRepository.update(ref._id, { status: 'cancelled' });
+                    unassignedRefereeIds.push(ref.refereeId);
                 }
             }
 
@@ -297,6 +331,26 @@ class RaceRoundService {
             tournament = null;
         }
 
+        NotificationService.notify({
+            role: 'admin',
+            type: 'race_round_updated',
+            title: 'Race Round Updated',
+            message: `Race round "${raceRound.roundName}" has been updated.`,
+            relatedEntityType: 'RaceRound',
+            relatedEntityId: raceRound._id,
+        }, io).catch(e => console.error('[updateRaceRound] notify admin error:', e.message));
+
+        for (const refereeId of unassignedRefereeIds) {
+            NotificationService.notify({
+                recipientIds: [refereeId],
+                type: 'referee_unassigned',
+                title: 'Referee Assignment Removed',
+                message: `You have been unassigned from "${raceRound.roundName}".`,
+                relatedEntityType: 'RaceRound',
+                relatedEntityId: raceRound._id,
+            }, io).catch(e => console.error('[updateRaceRound] notify unassigned referee error:', e.message));
+        }
+
         return {
             code: 200,
             message: 'Race round updated successfully',
@@ -308,12 +362,12 @@ class RaceRoundService {
             },
         };
     }
-    async cancelRaceRound(id) {
+    async cancelRaceRound(id, io) {
         const raceRound = await RaceRoundRepository.findById(id);
         if (!raceRound) {
             return { code: 404, message: 'Race round not found' };
         }
-        
+
         if (['completed', 'running', 'awaitingConfirmation'].includes(raceRound.status)) {
             return { code: 400, message: `Cannot cancel a race round that is already ${raceRound.status}` };
         }
@@ -321,21 +375,24 @@ class RaceRoundService {
         if (raceRound.status === 'cancelled') {
             return { code: 400, message: 'Race round is already cancelled' };
         }
-        
+
+        // Snapshot associated parties before cancelling, for notification targeting
+        const referees = await RaceRefereeRepository.findByRaceRoundId(id);
+
         // Update race round
         const updatedRaceRound = await RaceRoundRepository.update(id, { status: 'cancelled' });
-        
+
         // Update referees
         await RaceRefereeRepository.updateManyByRaceRoundId(id, { status: 'cancelled' });
-        
+
         // Find registrations to get their IDs
         const registrations = await RegistrationRepository.findByRaceRoundId(id);
         const registrationIds = registrations.map(reg => reg._id);
-        
+
         // Update registrations
         if (registrationIds.length > 0) {
             await RegistrationRepository.updateManyByRaceRoundId(id, { registrationStatus: 'cancelled' });
-            
+
             // Update invitations linked to these registrations
             await InvitationRepository.updateManyByRegistrationIds(registrationIds, { invitationStatus: 'cancelled' });
         }
@@ -344,6 +401,19 @@ class RaceRoundService {
         PayoutService.refundRacePredictions(id).catch(err =>
             console.error('[RaceRoundService] refundRacePredictions error:', err.message)
         );
+
+        const recipientIds = [
+            ...registrations.map(r => r.horseOwnerId),
+            ...referees.map(r => r.refereeId),
+        ];
+        NotificationService.notify({
+            recipientIds,
+            type: 'race_round_cancelled',
+            title: 'Race Round Cancelled',
+            message: `Race round "${raceRound.roundName}" has been cancelled.`,
+            relatedEntityType: 'RaceRound',
+            relatedEntityId: id,
+        }, io).catch(err => console.error('[cancelRaceRound] notify error:', err.message));
 
         return { code: 200, message: 'Race round cancelled successfully', data: updatedRaceRound };
     }
