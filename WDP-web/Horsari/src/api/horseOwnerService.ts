@@ -1,4 +1,5 @@
 import api from './axios';
+import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
 
 export interface Owner {
   _id: string;
@@ -136,7 +137,15 @@ export interface FinancialRaceRow {
 export interface FinancialSummary {
   totalRaces: number; totalWins: number; totalLosses: number;
   totalPrize: number; totalJockeyPayout: number; netProfit: number;
-  totalViolations: number; balance: number;
+  totalViolations: number; balance: number; wallet: number;
+}
+
+export interface RaceRoundStatus {
+  raceRoundId: string;
+  status: string;
+  registrationStatus: string;
+  isLive: boolean;
+  hasResults: boolean;
 }
 
 export interface HorseProfileData {
@@ -226,6 +235,14 @@ export const horseOwnerService = {
   getRaceDetail: async (raceRoundId: string) => {
     try {
       const response = await api.get(`/horseowner/race-rounds/${raceRoundId}/detail`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+  getRaceRoundStatus: async (raceRoundId: string): Promise<{ code: number; data: RaceRoundStatus; msg: string }> => {
+    try {
+      const response = await api.get(`/horseowner/race-rounds/${raceRoundId}/status`);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
@@ -372,6 +389,45 @@ export const horseOwnerService = {
       };
     } catch (error: any) {
       throw error.response?.data || error;
+    }
+  },
+
+  // --- Payment Verification ---
+  // horseOwner is the payee for race_prize (owed by admin) and the payer
+  // for jockey_payout (owed to the jockey). Statistical wallet only — the
+  // actual money changes hands outside the system.
+
+  getPayments: async (
+    page = 1,
+    limit = 10,
+    status?: PaymentStatus,
+    direction: 'payer' | 'payee' | 'all' = 'all',
+  ): Promise<PaymentsResponse> => {
+    try {
+      const params: any = { page, limit, direction };
+      if (status) params.status = status;
+      const response = await api.get('/horseowner/payments', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch payments' };
+    }
+  },
+
+  confirmPaymentReceived: async (paymentId: string): Promise<{ code: number; data: PaymentEntity; msg: string }> => {
+    try {
+      const response = await api.put(`/horseowner/payments/${paymentId}/confirm-received`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to confirm payment' };
+    }
+  },
+
+  confirmPaymentPaid: async (paymentId: string): Promise<{ code: number; data: PaymentEntity; msg: string }> => {
+    try {
+      const response = await api.put(`/horseowner/payments/${paymentId}/confirm-paid`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to confirm payment' };
     }
   },
 };
