@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { adminService } from "../../api/adminService";
-import { Users, Trophy, ClipboardList, Eye, Settings, CheckSquare, Radio } from "lucide-react";
+import { Users, Trophy, ClipboardList, Eye, Settings, CheckSquare, Radio, Wallet } from "lucide-react";
+import PaymentsPanel from "../../components/PaymentsPanel";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -111,7 +112,7 @@ export default function SystemDashboardPage() {
                 setStats(statsRes.data);
                 
                 // Process race rounds
-                const allRounds = Array.isArray(racesRes.data) ? racesRes.data : [];
+                const allRounds = racesRes.data?.items ?? [];
                 const mappedRaces: ActiveRace[] = allRounds.map((r: any) => {
                     const statusStr = (r.status || "").toLowerCase();
                     let mappedStatus: RaceStatus = "PRE-RACE";
@@ -161,7 +162,14 @@ export default function SystemDashboardPage() {
             </div>
 
             {/* Stat cards */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+                <StatCard
+                    label="Pool Betting Wallet"
+                    value={loading ? "..." : (stats?.finance?.mainAdminWallet ?? 0).toLocaleString()}
+                    sub="Lifetime pool takeout (statistic only)"
+                    subColor="text-gray-500"
+                    icon={<Wallet size={16} />}
+                />
                 <StatCard
                     label="Active Users"
                     value={loading ? "..." : (stats?.users?.countActive || 0).toString()}
@@ -233,6 +241,18 @@ export default function SystemDashboardPage() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* Payments awaiting admin confirmation (race prize + referee fee) */}
+            <div className="mt-6">
+                <PaymentsPanel
+                    title="Payments Awaiting Your Confirmation"
+                    fetchPayments={(page) => adminService.getPayments(page, 10, undefined, 'payer')}
+                    onConfirm={adminService.confirmPaymentPaid}
+                    myRoleSide="payer"
+                    confirmLabel="Confirm Paid"
+                    cacheKey="admin-payments-payer"
+                />
             </div>
         </div>
     );
