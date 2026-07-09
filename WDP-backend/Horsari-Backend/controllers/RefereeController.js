@@ -14,14 +14,16 @@ class RefereeController {
     // Accept invitation
     async acceptInvitation(req, res) {
         const { id } = req.params;
-        const response = await RefereeService.acceptInvitation(req.userId, id);
+        const io = req.app.get('io');
+        const response = await RefereeService.acceptInvitation(req.userId, id, io);
         return res.status(response.code).json(response);
     }
 
     // Reject invitation
     async rejectInvitation(req, res) {
         const { id } = req.params;
-        const response = await RefereeService.rejectInvitation(req.userId, id);
+        const io = req.app.get('io');
+        const response = await RefereeService.rejectInvitation(req.userId, id, io);
         return res.status(response.code).json(response);
     }
 
@@ -52,14 +54,36 @@ class RefereeController {
     // Verify or fail a registration after pre-race inspection
     async verifyRegistration(req, res) {
         const { raceRoundId, registrationId } = req.params;
-        const response = await RefereeService.verifyRegistration(req.userId, raceRoundId, registrationId, req.body);
+        const io = req.app.get('io');
+        const response = await RefereeService.verifyRegistration(req.userId, raceRoundId, registrationId, req.body, io);
         return res.status(response.code).json(response);
     }
 
     // Cancel a pending registration as no-show
     async cancelRegistration(req, res) {
         const { raceRoundId, registrationId } = req.params;
-        const response = await RefereeService.cancelRegistration(req.userId, raceRoundId, registrationId);
+        const io = req.app.get('io');
+        const response = await RefereeService.cancelRegistration(req.userId, raceRoundId, registrationId, io);
+        return res.status(response.code).json(response);
+    }
+
+    // GET /wallet — wallet statistic + payment stats
+    async getWalletInfo(req, res) {
+        const response = await RefereeService.getWalletInfo(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    // GET /statistics — races officiated, acceptance rate, fees earned/pending
+    async getStatistics(req, res) {
+        const response = await RefereeService.getStatistics(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    // Mark a jockey as a no-show for race day
+    async markJockeyNoShow(req, res) {
+        const { invitationId } = req.params;
+        const io = req.app.get('io');
+        const response = await RefereeService.markJockeyNoShow(req.userId, invitationId, io);
         return res.status(response.code).json(response);
     }
 

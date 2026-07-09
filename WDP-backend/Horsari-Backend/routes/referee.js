@@ -1,5 +1,6 @@
 const express = require('express');
 const RefereeController = require('../controllers/RefereeController');
+const PaymentController = require('../controllers/PaymentController');
 const { authMiddleware, authReferee, authAdmin } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
@@ -18,9 +19,16 @@ router.get('/tournaments', authMiddleware, authReferee, RefereeController.getRef
 router.get('/invitations', authMiddleware, authReferee, RefereeController.getRefereeInvitations);
 router.put('/invitations/:id/accept', authMiddleware, authReferee, RefereeController.acceptInvitation);
 router.put('/invitations/:id/reject', authMiddleware, authReferee, RefereeController.rejectInvitation);
+router.put('/invitations/:invitationId/no-show', authMiddleware, authReferee, RefereeController.markJockeyNoShow);
 router.get('/violation-types', authMiddleware, authReferee, RefereeController.getViolationTypes);
 router.post('/violations', authMiddleware, authReferee, RefereeController.createViolation);
 router.put('/violations/:violationId/confirm', authMiddleware, authReferee, RefereeController.confirmViolation);
 router.delete('/violations/:violationId', authMiddleware, authReferee, RefereeController.deleteViolation);
+
+// Wallet + payment verification
+router.get('/wallet', authMiddleware, authReferee, RefereeController.getWalletInfo);
+router.get('/statistics', authMiddleware, authReferee, RefereeController.getStatistics);
+router.get('/payments', authMiddleware, authReferee, PaymentController.listMyPayments);
+router.put('/payments/:paymentId/confirm-received', authMiddleware, authReferee, PaymentController.confirmReceived);
 
 module.exports = router;

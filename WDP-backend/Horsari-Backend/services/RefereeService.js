@@ -1,7 +1,9 @@
 const RefereeRepository = require('../repositories/RefereeRepository');
 const UserRepository = require('../repositories/UserRepository');
 const RaceRefereeRepository = require('../repositories/RaceRefereeRepository');
+const TransactionRepository = require('../repositories/TransactionRepository');
 const { broadcastAdminEvent } = require('./AdminEventBroadcaster');
+const NotificationService = require('./NotificationService');
 
 const RaceReferee = require('../entities/RaceReferee');
 const RaceRound = require('../entities/RaceRound');
@@ -35,6 +37,22 @@ class RefereeService {
                 RaceRefereeRepository.countInvitationsByFilter(filter)
             ]);
 
+            // The RaceReferee.paymentStatus field is legacy and no longer written to —
+            // the Transaction-backed payment-verification flow is authoritative.
+            // Overwrite with the real status (falls back to 'unpaid' pre-confirmation).
+            if (invitations.length) {
+                const Transaction = require('../entities/Transaction');
+                const payments = await Transaction.find({
+                    sourceType: 'RaceReferee',
+                    sourceId: { $in: invitations.map(i => i._id) },
+                    paymentType: 'referee_fee',
+                }).lean();
+                const paymentBySourceId = new Map(payments.map(p => [String(p.sourceId), p]));
+                for (const inv of invitations) {
+                    inv.paymentStatus = paymentBySourceId.get(String(inv._id))?.paymentStatus || 'unpaid';
+                }
+            }
+
             const totalPages = Math.ceil(total / limit);
 
             return {
@@ -58,7 +76,7 @@ class RefereeService {
     }
 
     // Accept invitation
-    async acceptInvitation(userId, invitationId) {
+    async acceptInvitation(userId, invitationId, io) {
         try {
             const updated = await require('../repositories/RaceRefereeRepository').updateStatusByIdAndRefereeId(invitationId, userId, 'assigned');
             if (!updated) {
@@ -67,6 +85,14 @@ class RefereeService {
                     msg: 'Invitation not found or you are not authorized to accept it.',
                 };
             }
+            NotificationService.notify({
+                role: 'admin',
+                type: 'referee_accepted',
+                title: 'Referee Accepted Assignment',
+                message: 'A referee has accepted their race assignment.',
+                relatedEntityType: 'RaceReferee',
+                relatedEntityId: updated._id,
+            }, io).catch(err => console.error('[acceptInvitation] notify admin error:', err.message));
             return {
                 code: 200,
                 data: updated,
@@ -82,7 +108,7 @@ class RefereeService {
     }
 
     // Reject invitation
-    async rejectInvitation(userId, invitationId) {
+    async rejectInvitation(userId, invitationId, io) {
         try {
             const updated = await require('../repositories/RaceRefereeRepository').updateStatusByIdAndRefereeId(invitationId, userId, 'rejected');
             if (!updated) {
@@ -91,6 +117,14 @@ class RefereeService {
                     msg: 'Invitation not found or you are not authorized to reject it.',
                 };
             }
+            NotificationService.notify({
+                role: 'admin',
+                type: 'referee_rejected',
+                title: 'Referee Rejected Assignment',
+                message: 'A referee has rejected their race assignment.',
+                relatedEntityType: 'RaceReferee',
+                relatedEntityId: updated._id,
+            }, io).catch(err => console.error('[rejectInvitation] notify admin error:', err.message));
             return {
                 code: 200,
                 data: updated,
@@ -295,7 +329,7 @@ class RefereeService {
     }
 
     // Verify or fail a single registration (referee pre-race checkup)
-    async verifyRegistration(refereeId, raceRoundId, registrationId, body) {
+    async verifyRegistration(refereeId, raceRoundId, registrationId, body, io) {
         try {
             const { status, verificationFailReason, selectedInvitationId, failedChecks = [] } = body || {};
 
@@ -378,6 +412,18 @@ class RefereeService {
             // Note: The race status is no longer automatically updated to 'prepared'.
             // The referee must now explicitly call authorizeRaceStart via the UI.
 
+            if (registration.horseOwnerId) {
+                NotificationService.notify({
+                    recipientIds: [registration.horseOwnerId],
+                    type: status === 'verified' ? 'registration_verified' : 'registration_failed',
+                    title: status === 'verified' ? 'Registration Verified' : 'Registration Failed',
+                    message: status === 'verified'
+                        ? 'Your race registration passed pre-race inspection.'
+                        : `Your race registration failed pre-race inspection: ${verificationFailReason}`,
+                    relatedEntityType: 'Registration',
+                    relatedEntityId: registrationId,
+                }, io).catch(err => console.error('[verifyRegistration] notify owner error:', err.message));
+            }
 
             return { code: 200, data: updated, msg: `Registration marked as "${status}" successfully.` };
         } catch (error) {
@@ -386,7 +432,7 @@ class RefereeService {
         }
     }
 
-    async cancelRegistration(refereeId, raceRoundId, registrationId) {
+    async cancelRegistration(refereeId, raceRoundId, registrationId, io) {
         try {
             const assignment = await RaceReferee.findOne({ raceRoundId, refereeId }).lean();
             if (!assignment) {
@@ -410,9 +456,130 @@ class RefereeService {
                 { new: true }
             ).lean();
 
+            if (registration.horseOwnerId) {
+                NotificationService.notify({
+                    recipientIds: [registration.horseOwnerId],
+                    type: 'registration_cancelled',
+                    title: 'Registration Cancelled',
+                    message: 'Your race registration was cancelled as a no-show.',
+                    relatedEntityType: 'Registration',
+                    relatedEntityId: registrationId,
+                }, io).catch(err => console.error('[cancelRegistration] notify owner error:', err.message));
+            }
+
             return { code: 200, data: updated, msg: 'Registration cancelled (no-show) successfully.' };
         } catch (error) {
             console.error('Error cancelling registration:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // ─── Wallet ──────────────────────────────────────────────────────────────
+
+    async getWalletInfo(refereeId) {
+        try {
+            const referee = await RefereeRepository.findByRefereeId(refereeId);
+            if (!referee) return { code: 404, msg: 'Referee not found' };
+
+            const totalFeesReceived = await TransactionRepository.sumAmountByParty(
+                refereeId, 'referee', 'payee', { paymentStatus: 'paid' }
+            );
+
+            return {
+                code: 200,
+                data: {
+                    referee: { _id: referee._id, wallet: referee.wallet },
+                    stats: { totalFeesReceived },
+                },
+                msg: 'Wallet info retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Flat statistics snapshot — no time-series data (no backend precedent for
+    // real aggregation exists yet), just current totals.
+    async getStatistics(refereeId) {
+        try {
+            const referee = await RefereeRepository.findByRefereeId(refereeId);
+            if (!referee) return { code: 404, msg: 'Referee not found' };
+
+            const [
+                totalInvitations,
+                totalRacesOfficiated,
+                rejectedCount,
+                pendingCount,
+                totalFeesEarned,
+                pendingFeesAmount,
+            ] = await Promise.all([
+                RaceReferee.countDocuments({ refereeId }),
+                RaceReferee.countDocuments({ refereeId, status: 'assigned' }),
+                RaceReferee.countDocuments({ refereeId, status: 'rejected' }),
+                RaceReferee.countDocuments({ refereeId, status: 'pending' }),
+                TransactionRepository.sumAmountByParty(refereeId, 'referee', 'payee', { paymentStatus: 'paid' }),
+                TransactionRepository.sumAmountByParty(refereeId, 'referee', 'payee', { paymentStatus: { $ne: 'paid' } }),
+            ]);
+
+            return {
+                code: 200,
+                data: {
+                    wallet: referee.wallet,
+                    totalInvitations,
+                    totalRacesOfficiated,
+                    acceptedCount: totalRacesOfficiated,
+                    rejectedCount,
+                    pendingCount,
+                    totalFeesEarned,
+                    pendingFeesAmount,
+                },
+                msg: 'Referee statistics retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Mark the jockey on an invitation as a no-show (didNotAttend) for race day.
+    async markJockeyNoShow(refereeId, invitationId, io) {
+        try {
+            const invitation = await Invitation.findById(invitationId).lean();
+            if (!invitation) {
+                return { code: 404, msg: 'Invitation not found.' };
+            }
+            if (!invitation.registrationId) {
+                return { code: 422, msg: 'Invitation is not linked to a registration.' };
+            }
+
+            const registration = await Registration.findById(invitation.registrationId).lean();
+            if (!registration) {
+                return { code: 404, msg: 'Registration not found.' };
+            }
+
+            const assignment = await RaceReferee.findOne({ raceRoundId: registration.raceRoundId, refereeId }).lean();
+            if (!assignment) {
+                return { code: 403, msg: 'You are not assigned to this race round.' };
+            }
+
+            const updated = await Invitation.findByIdAndUpdate(
+                invitationId,
+                { invitationStatus: 'didNotAttend' },
+                { new: true }
+            ).lean();
+
+            const recipients = [invitation.jockeyId, registration.horseOwnerId].filter(Boolean);
+            NotificationService.notify({
+                recipientIds: recipients,
+                type: 'jockey_no_show',
+                title: 'Jockey Marked as No-Show',
+                message: 'A jockey was marked as a no-show for race day.',
+                relatedEntityType: 'Invitation',
+                relatedEntityId: invitationId,
+            }, io).catch(err => console.error('[markJockeyNoShow] notify error:', err.message));
+
+            return { code: 200, data: updated, msg: 'Jockey marked as no-show successfully.' };
+        } catch (error) {
+            console.error('Error marking jockey no-show:', error);
             return { code: 500, msg: error.message };
         }
     }
