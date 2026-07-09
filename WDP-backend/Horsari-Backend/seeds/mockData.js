@@ -70,7 +70,7 @@ async function seed() {
         status: "active",
         dateOfBirth: new Date("1980-01-01"),
       });
-      await Admin.create({ _id: user._id });
+      await Admin.create({ _id: user._id, isMainAdmin: i === 1, wallet: 0 });
       admins.push(user);
     }
 

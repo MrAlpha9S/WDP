@@ -40,6 +40,14 @@ class HorseOwnerRepository {
         }).populate('_id');
     }
 
+    async incrementWallet(ownerId, amount) {
+        return await HorseOwner.findByIdAndUpdate(
+            ownerId,
+            { $inc: { wallet: amount } },
+            { new: true }
+        );
+    }
+
     // Delete
     async deleteById(id) {
         return await HorseOwner.findByIdAndDelete(id);

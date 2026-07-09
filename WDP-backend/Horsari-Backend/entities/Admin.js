@@ -7,6 +7,14 @@ const adminSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
+        wallet: {
+            type: Number,
+            default: 0,
+        },
+        isMainAdmin: {
+            type: Boolean,
+            default: false,
+        },
     },
     { timestamps: true }
 );

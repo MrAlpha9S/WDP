@@ -19,6 +19,10 @@ const horseOwnerSchema = new mongoose.Schema(
             enum: ['pending', 'approved', 'rejected'],
             default: 'pending',
         },
+        wallet: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );

@@ -48,6 +48,14 @@ class RefereeRepository {
         }).populate('_id');
     }
 
+    async incrementWallet(refereeId, amount) {
+        return await Referee.findByIdAndUpdate(
+            refereeId,
+            { $inc: { wallet: amount } },
+            { new: true }
+        );
+    }
+
     // Delete
     async deleteById(id) {
         return await Referee.findByIdAndDelete(id);

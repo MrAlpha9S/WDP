@@ -4,6 +4,7 @@ const RaceResult = require('../entities/RaceResult');
 const Registration = require('../entities/Registration');
 const SpectatorRepository = require('../repositories/SpectatorRepository');
 const TransactionRepository = require('../repositories/TransactionRepository');
+const AdminRepository = require('../repositories/AdminRepository');
 
 // Takeout rates by bet type (PDF reference: Win/Place/Show 17%, multi-race 22%)
 const TAKEOUT = {
@@ -109,12 +110,14 @@ class PayoutService {
             }
 
             const settled = [];
+            let houseTake = 0;
 
             for (const [methodId, { stakes, preds }] of Object.entries(byMethod)) {
                 const isWin = winnerMethod && methodId === winnerMethod._id.toString();
                 const T = isWin ? TAKEOUT.race_winner : TAKEOUT.race_rank;
                 const P = this.grossPool(Object.values(stakes));
                 const N = this.netPool(P, T);
+                houseTake += (P - N);
 
                 for (const pred of preds) {
                     const rid       = pred.registrationId.toString();
@@ -150,6 +153,10 @@ class PayoutService {
 
                     settled.push({ predictionId: pred._id, isCorrect, earn });
                 }
+            }
+
+            if (houseTake > 0) {
+                await AdminRepository.incrementMainAdminWallet(parseFloat(houseTake.toFixed(2)));
             }
 
             return {
@@ -198,6 +205,7 @@ class PayoutService {
             const P  = this.grossPool(Object.values(stakeByHorse));
             const N  = this.netPool(P, T);
             const Bi = stakeByHorse[championHorseId.toString()] || 0;
+            const houseTake = P - N;
 
             const settled = [];
 
@@ -227,6 +235,10 @@ class PayoutService {
                 }
 
                 settled.push({ predictionId: pred._id, isCorrect, earn });
+            }
+
+            if (houseTake > 0) {
+                await AdminRepository.incrementMainAdminWallet(parseFloat(houseTake.toFixed(2)));
             }
 
             return {

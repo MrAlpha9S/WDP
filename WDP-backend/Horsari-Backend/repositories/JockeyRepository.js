@@ -50,6 +50,14 @@ class JockeyRepository {
     }).populate("_id");
   }
 
+  async incrementWallet(jockeyId, amount) {
+    return await Jockey.findByIdAndUpdate(
+      jockeyId,
+      { $inc: { wallet: amount } },
+      { new: true }
+    );
+  }
+
   // Delete
   async deleteById(id) {
     return await Jockey.findByIdAndDelete(id);

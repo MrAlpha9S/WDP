@@ -37,6 +37,18 @@ class AdminRepository {
         }).populate('_id');
     }
 
+    async findMainAdmin() {
+        return await Admin.findOne({ isMainAdmin: true });
+    }
+
+    async incrementMainAdminWallet(amount) {
+        return await Admin.findOneAndUpdate(
+            { isMainAdmin: true },
+            { $inc: { wallet: amount } },
+            { new: true }
+        );
+    }
+
     // Delete
     async deleteById(id) {
         return await Admin.findByIdAndDelete(id);

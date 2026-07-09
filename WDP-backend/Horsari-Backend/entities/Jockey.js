@@ -31,6 +31,10 @@ const jockeySchema = new mongoose.Schema(
             enum: ['active', 'inactive', 'retired'],
             default: 'active',
         },
+        wallet: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );
