@@ -1,5 +1,22 @@
 import api from './axios';
 import type { RaceRoundData } from './adminService';
+import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
+
+export interface RefereeWalletInfo {
+    referee: { _id: string; wallet: number };
+    stats: { totalFeesReceived: number };
+}
+
+export interface RefereeStatistics {
+    wallet: number;
+    totalInvitations: number;
+    totalRacesOfficiated: number;
+    acceptedCount: number;
+    rejectedCount: number;
+    pendingCount: number;
+    totalFeesEarned: number;
+    pendingFeesAmount: number;
+}
 
 // ── Response shapes ────────────────────────────────────────────────────────────
 
@@ -213,6 +230,16 @@ export const refereeService = {
         }
     },
 
+    /** Marks the jockey on an invitation as a no-show (didNotAttend) for race day. */
+    markJockeyNoShow: async (invitationId: string): Promise<{ code: number; data: any; msg: string }> => {
+        try {
+            const response = await api.put(`/referee/invitations/${invitationId}/no-show`);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || error;
+        }
+    },
+
     finalizeRaceRound: async (
         raceRoundId: string,
     ): Promise<{ code: number; data: { status: 'prepared' | 'cancelled' }; msg: string }> => {
@@ -305,6 +332,53 @@ export const refereeService = {
             return response.data;
         } catch (error: any) {
             throw error.response?.data || error;
+        }
+    },
+
+    // --- Wallet + Payment Verification ---
+    // Referee is always the payee for referee_fee (owed by admin). Statistical
+    // wallet only — the actual money changes hands outside the system.
+
+    getWalletInfo: async (): Promise<{ code: number; data: RefereeWalletInfo; msg: string }> => {
+        try {
+            const response = await api.get('/referee/wallet');
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to fetch wallet info' };
+        }
+    },
+
+    getStatistics: async (): Promise<{ code: number; data: RefereeStatistics; msg: string }> => {
+        try {
+            const response = await api.get('/referee/statistics');
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to fetch statistics' };
+        }
+    },
+
+    getPayments: async (
+        page = 1,
+        limit = 10,
+        status?: PaymentStatus,
+        direction: 'payer' | 'payee' | 'all' = 'all',
+    ): Promise<PaymentsResponse> => {
+        try {
+            const params: any = { page, limit, direction };
+            if (status) params.status = status;
+            const response = await api.get('/referee/payments', { params });
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to fetch payments' };
+        }
+    },
+
+    confirmPaymentReceived: async (paymentId: string): Promise<{ code: number; data: PaymentEntity; msg: string }> => {
+        try {
+            const response = await api.put(`/referee/payments/${paymentId}/confirm-received`);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to confirm payment' };
         }
     },
 };
