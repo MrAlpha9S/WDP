@@ -3,6 +3,8 @@ const router = express.Router();
 const RaceEligibilityRuleController = require('../controllers/RaceEligibilityRuleController');
 const { authMiddleware, authReferee } = require('../middlewares/authMiddleware');
 
+require('../swagger/raceEligibilityRuleSwagger');
+
 // Protected route - Referee only
 router.get('/', authMiddleware, authReferee, RaceEligibilityRuleController.getActiveRules);
 

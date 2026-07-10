@@ -3,6 +3,7 @@ const Registration = require('../entities/Registration');
 const Invitation = require('../entities/Invitation');
 const Horse = require('../entities/Horse');
 const NotificationService = require('./NotificationService');
+const { findJockeyScheduleConflict } = require('./JockeyScheduleConflict');
 /**
  * return {
  * code: 200,
@@ -43,6 +44,18 @@ class InvitationService {
         const duplicate = await Invitation.findOne({ registrationId, jockeyId }).lean();
         if (duplicate) {
             return { code: 409, message: 'This jockey has already been invited to this registration.' };
+        }
+
+        // Don't invite a jockey who already has an accepted invitation for
+        // this same race round, or one scheduled too close to it in time.
+        const conflict = await findJockeyScheduleConflict(jockeyId, registration.raceRoundId);
+        if (conflict) {
+            return {
+                code: 409,
+                message: conflict.sameRound
+                    ? 'This jockey already has an accepted invitation for a different horse in this same race round.'
+                    : 'This jockey already has an accepted invitation for a race scheduled too close to this one.',
+            };
         }
 
         const invitation = await InvitationRepository.create(data);

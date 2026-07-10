@@ -551,9 +551,52 @@ class HorseOwnerService {
             const raceRound = await RaceRound.findById(raceRoundId).populate('tournamentId').lean();
             if (!raceRound) return { code: 404, msg: 'Race round not found' };
 
+            // Competition roster + slot-fill indicator — "confirmed" means the
+            // owner has accepted (registrationStatus 'approved'); this is a
+            // pre-race-day roster view, not the referee's race-day verification.
+            const approvedRegs = await Registration.find({ raceRoundId, registrationStatus: 'approved' }).lean();
+            const confirmedCount = approvedRegs.length;
+            const otherRegs = approvedRegs.filter(r => String(r.horseOwnerId) !== String(ownerId));
+
+            const [otherHorses, otherOwners, otherMainInvitations] = await Promise.all([
+                otherRegs.length
+                    ? Horse.find({ _id: { $in: otherRegs.map(r => r.horseId) } }).lean()
+                    : Promise.resolve([]),
+                otherRegs.length
+                    ? User.find({ _id: { $in: otherRegs.map(r => r.horseOwnerId) } }, 'fullName').lean()
+                    : Promise.resolve([]),
+                otherRegs.length
+                    ? Invitation.find({ registrationId: { $in: otherRegs.map(r => r._id) }, isBackup: false })
+                        .populate({ path: 'jockeyId', model: 'User', select: 'fullName' })
+                        .lean()
+                    : Promise.resolve([]),
+            ]);
+
+            const otherHorseMap = new Map(otherHorses.map(h => [h._id.toString(), h]));
+            const otherOwnerMap = new Map(otherOwners.map(u => [u._id.toString(), u]));
+            const otherInvitationByReg = new Map(otherMainInvitations.map(inv => [inv.registrationId.toString(), inv]));
+
+            const competitors = otherRegs.map(reg => {
+                const inv = otherInvitationByReg.get(reg._id.toString());
+                return {
+                    registrationId: reg._id,
+                    horseName: otherHorseMap.get(reg.horseId?.toString())?.horseName ?? null,
+                    ownerName: otherOwnerMap.get(reg.horseOwnerId?.toString())?.fullName ?? null,
+                    jockeyName: inv?.jockeyId?.fullName ?? null,
+                    laneNumber: reg.laneNumber ?? null,
+                };
+            });
+
+            const competition = {
+                maxParticipants: raceRound.maxParticipants ?? null,
+                confirmedCount,
+                openSlots: Math.max(0, (raceRound.maxParticipants ?? 0) - confirmedCount),
+                competitors,
+            };
+
             const registration = await Registration.findOne({ raceRoundId, horseOwnerId: ownerId }).lean();
             if (!registration) {
-                return { code: 200, data: { raceRound, registration: null }, msg: 'Race detail retrieved successfully' };
+                return { code: 200, data: { raceRound, registration: null, competition }, msg: 'Race detail retrieved successfully' };
             }
 
             const [horse, invitations, raceResult, violations] = await Promise.all([
@@ -600,6 +643,7 @@ class HorseOwnerService {
                         raceResult: raceResult ?? null,
                         violations: violations ?? [],
                     },
+                    competition,
                 },
                 msg: 'Race detail retrieved successfully',
             };

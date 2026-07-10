@@ -3,6 +3,8 @@ const router = express.Router();
 const NotificationController = require('../controllers/NotificationController');
 const { authMiddleware } = require('../middlewares/authMiddleware');
 
+require('../swagger/notificationSwagger');
+
 // Any authenticated, active user (any role) can manage their own notifications
 router.get('/', authMiddleware, NotificationController.listMine);
 router.get('/unread-count', authMiddleware, NotificationController.getUnreadCount);

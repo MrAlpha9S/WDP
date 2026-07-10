@@ -17,6 +17,12 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // Get comprehensive system-wide statistics (all entities, snapshot breakdowns)
+    async getSystemStatistics(req, res) {
+        const response = await AdminService.getSystemStatistics();
+        return res.status(response.code).json(response);
+    }
+
     // Get all users
     async getAllUsers(req, res) {
         const { role, search, sortBy = 'createdAt', order = 'desc' } = req.query;

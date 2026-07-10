@@ -2192,4 +2192,218 @@ AdminService.prototype.toggleViolationTypeActive = async function (id, isActive)
     }
 };
 
+// Comprehensive, system-wide statistics snapshot for the admin statistics page.
+// Every section degrades to 0 / [] rather than throwing when a collection is empty.
+function countMap(aggResult) {
+    const map = {};
+    for (const row of aggResult) {
+        map[row._id ?? 'unknown'] = row.count;
+    }
+    return map;
+}
+
+AdminService.prototype.getSystemStatistics = async function () {
+    try {
+        const Transaction = require('../entities/Transaction');
+        const ViolationType = require('../entities/ViolationType');
+
+        const [
+            totalUsers, usersByRoleAgg, usersByStatusAgg,
+            horseOwnerLicenseAgg, jockeyLicenseAgg, refereeLicenseAgg,
+            totalHorses, horsesByStatusAgg, horsesByHealthAgg,
+            totalTournaments, tournamentsByStatusAgg,
+            totalRaceRounds, raceRoundsByStatusAgg,
+            totalRegistrations, registrationsByStatusAgg,
+            totalInvitations, invitationsByStatusAgg,
+            totalViolations, violationsByStatusAgg, violationsBySeverityAgg, topViolationTypesAgg,
+            totalPredictions, predictionsByStatusAgg, predictionsByMethodAgg, correctRewardAgg, predictionMethods,
+            horseOwnerWalletAgg, jockeyWalletAgg, refereeWalletAgg, mainAdmin,
+            transactionsByTypeAgg,
+            paymentsByStatusAgg, paymentsByTypeAgg,
+            topHorsesRaw, topJockeysRaw,
+        ] = await Promise.all([
+            User.countDocuments(),
+            User.aggregate([{ $group: { _id: '$role', count: { $sum: 1 } } }]),
+            User.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+            HorseOwner.aggregate([{ $group: { _id: '$licenseStatus', count: { $sum: 1 } } }]),
+            Jockey.aggregate([{ $group: { _id: '$licenseStatus', count: { $sum: 1 } } }]),
+            Referee.aggregate([{ $group: { _id: '$licenseStatus', count: { $sum: 1 } } }]),
+            Horse.countDocuments(),
+            Horse.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+            Horse.aggregate([{ $group: { _id: '$healthStatus', count: { $sum: 1 } } }]),
+            Tournament.countDocuments(),
+            Tournament.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+            RaceRound.countDocuments(),
+            RaceRound.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+            Registration.countDocuments(),
+            Registration.aggregate([{ $group: { _id: '$registrationStatus', count: { $sum: 1 } } }]),
+            Invitation.countDocuments(),
+            Invitation.aggregate([{ $group: { _id: '$invitationStatus', count: { $sum: 1 } } }]),
+            Violation.countDocuments(),
+            Violation.aggregate([{ $group: { _id: '$violationStatus', count: { $sum: 1 } } }]),
+            Violation.aggregate([{ $group: { _id: '$severity', count: { $sum: 1 } } }]),
+            Violation.aggregate([
+                { $group: { _id: '$violationTypeId', count: { $sum: 1 } } },
+                { $sort: { count: -1 } },
+                { $limit: 5 },
+            ]),
+            Prediction.countDocuments(),
+            Prediction.aggregate([{ $group: { _id: '$predictionStatus', count: { $sum: 1 } } }]),
+            Prediction.aggregate([{ $group: { _id: '$predictionMethodId', count: { $sum: 1 } } }]),
+            Prediction.aggregate([
+                { $match: { predictionStatus: 'correct' } },
+                { $group: { _id: null, total: { $sum: '$rewardPoints' } } },
+            ]),
+            PredictionMethod.find().lean(),
+            HorseOwner.aggregate([{ $group: { _id: null, total: { $sum: '$wallet' } } }]),
+            Jockey.aggregate([{ $group: { _id: null, total: { $sum: '$wallet' } } }]),
+            Referee.aggregate([{ $group: { _id: null, total: { $sum: '$wallet' } } }]),
+            AdminRepository.findMainAdmin(),
+            Transaction.aggregate([
+                { $match: { transactionType: { $ne: null } } },
+                { $group: { _id: '$transactionType', count: { $sum: 1 }, total: { $sum: '$amount' } } },
+            ]),
+            Transaction.aggregate([
+                { $match: { paymentType: { $ne: null } } },
+                { $group: { _id: '$paymentStatus', count: { $sum: 1 }, total: { $sum: '$amount' } } },
+            ]),
+            Transaction.aggregate([
+                { $match: { paymentType: { $ne: null } } },
+                { $group: { _id: '$paymentType', count: { $sum: 1 }, total: { $sum: '$amount' } } },
+            ]),
+            RaceResult.aggregate([
+                { $match: { finishPosition: 1, resultStatus: 'official' } },
+                { $lookup: { from: 'registrations', localField: 'registrationId', foreignField: '_id', as: 'reg' } },
+                { $unwind: '$reg' },
+                { $match: { 'reg.horseId': { $ne: null } } },
+                { $group: { _id: '$reg.horseId', wins: { $sum: 1 } } },
+                { $sort: { wins: -1 } },
+                { $limit: 5 },
+            ]),
+            Jockey.find().sort({ totalWins: -1 }).limit(5).lean(),
+        ]);
+
+        // Top violation types — resolve names for the top-5 IDs
+        const topTypeIds = topViolationTypesAgg.map(r => r._id).filter(Boolean);
+        const topTypes = topTypeIds.length
+            ? await ViolationType.find({ _id: { $in: topTypeIds } }, 'violationName category').lean()
+            : [];
+        const typeNameMap = new Map(topTypes.map(t => [String(t._id), t]));
+        const topViolationTypes = topViolationTypesAgg.map(r => ({
+            violationTypeId: r._id,
+            violationName: typeNameMap.get(String(r._id))?.violationName ?? 'Unknown',
+            category: typeNameMap.get(String(r._id))?.category ?? null,
+            count: r.count,
+        }));
+
+        // Predictions by method type — resolve methodType for each predictionMethodId
+        const methodTypeMap = new Map(predictionMethods.map(m => [String(m._id), m.methodType]));
+        const predictionsByMethodType = {};
+        for (const row of predictionsByMethodAgg) {
+            const methodType = methodTypeMap.get(String(row._id)) ?? 'unknown';
+            predictionsByMethodType[methodType] = (predictionsByMethodType[methodType] ?? 0) + row.count;
+        }
+
+        // Top horses — resolve names + owner for the top-5 horseIds
+        const topHorseIds = topHorsesRaw.map(r => r._id).filter(Boolean);
+        const topHorseDocs = topHorseIds.length
+            ? await Horse.find({ _id: { $in: topHorseIds } }, 'horseName img ownerId').lean()
+            : [];
+        const horseDocMap = new Map(topHorseDocs.map(h => [String(h._id), h]));
+        const topHorses = topHorsesRaw.map(r => {
+            const h = horseDocMap.get(String(r._id));
+            return { horseId: r._id, horseName: h?.horseName ?? 'Unknown', img: h?.img ?? null, wins: r.wins };
+        });
+
+        // Top jockeys — resolve fullName from User
+        const jockeyUserIds = topJockeysRaw.map(j => j._id);
+        const jockeyUsers = jockeyUserIds.length
+            ? await User.find({ _id: { $in: jockeyUserIds } }, 'fullName').lean()
+            : [];
+        const jockeyUserMap = new Map(jockeyUsers.map(u => [String(u._id), u.fullName]));
+        const topJockeys = topJockeysRaw.map(j => ({
+            jockeyId: j._id,
+            fullName: jockeyUserMap.get(String(j._id)) ?? 'Unknown',
+            totalWins: j.totalWins ?? 0,
+        }));
+
+        return {
+            code: 200,
+            data: {
+                users: {
+                    total: totalUsers,
+                    byRole: countMap(usersByRoleAgg),
+                    byStatus: countMap(usersByStatusAgg),
+                },
+                licensing: {
+                    horseOwner: countMap(horseOwnerLicenseAgg),
+                    jockey: countMap(jockeyLicenseAgg),
+                    referee: countMap(refereeLicenseAgg),
+                },
+                horses: {
+                    total: totalHorses,
+                    byStatus: countMap(horsesByStatusAgg),
+                    byHealthStatus: countMap(horsesByHealthAgg),
+                },
+                tournaments: {
+                    total: totalTournaments,
+                    byStatus: countMap(tournamentsByStatusAgg),
+                },
+                raceRounds: {
+                    total: totalRaceRounds,
+                    byStatus: countMap(raceRoundsByStatusAgg),
+                },
+                registrations: {
+                    total: totalRegistrations,
+                    byStatus: countMap(registrationsByStatusAgg),
+                },
+                invitations: {
+                    total: totalInvitations,
+                    byStatus: countMap(invitationsByStatusAgg),
+                },
+                violations: {
+                    total: totalViolations,
+                    byStatus: countMap(violationsByStatusAgg),
+                    bySeverity: countMap(violationsBySeverityAgg),
+                    topViolationTypes,
+                },
+                predictions: {
+                    total: totalPredictions,
+                    byStatus: countMap(predictionsByStatusAgg),
+                    byMethodType: predictionsByMethodType,
+                    totalRewardPointsPaid: correctRewardAgg[0]?.total || 0,
+                },
+                finance: {
+                    totalHorseOwnerWallets: horseOwnerWalletAgg[0]?.total || 0,
+                    totalJockeyWallets: jockeyWalletAgg[0]?.total || 0,
+                    totalRefereeWallets: refereeWalletAgg[0]?.total || 0,
+                    mainAdminWallet: mainAdmin?.wallet || 0,
+                    transactionsByType: transactionsByTypeAgg.reduce((acc, r) => {
+                        acc[r._id] = { count: r.count, total: r.total };
+                        return acc;
+                    }, {}),
+                },
+                payments: {
+                    byStatus: paymentsByStatusAgg.reduce((acc, r) => {
+                        acc[r._id ?? 'unknown'] = { count: r.count, total: r.total };
+                        return acc;
+                    }, {}),
+                    byType: paymentsByTypeAgg.reduce((acc, r) => {
+                        acc[r._id ?? 'unknown'] = { count: r.count, total: r.total };
+                        return acc;
+                    }, {}),
+                },
+                topPerformers: {
+                    horses: topHorses,
+                    jockeys: topJockeys,
+                },
+            },
+            msg: 'System statistics retrieved successfully',
+        };
+    } catch (error) {
+        console.error('Error fetching system statistics:', error);
+        return { code: 500, msg: error.message };
+    }
+};
+
 module.exports = new AdminService();

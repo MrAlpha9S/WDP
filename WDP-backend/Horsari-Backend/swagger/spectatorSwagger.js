@@ -14,30 +14,6 @@
  *         description: Spectator profile with user details
  *       401:
  *         description: Unauthorized
- *   put:
- *     summary: Update authenticated spectator's profile
- *     tags: [Spectator]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               fullName: { type: string }
- *               phoneNumber: { type: string }
- *               dateOfBirth: { type: string, format: date }
- *               address: { type: string }
- *               image: { type: string }
- *     responses:
- *       200:
- *         description: Profile updated
- *
- *
- *
- *
  *
  * /api/spectator/wallet:
  *   get:
@@ -112,7 +88,53 @@
  *                         limit: { type: integer }
  *                 msg: { type: string }
  *
+ * /api/spectator/transactions/deposit:
+ *   post:
+ *     summary: Deposit reward points (mobile-compatible alias — creates a completed "deposit" transaction)
+ *     tags: [Spectator]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [amount]
+ *             properties:
+ *               amount: { type: number, minimum: 0.01 }
+ *               description: { type: string }
+ *     responses:
+ *       201:
+ *         description: "{ newBalance }"
+ *       400:
+ *         description: Amount must be greater than 0
+ *       404:
+ *         description: Spectator not found
  *
+ * /api/spectator/transactions/withdraw:
+ *   post:
+ *     summary: Withdraw reward points (mobile-compatible alias — creates a completed "withdrawal" transaction)
+ *     tags: [Spectator]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [amount]
+ *             properties:
+ *               amount: { type: number, minimum: 0.01 }
+ *               description: { type: string }
+ *     responses:
+ *       201:
+ *         description: "{ newBalance }"
+ *       400:
+ *         description: Amount must be greater than 0, or insufficient balance
+ *       404:
+ *         description: Spectator not found
  *
  * /api/spectator/home-feed:
  *   get:
@@ -211,9 +233,36 @@
  *         description: Live race detail with raceRound and enriched registrations
  *       404:
  *         description: Race round not found
+ * /api/spectator/tournaments:
+ *   get:
+ *     summary: Get tournaments open for champion prediction (scheduled + ongoing), each enriched with participating horses
+ *     tags: [Spectator]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of tournaments, each with a horses[] roster
+ *       404:
+ *         description: Spectator not found
  *
- *
- *
+ * /api/spectator/prediction-methods:
+ *   get:
+ *     summary: Get active prediction methods, optionally scoped to a race round
+ *     description: >
+ *       Without raceRoundId, returns the plain method list. With raceRoundId, each method is
+ *       enriched with userAlreadyPredicted and existingPredictions for that race round.
+ *     tags: [Spectator]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: raceRoundId
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Array of prediction methods
+ *       404:
+ *         description: Spectator not found, or race round not found (when raceRoundId given)
  *
  * /api/spectator/predictions:
  *   post:

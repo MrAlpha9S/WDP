@@ -9,6 +9,7 @@ require('../swagger/adminSwagger');
 
 // Admin statistics
 router.get('/statistics', authMiddleware, authAdmin, AdminController.getStatistics);
+router.get('/statistics/overview', authMiddleware, authAdmin, AdminController.getSystemStatistics);
 router.get('/users/all', authMiddleware, authAdmin, AdminController.getAllUsers);
 router.get('/users/:userId', authMiddleware, authAdmin, AdminController.getUsersDetail);
 

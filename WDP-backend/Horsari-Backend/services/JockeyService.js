@@ -7,6 +7,7 @@ const HorseOwner = require("../entities/HorseOwner");
 const RaceRound = require("../entities/RaceRound");
 const Tournament = require("../entities/Tournament");
 const NotificationService = require("./NotificationService");
+const { findJockeyScheduleConflict } = require("./JockeyScheduleConflict");
 
 class JockeyService {
   // Get all jockeys
@@ -82,6 +83,21 @@ class JockeyService {
       // Update invitation
       // Map "rejected" (mobile term) → "declined" (DB enum value)
       if (jockeyConfirmation === "accepted") {
+        const registration = invitation.registrationId
+          ? await Registration.findById(invitation.registrationId).lean()
+          : null;
+        if (registration?.raceRoundId) {
+          const conflict = await findJockeyScheduleConflict(jockeyId, registration.raceRoundId, { excludeInvitationId: invitation._id });
+          if (conflict) {
+            return {
+              code: 409,
+              msg: conflict.sameRound
+                ? "You already have an accepted invitation for a different horse in this same race round."
+                : "You already have an accepted invitation for a race scheduled too close to this one.",
+            };
+          }
+        }
+
         invitation.jockeyConfirmation = true;
         invitation.invitationStatus = "accepted";
       } else {

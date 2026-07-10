@@ -1,17 +1,25 @@
 /**
  * @swagger
- *
- *
- *
- * /api/jockey/profile:
+ * /api/jockey/all:
  *   get:
- *     summary: Get authenticated jockey's profile (with user details)
+ *     summary: Get all jockeys (public — also used by horse owners to browse available jockeys)
  *     tags: [Jockey]
- *     security:
- *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
+ *       - in: query
+ *         name: sortBy
+ *         schema: { type: string, default: createdAt }
+ *       - in: query
+ *         name: order
+ *         schema: { type: string, enum: [asc, desc], default: desc }
  *     responses:
  *       200:
- *         description: Jockey profile
+ *         description: Paginated jockey list with user info
  *         content:
  *           application/json:
  *             schema:
@@ -21,52 +29,89 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     jockeyId: { type: string }
- *                     height: { type: number }
- *                     weight: { type: number }
- *                     matchesRaced: { type: number }
- *                     totalWins: { type: number }
- *                     ranking: { type: number }
- *                     status: { type: string }
- *                     licenseLink: { type: string }
- *                     licenseStatus: { type: string }
- *                     user:
- *                       type: object
- *                       properties:
- *                         fullName: { type: string }
- *                         email: { type: string }
- *                         phoneNumber: { type: string }
- *                         dateOfBirth: { type: string }
- *                         image: { type: string }
- *       401:
- *         description: Unauthorized
- *   put:
- *     summary: Update authenticated jockey's profile
+ *                     items: { type: array, items: { type: object } }
+ *                     pagination: { $ref: '#/components/schemas/PaginationMeta' }
+ *                 msg: { type: string }
+ *
+ * /api/jockey/my-race-schedule:
+ *   get:
+ *     summary: Get the jockey's accepted-invitation race schedule (mobile-shaped flat list, sorted by raceDate ascending)
  *     tags: [Jockey]
  *     security:
  *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Array of ScheduleItem, each with nested horse/registration/horseOwner/raceRound/tournament
+ *       404:
+ *         description: Jockey not found
+ *
+ * /api/jockey/my-invitations:
+ *   get:
+ *     summary: Get the jockey's invitations (mobile-shaped flat list, nested horseOwner.user)
+ *     tags: [Jockey]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [pending, accepted, declined, cancelled] }
+ *         description: Defaults to all four statuses if omitted
+ *     responses:
+ *       200:
+ *         description: Array of InvitationItem
+ *       404:
+ *         description: Jockey not found
+ *
+ * /api/jockey/invitation/{invitationId}/respond:
+ *   put:
+ *     summary: Accept or reject a race invitation
+ *     description: >
+ *       Accepting is rejected with 409 if the jockey already holds an accepted invitation for
+ *       this same race round, or for another race round scheduled within 90 minutes of it.
+ *     tags: [Jockey]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invitationId
+ *         required: true
+ *         schema: { type: string }
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [jockeyConfirmation]
  *             properties:
- *               height: { type: number }
- *               weight: { type: number }
- *               fullName: { type: string }
- *               phoneNumber: { type: string }
- *               dateOfBirth: { type: string, format: date }
- *               image: { type: string }
+ *               jockeyConfirmation: { type: string, enum: [accepted, rejected] }
  *     responses:
  *       200:
- *         description: Profile updated
+ *         description: Invitation updated
+ *       400:
+ *         description: Invalid jockeyConfirmation, or invitation is no longer pending
+ *       403:
+ *         description: Invitation does not belong to this jockey
+ *       404:
+ *         description: Invitation not found
+ *       409:
+ *         description: Conflicting accepted invitation for this or a nearby race round
  *
- *
- *
- * /api/jockey/invitations:
+ * /api/jockey/wallet:
  *   get:
- *     summary: Get jockey's race invitations (paginated, filterable by status)
+ *     summary: Get the jockey's statistical wallet info (no real money movement)
+ *     tags: [Jockey]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: "{ jockey: { _id, wallet }, stats: { totalPaymentsReceived } }"
+ *       404:
+ *         description: Jockey not found
+ *
+ * /api/jockey/payments:
+ *   get:
+ *     summary: List the jockey's own payments (always payee — jockey_payout)
  *     tags: [Jockey]
  *     security:
  *       - BearerAuth: []
@@ -79,22 +124,13 @@
  *         schema: { type: integer, default: 10 }
  *       - in: query
  *         name: status
- *         schema:
- *           type: string
- *           enum: [pending, accepted, rejected]
- *         description: Filter by invitation status (defaults to pending + accepted if omitted)
+ *         schema: { type: string, enum: [unpaid, processing, paid] }
  *       - in: query
- *         name: sortBy
- *         schema:
- *           type: string
- *           enum: [createdAt, updatedAt, invitationStatus, percentagePayout, raceDate]
- *           default: createdAt
- *       - in: query
- *         name: order
- *         schema: { type: string, enum: [asc, desc], default: desc }
+ *         name: direction
+ *         schema: { type: string, enum: [all, incoming, outgoing], default: all }
  *     responses:
  *       200:
- *         description: Paginated invitations with race round and horse details
+ *         description: Paginated payment list
  *         content:
  *           application/json:
  *             schema:
@@ -104,69 +140,38 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     items: { type: array, items: { type: object } }
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         totalItems: { type: integer }
- *                         totalPages: { type: integer }
- *                         currentPage: { type: integer }
- *                         limit: { type: integer }
+ *                     items: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+ *                     pagination: { $ref: '#/components/schemas/PaginationMeta' }
  *                 msg: { type: string }
  *
- * /api/jockey/invitations/respond:
- *   post:
- *     summary: Accept or reject a race invitation
- *     tags: [Jockey]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [invitationId, jockeyConfirmation]
- *             properties:
- *               invitationId:
- *                 type: string
- *               jockeyConfirmation:
- *                 type: string
- *                 enum: [accepted, rejected]
- *     responses:
- *       200:
- *         description: Response recorded
- *       404:
- *         description: Invitation not found
- *
- * /api/jockey/race-schedule:
- *   get:
- *     summary: Get upcoming races the jockey is scheduled for (accepted invitations, paginated)
+ * /api/jockey/payments/{paymentId}/confirm-received:
+ *   put:
+ *     summary: Jockey confirms a payout has been received (payee-side confirmation)
  *     tags: [Jockey]
  *     security:
  *       - BearerAuth: []
  *     parameters:
- *       - in: query
- *         name: page
- *         schema: { type: integer, default: 1 }
- *       - in: query
- *         name: limit
- *         schema: { type: integer, default: 10 }
- *       - in: query
- *         name: sortBy
- *         schema:
- *           type: string
- *           enum: [raceDate, createdAt, updatedAt]
- *           default: raceDate
- *       - in: query
- *         name: order
- *         schema: { type: string, enum: [asc, desc], default: asc }
+ *       - in: path
+ *         name: paymentId
+ *         required: true
+ *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Paginated upcoming race schedule
- *
- *
- *
- *
- *
+ *         description: Payment updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: integer, example: 200 }
+ *                 data: { $ref: '#/components/schemas/Payment' }
+ *                 msg: { type: string }
+ *       403:
+ *         description: Authenticated jockey is not the payee on this payment
+ *       404:
+ *         description: Payment not found
+ *       422:
+ *         description: Already confirmed as payee
  */
+
+module.exports = {};

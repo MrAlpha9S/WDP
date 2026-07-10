@@ -3,6 +3,8 @@ const router = require('express').Router();
 const TournamentController = require('../controllers/TournamentController');
 const { authMiddleware,authAdmin } = require('../middlewares/authMiddleware');
 
+require('../swagger/tournamentSwagger');
+
 router.post('/', authMiddleware, authAdmin, TournamentController.createTournament);
 router.put('/:id', authMiddleware, authAdmin, TournamentController.updateTournament);
 router.delete('/:id', authMiddleware, authAdmin, TournamentController.deleteTournament);

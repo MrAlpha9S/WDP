@@ -30,6 +30,7 @@ const PredictionMethod = require("../entities/PredictionMethod");
 const Prediction = require("../entities/Prediction");
 
 const Transaction = require("../entities/Transaction");
+const { convertToVnd } = require("../services/CurrencyConverter");
 
 const PASSWORD_HASH =
   "$2b$10$smxEWfBiOmkrAkvaBpyfJ.Lv/uxe4inN8KRymH6TN.W10RSAWMbrO";
@@ -638,6 +639,8 @@ async function seed() {
     // ── Round 1 (completed) — 1 main + 1–2 backups per registration ───────────
     // Main jockey indices for each of the 6 registrations
     const r1MainJockeyIdx = [0, 1, 2, 3, 0, 1];
+    // Indexed alongside r1Regs/resultData for the payment-verification seeding below
+    const r1MainInvitations = [];
 
     for (let i = 0; i < r1Regs.length; i++) {
       const reg = r1Regs[i];
@@ -654,8 +657,10 @@ async function seed() {
         invitationStatus: "accepted",
         isBackup: false,
         percentagePayout: 10,
+        bookingFees: 100,
       });
       invitations.push(mainInv);
+      r1MainInvitations.push(mainInv);
       await Registration.findByIdAndUpdate(reg._id, { jockeyInRaceId: mainInv._id, horseId: horse._id });
 
       // Backup 1 — pending (owner sent, jockey hasn't replied)
@@ -786,8 +791,10 @@ async function seed() {
       { reg: r1Regs[4], pos: 5, time: "1:41.30", prize: 0, distance: 0 }, // last finisher
     ];
 
+    // Indexed alongside resultData for the payment-verification seeding below
+    const r1RaceResults = [];
     for (const rd of resultData) {
-      await RaceResult.create({
+      const raceResult = await RaceResult.create({
         raceRoundId: round1._id,
         registrationId: rd.reg._id,
         publishedByAdminId: admins[0]._id,
@@ -797,6 +804,7 @@ async function seed() {
         prizeMoney: rd.prize,
         resultStatus: "official",
       });
+      r1RaceResults.push(raceResult);
     }
 
     // Cancelled result (horse[5] disqualified)
@@ -1505,6 +1513,120 @@ async function seed() {
       description: "Deposit failed — insufficient funds",
       referenceType: "payment",
     });
+
+    /* ================================================
+           13. PAYMENT VERIFICATION (race_prize / referee_fee / jockey_payout)
+           Mirrors exactly what AdminService.confirmRaceResult would create for
+           Round 1 (already "completed" above), with varied confirmation states
+           so the new payment/wallet UI has real data right after seeding.
+           - Position 1: paid (both sides confirmed) → wallets credited below
+           - Position 2: processing (payer confirmed only)
+           - Position 3: unpaid (neither confirmed) — deliberately differs from
+             raceReferee2's stale legacy paymentStatus "paid" below, proving the
+             real Transaction-derived status is what the UI now shows
+           - Positions 4-5: booking-fee-only payouts (prize was 0), left unpaid
+           ================================================ */
+
+    const r1PayoutState = ["paid", "processing", "unpaid", "unpaid", "unpaid"];
+
+    for (let i = 0; i < r1RaceResults.length; i++) {
+      const raceResult = r1RaceResults[i];
+      const state = r1PayoutState[i];
+      const isPayerConfirmed = state === "paid" || state === "processing";
+      const isPayeeConfirmed = state === "paid";
+
+      // race_prize (admin → horseOwner) — only when the horse actually placed
+      if (raceResult.prizeMoney > 0) {
+        const prizeAmountVnd = convertToVnd(raceResult.prizeMoney, round1.currencyType);
+        await Transaction.create({
+          paymentType: "race_prize",
+          payerRole: "admin",
+          payerId: admins[0]._id,
+          payeeRole: "horseowner",
+          payeeId: horses[i].ownerId,
+          amount: prizeAmountVnd,
+          originalAmount: raceResult.prizeMoney,
+          originalCurrency: round1.currencyType,
+          sourceType: "RaceResult",
+          sourceId: raceResult._id,
+          raceRoundId: round1._id,
+          payerConfirmed: isPayerConfirmed,
+          payerConfirmedAt: isPayerConfirmed ? daysAgo(2) : null,
+          payeeConfirmed: isPayeeConfirmed,
+          payeeConfirmedAt: isPayeeConfirmed ? daysAgo(1) : null,
+          paymentStatus: state,
+        });
+
+        if (state === "paid") {
+          await HorseOwner.findByIdAndUpdate(horses[i].ownerId, { $inc: { wallet: prizeAmountVnd } });
+        }
+      }
+
+      // jockey_payout (horseOwner → jockey) — booking fee + percentage-of-prize cut,
+      // same formula as AdminService.confirmRaceResult
+      const mainInv = r1MainInvitations[i];
+      const percentageCut = raceResult.prizeMoney > 0
+        ? Math.round((mainInv.percentagePayout / 100) * raceResult.prizeMoney)
+        : 0;
+      const payoutAmount = (mainInv.bookingFees || 0) + percentageCut;
+      if (payoutAmount > 0) {
+        const payoutAmountVnd = convertToVnd(payoutAmount, round1.currencyType);
+        await Transaction.create({
+          paymentType: "jockey_payout",
+          payerRole: "horseowner",
+          payerId: horses[i].ownerId,
+          payeeRole: "jockey",
+          payeeId: mainInv.jockeyId,
+          amount: payoutAmountVnd,
+          originalAmount: payoutAmount,
+          originalCurrency: round1.currencyType,
+          sourceType: "Invitation",
+          sourceId: mainInv._id,
+          raceRoundId: round1._id,
+          payerConfirmed: isPayerConfirmed,
+          payerConfirmedAt: isPayerConfirmed ? daysAgo(2) : null,
+          payeeConfirmed: isPayeeConfirmed,
+          payeeConfirmedAt: isPayeeConfirmed ? daysAgo(1) : null,
+          paymentStatus: state,
+        });
+
+        if (state === "paid") {
+          await Jockey.findByIdAndUpdate(mainInv.jockeyId, { $inc: { wallet: payoutAmountVnd } });
+        }
+      }
+    }
+
+    // referee_fee (admin → referee) — raceReferee1 paid, raceReferee2 unpaid
+    const refereeFeeSeeds = [
+      { assignment: raceReferee1, state: "paid" },
+      { assignment: raceReferee2, state: "unpaid" },
+    ];
+    for (const { assignment, state } of refereeFeeSeeds) {
+      const isConfirmed = state === "paid";
+      const feeAmountVnd = convertToVnd(assignment.fee, round1.currencyType);
+      await Transaction.create({
+        paymentType: "referee_fee",
+        payerRole: "admin",
+        payerId: admins[0]._id,
+        payeeRole: "referee",
+        payeeId: assignment.refereeId,
+        amount: feeAmountVnd,
+        originalAmount: assignment.fee,
+        originalCurrency: round1.currencyType,
+        sourceType: "RaceReferee",
+        sourceId: assignment._id,
+        raceRoundId: round1._id,
+        payerConfirmed: isConfirmed,
+        payerConfirmedAt: isConfirmed ? daysAgo(2) : null,
+        payeeConfirmed: isConfirmed,
+        payeeConfirmedAt: isConfirmed ? daysAgo(1) : null,
+        paymentStatus: state,
+      });
+
+      if (state === "paid") {
+        await Referee.findByIdAndUpdate(assignment.refereeId, { $inc: { wallet: feeAmountVnd } });
+      }
+    }
 
     console.log("\n✅ Seed completed successfully");
     console.log(

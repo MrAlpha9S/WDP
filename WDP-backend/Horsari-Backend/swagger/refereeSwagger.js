@@ -322,6 +322,134 @@
  *     responses:
  *       200:
  *         description: Results confirmed by referee
+ *
+ * /api/referee/invitations/{invitationId}/no-show:
+ *   put:
+ *     summary: Mark a jockey as a no-show for race day
+ *     tags: [Referee]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: invitationId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Invitation marked "didNotAttend"
+ *       403:
+ *         description: Referee is not assigned to this race round
+ *       404:
+ *         description: Invitation or registration not found
+ *       422:
+ *         description: Invitation is not linked to a registration
+ *
+ * /api/referee/violations/{violationId}/confirm:
+ *   put:
+ *     summary: Confirm a recorded violation (locks it in as official)
+ *     tags: [Referee]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: violationId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Violation confirmed
+ *       403:
+ *         description: Referee does not own this violation's assignment
+ *       404:
+ *         description: Violation not found
+ *
+ * /api/referee/wallet:
+ *   get:
+ *     summary: Get the referee's statistical wallet info (no real money movement)
+ *     tags: [Referee]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: "{ referee: { _id, wallet }, stats: { totalFeesReceived } }"
+ *       404:
+ *         description: Referee not found
+ *
+ * /api/referee/statistics:
+ *   get:
+ *     summary: Referee statistics snapshot (invitations, races officiated, fees earned/pending)
+ *     tags: [Referee]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: "{ wallet, totalInvitations, totalRacesOfficiated, acceptedCount, rejectedCount, pendingCount, totalFeesEarned, pendingFeesAmount }"
+ *       404:
+ *         description: Referee not found
+ *
+ * /api/referee/payments:
+ *   get:
+ *     summary: List the referee's own payments (always payee — referee_fee)
+ *     tags: [Referee]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 10 }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [unpaid, processing, paid] }
+ *       - in: query
+ *         name: direction
+ *         schema: { type: string, enum: [all, incoming, outgoing], default: all }
+ *     responses:
+ *       200:
+ *         description: Paginated payment list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: integer, example: 200 }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     items: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+ *                     pagination: { $ref: '#/components/schemas/PaginationMeta' }
+ *                 msg: { type: string }
+ *
+ * /api/referee/payments/{paymentId}/confirm-received:
+ *   put:
+ *     summary: Referee confirms a fee payment has been received (payee-side confirmation)
+ *     tags: [Referee]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: paymentId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Payment updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: integer, example: 200 }
+ *                 data: { $ref: '#/components/schemas/Payment' }
+ *                 msg: { type: string }
+ *       403:
+ *         description: Authenticated referee is not the payee on this payment
+ *       404:
+ *         description: Payment not found
+ *       422:
+ *         description: Already confirmed as payee
  */
 
 module.exports = {};

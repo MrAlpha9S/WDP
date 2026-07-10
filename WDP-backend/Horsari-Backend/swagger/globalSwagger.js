@@ -1,13 +1,51 @@
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     PaginationMeta:
+ *       type: object
+ *       properties:
+ *         totalItems: { type: integer }
+ *         totalPages: { type: integer }
+ *         currentPage: { type: integer }
+ *         limit: { type: integer }
+ *     Payment:
+ *       type: object
+ *       description: >
+ *         A Transaction document being used as a two-sided payment-verification record
+ *         (paymentType is set; transactionType is left null on these rows). Status is
+ *         unpaid until payerConfirmed, then processing until payeeConfirmed too, then paid.
+ *       properties:
+ *         _id: { type: string }
+ *         paymentType: { type: string, enum: [race_prize, jockey_payout, referee_fee] }
+ *         payerRole: { type: string, enum: [admin, horseowner] }
+ *         payerId: { type: string }
+ *         payeeRole: { type: string, enum: [horseowner, jockey, referee] }
+ *         payeeId: { type: string }
+ *         sourceType: { type: string, enum: [RaceResult, Invitation, RaceReferee] }
+ *         sourceId: { type: string }
+ *         raceRoundId: { type: string }
+ *         amount: { type: number, description: "VND, converted via CurrencyConverter" }
+ *         originalAmount: { type: number }
+ *         originalCurrency: { type: string }
+ *         payerConfirmed: { type: boolean }
+ *         payerConfirmedAt: { type: string, format: date-time, nullable: true }
+ *         payeeConfirmed: { type: boolean }
+ *         payeeConfirmedAt: { type: string, format: date-time, nullable: true }
+ *         paymentStatus: { type: string, enum: [unpaid, processing, paid] }
+ *
  * /api/auth/register:
  *   post:
  *     summary: Register a new user
+ *     description: >
+ *       Multipart form. The "license" file is required when role is horseowner, jockey,
+ *       or referee (uploaded to Cloudinary and stored as licenseLink, pending admin verification).
+ *       Sets an httpOnly "Authorization" cookie on success in addition to returning accessToken.
  *     tags: [Global]
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required: [username, email, password]
@@ -37,6 +75,10 @@
  *                 type: string
  *                 enum: [horseowner, jockey, referee, spectator]
  *                 default: spectator
+ *               license:
+ *                 type: string
+ *                 format: binary
+ *                 description: Required PDF license when role is horseowner, jockey, or referee
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -50,16 +92,23 @@
  *                   type: object
  *                   properties:
  *                     accessToken: { type: string }
- *                     user: { type: object }
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         username: { type: string }
+ *                         email: { type: string }
+ *                         role: { type: string }
+ *                         fullName: { type: string }
  *                 msg: { type: string, example: "User registered successfully" }
  *       400:
- *         description: Validation error
+ *         description: Missing/invalid fields, weak password, or missing license for a licensed role
  *       409:
  *         description: Email or username already exists
  *
  * /api/auth/login:
  *   post:
  *     summary: Login with email and password
+ *     description: Sets an httpOnly "Authorization" cookie on success in addition to returning accessToken.
  *     tags: [Global]
  *     requestBody:
  *       required: true
@@ -78,7 +127,7 @@
  *                 example: SecurePass123!
  *     responses:
  *       200:
- *         description: Login successful — returns JWT and sets httpOnly cookie
+ *         description: Login successful
  *         content:
  *           application/json:
  *             schema:
@@ -89,63 +138,20 @@
  *                   type: object
  *                   properties:
  *                     accessToken: { type: string }
- *                     user: { type: object }
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         username: { type: string }
+ *                         email: { type: string }
+ *                         role: { type: string }
+ *                         fullName: { type: string }
  *                 msg: { type: string, example: "Login successful" }
+ *       400:
+ *         description: Missing email or password
  *       401:
- *         description: Invalid credentials
+ *         description: User not found or invalid password
  *       403:
  *         description: Account not active
- *
- * /api/auth/google/login:
- *   post:
- *     summary: Login or register via Google ID token
- *     tags: [Global]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [idToken]
- *             properties:
- *               idToken:
- *                 type: string
- *                 description: Google ID token from client
- *     responses:
- *       200:
- *         description: Existing Google account logged in
- *       201:
- *         description: New account created via Google
- *
- * /api/auth/google/login/additional-info:
- *   post:
- *     summary: Complete Google account setup — select role (one-time only)
- *     tags: [Global]
- *     security:
- *       - BearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [role]
- *             properties:
- *               role:
- *                 type: string
- *                 enum: [horseowner, jockey, referee, spectator, admin]
- *                 example: jockey
- *               height:
- *                 type: number
- *                 description: Required for jockey role
- *               weight:
- *                 type: number
- *                 description: Required for jockey role
- *     responses:
- *       200:
- *         description: Role set and entity created
- *       400:
- *         description: Already completed or invalid role
  *
  * /api/auth/current-user:
  *   get:
@@ -156,67 +162,41 @@
  *     responses:
  *       200:
  *         description: Current user profile
- *       401:
- *         description: Unauthorized
- *
- * /api/auth/user/{id}:
- *   get:
- *     summary: Get user by ID
- *     tags: [Global]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code: { type: integer, example: 200 }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: string }
+ *                     username: { type: string }
+ *                     email: { type: string }
+ *                     fullName: { type: string }
+ *                     phoneNumber: { type: string }
+ *                     role: { type: string }
+ *                     status: { type: string }
+ *                 msg: { type: string }
  *       404:
  *         description: User not found
  *
  * /api/auth/logout:
  *   post:
- *     summary: Logout — clears auth cookie
+ *     summary: Logout — clears the Authorization cookie
  *     tags: [Global]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Logout successful
- *
- * /api/upload/cert/user/{id}:
- *   post:
- *     summary: Upload certification document (PDF only, max 10 MB)
- *     description: "Available to: horseowner, jockey, referee. Automatically updates licenseLink on the role entity."
- *     tags: [Global]
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *         description: User ID
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required: [certification]
- *             properties:
- *               certification:
- *                 type: string
- *                 format: binary
- *     responses:
- *       201:
- *         description: Certification uploaded and licenseLink updated
- *       400:
- *         description: Missing file or wrong format
- *       403:
- *         description: Role not allowed to upload certifications
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg: { type: string, example: "Logout successful" }
  */
 
 module.exports = {};
