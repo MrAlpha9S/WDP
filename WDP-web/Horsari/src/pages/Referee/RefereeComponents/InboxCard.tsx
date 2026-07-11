@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import type { RaceInvite } from "../../../shared/types/InboxTypes";
 import { RACE_TYPE_DESCRIPTIONS } from "../../../shared/data/InboxData";
-import { StatusPill, PaymentPill, RaceTypeBadge, GradeBadge } from "./InboxBadges";
+import { StatusPill, PaymentPill, RaceTypeBadge } from "./InboxBadges";
 
 // ── Mini Calendar ─────────────────────────────────────────────────────────────
 
@@ -105,7 +105,7 @@ function ExpandedDetail({ invite, onAccept, onDecline }: ExpandedDetailProps) {
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Race Classification</p>
                         <div className="flex items-center gap-2 flex-wrap">
                             <RaceTypeBadge type={invite.raceType} />
-                            <span className="text-[12px] text-gray-500">{RACE_TYPE_DESCRIPTIONS[invite.raceType]}</span>
+                            <span className="text-[12px] text-gray-500">{RACE_TYPE_DESCRIPTIONS[invite.raceType] ?? "No description available."}</span>
                         </div>
                     </div>
 

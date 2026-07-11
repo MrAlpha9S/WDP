@@ -40,33 +40,16 @@ export function PaymentPill({ status }: { status: PaymentStatus }) {
 // ── Race Type Badge ────────────────────────────────────────────────────────────
 
 export function RaceTypeBadge({ type }: { type: RaceType }) {
-    const map: Record<RaceType, string> = {
+    const map: Record<string, string> = {
         Stakes:    "border-red-800/60 text-red-400 bg-red-500/10",
         Allowance: "border-blue-800/60 text-blue-400 bg-blue-500/10",
         Claims:  "border-orange-800/60 text-orange-400 bg-orange-500/10",
         Maiden:    "border-purple-800/60 text-purple-400 bg-purple-500/10",
     };
+    const cls = map[type] ?? "border-white/10 text-gray-400 bg-white/5";
     return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold ${map[type]}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold ${cls}`}>
             {type}
-        </span>
-    );
-}
-
-// ── Grade Badge ────────────────────────────────────────────────────────────────
-
-export function GradeBadge({ grade }: { grade: string }) {
-    if (!grade) return null;
-    const map: Record<string, string> = {
-        G1:     "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
-        G2:     "border-gray-600/60 text-gray-400 bg-white/5",
-        G3:     "border-amber-700/60 text-amber-400 bg-amber-500/10",
-        Listed: "border-sky-700/60 text-sky-400 bg-sky-500/10",
-        Open:   "border-white/10 text-gray-500 bg-transparent",
-    };
-    return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-black tracking-wide ${map[grade]}`}>
-            {grade}
         </span>
     );
 }
