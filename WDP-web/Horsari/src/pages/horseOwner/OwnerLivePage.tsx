@@ -638,6 +638,7 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Stats</h2>
                         {[
+                            { label: "Race Type", value: raceRound?.RaceType?.raceType ?? "-" },
                             { label: "Elapsed",   value: elapsed     },
                             { label: "Pace",      value: paceMps     },
                             { label: "Leader",    value: leaderLabel },

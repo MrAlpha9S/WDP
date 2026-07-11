@@ -426,6 +426,12 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                           <span>{race.currentParticipants}/{race.maxParticipants} entries</span>
                         </div>
                       )}
+                      {race.raceType && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                          <Flag size={10} className="shrink-0" />
+                          <span className="truncate">{race.raceType}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Prize + action */}
