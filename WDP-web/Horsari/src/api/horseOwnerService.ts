@@ -473,6 +473,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
+
   getRaceEligibilityMetadata: async (
     ruleId: string,
   ): Promise<{

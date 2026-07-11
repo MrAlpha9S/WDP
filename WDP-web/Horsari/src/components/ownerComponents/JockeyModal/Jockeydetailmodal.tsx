@@ -11,16 +11,13 @@ export interface Jockey {
   id: number;
   name: string;
   rank: JockeyRank;
-  country: string;
   status: JockeyStatus;
   winRate: number;
   starts: number;
   wins: number;
   places: number;
-  baseFee: number | null;
   weight: string;
   age: number;
-  experience: string;
   specialties: string[];
   recentRaces: { race: string; position: string; horse: string; date: string }[];
   image: string | null;
@@ -105,9 +102,6 @@ export default function JockeyDetailModal({ jockey, onClose }: JockeyDetailModal
             >
               {jockey.name}
             </h2>
-            <p className="text-[11px] font-semibold tracking-widest text-gray-400 uppercase mt-0.5">
-              {jockey.rank} Rank · {jockey.country}
-            </p>
           </div>
         </div>
 
@@ -120,7 +114,7 @@ export default function JockeyDetailModal({ jockey, onClose }: JockeyDetailModal
               { icon: <Trophy    size={13} className="text-yellow-400" />, label: "Win Rate",     value: `${jockey.winRate}%`,          color: "text-green-400" },
               { icon: <TrendingUp size={13} className="text-blue-400"  />, label: "Total Starts", value: jockey.starts.toLocaleString(), color: "text-white"     },
               { icon: <Star      size={13} className="text-orange-400" />, label: "Wins",         value: jockey.wins.toLocaleString(),   color: "text-white"     },
-              { icon: <Calendar  size={13} className="text-purple-400" />, label: "Experience",   value: jockey.experience,              color: "text-white"     },
+              { icon: <Star      size={13} className="text-orange-400" />, label: "Weight",         value: jockey.weight.toLocaleString(),   color: "text-white"     },
             ].map((s) => (
               <div key={s.label} className="bg-[#141414] rounded-xl px-3 py-3 border border-white/6 text-center">
                 <div className="flex justify-center mb-1.5">{s.icon}</div>
@@ -128,40 +122,6 @@ export default function JockeyDetailModal({ jockey, onClose }: JockeyDetailModal
                 <p className="text-[10px] text-gray-600 uppercase tracking-wide mt-0.5">{s.label}</p>
               </div>
             ))}
-          </div>
-
-          {/* Details row */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: <Weight  size={14} />, label: "Weight",   value: jockey.weight  },
-              { icon: <MapPin  size={14} />, label: "Country",  value: jockey.country },
-              { icon: <Diamond size={14} />, label: "Base Fee", value: jockey.baseFee !== null ? `$${jockey.baseFee.toLocaleString()}` : "Contract" },
-            ].map((item) => (
-              <div key={item.label} className="bg-[#141414] rounded-xl px-4 py-3 border border-white/6 flex items-center gap-2.5">
-                <span className="text-gray-500 shrink-0">{item.icon}</span>
-                <div>
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wide">{item.label}</p>
-                  <p className="text-[13px] font-semibold text-white mt-0.5">{item.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Specialties */}
-          <div>
-            <p className="text-[11px] font-semibold tracking-widest text-gray-600 uppercase mb-2.5">
-              Specialties
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {jockey.specialties.map((s) => (
-                <span
-                  key={s}
-                  className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[12px] text-gray-300 font-medium"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
           </div>
 
           {/* Recent Races */}

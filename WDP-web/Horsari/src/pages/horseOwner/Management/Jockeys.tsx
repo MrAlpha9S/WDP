@@ -58,7 +58,6 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     id: raw._id ?? index,
     name: raw.fullName ?? raw.username ?? "Unknown",
     rank: rank,
-    country: raw.country ?? "N/A",
     status: status,
     winRate: raw.totalWins && raw.matchesRaced
       ? parseFloat(((raw.totalWins / raw.matchesRaced) * 100).toFixed(1))
@@ -66,10 +65,8 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     starts: raw.matchesRaced ?? 0,
     wins: raw.totalWins ?? 0,
     places: raw.places ?? 0,
-    baseFee: raw.baseFee ?? null,
     weight: raw.weight ? `${raw.weight} kg` : "N/A",
     age,
-    experience: raw.experience ?? "N/A",
     specialties: raw.specialties ?? [],
     recentRaces: raw.recentRaces ?? [],
     image: raw.image || null,
@@ -154,9 +151,6 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
           <h3 className="text-[19px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
             {jockey.name}
           </h3>
-          <p className="text-[10.5px] font-semibold tracking-widest text-gray-600 uppercase mt-0.5">
-            {jockey.rank} Rank · {jockey.country}
-          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-2">

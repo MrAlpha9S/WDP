@@ -58,8 +58,6 @@ function mapApiToInvitation(raw: any): Invitation {
     venue: raw.raceRound?.location ?? raw.location ?? "TBA",
     prize: raw.raceRound?.firstPlacePrize != null ? `${raw.raceRound?.currencyType ?? "USD"} ${raw.raceRound.firstPlacePrize.toLocaleString()}` : "TBA",
     distance: raw.raceRound?.trackLength != null ? `${raw.raceRound.trackLength}m` : "TBA",
-    horse: raw.horseName ?? raw.horse?.horseName ?? "TBA",
-    jockey: raw.jockeyName ?? raw.jockey?.fullName ?? "TBA",
     sentBy: raw.sentBy ?? raw.organizer ?? "Organizer",
     sentAt: raw.sentAt ?? raw.createdAt ?? "",
     image: raw.image ?? raw.coverImage ?? "/track.png",
@@ -248,8 +246,6 @@ function InvitationCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {[
-                { label: "Horse", value: inv.horse, accent: true },
-                { label: "Jockey", value: inv.jockey, accent: true },
                 { label: "Distance", value: inv.distance, accent: false },
               ].map((f) => (
                 <div key={f.label}>

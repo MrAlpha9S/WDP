@@ -21,8 +21,6 @@ export interface Invitation {
   type: "Race" | "Tournament";
   date: string;
   venue: string;
-  horse: string;
-  jockey: string;
   prize: string;
   distance: string;
   image: string;
