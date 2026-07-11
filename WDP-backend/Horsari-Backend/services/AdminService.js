@@ -2086,7 +2086,7 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
 };
 
 // List all violations across every race, with pagination and optional filters.
-AdminService.prototype.getAllViolations = async function (page, limit, { status, severity, raceRoundId, sortBy = 'createdAt', order = 'desc' } = {}) {
+AdminService.prototype.getAllViolations = async function (page, limit, { status, severity, raceRoundId, sortBy = 'created_at', order = 'desc' } = {}) {
     try {
         const Violation = require('../entities/Violation');
         const filter = {};
@@ -2094,8 +2094,9 @@ AdminService.prototype.getAllViolations = async function (page, limit, { status,
         if (severity)    filter.severity = Number(severity);
         if (raceRoundId) filter.raceRoundId = raceRoundId;
 
-        const allowedViolationSortFields = ['createdAt', 'severity', 'violationStatus'];
-        const sortField = allowedViolationSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        // Violation's timestamps option remaps createdAt -> created_at (see entities/Violation.js)
+        const allowedViolationSortFields = ['created_at', 'severity', 'violationStatus'];
+        const sortField = allowedViolationSortFields.includes(sortBy) ? sortBy : 'created_at';
         const sortOrder = order === 'asc' ? 1 : -1;
 
         const skip = (page - 1) * limit;
