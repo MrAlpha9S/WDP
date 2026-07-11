@@ -13,7 +13,7 @@ import type { ViolationTypeRecord, ViolationRecord } from "../../api/refereeServ
 
 function severityDot(severity?: number) {
     if (!severity) return "bg-gray-600";
-    if (severity <= 2)  return "bg-yellow-500";
+    if (severity <= 2) return "bg-yellow-500";
     if (severity === 3) return "bg-orange-500";
     return "bg-red-500";
 }
@@ -36,9 +36,9 @@ function IncidentButton({
             onClick={onClick}
             disabled={loading}
             className={["group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border text-center transition-all duration-200 cursor-pointer select-none relative",
-                active   ? "border-red-700 bg-red-500/10 text-red-400"
-                         : "border-white/8 bg-white/[0.03] text-gray-500 hover:border-white/15 hover:bg-white/[0.06] hover:text-gray-300",
-                loading  ? "opacity-60 cursor-not-allowed" : "",
+                active ? "border-red-700 bg-red-500/10 text-red-400"
+                    : "border-white/8 bg-white/[0.03] text-gray-500 hover:border-white/15 hover:bg-white/[0.06] hover:text-gray-300",
+                loading ? "opacity-60 cursor-not-allowed" : "",
             ].join(" ")}
         >
             {loading
@@ -332,8 +332,8 @@ function PositionTrack({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LivePage() {
-    const { wsConnected, wsCount, horses, raceRound, liveUpdate } = useRaceSocket();
-const [verificationOpen, setVerificationOpen] = useState(false);
+    const { horses, raceRound, liveUpdate } = useRaceSocket();
+    const [verificationOpen, setVerificationOpen] = useState(false);
     const [selectedHorseRegId, setSelectedHorseRegId] = useState<string | null>(null);
     const [activeCam, setActiveCam] = useState(1);
     const [showTrackOnStream, setShowTrackOnStream] = useState(false);
@@ -356,15 +356,15 @@ const [verificationOpen, setVerificationOpen] = useState(false);
     }, [showMux]);
 
     // Derive display values from live update (or fallback to "--")
-    const liveHorses   = liveUpdate?.horses ?? null;
-    const trackLength  = liveUpdate?.trackLength ?? raceRound?.trackLength ?? 2000;
-    const lineMark     = liveUpdate?.lineMark ?? null;
-    const elapsed      = liveUpdate ? formatElapsed(liveUpdate.elapsedSeconds) : "--:--";
-    const leader       = liveHorses
+    const liveHorses = liveUpdate?.horses ?? null;
+    const trackLength = liveUpdate?.trackLength ?? raceRound?.trackLength ?? 2000;
+    const lineMark = liveUpdate?.lineMark ?? null;
+    const elapsed = liveUpdate ? formatElapsed(liveUpdate.elapsedSeconds) : "--:--";
+    const leader = liveHorses
         ? [...liveHorses].sort((a, b) => b.currentDistance - a.currentDistance)[0]
         : null;
-    const leaderLabel  = leader ? `#${leader.number} ${leader.horseName}` : "—";
-    const paceMps      = leader ? `${leader.currentSpeed.toFixed(1)} m/s` : "—";
+    const leaderLabel = leader ? `#${leader.number} ${leader.horseName}` : "—";
+    const paceMps = leader ? `${leader.currentSpeed.toFixed(1)} m/s` : "—";
 
     // ── Violation state ───────────────────────────────────────────────────────
     const [violationTypes, setViolationTypes] = useState<ViolationTypeRecord[]>([]);
@@ -381,7 +381,7 @@ const [verificationOpen, setVerificationOpen] = useState(false);
         ]).then(([vtRes, vRes]) => {
             if (Array.isArray(vtRes.data?.items)) setViolationTypes(vtRes.data.items);
             if (Array.isArray(vRes.data)) setActiveViolations(vRes.data);
-        }).catch(() => {});
+        }).catch(() => { });
     }, [raceRound?._id]);
 
     // Count per violation type for badge display
@@ -430,7 +430,7 @@ const [verificationOpen, setVerificationOpen] = useState(false);
             if (res.data) {
                 setActiveViolations(prev => [...prev, res.data]);
             }
-        } catch {}
+        } catch { }
         setModalLoading(false);
         setPendingVt(null);
     };
@@ -440,23 +440,12 @@ const [verificationOpen, setVerificationOpen] = useState(false);
         try {
             await refereeService.deleteViolation(violationId);
             setActiveViolations(prev => prev.filter(v => v._id !== violationId));
-        } catch {}
+        } catch { }
         setDeletingId(null);
     };
 
     return (
         <div className="flex flex-col gap-4">
-
-            {/* WS badge */}
-            <div className={[
-                "flex items-center gap-2.5 self-start px-3 py-1.5 rounded-xl border text-[11px] font-bold font-mono transition-all duration-300",
-                wsConnected
-                    ? "border-emerald-700/60 bg-emerald-500/10 text-emerald-400"
-                    : "border-red-800/50 bg-red-500/10 text-red-500 animate-pulse",
-            ].join(" ")}>
-                <span className={["w-2 h-2 rounded-full", wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"].join(" ")} />
-                {wsConnected ? <>WS Connected &nbsp;·&nbsp; ping #{wsCount ?? "…"}</> : <>WS Disconnected</>}
-            </div>
 
             {/* Row 1: Camera + Incident Log */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
@@ -668,11 +657,11 @@ const [verificationOpen, setVerificationOpen] = useState(false);
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
                     <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Stats</h2>
                     {[
-                        { label: "Elapsed",       value: elapsed },
-                        { label: "Current Pace",  value: paceMps },
-                        { label: "Leader",        value: leaderLabel },
-                        { label: "Next Mark",     value: lineMark !== null ? `${lineMark} m` : "—" },
-                        { label: "Incidents",     value: `${activeViolations.length}` },
+                        { label: "Elapsed", value: elapsed },
+                        { label: "Current Pace", value: paceMps },
+                        { label: "Leader", value: leaderLabel },
+                        { label: "Next Mark", value: lineMark !== null ? `${lineMark} m` : "—" },
+                        { label: "Incidents", value: `${activeViolations.length}` },
                     ].map(item => (
                         <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                             <span className="text-[12px] text-gray-500">{item.label}</span>
@@ -752,10 +741,7 @@ const [verificationOpen, setVerificationOpen] = useState(false);
                                                             <span className="text-[10px] text-gray-600">Speed</span>
                                                             <span className="text-[10px] font-mono text-white">{liveData.currentSpeed.toFixed(1)} m/s</span>
                                                         </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-[10px] text-gray-600">Style</span>
-                                                            <span className="text-[10px] font-semibold text-gray-400">{liveData.raceStyle}</span>
-                                                        </div>
+
                                                         {liveData.isFinished && (
                                                             <>
                                                                 <div className="mt-0.5 border-t border-white/6 pt-1.5 flex justify-between">
