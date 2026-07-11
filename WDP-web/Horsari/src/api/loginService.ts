@@ -1,9 +1,48 @@
 import api from "./axios";
 
+export interface LoginRequest {
+    email: string;
+    password: string;
+}
+
+export interface AuthUser {
+    username: string;
+    email: string;
+    role: string;
+    fullName: string;
+}
+
+export interface AuthResponse {
+    code: number;
+    data: {
+        accessToken: string;
+        user: AuthUser;
+    };
+    msg: string;
+}
+
+export interface CurrentUserResponse {
+    code: number;
+    data: {
+        id: string;
+        username: string;
+        email: string;
+        fullName: string;
+        phoneNumber: string;
+        role: string;
+        status: string;
+    };
+    msg: string;
+}
+
+export interface LogoutResponse {
+    msg: string;
+}
+
 export const authService = {
-    login: async (data: any) => {
+    login: async (data: LoginRequest): Promise<AuthResponse | string> => {
         try {
-            const response = await api.post("/auth/login", data);
+            const response = await api.post<AuthResponse>("/auth/login", data);
             return response.data;
         } catch (error: any) {
             if (error.response?.status === 401) {
@@ -13,9 +52,8 @@ export const authService = {
             }
         }
     },
-    register: async (data: FormData) => {
-
-        const response = await api.post("/auth/register", data, {
+    register: async (data: FormData): Promise<AuthResponse> => {
+        const response = await api.post<AuthResponse>("/auth/register", data, {
             transformRequest: [(d, headers) => {
                 delete headers['Content-Type'];
                 return d;
@@ -23,12 +61,12 @@ export const authService = {
         });
         return response.data;
     },
-    getCurrentUser: async () => {
-        const response = await api.get("/auth/current-user");
+    getCurrentUser: async (): Promise<CurrentUserResponse> => {
+        const response = await api.get<CurrentUserResponse>("/auth/current-user");
         return response.data;
     },
-    logout: async () => {
-        const response = await api.post("/auth/logout");
+    logout: async (): Promise<LogoutResponse> => {
+        const response = await api.post<LogoutResponse>("/auth/logout");
         return response.data;
     }
 };

@@ -203,7 +203,7 @@ export default function HireJockeyModal({
         console.log('data: ', data)
         if (cancelled) return;
 
-        const list: unknown[] = data?.data?.items ?? data?.data?.invitations ?? (Array.isArray(data?.data) ? data.data : []);
+        const list: unknown[] = data?.data?.items ?? [];
         const approved = list.filter((r: any) =>
           ["approved", "verified"].includes(r?.registration?.registrationStatus ?? "")
         );
@@ -227,7 +227,7 @@ export default function HireJockeyModal({
         const data = await horseOwnerService.getUserHorse();
         if (cancelled) return;
 
-        const list: unknown[] = data?.data?.items ?? data?.data?.horses ?? (Array.isArray(data?.data) ? data.data : []);
+        const list: unknown[] = data?.data?.items ?? [];
         setHorses(list.map((h: any, i) => mapHorse(h, i)));
       } catch {
         if (!cancelled) setErrorHorses("Failed to load horses.");

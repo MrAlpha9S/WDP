@@ -103,6 +103,353 @@ export interface AdminStatistics {
   };
 }
 
+export interface PaginationMeta {
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+}
+
+export type CountMap = Record<string, number>;
+
+export interface ViolationTypeCount {
+  violationTypeId: string;
+  violationName: string;
+  category: string | null;
+  count: number;
+}
+
+export interface TopHorse {
+  horseId: string;
+  horseName: string;
+  img: string | null;
+  wins: number;
+}
+
+export interface TopJockey {
+  jockeyId: string;
+  fullName: string;
+  totalWins: number;
+}
+
+export interface SystemStatistics {
+  users: {
+    total: number;
+    byRole: CountMap;
+    byStatus: CountMap;
+  };
+  licensing: {
+    horseOwner: CountMap;
+    jockey: CountMap;
+    referee: CountMap;
+  };
+  horses: {
+    total: number;
+    byStatus: CountMap;
+    byHealthStatus: CountMap;
+  };
+  tournaments: {
+    total: number;
+    byStatus: CountMap;
+  };
+  raceRounds: {
+    total: number;
+    byStatus: CountMap;
+  };
+  registrations: {
+    total: number;
+    byStatus: CountMap;
+  };
+  invitations: {
+    total: number;
+    byStatus: CountMap;
+  };
+  violations: {
+    total: number;
+    byStatus: CountMap;
+    bySeverity: CountMap;
+    topViolationTypes: ViolationTypeCount[];
+  };
+  predictions: {
+    total: number;
+    byStatus: CountMap;
+    byMethodType: CountMap;
+    totalRewardPointsPaid: number;
+  };
+  finance: {
+    totalHorseOwnerWallets: number;
+    totalJockeyWallets: number;
+    totalRefereeWallets: number;
+    mainAdminWallet: number;
+    transactionsByType: Record<string, { count: number; total: number }>;
+  };
+  payments: {
+    byStatus: Record<string, { count: number; total: number }>;
+    byType: Record<string, { count: number; total: number }>;
+  };
+  topPerformers: {
+    horses: TopHorse[];
+    jockeys: TopJockey[];
+  };
+}
+
+export interface SystemStatisticsResponse {
+  code: number;
+  data: SystemStatistics;
+  msg: string;
+}
+
+export interface AdminUserListItem {
+  _id: string;
+  username: string;
+  email: string;
+  fullName?: string;
+  phoneNumber?: string;
+  role: string;
+  status: string;
+  dateOfBirth?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminUsersResponse {
+  code: number;
+  data: { items: AdminUserListItem[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export interface AdminUserDetailResponse {
+  code: number;
+  data: { user: AdminUserListItem; roleProfile: Record<string, unknown> };
+  msg: string;
+}
+
+export interface HorseOwnerInvitationItem {
+  registrationId: string;
+  registrationAt: string;
+  registrationStatus: string;
+  raceRound: { raceRoundId: string; roundName: string; raceDate: string; maxParticipants: number; currentParticipants: number; status: string } | null;
+  horse: { horseId: string; horseName: string } | null;
+  invitations: { invitationsId: string; jockeyName: string; isBackup: boolean; isJockeyInRace: boolean; status: string }[];
+  horseOwner: { ownerId: string; fullName: string | null } | null;
+}
+
+export interface HorseOwnerInvitationsResponse {
+  code: number;
+  data: { items: HorseOwnerInvitationItem[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export interface RefereeInvitationItem {
+  raceRefereeId: string;
+  raceReferee: { status: string };
+  raceRound: { raceRoundId: string; roundName: string; raceDate: string; status: string } | null;
+  referee: { refereeId: string; user: { fullName: string } } | null;
+}
+
+export interface RefereeInvitationsResponse {
+  code: number;
+  data: { items: RefereeInvitationItem[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export interface JockeyInvitationItem {
+  registrationId: string | null;
+  registration: { registrationAt: string; registrationStatus: string } | null;
+  raceRound: { raceRoundId: string; roundName: string; raceDate: string; status: string } | null;
+  horse: { horseId: string; horseName: string } | null;
+  invitations: { invitationId: string; jockeyName: string; isBackup: boolean; isJockeyInRace: boolean; invitationStatus: string }[];
+  jockey: { jockeyId: string; user: { fullName: string } } | null;
+  status: string;
+  invitationId: string;
+  isBackup: boolean;
+  isJockeyInRace: boolean;
+}
+
+export interface JockeyInvitationsResponse {
+  code: number;
+  data: { items: JockeyInvitationItem[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export interface AdminTournamentListItem {
+  tournament: Record<string, unknown>;
+  priceTotalPool: number;
+  raceRound: Record<string, unknown>[];
+}
+
+export interface AdminTournamentsResponse {
+  code: number;
+  data: { items: AdminTournamentListItem[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export type CreateRaceTournamentOption = { _id: string; tournamentName?: string } & Record<string, unknown>;
+export type CreateRaceEligibilityRuleOption = { _id: string; raceType?: string | null } & Record<string, unknown>;
+export type CreateRaceRefereeOption = { _id: string } & Record<string, unknown>;
+
+export interface CreateRaceMetadataResponse {
+  code: number;
+  data: {
+    previousRaceTracks: { location: string; raceGround?: string; address?: string }[];
+    tournaments: CreateRaceTournamentOption[];
+    eligibilityRules: CreateRaceEligibilityRuleOption[];
+    referees: CreateRaceRefereeOption[];
+    owners: { _id: string; user: unknown; horses: Record<string, unknown>[] }[];
+  };
+  msg: string;
+}
+
+export interface CreateRaceRoundPayload {
+  TournamentId: string;
+  RaceRound: {
+    roundName: string;
+    raceDate: string;
+    trackLength: number;
+    maxParticipants: number;
+    minimalRidingFees: number;
+    raceGround: string;
+    requireEntranceFees?: boolean;
+    firstPlacePrize?: number;
+    secondPlacePrize?: number;
+    thirdPlacePrize?: number;
+    currencyType?: string;
+    location?: string;
+    address?: string;
+    eligibilityRuleId?: string;
+  };
+  HorseOwnerInvitation?: string[];
+  RefereeInvitation?: { refereeId: string; fee?: number }[];
+}
+
+export interface UpdateRaceRoundPayload {
+  TournamentId?: string;
+  RaceRound?: Partial<CreateRaceRoundPayload['RaceRound']>;
+  HorseOwnerInvitation?: string[];
+  RefereeInvitation?: { refereeId: string; fee?: number }[];
+}
+
+export interface RaceRoundMutationResponse {
+  code: number;
+  data: { tournament: Record<string, unknown> | null; raceRound: RaceRoundData; registrations: Record<string, unknown>[]; raceReferees: Record<string, unknown>[] };
+  msg: string;
+}
+
+export interface TournamentPayload {
+  tournamentName: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  status?: 'draft' | 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
+}
+
+export interface TournamentEntity {
+  _id: string;
+  tournamentName: string;
+  description?: string;
+  startDate: string | null;
+  endDate: string | null;
+  status: string;
+  prizePool: number;
+  championHorseId: string | null;
+}
+
+export interface TournamentMutationResponse {
+  code: number;
+  data: TournamentEntity;
+  msg: string;
+}
+
+export interface RaceEligibilityRule {
+  _id: string;
+  minAge: number | null;
+  maxAge: number | null;
+  minRacesRun: number;
+  minRacesWon: number;
+  requiredGender: "male" | "female" | null;
+  requiredBreed: string | null;
+  licenseRequired: boolean;
+  requireNomination: boolean;
+  isActive: boolean;
+  raceType: string | null;
+  create_at: string;
+  updated_at: string;
+}
+
+export interface RulesResponse {
+  code: number;
+  data: { items: RaceEligibilityRule[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export interface RuleMutationResponse {
+  code: number;
+  data: RaceEligibilityRule;
+  msg: string;
+}
+
+export interface SimpleMsgResponse {
+  code: number;
+  data?: unknown;
+  msg: string;
+}
+
+export interface StreamInfoResponse {
+  code: number;
+  data: { rtmpUrl?: string; streamKey?: string; playbackId?: string };
+  msg: string;
+}
+
+export interface VodResponse {
+  code: number;
+  data: { vodPlaybackId?: string };
+  msg: string;
+}
+
+export interface AdminHorseListItem {
+  horseId: string;
+  horseName: string;
+  breed: string | null;
+  gender: string | null;
+  healthStatus: string;
+  status: string;
+  registrationDate: string | null;
+  dateOfBirth: string | null;
+  img: string | null;
+  ownerId: string;
+  ownerName: string | null;
+  createdAt: string;
+}
+
+export interface AdminHorsesResponse {
+  code: number;
+  data: { items: AdminHorseListItem[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export interface AdminHorseDetailResponse {
+  code: number;
+  data: {
+    horse: Record<string, unknown>;
+    owner: { ownerId: string | null; fullName: string | null; email: string | null };
+    totalRaces: number;
+    totalViolations: number;
+    raceHistory: Record<string, unknown>[];
+  };
+  msg: string;
+}
+
+export interface ImportantEventsResponse {
+  code: number;
+  data: {
+    pendingCertifications: Record<string, unknown>[];
+    racesReadyToStart: Record<string, unknown>[];
+    activeTournaments: Record<string, unknown>[];
+    pendingRegistrations: Record<string, unknown>[];
+  };
+  msg: string;
+}
+
 export const adminService = {
   getStatistics: async (): Promise<{ code: number; data: AdminStatistics; msg: string }> => {
     try {
@@ -114,6 +461,15 @@ export const adminService = {
     }
   },
 
+  getSystemStatistics: async (): Promise<SystemStatisticsResponse> => {
+    try {
+      const response = await api.get('/admin/statistics/overview');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch system statistics' };
+    }
+  },
+
   getAllUsers: async (
     role?: string,
     search?: string,
@@ -121,9 +477,9 @@ export const adminService = {
     skip: number = 0,
     sortBy = 'createdAt',
     order: 'asc' | 'desc' = 'desc',
-  ) => {
+  ): Promise<AdminUsersResponse> => {
     try {
-      const params: any = { limit, skip, sortBy, order };
+      const params: Record<string, unknown> = { limit, skip, sortBy, order };
       if (role && role !== 'All') params.role = role;
       if (search) params.search = search;
       const response = await api.get('/admin/users/all', { params });
@@ -134,7 +490,7 @@ export const adminService = {
     }
   },
 
-  getUsersDetail: async (userId: string) => {
+  getUsersDetail: async (userId: string): Promise<AdminUserDetailResponse> => {
     try {
       const response = await api.get(`/admin/users/${userId}`);
       return response.data;
@@ -143,7 +499,7 @@ export const adminService = {
     }
   },
 
-  getHorseOwnerInvitations: async (page: number = 1, limit: number = 5) => {
+  getHorseOwnerInvitations: async (page: number = 1, limit: number = 5): Promise<HorseOwnerInvitationsResponse> => {
     try {
       const response = await api.get('/admin/horse-owner-invitations', {
         params: { page, limit }
@@ -155,7 +511,7 @@ export const adminService = {
     }
   },
 
-  getRefereeInvitations: async (page: number = 1, limit: number = 5) => {
+  getRefereeInvitations: async (page: number = 1, limit: number = 5): Promise<RefereeInvitationsResponse> => {
     try {
       const response = await api.get('/admin/referee-invitations', {
         params: { page, limit }
@@ -167,7 +523,7 @@ export const adminService = {
     }
   },
 
-  getJockeyInvitations: async (page: number = 1, limit: number = 5) => {
+  getJockeyInvitations: async (page: number = 1, limit: number = 5): Promise<JockeyInvitationsResponse> => {
     try {
       const response = await api.get('/admin/jockey-invitations', {
         params: { page, limit }
@@ -179,7 +535,7 @@ export const adminService = {
     }
   },
 
-  getTournamentsWithDetails: async (page: number = 1, limit: number = 10) => {
+  getTournamentsWithDetails: async (page: number = 1, limit: number = 10): Promise<AdminTournamentsResponse> => {
     try {
       const response = await api.get('/admin/tournaments', {
         params: { page, limit }
@@ -225,7 +581,7 @@ export const adminService = {
     }
   },
 
-  getCreateRaceMetadata: async () => {
+  getCreateRaceMetadata: async (): Promise<CreateRaceMetadataResponse> => {
     try {
       const response = await api.get('/admin/create-race-metadata');
       console.log('API Response:', response.data);
@@ -235,7 +591,7 @@ export const adminService = {
     }
   },
 
-  createRaceRound: async (payload: any) => {
+  createRaceRound: async (payload: CreateRaceRoundPayload): Promise<RaceRoundMutationResponse> => {
     try {
       const response = await api.post('/raceround', payload);
       console.log('API Response:', response.data);
@@ -245,7 +601,7 @@ export const adminService = {
     }
   },
 
-  updateRaceRound: async (id: string, payload: any) => {
+  updateRaceRound: async (id: string, payload: UpdateRaceRoundPayload): Promise<RaceRoundMutationResponse> => {
     try {
       const response = await api.put(`/raceround/${id}`, payload);
       console.log('API Response:', response.data);
@@ -255,7 +611,7 @@ export const adminService = {
     }
   },
 
-  createTournament: async (data: any) => {
+  createTournament: async (data: TournamentPayload): Promise<TournamentMutationResponse> => {
     try {
       const response = await api.post('/tournament', data);
       console.log('API Response:', response.data);
@@ -265,7 +621,7 @@ export const adminService = {
     }
   },
 
-  updateTournament: async (id: string, data: any) => {
+  updateTournament: async (id: string, data: Partial<TournamentPayload>): Promise<TournamentMutationResponse> => {
     try {
       const response = await api.put(`/tournament/${id}`, data);
       console.log('API Response:', response.data);
@@ -293,7 +649,7 @@ export const adminService = {
     }
   },
 
-  deleteTournament: async (id: string) => {
+  deleteTournament: async (id: string): Promise<SimpleMsgResponse> => {
     try {
       const response = await api.delete(`/tournament/${id}`);
       console.log('API Response:', response.data);
@@ -376,7 +732,7 @@ export const adminService = {
     }
   },
 
-  cancelRaceRound: async (id: string) => {
+  cancelRaceRound: async (id: string): Promise<SimpleMsgResponse> => {
     try {
       const response = await api.patch(`/raceround/${id}/cancel`);
       console.log('API Response:', response.data);
@@ -393,9 +749,9 @@ export const adminService = {
     search?: string,
     sortBy = 'createdAt',
     order: 'asc' | 'desc' = 'desc',
-  ) => {
+  ): Promise<RulesResponse> => {
     try {
-      const params: any = { page, limit, sortBy, order };
+      const params: Record<string, unknown> = { page, limit, sortBy, order };
       if (search) params.search = search;
       const response = await api.get('/admin/rules', { params });
       console.log('API Response:', response.data);
@@ -405,7 +761,7 @@ export const adminService = {
     }
   },
 
-  createRule: async (data: any) => {
+  createRule: async (data: Partial<RaceEligibilityRule>): Promise<RuleMutationResponse> => {
     try {
       const response = await api.post('/admin/rules', data);
       console.log('API Response:', response.data);
@@ -415,7 +771,7 @@ export const adminService = {
     }
   },
 
-  updateRule: async (id: string, data: any) => {
+  updateRule: async (id: string, data: Partial<RaceEligibilityRule>): Promise<RuleMutationResponse> => {
     try {
       const response = await api.put(`/admin/rules/${id}`, data);
       console.log('API Response:', response.data);
@@ -425,7 +781,7 @@ export const adminService = {
     }
   },
 
-  deleteRule: async (id: string) => {
+  deleteRule: async (id: string): Promise<SimpleMsgResponse> => {
     try {
       const response = await api.delete(`/admin/rules/${id}`);
       console.log('API Response:', response.data);
@@ -437,7 +793,7 @@ export const adminService = {
 
   // --- Certification Verification ---
 
-  verifyCertification: async (userId: string, action: 'approve' | 'reject') => {
+  verifyCertification: async (userId: string, action: 'approve' | 'reject'): Promise<SimpleMsgResponse> => {
     try {
       const response = await api.patch(`/admin/users/${userId}/certification`, { action });
       return response.data;
@@ -448,7 +804,7 @@ export const adminService = {
 
   // --- Race Round Status & Results ---
 
-  setRaceRoundStatus: async (id: string, status: 'running' | 'cancelled') => {
+  setRaceRoundStatus: async (id: string, status: 'running' | 'cancelled'): Promise<{ code: number; data: RaceRoundData; msg: string }> => {
     try {
       const response = await api.put(`/admin/race-rounds/${id}/status`, { status });
       return response.data;
@@ -459,7 +815,7 @@ export const adminService = {
 
   // --- Mux Stream & VOD ---
 
-  createStream: async (id: string) => {
+  createStream: async (id: string): Promise<StreamInfoResponse> => {
     try {
       const response = await api.post(`/admin/race-rounds/${id}/stream`);
       return response.data;
@@ -468,7 +824,7 @@ export const adminService = {
     }
   },
 
-  getStreamInfo: async (id: string) => {
+  getStreamInfo: async (id: string): Promise<StreamInfoResponse> => {
     try {
       const response = await api.get(`/admin/race-rounds/${id}/stream`);
       return response.data;
@@ -477,7 +833,7 @@ export const adminService = {
     }
   },
 
-  getVOD: async (id: string) => {
+  getVOD: async (id: string): Promise<VodResponse> => {
     try {
       const response = await api.get(`/admin/race-rounds/${id}/vod`);
       return response.data;
@@ -495,9 +851,9 @@ export const adminService = {
     status?: string,
     sortBy = 'createdAt',
     order: 'asc' | 'desc' = 'desc',
-  ) => {
+  ): Promise<AdminHorsesResponse> => {
     try {
-      const params: any = { page, limit, sortBy, order };
+      const params: Record<string, unknown> = { page, limit, sortBy, order };
       if (search) params.search = search;
       if (status) params.status = status;
       const response = await api.get('/admin/horses', { params });
@@ -507,7 +863,7 @@ export const adminService = {
     }
   },
 
-  getHorseDetail: async (horseId: string) => {
+  getHorseDetail: async (horseId: string): Promise<AdminHorseDetailResponse> => {
     try {
       const response = await api.get(`/admin/horses/${horseId}`);
       return response.data;
@@ -516,7 +872,7 @@ export const adminService = {
     }
   },
 
-  updateHorseStatus: async (horseId: string, status: 'active' | 'inactive' | 'retired') => {
+  updateHorseStatus: async (horseId: string, status: 'active' | 'inactive' | 'retired'): Promise<{ code: number; data: Record<string, unknown>; msg: string }> => {
     try {
       const response = await api.patch(`/admin/horses/${horseId}/status`, { status });
       return response.data;
@@ -527,7 +883,7 @@ export const adminService = {
 
   // --- Important Events ---
 
-  getImportantEvents: async () => {
+  getImportantEvents: async (): Promise<ImportantEventsResponse> => {
     try {
       const response = await api.get('/admin/important-events');
       return response.data;

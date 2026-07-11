@@ -1,6 +1,7 @@
 import api from './axios';
 import type { RaceRoundData } from './adminService';
 import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
+import type { RaceRoundDetail } from '../providers/useRaceSocket';
 
 export interface RefereeWalletInfo {
     referee: { _id: string; wallet: number };
@@ -94,6 +95,55 @@ export interface ViolationRecord {
     actualPenalty?: string;
 }
 
+export interface PaginationMeta {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    limit: number;
+}
+
+export interface InvitationEntity {
+    _id: string;
+    jockeyId?: string;
+    horseId?: string;
+    registrationId?: string;
+    invitationStatus: string;
+    jockeyConfirmation?: boolean;
+    ownerConfirmation?: boolean;
+    isBackup?: boolean;
+    percentagePayout?: number;
+    bookingFees?: number;
+}
+
+/** Raw RaceReferee assignment doc — pagination uses `total`, not `totalItems`, matching the real backend response shape. */
+export interface RefereeInvitationItem {
+    _id: string;
+    raceRoundId: {
+        _id: string;
+        roundName?: string;
+        raceDate?: string;
+        location?: string;
+        address?: string;
+        minimalRidingFees?: number;
+        eligibilityRuleId?: { raceType?: string; gradeLevel?: string } | null;
+        tournamentId?: { tournamentName?: string } | null;
+    } | null;
+    refereeId: string;
+    status: string;
+    fee?: number;
+    assignedAt?: string;
+    assignedByAdminId?: string;
+    paymentStatus: 'unpaid' | 'processing' | 'paid';
+}
+
+export interface RefereeInvitationsPagination {
+    total: number;
+    totalPages: number;
+    currentPage: number;
+    limit: number;
+}
+
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 export const refereeService = {
@@ -105,9 +155,9 @@ export const refereeService = {
         search?: string,
         sortBy = 'raceDate',
         order: 'asc' | 'desc' = 'desc',
-    ): Promise<{ code: number; data: { items: RaceRoundData[]; pagination: any }; msg: string }> => {
+    ): Promise<{ code: number; data: { items: RaceRoundData[]; pagination: PaginationMeta }; msg: string }> => {
         try {
-            const params: any = { page, limit, sortBy, order };
+            const params: Record<string, unknown> = { page, limit, sortBy, order };
             if (status) params.status = status;
             if (search) params.search = search;
             const response = await api.get('/referee/race-rounds', { params });
@@ -126,9 +176,9 @@ export const refereeService = {
         search?: string,
         sortBy = 'startDate',
         order: 'asc' | 'desc' = 'desc',
-    ): Promise<{ code: number; data: { items: TournamentWithRounds[]; pagination: any }; msg: string }> => {
+    ): Promise<{ code: number; data: { items: TournamentWithRounds[]; pagination: PaginationMeta }; msg: string }> => {
         try {
-            const params: any = { page, limit, sortBy, order };
+            const params: Record<string, unknown> = { page, limit, sortBy, order };
             if (status) params.status = status;
             if (search) params.search = search;
             const response = await api.get('/referee/tournaments', { params });
@@ -139,7 +189,7 @@ export const refereeService = {
         }
     },
 
-    getActiveRules: async (): Promise<{ code: number; data: { items: any[]; pagination: any }; msg: string }> => {
+    getActiveRules: async (): Promise<{ code: number; data: { items: Record<string, unknown>[]; pagination: PaginationMeta }; msg: string }> => {
         try {
             const response = await api.get('/eligibility-rules');
             console.log('getActiveRules:', response.data);
@@ -153,7 +203,7 @@ export const refereeService = {
         limit = 5,
         page = 1,
         status?: string,
-    ): Promise<{ code: number; data: any[]; pagination: any; msg: string }> => {
+    ): Promise<{ code: number; data: RefereeInvitationItem[]; pagination: RefereeInvitationsPagination; msg: string }> => {
         try {
             const statusParam = status ? `&status=${status}` : '';
             const response = await api.get(`/referee/invitations?limit=${limit}&page=${page}${statusParam}`);
@@ -164,7 +214,7 @@ export const refereeService = {
         }
     },
 
-    acceptInvitation: async (id: string): Promise<{ code: number; data: any; msg: string }> => {
+    acceptInvitation: async (id: string): Promise<{ code: number; data: RefereeInvitationItem; msg: string }> => {
         try {
             const response = await api.put(`/referee/invitations/${id}/accept`);
             console.log('acceptInvitation:', response.data);
@@ -174,7 +224,7 @@ export const refereeService = {
         }
     },
 
-    rejectInvitation: async (id: string): Promise<{ code: number; data: any; msg: string }> => {
+    rejectInvitation: async (id: string): Promise<{ code: number; data: RefereeInvitationItem; msg: string }> => {
         try {
             const response = await api.put(`/referee/invitations/${id}/reject`);
             console.log('rejectInvitation:', response.data);
@@ -184,7 +234,7 @@ export const refereeService = {
         }
     },
 
-    getRaceRoundById: async (id: string): Promise<{ code: number; data: any; msg: string }> => {
+    getRaceRoundById: async (id: string): Promise<{ code: number; data: RaceRoundDetail; msg: string }> => {
         try {
             const response = await api.get(`/referee/race-rounds/${id}`);
             console.log('getRaceRoundById:', response.data);
@@ -204,7 +254,7 @@ export const refereeService = {
             failedChecks?: string[];
             selectedViolationTypeId?: string;
         },
-    ): Promise<{ code: number; data: any; msg: string }> => {
+    ): Promise<{ code: number; data: RegistrationEntry; msg: string }> => {
         try {
             const response = await api.put(
                 `/referee/race-rounds/${raceRoundId}/registrations/${registrationId}/verify`,
@@ -219,7 +269,7 @@ export const refereeService = {
     cancelRegistration: async (
         raceRoundId: string,
         registrationId: string,
-    ): Promise<{ code: number; data: any; msg: string }> => {
+    ): Promise<{ code: number; data: RegistrationEntry; msg: string }> => {
         try {
             const response = await api.put(
                 `/referee/race-rounds/${raceRoundId}/registrations/${registrationId}/cancel`,
@@ -231,7 +281,7 @@ export const refereeService = {
     },
 
     /** Marks the jockey on an invitation as a no-show (didNotAttend) for race day. */
-    markJockeyNoShow: async (invitationId: string): Promise<{ code: number; data: any; msg: string }> => {
+    markJockeyNoShow: async (invitationId: string): Promise<{ code: number; data: InvitationEntity; msg: string }> => {
         try {
             const response = await api.put(`/referee/invitations/${invitationId}/no-show`);
             return response.data;
@@ -258,9 +308,9 @@ export const refereeService = {
         search?: string,
         sortBy = 'severity',
         order: 'asc' | 'desc' = 'asc',
-    ): Promise<{ code: number; data: { items: ViolationTypeRecord[]; pagination: any }; msg: string }> => {
+    ): Promise<{ code: number; data: { items: ViolationTypeRecord[]; pagination: PaginationMeta }; msg: string }> => {
         try {
-            const params: any = { page, limit, sortBy, order };
+            const params: Record<string, unknown> = { page, limit, sortBy, order };
             if (type) params.type = type;
             if (search) params.search = search;
             const response = await api.get('/referee/violation-types', { params });
@@ -279,7 +329,7 @@ export const refereeService = {
         order: 'asc' | 'desc' = 'desc',
     ): Promise<{ code: number; data: ViolationRecord[]; msg: string }> => {
         try {
-            const params: any = { sortBy, order };
+            const params: Record<string, unknown> = { sortBy, order };
             if (status) params.status = status;
             if (search) params.search = search;
             const response = await api.get(`/referee/race-rounds/${raceRoundId}/violations`, { params });
@@ -325,7 +375,9 @@ export const refereeService = {
         }
     },
 
-    confirmRaceResult: async (id: string): Promise<{ code: number; data: any; msg: string }> => {
+    confirmRaceResult: async (
+        id: string,
+    ): Promise<{ code: number; data: { raceRound: RaceRoundData; results: Record<string, unknown>[] }; msg: string }> => {
         try {
             const response = await api.post(`/referee/race-rounds/${id}/confirm-result`);
             console.log('confirmRaceResult:', response.data);
@@ -364,7 +416,7 @@ export const refereeService = {
         direction: 'payer' | 'payee' | 'all' = 'all',
     ): Promise<PaymentsResponse> => {
         try {
-            const params: any = { page, limit, direction };
+            const params: Record<string, unknown> = { page, limit, direction };
             if (status) params.status = status;
             const response = await api.get('/referee/payments', { params });
             return response.data;

@@ -155,6 +155,109 @@ export interface HorseProfileData {
   violations: HorseViolationEntry[];
 }
 
+export interface PaginationMeta {
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+}
+
+export interface OwnedHorseListItem extends Horse {
+  raceResults: { finishPosition: number | null }[];
+}
+
+export interface OwnedHorsesResponse {
+  code: number;
+  data: { items: OwnedHorseListItem[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export interface RaceInvitationEntry {
+  registration: Record<string, unknown>;
+  raceRound: Record<string, unknown> | null;
+  tournament: Record<string, unknown> | null;
+  eligibleHorseIds: string[];
+  existingHorseId: string | null;
+  jockey: { fullName: string | null; image: string | null } | null;
+  horse: { horseName: string | null } | null;
+}
+
+export interface RaceInvitationsResponse {
+  code: number;
+  data: { items: RaceInvitationEntry[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export interface JockeyListResponse {
+  code: number;
+  data: { items: Record<string, unknown>[]; pagination: PaginationMeta };
+  msg: string;
+}
+
+export interface CompetitorEntry {
+  registrationId: string;
+  horseName: string | null;
+  ownerName: string | null;
+  jockeyName: string | null;
+  laneNumber: number | null;
+}
+
+export interface RaceCompetition {
+  maxParticipants: number | null;
+  confirmedCount: number;
+  openSlots: number;
+  competitors: CompetitorEntry[];
+}
+
+export interface RaceDetailInvitation {
+  _id: string;
+  invitationStatus: string;
+  isBackup: boolean;
+  percentagePayout: number;
+  jockeyConfirmation: boolean;
+  ownerConfirmation: boolean;
+  createdAt: string;
+  jockey: { fullName: string; image?: string } | null;
+}
+
+export interface RaceDetailRegistration {
+  _id: string;
+  registrationStatus: string;
+  horse: Horse | null;
+  selectedJockey: { fullName: string; image?: string } | null;
+  invitations: RaceDetailInvitation[];
+  raceResult: Record<string, unknown> | null;
+  violations: Record<string, unknown>[];
+  [key: string]: unknown;
+}
+
+export interface RaceDetailResponse {
+  code: number;
+  data: {
+    raceRound: Record<string, unknown>;
+    registration: RaceDetailRegistration | null;
+    competition: RaceCompetition;
+  };
+  msg: string;
+}
+
+export interface JockeyInvitationEntry {
+  _id: string;
+  jockey: { fullName: string | null; image: string | null } | null;
+  horse: { horseName: string } | null;
+  raceRound: { roundName: string; raceDate: string; location: string } | null;
+  status: string;
+  isBackup: boolean;
+  percentagePayout: number;
+  createdAt: string;
+}
+
+export interface JockeyInvitationsListResponse {
+  code: number;
+  data: { invitations: JockeyInvitationEntry[]; pagination: { total: number; totalPages: number; page: number; limit: number } };
+  msg: string;
+}
+
 export const horseOwnerService = {
   getUserHorse: async (
     page = 1,
@@ -162,9 +265,9 @@ export const horseOwnerService = {
     search?: string,
     sortBy = 'createdAt',
     order: 'asc' | 'desc' = 'desc',
-  ) => {
+  ): Promise<OwnedHorsesResponse> => {
     try {
-      const params: any = { page, limit, sortBy, order };
+      const params: Record<string, unknown> = { page, limit, sortBy, order };
       if (search) params.search = search;
       const response = await api.get('/horseowner/my-horses', { params });
       return response.data;
@@ -179,9 +282,9 @@ export const horseOwnerService = {
     search?: string,
     sortBy = 'createdAt',
     order: 'asc' | 'desc' = 'desc',
-  ) => {
+  ): Promise<RaceInvitationsResponse> => {
     try {
-      const params: any = { page, limit, sortBy, order };
+      const params: Record<string, unknown> = { page, limit, sortBy, order };
       if (status) params.status = status;
       if (search) params.search = search;
       const response = await api.get('/horseowner/race-invitations', { params });
@@ -196,9 +299,9 @@ export const horseOwnerService = {
     limit = 10,
     sortBy = 'createdAt',
     order: 'asc' | 'desc' = 'desc',
-  ) => {
+  ): Promise<JockeyListResponse> => {
     try {
-      const params: any = { page, limit, sortBy, order };
+      const params: Record<string, unknown> = { page, limit, sortBy, order };
       const response = await api.get('/jockey/all', { params });
       console.log('DATA: ', response.data);
       return response.data;
@@ -206,7 +309,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  approveRegistration: async (registrationId: string) => {
+  approveRegistration: async (registrationId: string): Promise<void> => {
     if (!registrationId || registrationId === '') return
     try {
       await api.post(`/horseowner/registration/${registrationId}/approve`);
@@ -214,7 +317,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  HireJockey: async (data: hireJockey) => {
+  HireJockey: async (data: hireJockey): Promise<void> => {
     if (!data) return;
     try {
       await api.post(`/invitations`, data);
@@ -222,7 +325,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  allJockeyInvitations: async (page = 1, limit = 10, search?: string) => {
+  allJockeyInvitations: async (page = 1, limit = 10, search?: string): Promise<JockeyInvitationsListResponse> => {
     try {
       const params: Record<string, unknown> = { page, limit };
       if (search) params.search = search;
@@ -232,7 +335,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  getRaceDetail: async (raceRoundId: string) => {
+  getRaceDetail: async (raceRoundId: string): Promise<RaceDetailResponse> => {
     try {
       const response = await api.get(`/horseowner/race-rounds/${raceRoundId}/detail`);
       return response.data;
@@ -248,7 +351,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  createHorse: async (data: Omit<Horse, '_id' | 'ownerId' | 'createdAt' | 'updatedAt' | '__v'>) => {
+  createHorse: async (data: Omit<Horse, '_id' | 'ownerId' | 'createdAt' | 'updatedAt' | '__v'>): Promise<{ code: number; data: Horse; msg: string }> => {
     try {
       const response = await api.post('/horse', data);
       return response.data;
@@ -256,7 +359,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  updateHorse: async (horseId: string, data: Partial<Horse>) => {
+  updateHorse: async (horseId: string, data: Partial<Horse>): Promise<{ code: number; data: Horse; msg: string }> => {
     try {
       const response = await api.put(`/horse/${horseId}`, data);
       return response.data;
@@ -264,7 +367,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  deleteHorse: async (horseId: string) => {
+  deleteHorse: async (horseId: string): Promise<{ code: number; msg: string }> => {
     try {
       const response = await api.delete(`/horse/${horseId}`);
       return response.data;
@@ -272,7 +375,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  uploadHorseImage: async (horseId: string, file: File) => {
+  uploadHorseImage: async (horseId: string, file: File): Promise<{ code: number; data: Horse; msg: string }> => {
     try {
       const form = new FormData();
       form.append('image', file);
@@ -284,7 +387,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  updateHorseStatus: async (horseId: string, status: 'active' | 'inactive' | 'retired') => {
+  updateHorseStatus: async (horseId: string, status: 'active' | 'inactive' | 'retired'): Promise<{ code: number; msg: string }> => {
     try {
       const response = await api.put(`/horseowner/horses/${horseId}/status`, { status });
       return response.data;
@@ -292,7 +395,7 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  updateHorseHealthStatus: async (horseId: string, healthStatus: 'healthy' | 'injured' | 'sick') => {
+  updateHorseHealthStatus: async (horseId: string, healthStatus: 'healthy' | 'injured' | 'sick'): Promise<{ code: number; msg: string }> => {
     try {
       const response = await api.put(`/horseowner/horses/${horseId}/health-status`, { healthStatus });
       return response.data;
@@ -300,93 +403,96 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  getHorseProfile: async (horseId: string) => {
+  getHorseProfile: async (horseId: string): Promise<{ code: number; data: HorseProfileData; msg: string }> => {
     try {
       const response = await api.get(`/horseowner/horses/${horseId}/profile`);
-      return response.data as { data: HorseProfileData };
+      return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
   },
-  getDashboardSummary: async () => {
+  getDashboardSummary: async (): Promise<{ code: number; data: DashboardSummary; msg: string }> => {
     try {
       const response = await api.get('/horseowner/dashboard/summary');
-      return response.data as { data: DashboardSummary };
+      return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
   },
-  getTopPerformers: async (limit = 5) => {
+  getTopPerformers: async (limit = 5): Promise<{ code: number; data: TopPerformer[]; msg: string }> => {
     try {
       const response = await api.get('/horseowner/dashboard/top-performers', { params: { limit } });
-      return response.data as { data: TopPerformer[] };
+      return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
   },
-  browseRaces: async (page = 1, limit = 12, search?: string, status?: string) => {
+  browseRaces: async (
+    page = 1,
+    limit = 12,
+    search?: string,
+    status?: string,
+  ): Promise<{ code: number; data: { items: BrowsableRace[]; pagination: PaginationMeta }; msg: string }> => {
     try {
-      const params: any = { page, limit };
+      const params: Record<string, unknown> = { page, limit };
       if (search) params.search = search;
       if (status) params.status = status;
       const response = await api.get('/horseowner/races/browse', { params });
-      return response.data as {
-        data: {
-          items: BrowsableRace[];
-          pagination: { totalItems: number; totalPages: number; currentPage: number; limit: number };
-        };
-      };
+      return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
   },
-  getJockeyProfile: async (jockeyId: string) => {
+  getJockeyProfile: async (jockeyId: string): Promise<{ code: number; data: JockeyProfileData; msg: string }> => {
     try {
       const response = await api.get(`/horseowner/jockeys/${jockeyId}/profile`);
-      return response.data as { data: JockeyProfileData };
+      return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
   },
-  getFinancialSummary: async () => {
+  getFinancialSummary: async (): Promise<{ code: number; data: FinancialSummary; msg: string }> => {
     try {
       const response = await api.get('/horseowner/financials/summary');
-      return response.data as { data: FinancialSummary };
+      return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
   },
-  getFinancialRaceResults: async (page = 1, limit = 10, search?: string) => {
+  getFinancialRaceResults: async (
+    page = 1,
+    limit = 10,
+    search?: string,
+  ): Promise<{ code: number; data: { items: FinancialRaceRow[]; pagination: PaginationMeta }; msg: string }> => {
     try {
-      const params: any = { page, limit };
+      const params: Record<string, unknown> = { page, limit };
       if (search) params.search = search;
       const response = await api.get('/horseowner/financials/race-results', { params });
-      return response.data as {
-        data: {
-          items: FinancialRaceRow[];
-          pagination: { totalItems: number; totalPages: number; currentPage: number; limit: number; };
-        };
-      };
+      return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
   },
-  getRaceEligibilityMetadata: async (ruleId: string) => {
+  getRaceEligibilityMetadata: async (
+    ruleId: string,
+  ): Promise<{
+    code: number;
+    data: {
+      eligibilityRules: {
+        raceType: string | null;
+        minWins: number | null;
+        maxWins: number | null;
+        minAge: number | null;
+        maxAge: number | null;
+        requiredGender: string | null;
+        requiredBreed: string | null;
+      }[];
+    };
+    msg: string;
+  }> => {
     try {
       const response = await api.get('/horseowner/race-eligibility-metadata', { params: { ruleId } });
-      return response.data as {
-        data: {
-          eligibilityRules: {
-            raceType: string | null;
-            minWins: number | null;
-            maxWins: number | null;
-            minAge: number | null;
-            maxAge: number | null;
-            requiredGender: string | null;
-            requiredBreed: string | null;
-          }[];
-        };
-      };
+      return response.data;
     } catch (error: any) {
       throw error.response?.data || error;
     }
@@ -404,7 +510,7 @@ export const horseOwnerService = {
     direction: 'payer' | 'payee' | 'all' = 'all',
   ): Promise<PaymentsResponse> => {
     try {
-      const params: any = { page, limit, direction };
+      const params: Record<string, unknown> = { page, limit, direction };
       if (status) params.status = status;
       const response = await api.get('/horseowner/payments', { params });
       return response.data;

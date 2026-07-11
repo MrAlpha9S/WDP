@@ -93,7 +93,7 @@ export default function OwnerRaceMonitorIndex() {
                     const ownerData = ownerRes.data;
                     // Merge raceRound from fullRes if ownerRes doesn't have it
                     if (!ownerData.raceRound && fullRes.data) {
-                        ownerData.raceRound = fullRes.data;
+                        ownerData.raceRound = fullRes.data as unknown as Record<string, unknown>;
                     }
                     setOwnerRegistration(ownerData.registration ?? null);
                     setOwnerResult(ownerData.registration?.raceResult ?? null);

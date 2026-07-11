@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import AdminNavBar, { ADMIN_TABS, type AdminTab } from "./AdminComponents/NavBar";
 import AdminSidebar from "./AdminComponents/SideBar";
 import SystemDashboardPage from "./SystemDashBoardPage";
+import AdminStatisticsPage from "./AdminStatisticsPage";
 import RaceSchedulingPage from "./RaceSchedulingPage";
 import TournamentManagementPage from "./TournamentManagementPage";
 import AdminUsersPage from "./AdminUsersPage";
@@ -40,6 +41,8 @@ function ActiveView({ tab, setActiveTab }: { tab: AdminTab, setActiveTab: (tab: 
     switch (tab) {
         case "Dashboard":
             return <SystemDashboardPage />;
+        case "Statistics":
+            return <AdminStatisticsPage />;
         case "Races":
             return <RaceSchedulingPage />;
         case "Tournaments":
@@ -135,6 +138,7 @@ export default function AdminDashboardPage() {
         "Activity Logs",
         "Violations",
         "Violation Types",
+        "Statistics",
     ] as AdminTab[];
 
     const initialTab = allTabs.find(

@@ -58,12 +58,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<User> => {
     const res = await authService.login({ email, password });
+    if (typeof res === "string") {
+      throw new Error(res);
+    }
     if (res.code === 200 && res.data?.accessToken) {
-      const u = res.data.user || { email, role: res.data.user?.role };
+      const u = res.data.user;
       persist(u, res.data.accessToken);
       return u;
     } else {
-      throw new Error(res.message || "Login failed");
+      throw new Error(res.msg || "Login failed");
     }
   };
 
@@ -92,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (res.code === 201 && res.data?.accessToken) {
       persist(res.data.user || { email, name, role }, res.data.accessToken);
     } else {
-      throw new Error(res.message || "Signup failed");
+      throw new Error(res.msg || "Signup failed");
     }
   };
 

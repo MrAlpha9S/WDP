@@ -4,6 +4,7 @@ import {
     User,
     AlertTriangle,
     ShieldAlert,
+    ChartColumn,
 } from "lucide-react";
 import { type AdminTab } from "./NavBar";
 import { useAdminSocket } from "../../../providers/useAdminSocket";
@@ -23,6 +24,7 @@ interface SidebarItem {
 
 const ITEMS: SidebarItem[] = [
     { tab: "Dashboard",       icon: <House         size={17} /> },
+    { tab: "Statistics",      icon: <ChartColumn   size={17} /> },
     { tab: "Horses",          icon: <User          size={17} /> },
     { tab: "Users",           icon: <User          size={17} />, badgeKey: "users" },
     { tab: "Rules Managment", icon: <FileText      size={17} /> },

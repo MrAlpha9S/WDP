@@ -16,10 +16,10 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
     const [startDate, setStartDate] = useState(editingTournament?.startISO || "");
     const [endDate, setEndDate] = useState(editingTournament?.endISO || "");
     // Use raw backend statuses: draft, scheduled, ongoing, completed, cancelled
-    const [status, setStatus] = useState(
+    const [status, setStatus] = useState<"draft" | "scheduled" | "ongoing" | "completed" | "cancelled">(
         editingTournament?.status === "upcoming" ? "scheduled" :
             editingTournament?.status === "live" ? "ongoing" :
-                editingTournament?.status || "scheduled"
+                (editingTournament?.status as "draft" | "scheduled" | "ongoing" | "completed" | "cancelled") || "scheduled"
     );
 
     const [error, setError] = useState("");
@@ -55,7 +55,7 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
         return sDate <= todayStr && todayStr <= eDate;
     };
 
-    const handleStatusChange = (newStatus: string) => {
+    const handleStatusChange = (newStatus: "draft" | "scheduled" | "ongoing" | "completed" | "cancelled") => {
         if (newStatus === "ongoing") {
             if (!validateOngoing(startDate, endDate)) {
                 setError("Cannot set status to ongoing: Today's date must fall between the start and end dates.");
@@ -199,7 +199,7 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                     {editingTournament && (
                         <div>
                             <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Status</label>
-                            <select value={status} onChange={e => handleStatusChange(e.target.value)} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none">
+                            <select value={status} onChange={e => handleStatusChange(e.target.value as "draft" | "scheduled" | "ongoing" | "completed" | "cancelled")} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none">
                                 <option value="draft">Draft</option>
                                 <option value="scheduled">Scheduled</option>
                                 <option value="ongoing">Ongoing</option>

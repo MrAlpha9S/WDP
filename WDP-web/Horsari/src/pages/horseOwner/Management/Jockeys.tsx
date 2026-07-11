@@ -233,7 +233,7 @@ export default function JockeysPage() {
 
         if (cancelled) return;
 
-        const raw: unknown[] = data?.data?.items ?? data?.data?.jockeys ?? [];
+        const raw: unknown[] = data?.data?.items ?? [];
         setJockeys(raw.map((item, i) => mapApiToJockey(item, i)));
       } catch (err: unknown) {
         if (!cancelled) {
