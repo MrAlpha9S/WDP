@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-export type { RaceType } from "./CommonTypes";
 
 export type ViewMode = "timeline" | "table";
 

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { LayoutGrid, List, Plus, Settings, Users, Loader2 } from "lucide-react";
+import { LayoutGrid, List, Plus, Loader2 } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
-import { TIME_SLOTS } from "../../shared/data/RaceData";
 import type { ViewMode } from "../../shared/types/RaceTypes";
 import CreateRaceModal from "./modal/CreateRaceModal";
 import RaceDetailsPanel from "./AdminComponents/RaceDetailsPanel";
@@ -22,6 +21,7 @@ export default function RaceSchedulingPage() {
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+    const TIME_SLOTS = ["14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"];
 
     const fetchData = async () => {
         setLoading(true);
@@ -341,11 +341,11 @@ export default function RaceSchedulingPage() {
                                                                     <div className="flex gap-1 items-center">
                                                                         {race.status === 'cancelled' && <span className="text-[10px] text-red-500 font-bold uppercase mr-1">Cancelled</span>}
                                                                         <span className={`w-1.5 h-1.5 rounded-full ${race.status === 'cancelled' ? 'bg-red-500' :
-                                                                                race.status === 'running' ? 'bg-blue-500' :
-                                                                                    race.status === 'completed' ? 'bg-gray-500' :
-                                                                                        race.status === 'scheduled' ? 'bg-emerald-500' :
-                                                                                            race.status === 'prepared' ? 'bg-violet-500' :
-                                                                                                'bg-amber-500'
+                                                                            race.status === 'running' ? 'bg-blue-500' :
+                                                                                race.status === 'completed' ? 'bg-gray-500' :
+                                                                                    race.status === 'scheduled' ? 'bg-emerald-500' :
+                                                                                        race.status === 'prepared' ? 'bg-violet-500' :
+                                                                                            'bg-amber-500'
                                                                             }`}></span>
                                                                     </div>
                                                                 </div>
@@ -381,11 +381,11 @@ export default function RaceSchedulingPage() {
                                                         <td className="p-4">
                                                             <div className={`text-[13px] font-semibold ${race.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-white'}`}>{race.title}</div>
                                                             <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block mt-1 ${race.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/30' :
-                                                                    race.status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
-                                                                        race.status === 'running' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
-                                                                            race.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
-                                                                                race.status === 'prepared' ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
-                                                                                    'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                                                race.status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
+                                                                    race.status === 'running' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
+                                                                        race.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
+                                                                            race.status === 'prepared' ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
+                                                                                'bg-amber-500/15 text-amber-400 border-amber-500/30'
                                                                 }`}>{race.status}</div>
                                                         </td>
                                                         <td className="p-4">

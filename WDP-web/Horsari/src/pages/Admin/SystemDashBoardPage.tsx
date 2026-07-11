@@ -14,8 +14,7 @@ interface ActiveRace {
     detail: string;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-// Removed mock ACTIVE_RACES array
+
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -110,7 +109,7 @@ export default function SystemDashboardPage() {
                     adminService.getRaceRounds()
                 ]);
                 setStats(statsRes.data);
-                
+
                 // Process race rounds
                 const allRounds = racesRes.data?.items ?? [];
                 const mappedRaces: ActiveRace[] = allRounds.map((r: any) => {
@@ -121,11 +120,11 @@ export default function SystemDashboardPage() {
                     } else if (statusStr.includes("completed") || statusStr.includes("finished")) {
                         mappedStatus = "POST-RACE";
                     }
-                    
+
                     const dateStr = r.raceDate ? new Date(r.raceDate).toLocaleDateString() : "";
                     const trackStr = r.trackLength ? `${r.trackLength}m` : "";
                     const detail = [dateStr, trackStr].filter(Boolean).join(" · ");
-                    
+
                     return {
                         id: r._id,
                         status: mappedStatus,
@@ -133,7 +132,7 @@ export default function SystemDashboardPage() {
                         detail: detail || "Details Pending"
                     };
                 });
-                
+
                 // Show top 3 recent/upcoming
                 setActiveRaces(mappedRaces.slice(0, 3));
             } catch (error) {

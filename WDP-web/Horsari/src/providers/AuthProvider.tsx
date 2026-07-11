@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     };
-    
+
     loadUser();
   }, []);
 
@@ -71,8 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithGoogle = async () => {
-    // TODO: integrate Google OAuth flow proper if needed or assume popup flow
-    // For now we'll throw an error or mock if there's no actual data passed
+
     throw new Error("Google login not fully implemented yet");
   };
 

@@ -23,9 +23,7 @@ export interface RaceEligibilityRule {
     updated_at: string;
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
 
-// Removed mock data
 
 export const STATUS_STYLES: Record<"active" | "inactive", { icon: React.ReactNode; text: string; color: string }> = {
     active: { icon: <CheckCircle size={13} />, text: "Active", color: "text-emerald-400" },
@@ -73,7 +71,7 @@ export default function AdminRuleManagementPage() {
         try {
             setLoading(true);
             const res = await adminService.getRules(page, LIMIT, search || undefined, sortBy, order);
-            const items: RaceEligibilityRule[] = res.data?.items ?? res.data ?? [];
+            const items: RaceEligibilityRule[] = res.data?.items ?? [];
             setRules(items);
             setTotalItems(res.data?.pagination?.totalItems ?? items.length);
             if (selectedRule) {
@@ -308,9 +306,9 @@ export default function AdminRuleManagementPage() {
                 {/* Detail panel */}
                 {panelOpen && (
                     <div className="flex-1 min-w-[500px] h-full">
-                        <RuleDetailPanel 
-                            rule={selectedRule!} 
-                            onClose={() => setSelectedRule(null)} 
+                        <RuleDetailPanel
+                            rule={selectedRule!}
+                            onClose={() => setSelectedRule(null)}
                             onEdit={openEditModal}
                             onToggleActive={handleToggleActive}
                         />
