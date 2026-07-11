@@ -427,7 +427,7 @@ class HorseOwnerService {
                 ]),
                 RaceEligibilityRule.find({
                     _id: { $in: raceRounds.map(r => r.eligibilityRuleId).filter(Boolean) },
-                }).select('_id requiredBreed requiredGender minAge maxAge minRacesWon').lean(),
+                }).select('_id raceType requiredBreed requiredGender minAge maxAge minRacesWon').lean(),
             ]);
 
             const tournamentMap = new Map(tournaments.map(t => [String(t._id), t]));
@@ -454,6 +454,7 @@ class HorseOwnerService {
                     currentParticipants: countMap.get(String(rr._id)) ?? 0,
                     entryFee: rr.requireEntranceFees ? rr.minimalRidingFees ?? 0 : 0,
                     minimalRidingFees: rr.minimalRidingFees ?? 0,
+                    raceType: rule?.raceType ?? null,
                     eligibility: rule
                         ? { requiredBreed: rule.requiredBreed ?? null, requiredGender: rule.requiredGender ?? null, minAge: rule.minAge ?? null, maxAge: rule.maxAge ?? null }
                         : null,
@@ -550,6 +551,13 @@ class HorseOwnerService {
 
             const raceRound = await RaceRound.findById(raceRoundId).populate('tournamentId').lean();
             if (!raceRound) return { code: 404, msg: 'Race round not found' };
+
+            let raceType = null;
+            if (raceRound.eligibilityRuleId) {
+                const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
+                if (rule) raceType = rule;
+            }
+            raceRound.RaceType = raceType;
 
             // Competition roster + slot-fill indicator — "confirmed" means the
             // owner has accepted (registrationStatus 'approved'); this is a

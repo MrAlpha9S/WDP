@@ -5,6 +5,7 @@ const Registration = require("../entities/Registration");
 const Horse = require("../entities/Horse");
 const HorseOwner = require("../entities/HorseOwner");
 const RaceRound = require("../entities/RaceRound");
+const RaceEligibilityRule = require("../entities/RaceEligibilityRule");
 const Tournament = require("../entities/Tournament");
 const NotificationService = require("./NotificationService");
 const { findJockeyScheduleConflict } = require("./JockeyScheduleConflict");
@@ -161,6 +162,9 @@ class JockeyService {
           const tournament = raceRound
             ? await Tournament.findById(raceRound.tournamentId).lean()
             : null;
+          const eligibilityRule = raceRound?.eligibilityRuleId
+            ? await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean()
+            : null;
 
           return {
             invitationId: inv._id,
@@ -188,6 +192,7 @@ class JockeyService {
               maxParticipants: raceRound.maxParticipants,
               status: raceRound.status,
               requireEntranceFees: raceRound.requireEntranceFees,
+              raceType: eligibilityRule?.raceType ?? null,
             } : null,
             tournament: tournament ? {
               tournamentName: tournament.tournamentName,
@@ -239,6 +244,9 @@ class JockeyService {
           const tournament = raceRound
             ? await Tournament.findById(raceRound.tournamentId).lean()
             : null;
+          const eligibilityRule = raceRound?.eligibilityRuleId
+            ? await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean()
+            : null;
 
           return {
             invitationId: inv._id,
@@ -274,6 +282,7 @@ class JockeyService {
               raceGround: raceRound.raceGround,
               status: raceRound.status,
               minimalRidingFees: raceRound.minimalRidingFees,
+              raceType: eligibilityRule?.raceType ?? null,
             } : null,
             tournament: tournament ? {
               tournamentId: tournament._id,
