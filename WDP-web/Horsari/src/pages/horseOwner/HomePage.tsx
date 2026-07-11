@@ -27,11 +27,11 @@ function fmtDate(d: string | null) {
 // ── Registration status chip ──────────────────────────────────────────────────
 function RegistrationChip({ status }: { status: string }) {
   const cfg: Record<string, string> = {
-    pending:   "border-yellow-600/60 text-yellow-400 bg-yellow-500/10",
-    approved:  "border-green-600/60  text-green-400  bg-green-500/10",
-    verified:  "border-blue-600/60   text-blue-400   bg-blue-500/10",
-    failed:    "border-red-600/60    text-red-400    bg-red-500/10",
-    rejected:  "border-red-600/60    text-red-400    bg-red-500/10",
+    pending: "border-yellow-600/60 text-yellow-400 bg-yellow-500/10",
+    approved: "border-green-600/60  text-green-400  bg-green-500/10",
+    verified: "border-blue-600/60   text-blue-400   bg-blue-500/10",
+    failed: "border-red-600/60    text-red-400    bg-red-500/10",
+    rejected: "border-red-600/60    text-red-400    bg-red-500/10",
     cancelled: "border-gray-600/60   text-gray-400   bg-gray-500/10",
   };
   return (
@@ -43,10 +43,10 @@ function RegistrationChip({ status }: { status: string }) {
 
 // ── Race status pill ──────────────────────────────────────────────────────────
 const RACE_STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  running:             { label: "LIVE",      cls: "text-red-400 bg-red-900/30 border-red-700/40" },
-  scheduled:           { label: "Upcoming",  cls: "text-blue-400 bg-blue-900/20 border-blue-700/30" },
-  awaitingConfirmation:{ label: "Confirming",cls: "text-yellow-400 bg-yellow-900/20 border-yellow-700/30" },
-  prepared:            { label: "Ready",     cls: "text-green-400 bg-green-900/20 border-green-700/30" },
+  running: { label: "LIVE", cls: "text-red-400 bg-red-900/30 border-red-700/40" },
+  scheduled: { label: "Upcoming", cls: "text-blue-400 bg-blue-900/20 border-blue-700/30" },
+  awaitingConfirmation: { label: "Confirming", cls: "text-yellow-400 bg-yellow-900/20 border-yellow-700/30" },
+  prepared: { label: "Ready", cls: "text-green-400 bg-green-900/20 border-green-700/30" },
 };
 
 // ── Loading skeleton ──────────────────────────────────────────────────────────
@@ -57,15 +57,15 @@ function Skeleton({ className }: { className?: string }) {
 // ── Dashboard Page ─────────────────────────────────────────────────────────────
 export default function DashboardPage({ onNavigate }: { onNavigate: (tab: ManagementTab) => void }) {
   const navigate = useNavigate();
-  const [summary, setSummary]           = useState<DashboardSummary | null>(null);
-  const [performers, setPerformers]     = useState<TopPerformer[]>([]);
-  const [races, setRaces]               = useState<BrowsableRace[]>([]);
-  const [racesPage, setRacesPage]       = useState(1);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [performers, setPerformers] = useState<TopPerformer[]>([]);
+  const [races, setRaces] = useState<BrowsableRace[]>([]);
+  const [racesPage, setRacesPage] = useState(1);
   const [racesHasMore, setRacesHasMore] = useState(false);
   const [racesLoadingMore, setRacesLoadingMore] = useState(false);
-  const [summaryLoading, setSummaryLoading]     = useState(true);
+  const [summaryLoading, setSummaryLoading] = useState(true);
   const [performersLoading, setPerformersLoading] = useState(true);
-  const [racesLoading, setRacesLoading]         = useState(true);
+  const [racesLoading, setRacesLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,8 +79,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
 
       if (cancelled) return;
 
-      if (sumRes.status === "fulfilled")  { setSummary(sumRes.value.data);           }
-      if (perfRes.status === "fulfilled") { setPerformers(perfRes.value.data);       }
+      if (sumRes.status === "fulfilled") { setSummary(sumRes.value.data); }
+      if (perfRes.status === "fulfilled") { setPerformers(perfRes.value.data); }
       if (raceRes.status === "fulfilled") {
         const { items, pagination } = raceRes.value.data;
         setRaces(items);
@@ -436,14 +436,15 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                           {race.prizes.first > 0 ? `${fmt(race.prizes.first)} pts` : "—"}
                         </p>
                       </div>
-                      {race.isLive && (
-                        <button
-                          onClick={() => navigate(`/owner/race-monitor/${race.id}`)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-[11px] font-bold transition-colors duration-150 shadow-lg shadow-red-900/40"
-                        >
-                          <Radio size={10} /> Watch
-                        </button>
-                      )}
+                      <button
+                        onClick={() => navigate(`/owner/race-monitor/${race.id}`)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors duration-150 ${race.isLive
+                            ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40"
+                            : "bg-white/8 hover:bg-white/14 text-gray-300"
+                          }`}
+                      >
+                        <Radio size={10} /> Watch
+                      </button>
                     </div>
                   </div>
                 </div>

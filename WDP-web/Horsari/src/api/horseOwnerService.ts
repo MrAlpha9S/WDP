@@ -354,7 +354,8 @@ export const horseOwnerService = {
       throw error.response?.data || error;
     }
   },
-  getRaceEligibilityMetadata: async (ruleId: string) => {
+  getRaceEligibilityMetadata: async (ruleId: string | null | undefined) => {
+    if(ruleId === null || undefined) return;
     try {
       const response = await api.get('/horseowner/race-eligibility-metadata', { params: { ruleId } });
       return response.data as {
