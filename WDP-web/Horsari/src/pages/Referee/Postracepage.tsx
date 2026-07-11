@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { AlertTriangle, Camera, ChevronLeft, ChevronRight, Flag, Medal, Play, Pause, SkipBack, SkipForward, Trophy, Video } from "lucide-react";
 import { ordinal } from "../../shared/data/RaceData";
-import { useRaceSocket } from "../../providers/useRaceSocket";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationRecord } from "../../api/refereeService";
 import MuxPlayer from "@mux/mux-player-react";
@@ -62,10 +61,6 @@ export default function PostRacePage() {
     const [distUnit, setDistUnit] = useState<DistUnit>('lengths');
     const [violations, setViolations] = useState<ViolationRecord[]>([]);
     const [loading, setLoading] = useState(true);
-
-    // ── Shared WS connection ───────────────────────────────────────────────
-    const { wsConnected, wsCount } = useRaceSocket();
-    // ────────────────────────────────────────────────────────
 
     useEffect(() => {
         if (!raceRoundId) return;
@@ -143,15 +138,6 @@ export default function PostRacePage() {
         <div className="flex flex-col gap-5">
             {/* ─ Status badges ─────────────────────────────────────────────────────────────── */}
             <div className="flex items-center gap-2 flex-wrap">
-                <div className={[
-                    "flex items-center gap-2.5 self-start px-3 py-1.5 rounded-xl border text-[11px] font-bold font-mono transition-all duration-300",
-                    wsConnected
-                        ? "border-emerald-700/60 bg-emerald-500/10 text-emerald-400"
-                        : "border-red-800/50 bg-red-500/10 text-red-500 animate-pulse",
-                ].join(" ")}>
-                    <span className={["w-2 h-2 rounded-full", wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"].join(" ")} />
-                    {wsConnected ? <>WS Connected &nbsp;·&nbsp; ping #{wsCount ?? "…"}</> : <>WS Disconnected</>}
-                </div>
                 {raceRound?.status === 'awaitingConfirmation' && (
                     <div className="flex items-center gap-2 self-start px-3 py-1.5 rounded-xl border border-amber-700/60 bg-amber-500/10 text-amber-400 text-[11px] font-bold font-mono">
                         <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />

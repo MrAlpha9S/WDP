@@ -174,22 +174,6 @@ export default function AdminDashboardPage() {
         >
             <AdminNavBar activeTab={activeTab} onTabChange={setActiveTab} />
 
-            {/* ─ WS status badge ───────────────────────────────────────────── */}
-            <div className="px-6 pt-2 pb-0">
-                <div className={[
-                    "inline-flex items-center gap-2 px-3 py-1 rounded-lg border text-[11px] font-bold font-mono transition-all duration-300",
-                    wsConnected
-                        ? "border-emerald-700/60 bg-emerald-500/10 text-emerald-400"
-                        : "border-red-800/50 bg-red-500/10 text-red-500 animate-pulse",
-                ].join(" ")}>
-                    <span className={["w-1.5 h-1.5 rounded-full", wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"].join(" ")} />
-                    {wsConnected
-                        ? <>Admin WS Connected &nbsp;·&nbsp; ping #{wsCount ?? "…"}</>
-                        : <>Admin WS Disconnected</>}
-                </div>
-            </div>
-            {/* ─────────────────────────────────────────────────────────────────── */}
-
             <div className="flex-1 flex min-h-0">
                 <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
                 <div className="flex-1 min-h-0 overflow-auto">

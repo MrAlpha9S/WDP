@@ -3,48 +3,27 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import type { HorseEntry } from "../../shared/types/RaceTypes";
+import { PHASE_CONFIG, derivePhase } from "../../shared/data/RaceData";
 import { RaceSocketContext } from "../../providers/useRaceSocket";
 import type {
     RaceRoundDetail,
-    RegistrationDetail,
     RaceUpdate,
     RaceFinishedPayload,
 } from "../../providers/useRaceSocket";
-import { refereeService } from "../../api/refereeService";
 import { horseOwnerService } from "../../api/horseOwnerService";
 import { TOKEN_KEY } from "../../utils/constants";
 import OwnerLivePage from "./OwnerLivePage";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function mapHorses(registrations: RegistrationDetail[] = []): HorseEntry[] {
-    return registrations.map((reg, idx) => {
-        const confirmedInv = reg.Invitations?.find(inv => inv.isJockeyInRace)
-            ?? reg.Invitations?.find(inv => inv.jockeyConfirmation);
-        const jockeyName = (confirmedInv?.jockeyId?._id as any)?.fullName
-            ?? (reg.Jockey?._id as any)?.fullName
-            ?? "No Jockey";
-        return {
-            number: idx + 1,
-            name: reg.Horse?.horseName ?? `Horse #${idx + 1}`,
-            jockey: jockeyName,
-            trainer: "-",
-            weight: "-",
-            microchipId: "",
-            photo: "",
-            mainJockey: { id: "", name: jockeyName, license: "", role: "main", weight: "-" },
-            backupJockey: { id: "", name: "N/A", license: "", role: "backup", weight: "-" },
-            gearStatus: "cleared",
-            jockeyStatus: "cleared",
-            position: idx + 1,
-            finishPosition: reg.RaceResult?.finishPosition,
-            finishTime: reg.RaceResult?.finishTime,
-            objection: false,
-        };
-    });
+// Owner-facing copy for each RaceRound.status value (color/dot still come from PHASE_CONFIG).
+function ownerStatusLabel(status?: string): string {
+    switch (status) {
+        case "running": return "Live Race";
+        case "completed": return "Race Finished";
+        case "awaitingConfirmation": return "Awaiting Confirmation";
+        default: return "Upcoming Race"; // draft, scheduled, prepared, or unknown
+    }
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -53,9 +32,8 @@ export default function OwnerRaceMonitorIndex() {
     const navigate = useNavigate();
     const { raceRoundId } = useParams<{ raceRoundId: string }>();
 
-    // Full race data (for all horses position track)
+    // Full race data (for the stream + track view)
     const [raceRound, setRaceRound] = useState<RaceRoundDetail | null>(null);
-    const [horses, setHorses] = useState<HorseEntry[]>([]);
 
     // Owner-scoped detail data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,19 +59,11 @@ export default function OwnerRaceMonitorIndex() {
 
         const load = async () => {
             try {
-                const [fullRes, ownerRes] = await Promise.all([
-                    refereeService.getRaceRoundById(raceRoundId),
-                    horseOwnerService.getRaceDetail(raceRoundId),
-                ]);
-                if (fullRes.code === 200 && fullRes.data) {
-                    setRaceRound(fullRes.data);
-                    setHorses(mapHorses(fullRes.data.Registration ?? []));
-                }
+                const ownerRes = await horseOwnerService.getRaceDetail(raceRoundId);
                 if (ownerRes?.data) {
                     const ownerData = ownerRes.data;
-                    // Merge raceRound from fullRes if ownerRes doesn't have it
-                    if (!ownerData.raceRound && fullRes.data) {
-                        ownerData.raceRound = fullRes.data as unknown as Record<string, unknown>;
+                    if (ownerData.raceRound) {
+                        setRaceRound(ownerData.raceRound as unknown as RaceRoundDetail);
                     }
                     setOwnerRegistration(ownerData.registration ?? null);
                     setOwnerResult(ownerData.registration?.raceResult ?? null);
@@ -137,9 +107,9 @@ export default function OwnerRaceMonitorIndex() {
         socket.on("race_finished", (payload: RaceFinishedPayload) => setRaceFinished(payload));
         socket.on("race_status_changed", ({ status }: { status: string }) => {
             if (status === "running" && raceRoundId) {
-                refereeService.getRaceRoundById(raceRoundId)
-                    .then(res => { if (res.code === 200 && res.data) setRaceRound(res.data); })
-                    .catch(() => {});
+                horseOwnerService.getRaceDetail(raceRoundId)
+                    .then(res => { if (res?.data?.raceRound) setRaceRound(res.data.raceRound as unknown as RaceRoundDetail); })
+                    .catch(() => { });
             }
         });
         // Real-time violation events
@@ -155,7 +125,7 @@ export default function OwnerRaceMonitorIndex() {
         });
 
         return () => { socket.disconnect(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [raceRoundId]);
 
     if (loading) {
@@ -177,13 +147,29 @@ export default function OwnerRaceMonitorIndex() {
         );
     }
 
+    if (raceRound?.status === "cancelled") {
+        return (
+            <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center gap-4">
+                <p className="text-[14px] text-gray-400">
+                    <span className="font-semibold text-white">{raceRound.roundName}</span> has been cancelled.
+                </p>
+                <button onClick={() => navigate("/owner")} className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors">
+                    <ArrowLeft size={13} /> Back to Dashboard
+                </button>
+            </div>
+        );
+    }
+
+    const phase = derivePhase(raceRound?.status);
+    const phaseCfg = PHASE_CONFIG[phase];
+
     return (
         <RaceSocketContext.Provider value={{
             socket: socketRef.current,
             wsConnected,
             wsCount,
             raceRound,
-            horses,
+            horses: [],
             liveUpdate,
             raceFinished,
         }}>
@@ -196,8 +182,8 @@ export default function OwnerRaceMonitorIndex() {
                             Back to Dashboard
                         </button>
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-red-400">Live Race</span>
+                            <span className={`w-2 h-2 rounded-full ${phaseCfg.dot} ${"pulse" in phaseCfg && wsConnected ? "animate-pulse" : ""}`} />
+                            <span className={`text-[11px] font-bold uppercase tracking-widest ${phaseCfg.color}`}>{ownerStatusLabel(raceRound?.status)}</span>
                         </div>
                         <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
                             {raceRound?.roundName ?? "Race Monitor"}
@@ -216,7 +202,7 @@ export default function OwnerRaceMonitorIndex() {
 
                 <footer className="border-t border-white/8 py-4 mt-8">
                     <div className="max-w-5xl mx-auto px-5 flex items-center justify-between text-[12px] text-gray-600">
-                        <span>© 2024 Equine Elite Management System</span>
+                        <span>© 2026 Equine Elite Management System</span>
                         <span className="font-black uppercase tracking-widest text-gray-500 text-[11px]" style={{ fontFamily: "'Playfair Display', serif" }}>
                             Equine Elite
                         </span>

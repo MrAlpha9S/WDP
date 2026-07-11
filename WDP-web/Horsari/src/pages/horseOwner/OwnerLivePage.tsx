@@ -460,7 +460,7 @@ interface OwnerLivePageProps {
 }
 
 export default function OwnerLivePage({ ownerRegistration, ownerResult, violations }: OwnerLivePageProps) {
-    const { wsConnected, wsCount, raceRound, liveUpdate, raceFinished } = useRaceSocket();
+    const { raceRound, liveUpdate, raceFinished } = useRaceSocket();
 
     const [activeCam, setActiveCam] = useState(1);
     const cam = CAMERAS.find(c => c.id === activeCam)!;
@@ -497,18 +497,25 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
 
     const [myHorseCollapsed, setMyHorseCollapsed] = useState(false);
 
+    // `raceFinished` only arrives if the live socket event fired during this session — on a
+    // cold load after the race already ended, fall back to the REST-fetched raceRound status.
+    const isAwaitingConfirmation = raceRound?.status === "awaitingConfirmation" && !raceFinished;
+    const isCompletedNoBanner = raceRound?.status === "completed" && !raceFinished;
+
     return (
         <div className="flex flex-col gap-4">
-            {/* WS badge */}
-            <div className={[
-                "flex items-center gap-2.5 self-start px-3 py-1.5 rounded-xl border text-[11px] font-bold font-mono transition-all duration-300",
-                wsConnected
-                    ? "border-emerald-700/60 bg-emerald-500/10 text-emerald-400"
-                    : "border-red-800/50 bg-red-500/10 text-red-500 animate-pulse",
-            ].join(" ")}>
-                <span className={["w-2 h-2 rounded-full", wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"].join(" ")} />
-                {wsConnected ? <>WS Connected &nbsp;·&nbsp; ping #{wsCount ?? "…"}</> : <>WS Disconnected</>}
-            </div>
+            {isAwaitingConfirmation && (
+                <div className="flex items-center gap-2 self-start px-3 py-1.5 rounded-xl border border-amber-700/60 bg-amber-500/10 text-amber-400 text-[11px] font-bold font-mono">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    Awaiting Admin Confirmation
+                </div>
+            )}
+            {isCompletedNoBanner && (
+                <div className="flex items-center gap-2 self-start px-3 py-1.5 rounded-xl border border-green-700/50 bg-green-500/10 text-green-400 text-[11px] font-bold font-mono">
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    Race Finished
+                </div>
+            )}
 
             {/* My Horse panel — shown at top on mobile */}
             {ownerRegistration && (

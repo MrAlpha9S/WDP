@@ -35,8 +35,8 @@ export default function AdminNavBar({ activeTab, onTabChange }: NavBarProps) {
     const menuRef = useRef<HTMLDivElement>(null);
     const notifRef = useRef<HTMLDivElement>(null);
 
-    // Notification state from shared context
-    const { notifications, unreadCount, dismissNotification, clearAllNotifications, markAllRead } = useAdminSocket();
+    // Notification + connection state from shared context
+    const { notifications, unreadCount, dismissNotification, clearAllNotifications, markAllRead, wsConnected, wsCount } = useAdminSocket();
 
     // Action handler — switches tabs based on notification type
     function handleNotificationAction(n: AdminNotification) {
@@ -79,12 +79,18 @@ export default function AdminNavBar({ activeTab, onTabChange }: NavBarProps) {
         >
             <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
                 {/* Logo */}
-                <span
-                    className="text-[15px] font-bold tracking-widest text-red-500 uppercase"
-                    style={{ fontFamily: "'Playfair Display', serif", letterSpacing: "0.18em" }}
-                >
-                    Horsari
-                </span>
+                <div className="flex items-center gap-2">
+                    <span
+                        className="text-[15px] font-bold tracking-widest text-red-500 uppercase"
+                        style={{ fontFamily: "'Playfair Display', serif", letterSpacing: "0.18em" }}
+                    >
+                        Horsari
+                    </span>
+                    <span
+                        className={`w-1.5 h-1.5 rounded-full ${wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"}`}
+                        title={wsConnected ? `Connected · ping #${wsCount ?? "…"}` : "Disconnected"}
+                    />
+                </div>
 
                 {/* Nav tabs */}
                 <ul className="flex items-center gap-1">

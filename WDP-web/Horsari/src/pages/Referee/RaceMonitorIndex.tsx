@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import { PHASE_CONFIG } from "../../shared/data/RaceData";
+import { PHASE_CONFIG, derivePhase } from "../../shared/data/RaceData";
 import type { RacePhase, HorseEntry } from "../../shared/types/RaceTypes";
 import PreRacePage from "./Preracepage";
 import LivePage from "./LivePage.tsx";
@@ -21,13 +21,6 @@ import { TOKEN_KEY } from "../../utils/constants";
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function derivePhase(status?: string): RacePhase {
-    if (status === "running") return "live";
-    if (status === "completed" || status === "awaitingConfirmation") return "post";
-    if (status === "prepared") return "pre";
-    return "pre";
-}
 
 function mapHorses(registrations: RegistrationDetail[] = []): HorseEntry[] {
     return registrations.map((reg, idx) => {
@@ -70,10 +63,11 @@ function mapHorses(registrations: RegistrationDetail[] = []): HorseEntry[] {
 
 // ── Page header ───────────────────────────────────────────────────────────────
 
-function PageHeader({ phase, raceRound, onBack }: {
+function PageHeader({ phase, raceRound, onBack, wsConnected }: {
     phase: RacePhase;
     raceRound: RaceRoundDetail | null;
     onBack: () => void;
+    wsConnected: boolean;
 }) {
     const cfg = PHASE_CONFIG[phase];
     const title = raceRound?.roundName ?? "Race Monitor";
@@ -91,7 +85,7 @@ function PageHeader({ phase, raceRound, onBack }: {
                 Back to Tournaments
             </button>
             <div className="flex items-center gap-2 mb-2">
-                <span className={`w-2 h-2 rounded-full ${cfg.dot} ${"pulse" in cfg ? "animate-pulse" : ""}`} />
+                <span className={`w-2 h-2 rounded-full ${cfg.dot} ${"pulse" in cfg && wsConnected ? "animate-pulse" : ""}`} />
                 <span className={`text-[11px] font-bold uppercase tracking-widest ${cfg.color}`}>{cfg.label}</span>
             </div>
             <div>
@@ -270,7 +264,7 @@ export default function RaceMonitorIndex() {
         }}>
             <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                 <div className="max-w-5xl mx-auto px-5 py-8">
-                    <PageHeader phase={phase} raceRound={raceRound} onBack={() => navigate("/referee/tournaments")} />
+                    <PageHeader phase={phase} raceRound={raceRound} onBack={() => navigate("/referee/tournaments")} wsConnected={wsConnected} />
                     {phase === "pre" && <PreRacePage />}
                     {phase === "live" && <LivePage />}
                     {phase === "post" && <PostRacePage />}
@@ -278,7 +272,7 @@ export default function RaceMonitorIndex() {
 
                 <footer className="border-t border-white/8 py-4 mt-8">
                     <div className="max-w-5xl mx-auto px-5 flex items-center justify-between text-[12px] text-gray-600">
-                        <span>© 2024 Equine Elite Management System</span>
+                        <span>© 2026 Equine Elite Management System</span>
                         <div className="flex items-center gap-4">
                             <a href="#" className="hover:text-gray-400 transition-colors">Help/Support</a>
                             <a href="#" className="hover:text-gray-400 transition-colors">Settings</a>
