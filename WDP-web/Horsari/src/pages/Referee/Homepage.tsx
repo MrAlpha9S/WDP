@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Loader2, Wallet } from "lucide-react";
-import type { RecentInvite, RaceType, GradeLevel, InviteStatus } from "../../shared/types/HomepageTypes";
+import type { RecentInvite, InviteStatus } from "../../shared/types/HomepageTypes";
 import HomeCalendar from "./RefereeComponents/HomeCalendar";
 import InviteSidebar from "./RefereeComponents/InviteSidebar";
 import { refereeService } from "../../api/refereeService";
@@ -62,8 +62,7 @@ export default function HomePage() {
                             sentAt: new Date(inv.assignedAt).toLocaleDateString(),
                             isNew: false,
                             role: "Referee",
-                            raceType: (round.eligibilityRuleId?.raceType ?? "Stakes") as RaceType,
-                            gradeLevel: (round.gradeLevel ?? "G3") as GradeLevel,
+                            raceType: round.eligibilityRuleId?.raceType ?? "Stakes",
                         };
                     });
                     setInvites(mappedInvites);

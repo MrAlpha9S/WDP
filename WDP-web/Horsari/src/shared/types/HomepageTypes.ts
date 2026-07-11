@@ -1,5 +1,5 @@
-import type { RaceType, GradeLevel, InviteStatus } from "./CommonTypes";
-export type { RaceType, GradeLevel, InviteStatus };
+import type { RaceType, InviteStatus } from "./CommonTypes";
+export type { RaceType, InviteStatus };
 
 export interface UpcomingRace {
     id: string;
@@ -10,7 +10,6 @@ export interface UpcomingRace {
     time: string;
     role: string;
     raceType: RaceType;
-    gradeLevel: GradeLevel;
     status: "confirmed" | "tentative";
 }
 
@@ -22,7 +21,6 @@ export interface RecentInvite {
     date: string;
     role: string;
     raceType: RaceType;
-    gradeLevel: GradeLevel;
     sentAt: string;
     status: InviteStatus;
     isNew?: boolean;

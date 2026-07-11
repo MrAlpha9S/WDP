@@ -43,7 +43,7 @@ export default function ViolationManagementPage() {
     const [statusFilter, setStatusFilter] = useState<string>('All');
     const [severityFilter, setSeverityFilter] = useState<string>('All');
     const [selectedViolation, setSelectedViolation] = useState<ViolationEntity | null>(null);
-    const [sortBy, setSortBy] = useState<string>('createdAt');
+    const [sortBy, setSortBy] = useState<string>('created_at');
     const [order, setOrder] = useState<'asc' | 'desc'>('desc');
     const LIMIT = 10;
     const totalPages = Math.ceil(totalItems / LIMIT) || 1;
@@ -152,8 +152,8 @@ export default function ViolationManagementPage() {
                                 }}
                                 className="w-[175px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
-                                <option value="createdAt:desc">Newest First</option>
-                                <option value="createdAt:asc">Oldest First</option>
+                                <option value="created_at:desc">Newest First</option>
+                                <option value="created_at:asc">Oldest First</option>
                                 <option value="severity:asc">Severity Low–High</option>
                                 <option value="severity:desc">Severity High–Low</option>
                                 <option value="violationStatus:asc">Group by Status</option>
@@ -180,8 +180,8 @@ export default function ViolationManagementPage() {
                                         <th onClick={() => handleSort('violationStatus')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
                                             Status <SortIcon field="violationStatus" />
                                         </th>
-                                        <th onClick={() => handleSort('createdAt')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Date <SortIcon field="createdAt" />
+                                        <th onClick={() => handleSort('created_at')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
+                                            Date <SortIcon field="created_at" />
                                         </th>
                                     </tr>
                                 </thead>
@@ -241,7 +241,7 @@ export default function ViolationManagementPage() {
                                                 </td>
 
                                                 <td className="p-4">
-                                                    <p className="text-[11px] text-gray-600">{fmtDate(v.createdAt)}</p>
+                                                    <p className="text-[11px] text-gray-600">{fmtDate(v.created_at)}</p>
                                                 </td>
                                             </tr>
                                         );

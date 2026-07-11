@@ -31,9 +31,12 @@ export interface RaceRoundEntry {
     raceGround?: string;
     trackLength?: number;
     minimalRidingFees?: number;
+    firstPlacePrize?: number;
+    secondPlacePrize?: number;
+    thirdPlacePrize?: number;
     eligibilityRuleId?: string;
     tournamentId?: string;
-    RaceType?: { raceType?: string; gradeLevel?: string } | null;
+    RaceType?: { raceType?: string } | null;
     RaceReferee?: { fee?: number; status?: string } | null;
     Registration?: RegistrationEntry[];
 }
@@ -53,13 +56,6 @@ export interface TournamentWithRounds {
     tournamentName?: string;
     startDate?: string;
     endDate?: string;
-    location?: string;
-    country?: string;
-    seasonYear?: string | number;
-    totalRaces?: number;
-    completedRaces?: number;
-    totalPrizePool?: number;
-    gradeLevel?: string;
     description?: string;
     status?: string;
     RaceRound?: RaceRoundEntry[];
@@ -125,7 +121,7 @@ export interface RefereeInvitationItem {
         location?: string;
         address?: string;
         minimalRidingFees?: number;
-        eligibilityRuleId?: { raceType?: string; gradeLevel?: string } | null;
+        eligibilityRuleId?: { raceType?: string } | null;
         tournamentId?: { tournamentName?: string } | null;
     } | null;
     refereeId: string;

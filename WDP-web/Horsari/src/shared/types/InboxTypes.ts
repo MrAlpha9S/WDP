@@ -1,5 +1,5 @@
-import type { RaceType, GradeLevel, InviteStatus, PaymentStatus } from "./CommonTypes";
-export type { RaceType, GradeLevel, InviteStatus, PaymentStatus };
+import type { RaceType, InviteStatus, PaymentStatus } from "./CommonTypes";
+export type { RaceType, InviteStatus, PaymentStatus };
 
 export interface RaceInvite {
     id: string;
@@ -14,7 +14,6 @@ export interface RaceInvite {
     status: InviteStatus;
     isNew?: boolean;
     raceType: RaceType;
-    gradeLevel: GradeLevel;
     distance: string;
     track: string;
     entries: number;

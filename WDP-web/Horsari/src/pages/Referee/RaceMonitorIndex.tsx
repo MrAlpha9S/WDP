@@ -75,7 +75,6 @@ function PageHeader({ phase, raceRound, onBack, wsConnected }: {
         raceRound?.location,
         raceRound?.raceGround,
         raceRound?.trackLength ? `${raceRound.trackLength}m` : null,
-        raceRound?.RaceType?.gradeLevel,
     ].filter(Boolean).join(" · ");
 
     return (

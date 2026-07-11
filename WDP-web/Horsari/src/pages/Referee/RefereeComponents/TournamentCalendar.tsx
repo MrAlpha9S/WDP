@@ -83,7 +83,7 @@ export default function TournamentCalendar({ tournaments, allRaces, onSelectTour
                                 {!isSel && bands.length > 0 && (
                                     <div className="absolute bottom-1.5 left-1 right-1 flex flex-col gap-0.5">
                                         {bands.map((t) => {
-                                            const c = T_COLOR[t.color];
+                                            const c = T_COLOR[t.color ?? "gray"];
                                             const isStart = iso === t.startISO;
                                             const isEnd   = iso === t.endISO;
                                             return (
@@ -102,7 +102,7 @@ export default function TournamentCalendar({ tournaments, allRaces, onSelectTour
                                     <div className="flex items-center gap-0.5 mt-1 z-10">
                                         {races.slice(0, 3).map((r, ri) => {
                                             const tournamentForRace = tournaments.find(t => t.id === r.tournamentId);
-                                            const tc = tournamentForRace ? T_COLOR[tournamentForRace.color] : T_COLOR["gray"];
+                                            const tc = tournamentForRace ? T_COLOR[tournamentForRace.color ?? "gray"] : T_COLOR["gray"];
                                             return (
                                                 <span key={ri} className={`w-1.5 h-1.5 rounded-full ${isSel ? "bg-white/70" : r.status === "prepared" ? "bg-violet-500" : tc.dot} ${r.status === "live" || r.status === "prepared" ? "ring-1 ring-white/40" : ""}`} />
                                             );
@@ -122,7 +122,7 @@ export default function TournamentCalendar({ tournaments, allRaces, onSelectTour
                         const mEnd   = toISO(viewYear, viewMonth, daysInMonth(viewYear, viewMonth));
                         return t.startISO <= mEnd && t.endISO >= mStart;
                     }).map(t => {
-                        const c = T_COLOR[t.color];
+                        const c = T_COLOR[t.color ?? "gray"];
                         return (
                             <button key={t.id} onClick={() => onSelectTournament(t)} className="flex items-center gap-1.5 text-[11px] hover:opacity-80 transition-opacity">
                                 <span className={`w-2.5 h-2.5 rounded-sm ${c.band.replace("/15", "/60")} border ${c.border}`} />

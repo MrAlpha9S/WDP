@@ -6,7 +6,7 @@ import { TournamentModal } from "./modal/TournamentModal";
 
 // ── Re-export types used by TournamentModal ────────────────────────────────────
 // (kept here so existing consumers that import from this file still work)
-export type { TournamentStatus, AssignmentStatus, RaceStatus, RaceType, GradeLevel, ModalTab } from "../../shared/types/TournamentTypes";
+export type { TournamentStatus, AssignmentStatus, RaceStatus, ModalTab } from "../../shared/types/TournamentTypes";
 export type { Tournament, RaceRound, LeaderEntry } from "../../shared/types/TournamentTypes";
 export { T_COLOR, MONTH_NAMES, DAY_NAMES } from "../../shared/data/TournamentData";
 export { StatusBadge, RaceTypeBadge, AssignmentTag } from "./RefereeComponents/TournamentBadges";

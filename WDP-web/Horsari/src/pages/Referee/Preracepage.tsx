@@ -228,7 +228,6 @@ export default function PreRacePage() {
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Details</h2>
                         {[
-                            { label: "Grade", value: raceRound?.RaceType?.gradeLevel ?? "-" },
                             { label: "Race Type", value: raceRound?.RaceType?.raceType ?? "-" },
                             { label: "Prize Pool", value: prizePool },
                             { label: "Post Time", value: postTime },

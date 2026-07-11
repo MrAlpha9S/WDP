@@ -27,5 +27,6 @@ export interface ViolationEntity {
     actualPenalty: string;
     stewardAction: StewardAction;
     violationStatus: ViolationStatus;
-    createdAt: string;
+    /** Backend remaps timestamps to `created_at` for this collection — see entities/Violation.js */
+    created_at: string;
 }

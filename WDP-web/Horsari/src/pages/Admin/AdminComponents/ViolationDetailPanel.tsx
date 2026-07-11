@@ -162,7 +162,7 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
                     <Field label="Logged At">
                         <div className="flex items-center gap-1.5 text-[12px] text-gray-400">
                             <Calendar size={12} className="text-gray-500" />
-                            {fmtDate(violation.createdAt)}
+                            {fmtDate(violation.created_at)}
                         </div>
                     </Field>
                     <Field label="Violation ID">

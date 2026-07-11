@@ -58,7 +58,6 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
             time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             role: "Referee",
             raceType: (r.RaceType || "Open") as RaceType,
-            gradeLevel: (r.RaceType || "Open") as any, // default or mapped later
             status: "confirmed"
         };
     });

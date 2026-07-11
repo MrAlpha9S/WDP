@@ -1,5 +1,3 @@
-import type { RaceType, GradeLevel } from "./CommonTypes";
-export type { RaceType, GradeLevel };
 
 export type TournamentStatus = "live" | "upcoming" | "completed";
 export type AssignmentStatus = "assigned" | "partial" | "none";
@@ -9,22 +7,20 @@ export type ModalTab = "overview" | "races";
 export interface Tournament {
     id: string;
     name: string;
-    series: string;
-    country: string;
-    location: string;
     startDate: string;
     endDate: string;
     startISO: string;
     endISO: string;
-    totalRaces: number;
-    completedRaces: number;
     prizePool: string;
     status: TournamentStatus;
-    assignment: AssignmentStatus;
-    assignedRaces: number;
-    grade: "G1" | "G2" | "G3" | "Listed";
     description: string;
-    color: string;
+    // Referee-only fields, computed from the real RaceRound array in utils/tournamentMapper.ts
+    totalRaces?: number;
+    completedRaces?: number;
+    assignment?: AssignmentStatus;
+    assignedRaces?: number;
+    /** Frontend-only round-robin decoration — not backend data */
+    color?: string;
 }
 
 export interface RaceRound {
@@ -36,8 +32,8 @@ export interface RaceRound {
     date: string;
     dateISO: string;
     time: string;
-    raceType: RaceType;
-    gradeLevel: GradeLevel;
+    raceType: string;
+
     distance: string;
     track: string;
     entries: number;

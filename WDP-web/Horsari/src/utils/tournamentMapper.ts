@@ -22,7 +22,8 @@ function formatTime(dateStr: string): string {
 }
 
 // Helper to determine status from start and end dates
-function getTournamentStatus(startDate: string, endDate: string): TournamentStatus {
+function getTournamentStatus(startDate?: string, endDate?: string): TournamentStatus {
+    if (!startDate || !endDate) return "upcoming";
     const now = new Date().toISOString();
     if (now < startDate) return "upcoming";
     if (now > endDate) return "completed";
@@ -51,25 +52,27 @@ export function mapBackendToTournaments(backendData: TournamentWithRounds[]): { 
     const colors = ["red", "blue", "amber", "purple", "green", "sky", "orange", "gray"];
 
     backendData.forEach((tData, tIndex) => {
-        const assignedRacesCount = tData.RaceRound?.length || 0;
-        
+        const rounds = tData.RaceRound ?? [];
+        const assignedRacesCount = rounds.length;
+        const completedRacesCount = rounds.filter(r => r.status === 'completed').length;
+        const totalPrizePool = rounds.reduce(
+            (sum, r) => sum + (r.firstPlacePrize ?? 0) + (r.secondPlacePrize ?? 0) + (r.thirdPlacePrize ?? 0),
+            0,
+        );
+
         const t: Tournament = {
             id: tData._id,
-            name: tData.tournamentName,
-            series: tData.seasonYear != null ? String(tData.seasonYear) : new Date().getFullYear().toString(),
-            country: tData.country || "",
-            location: tData.location || "",
+            name: tData.tournamentName ?? "Untitled Tournament",
             startDate: tData.startDate ? formatDate(tData.startDate) : "",
             endDate: tData.endDate ? formatDate(tData.endDate) : "",
             startISO: tData.startDate ? new Date(tData.startDate).toISOString().split('T')[0] : "",
             endISO: tData.endDate ? new Date(tData.endDate).toISOString().split('T')[0] : "",
-            totalRaces: tData.totalRaces || assignedRacesCount,
-            completedRaces: tData.completedRaces || 0,
-            prizePool: tData.totalPrizePool ? `$${(tData.totalPrizePool / 1000000).toFixed(1)}M` : "-",
+            totalRaces: assignedRacesCount,
+            completedRaces: completedRacesCount,
+            prizePool: totalPrizePool > 0 ? `$${(totalPrizePool / 1000000).toFixed(1)}M` : "-",
             status: mapTournamentStatus(tData.status) || getTournamentStatus(tData.startDate, tData.endDate),
             assignment: assignedRacesCount > 0 ? "assigned" : "none",
             assignedRaces: assignedRacesCount,
-            grade: (tData.gradeLevel as Tournament["grade"]) || "G1",
             description: tData.description || "",
             color: colors[tIndex % colors.length], // Assign colors round-robin
         };
@@ -83,13 +86,12 @@ export function mapBackendToTournaments(backendData: TournamentWithRounds[]): { 
                     id: rData._id,
                     round: rIndex + 1,
                     label: rData.roundName,
-                    venue: rData.location || t.location,
+                    venue: rData.location || "Unknown Venue",
                     trackLocation: rData.address || "No address provided",
                     date: rData.raceDate ? formatDate(rData.raceDate) : "",
                     dateISO: rData.raceDate ? new Date(rData.raceDate).toISOString().split('T')[0] : "",
                     time: rData.raceDate ? formatTime(rData.raceDate) : "",
                     raceType: rData.RaceType?.raceType || rData.raceType || "Stakes",
-                    gradeLevel: rData.RaceType?.gradeLevel || rData.gradeLevel || "",
                     distance: rData.trackLength ? `${rData.trackLength}m` : "Unknown",
                     track: rData.raceGround || "Unknown",
                     entries: rData.Registration?.length || 0,

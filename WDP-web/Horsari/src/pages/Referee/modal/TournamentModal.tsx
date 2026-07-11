@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
     AlertCircle, CheckCircle2, ChevronRight,
-    Clock, Globe, MapPin, Trophy, Users, X,
+    Clock, MapPin, Trophy, Users, X,
 } from "lucide-react";
 import type { Tournament, RaceRound, ModalTab } from "../../../shared/types/TournamentTypes";
 import {
@@ -36,7 +36,7 @@ export function DayPopup({ iso, tournaments, allRaces, onSelectTournament, onOpe
                 <div className="px-4 py-3 flex flex-col gap-2 border-b border-white/6">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">Tournaments Active</p>
                     {tournamentsOnDay.map(t => {
-                        const c = T_COLOR[t.color];
+                        const c = T_COLOR[t.color ?? "gray"];
                         return (
                             <button
                                 key={t.id}
@@ -46,7 +46,6 @@ export function DayPopup({ iso, tournaments, allRaces, onSelectTournament, onOpe
                                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${c.dot}`} />
                                 <div className="flex-1 min-w-0">
                                     <p className={`text-[12.5px] font-bold truncate ${c.label}`}>{t.name}</p>
-                                    <p className="text-[10.5px] text-gray-600">{t.series}</p>
                                 </div>
                                 <StatusBadge status={t.status} />
                             </button>
@@ -146,7 +145,7 @@ function RaceDetailPanel({ race, onClose, onOpenRaceMonitor }: { race: RaceRound
             )}
             {onOpenRaceMonitor && (
                 <div className="px-4 pb-4">
-                    <button 
+                    <button
                         onClick={() => onOpenRaceMonitor(race.id)}
                         className="w-full flex items-center justify-center gap-2 bg-white/[0.04] hover:bg-white/[0.08] text-white text-[12px] font-bold py-2.5 rounded-lg border border-white/10 transition-all"
                     >
@@ -166,15 +165,14 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
     const violations = races.reduce((a, r) => a + r.violations, 0);
     const totalEarnings = races.reduce((a, r) => a + (r.refereeFee || 0), 0);
     const liveRace = races.find(r => r.status === "live");
-    const c = T_COLOR[t.color];
+    const c = T_COLOR[t.color ?? "gray"];
+    const totalRaces = t.totalRaces ?? 0;
 
     return (
         <div className="flex flex-col gap-5">
             <div className="bg-white/[0.03] rounded-xl border border-white/8 px-5 py-4">
                 <p className="text-[12.5px] text-gray-400 leading-relaxed mb-4">{t.description}</p>
                 <div className="flex items-center gap-x-5 gap-y-1.5 flex-wrap text-[12px] text-gray-500">
-                    {t.location && <span className="flex items-center gap-1.5"><MapPin size={11} className="text-gray-600" />{t.location}</span>}
-                    {t.country && <span className="flex items-center gap-1.5"><Globe size={11} className="text-gray-600" />{t.country}</span>}
                     <span>{t.startDate} – {t.endDate}</span>
                 </div>
                 <div className="mt-4">
@@ -186,14 +184,14 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
                     <div className="flex justify-between mt-1.5">
                         <span className="text-[10px] text-gray-600">Round 1</span>
                         {liveRace && <span className={`text-[10px] font-semibold ${c.label}`}>Round {liveRace.round} · Live</span>}
-                        {t.totalRaces > 1 && <span className="text-[10px] text-gray-600">Round {t.totalRaces}</span>}
+                        {totalRaces > 1 && <span className="text-[10px] text-gray-600">Round {totalRaces}</span>}
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
                 {[
-                    { label: "Assigned Races", value: `${t.assignedRaces}/${t.totalRaces}`, sub: "of total", subColor: c.label },
+                    { label: "Assigned Races", value: `${t.assignedRaces ?? 0}/${totalRaces}`, sub: "of total", subColor: c.label },
                     { label: "Completed", value: `${completed}`, sub: "races done", subColor: "text-gray-500" },
                     { label: "Violations Filed", value: `${violations}`, sub: "this series", subColor: violations > 0 ? "text-yellow-400" : "text-gray-500" },
                     { label: "Total Earnings", value: `$${totalEarnings.toLocaleString()}`, sub: "series total", subColor: "text-green-400" },
@@ -207,9 +205,8 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
             </div>
 
             <div className="bg-white/[0.03] rounded-xl border border-white/8 overflow-hidden">
-                {/* Leaderboard omitted as it is mocked */}
                 <button
-                    onClick={() => {}}
+                    onClick={() => { }}
                     className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.02] transition-colors"
                 >
                     <h3 className="text-[13.5px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>Leaderboard</h3>
@@ -227,7 +224,7 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
 function RacesTab({ t, allRaces, onOpenRaceMonitor }: { t: Tournament; allRaces: RaceRound[]; onOpenRaceMonitor: (raceId: string) => void }) {
     const races = allRaces.filter(r => r.tournamentId === t.id);
     const liveRace = races.find(r => r.status === "live");
-    const c = T_COLOR[t.color];
+    const c = T_COLOR[t.color ?? "gray"];
 
     return (
         <div className="flex flex-col gap-1.5">
@@ -251,8 +248,8 @@ function RacesTab({ t, allRaces, onOpenRaceMonitor }: { t: Tournament; allRaces:
                                 isLive
                                     ? "bg-red-500/5 border-red-800/40 hover:bg-red-500/10 hover:border-red-700/60"
                                     : isPrepared
-                                    ? "bg-violet-500/5 border-violet-800/40 hover:bg-violet-500/10 hover:border-violet-700/60"
-                                    : "bg-white/[0.02] border-white/6 hover:bg-white/[0.04] hover:border-white/10",
+                                        ? "bg-violet-500/5 border-violet-800/40 hover:bg-violet-500/10 hover:border-violet-700/60"
+                                        : "bg-white/[0.02] border-white/6 hover:bg-white/[0.04] hover:border-white/10",
                             ].join(" ")}
                         >
                             {isLive && <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${c.dot} rounded-l-xl`} />}
@@ -303,7 +300,7 @@ export function TournamentModal({ tournament: t, allRaces, onClose, onOpenRaceMo
     onOpenRaceMonitor: (raceId: string) => void;
 }) {
     const [tab, setTab] = useState<ModalTab>("overview");
-    const c = T_COLOR[t.color];
+    const c = T_COLOR[t.color ?? "gray"];
 
     return (
         <div
@@ -327,12 +324,11 @@ export function TournamentModal({ tournament: t, allRaces, onClose, onOpenRaceMo
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                     <StatusBadge status={t.status} />
-                                    <AssignmentTag assignment={t.assignment} assignedRaces={t.assignedRaces} totalRaces={t.totalRaces} />
+                                    <AssignmentTag assignment={t.assignment ?? "none"} assignedRaces={t.assignedRaces ?? 0} totalRaces={t.totalRaces ?? 0} />
                                 </div>
                                 <h2 className="text-[20px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
                                     {t.name}
                                 </h2>
-                                <p className="text-[11.5px] text-gray-600 mt-0.5">{t.series}</p>
                             </div>
                         </div>
                         <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl border border-white/10 text-gray-500 hover:text-gray-200 hover:border-white/20 transition-all shrink-0">

@@ -51,7 +51,7 @@ export interface RaceRoundDetail {
     thirdPlacePrize?: number;
     currencyType?: string;
     maxParticipants?: number;
-    RaceType?: { raceType?: string; gradeLevel?: string } | null;
+    RaceType?: { raceType?: string } | null;
     Registration?: RegistrationDetail[];
     /** Mux live stream playback ID — available once admin starts the race */
     muxPlaybackId?: string | null;
