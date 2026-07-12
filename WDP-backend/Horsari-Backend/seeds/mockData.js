@@ -26,6 +26,7 @@ const ViolationType = require("../entities/ViolationType");
 const Violation = require("../entities/Violation");
 
 const PredictionMethod = require("../entities/PredictionMethod");
+const Prediction = require("../entities/Prediction");
 
 const PASSWORD_HASH =
   "$2b$10$smxEWfBiOmkrAkvaBpyfJ.Lv/uxe4inN8KRymH6TN.W10RSAWMbrO";
@@ -755,8 +756,48 @@ async function seed() {
       violationStatus: "confirmed",
     });
 
-    // No Prediction or Transaction seeding — real usage creates these via
-    // spectator predictions, PayoutService settlement, and confirmRaceResult.
+    /* ================================================
+           11. PREDICTIONS (Round 4 — spectator wagers on the upcoming final)
+           ================================================ */
+
+    // Round 4 hasn't run yet ("prepared"), so every wager is still "pending" —
+    // PayoutService settles these once confirmRaceResult records finish positions.
+    const round4Predictions = await Prediction.create([
+      {
+        spectatorId: spectators[0]._id,
+        registrationId: r4Regs[0]._id,
+        predictedHorseId: horses[0]._id,
+        predictionMethodId: predictionMethods[2]._id, // Exacta (race_winner)
+        predictionStatus: "pending",
+        rewardPoints: 12_000,
+      },
+      {
+        spectatorId: spectators[1]._id,
+        registrationId: r4Regs[2]._id,
+        predictedHorseId: horses[2]._id,
+        predictionMethodId: predictionMethods[2]._id, // Exacta (race_winner)
+        predictionStatus: "pending",
+        rewardPoints: 9_000,
+      },
+      {
+        spectatorId: spectators[2]._id,
+        registrationId: r4Regs[1]._id,
+        predictedHorseId: horses[1]._id,
+        predictionMethodId: predictionMethods[1]._id, // Ranking (race_rank)
+        predictedRank: 2,
+        predictionStatus: "pending",
+        rewardPoints: 15_000,
+      },
+      {
+        spectatorId: spectators[3]._id,
+        registrationId: r4Regs[4]._id,
+        predictedHorseId: horses[4]._id,
+        predictionMethodId: predictionMethods[1]._id, // Ranking (race_rank)
+        predictedRank: 3,
+        predictionStatus: "pending",
+        rewardPoints: 8_000,
+      },
+    ]);
 
     console.log("\n✅ Seed completed successfully");
     console.log(
@@ -771,6 +812,7 @@ async function seed() {
     console.log("   Invitations:", invitations.length);
     console.log("   ViolationTypes: 29 (pre-race, during-race, after-race)");
     console.log("   Violations : 1 (Round 4 pre-race)");
+    console.log("   Predictions:", round4Predictions.length, "(Round 4, pending)");
 
     process.exit(0);
   } catch (err) {
