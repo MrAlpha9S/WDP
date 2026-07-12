@@ -63,12 +63,12 @@ export default function CreateRacePrizes(props: PrizesProps) {
                             onChange={(e) => props.setCurrencyType(e.target.value)}
                             className="flex-1 bg-transparent text-[13px] text-white focus:outline-none appearance-none"
                         >
+                            <option className="bg-[#1a1a1a] text-white" value="VND">VND (₫)</option>
                             <option className="bg-[#1a1a1a] text-white" value="USD">USD ($)</option>
                             <option className="bg-[#1a1a1a] text-white" value="EUR">EUR (€)</option>
                             <option className="bg-[#1a1a1a] text-white" value="GBP">GBP (£)</option>
                             <option className="bg-[#1a1a1a] text-white" value="AUD">AUD ($)</option>
                             <option className="bg-[#1a1a1a] text-white" value="JPY">JPY (¥)</option>
-                            <option className="bg-[#1a1a1a] text-white" value="VND">VND (₫)</option>
                         </select>
                     </div>
 

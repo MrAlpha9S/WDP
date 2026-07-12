@@ -82,7 +82,7 @@ export default function PreRacePage() {
         ? new Date(raceRound.raceDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         : "-";
     const prizePool = raceRound?.firstPlacePrize
-        ? `${raceRound.firstPlacePrize.toLocaleString()} ${raceRound.currencyType ?? "USD"}`
+        ? `${raceRound.firstPlacePrize.toLocaleString()} ${raceRound.currencyType ?? "VND"}`
         : "-";
 
     const openInspection = (index: number) => {

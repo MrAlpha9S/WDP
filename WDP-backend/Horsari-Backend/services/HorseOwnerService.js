@@ -12,6 +12,7 @@ const Violation = require('../entities/Violation');
 const Jockey = require('../entities/Jockey');
 const User = require('../entities/User');
 const Transaction = require('../entities/Transaction');
+const CurrencyConverter = require('./CurrencyConverter');
 
 class HorseOwnerService {
     // Get all horses owned
@@ -449,7 +450,11 @@ class HorseOwnerService {
                     isLive: rr.status === 'running',
                     muxPlaybackId: rr.muxPlaybackId ?? null,
                     tournament: tournament ? { id: tournament._id, name: tournament.tournamentName } : null,
-                    prizes: { first: rr.firstPlacePrize ?? 0, second: rr.secondPlacePrize ?? 0, third: rr.thirdPlacePrize ?? 0 },
+                    prizes: {
+                        first: CurrencyConverter.convertToVnd(rr.firstPlacePrize ?? 0, rr.currencyType),
+                        second: CurrencyConverter.convertToVnd(rr.secondPlacePrize ?? 0, rr.currencyType),
+                        third: CurrencyConverter.convertToVnd(rr.thirdPlacePrize ?? 0, rr.currencyType),
+                    },
                     maxParticipants: rr.maxParticipants ?? null,
                     currentParticipants: countMap.get(String(rr._id)) ?? 0,
                     entryFee: rr.requireEntranceFees ? rr.minimalRidingFees ?? 0 : 0,
@@ -515,7 +520,7 @@ class HorseOwnerService {
             const mapped = invitations.map(inv => ({
                 _id: inv._id,
                 jockey: inv.jockeyId
-                    ? { fullName: inv.jockeyId.fullName ?? null, image: inv.jockeyId.image ?? null }
+                    ? { _id: inv.jockeyId._id, fullName: inv.jockeyId.fullName ?? null, image: inv.jockeyId.image ?? null }
                     : null,
                 horse: inv.horseId ? { horseName: inv.horseId.horseName } : null,
                 raceRound: inv.registrationId?.raceRoundId
@@ -803,9 +808,13 @@ class HorseOwnerService {
             ]);
             if (!jockeyDoc || !user) return { code: 404, msg: 'Jockey not found' };
 
-            // Accepted invitations → registration IDs this jockey rode in
-            const invitations = await Invitation.find({ jockeyId, invitationStatus: 'accepted' }).lean();
+            // Accepted + no-show invitations → registration IDs this jockey committed to
+            const invitations = await Invitation.find({
+                jockeyId,
+                invitationStatus: { $in: ['accepted', 'didNotAttend'] },
+            }).lean();
             const regIds = invitations.map(inv => inv.registrationId).filter(Boolean);
+            const invByRegId = new Map(invitations.map(inv => [String(inv.registrationId), inv]));
 
             const [registrations, results, violations] = await Promise.all([
                 regIds.length > 0
@@ -836,6 +845,7 @@ class HorseOwnerService {
                 const result = resultByRegId.get(String(reg._id));
                 const raceRound = raceRoundMap.get(String(reg.raceRoundId));
                 const pos = result?.finishPosition;
+                const inv = invByRegId.get(String(reg._id));
                 return {
                     race: raceRound?.roundName ?? 'Unknown Race',
                     position: pos != null ? (ordinals[pos - 1] ?? `${pos}th`) : 'DNF',
@@ -843,10 +853,17 @@ class HorseOwnerService {
                     date: raceRound?.raceDate
                         ? new Date(raceRound.raceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                         : 'N/A',
+                    attendance: inv?.invitationStatus === 'didNotAttend' ? 'no_show' : inv?.isBackup ? 'backup' : 'main',
                 };
             }).sort((a, b) => 0); // preserve DB order (most recent first via sort below)
 
-            const officialResults = results.filter(r => r.finishPosition != null);
+            // Stats (wins/totalRaces/winRate) only count races the jockey actually rode —
+            // a no-show never raced, so it stays in recentRaces for history but is excluded here.
+            const riddenRegIds = new Set(
+                registrations.filter(reg => invByRegId.get(String(reg._id))?.invitationStatus !== 'didNotAttend')
+                    .map(reg => String(reg._id))
+            );
+            const officialResults = results.filter(r => r.finishPosition != null && riddenRegIds.has(String(r.registrationId)));
             const wins = officialResults.filter(r => r.finishPosition === 1).length;
             const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
 
@@ -855,9 +872,9 @@ class HorseOwnerService {
                 data: {
                     jockey: { ...jockeyDoc, ...user },
                     stats: {
-                        totalRaces: registrations.length,
+                        totalRaces: riddenRegIds.size,
                         wins,
-                        winRate: registrations.length > 0 ? Math.round((wins / registrations.length) * 100) : 0,
+                        winRate: riddenRegIds.size > 0 ? Math.round((wins / riddenRegIds.size) * 100) : 0,
                         totalPrize,
                     },
                     recentRaces,
@@ -896,17 +913,32 @@ class HorseOwnerService {
                 Transaction.find({ userId: ownerId, status: 'completed' }).lean(),
             ]);
 
+            // prizeMoney is stored in each race round's own currency — convert to VND
+            // (the single currency this page displays in) before summing across races.
+            const raceRoundIds = [...new Set(registrations.map(r => String(r.raceRoundId)))];
+            const raceRounds = raceRoundIds.length
+                ? await RaceRound.find({ _id: { $in: raceRoundIds } }, 'currencyType').lean()
+                : [];
+            const currencyByRoundId = new Map(raceRounds.map(rr => [String(rr._id), rr.currencyType || 'VND']));
+            const regById = new Map(registrations.map(r => [String(r._id), r]));
+            const currencyForReg = (regId) => {
+                const reg = regById.get(String(regId));
+                return reg ? currencyByRoundId.get(String(reg.raceRoundId)) : 'VND';
+            };
+
             const officialResults = results.filter(r => r.finishPosition != null && r.resultStatus === 'official');
             const wins = officialResults.filter(r => r.finishPosition === 1).length;
             const losses = officialResults.filter(r => r.finishPosition !== 1).length;
-            const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
+            const totalPrize = officialResults.reduce((sum, r) =>
+                sum + CurrencyConverter.convertToVnd(r.prizeMoney || 0, currencyForReg(r.registrationId)), 0);
 
             const resultByRegId = new Map(results.map(r => [String(r.registrationId), r]));
             let totalJockeyPayout = 0;
             for (const inv of invitations) {
                 const result = resultByRegId.get(String(inv.registrationId));
                 if (result && inv.percentagePayout) {
-                    totalJockeyPayout += (inv.percentagePayout / 100) * (result.prizeMoney || 0);
+                    const shareOriginal = (inv.percentagePayout / 100) * (result.prizeMoney || 0);
+                    totalJockeyPayout += CurrencyConverter.convertToVnd(shareOriginal, currencyForReg(inv.registrationId));
                 }
             }
             totalJockeyPayout = Math.round(totalJockeyPayout);
@@ -947,7 +979,7 @@ class HorseOwnerService {
 
             const allRegs = await Registration.find({ horseOwnerId: ownerId })
                 .populate('horseId', 'horseName')
-                .populate('raceRoundId', 'roundName raceDate location')
+                .populate('raceRoundId', 'roundName raceDate location currencyType')
                 .sort({ createdAt: -1 })
                 .lean();
 
@@ -991,9 +1023,10 @@ class HorseOwnerService {
                 const result = resultByRegId.get(String(reg._id));
                 const inv = invByRegId.get(String(reg._id));
                 const regViolations = violsByRegId[String(reg._id)] ?? [];
-                const prizeMoney = result?.prizeMoney ?? 0;
+                const currency = reg.raceRoundId?.currencyType || 'VND';
+                const prizeMoney = CurrencyConverter.convertToVnd(result?.prizeMoney ?? 0, currency);
                 const jockeyPayout = inv?.percentagePayout
-                    ? Math.round((inv.percentagePayout / 100) * prizeMoney)
+                    ? CurrencyConverter.convertToVnd((inv.percentagePayout / 100) * (result?.prizeMoney ?? 0), currency)
                     : 0;
 
                 return {

@@ -104,7 +104,7 @@ export default function CreateRaceParticipants(props: ParticipantsProps) {
                                         <input
                                             type="number"
                                             min="0"
-                                            placeholder="Fee ($)"
+                                            placeholder="Fee (₫)"
                                             value={props.refereeFees[String(refereeId)] || ""}
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => {

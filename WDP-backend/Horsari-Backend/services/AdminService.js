@@ -204,7 +204,7 @@ class AdminService {
                     const jockey = await Jockey.findById(id).lean();
                     const invitations = await Invitation.find({
                         jockeyId: id,
-                        invitationStatus: 'accepted',
+                        invitationStatus: { $in: ['accepted', 'didNotAttend'] },
                     })
                         .populate({ path: 'registrationId', populate: { path: 'raceRoundId' } })
                         .populate('horseId', 'horseName breed gender img')
@@ -256,6 +256,7 @@ class AdminService {
                             horseName: inv.horseId?.horseName ?? null,
                             horseBreed: inv.horseId?.breed ?? null,
                             horseImg:  inv.horseId?.img   ?? null,
+                            attendance: inv.invitationStatus === 'didNotAttend' ? 'no_show' : inv.isBackup ? 'backup' : 'main',
                             violations: violationsByReg[reg._id.toString()] ?? [],
                         });
                     }
@@ -296,7 +297,7 @@ class AdminService {
                                 raceStatus: raceRound?.status ?? null,
                                 assignmentStatus: a.status,
                                 paymentStatus: a.paymentStatus,
-                                fee: a.fee ?? 0,
+                                fee: CurrencyConverter.convertToVnd(a.fee ?? 0, raceRound?.currencyType),
                                 assignedAt: a.assignedAt,
                                 violations: violations.map((v) => ({
                                     violationId: v._id,
@@ -1621,7 +1622,7 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
             .lean();
 
         // ── Payment records: race_prize (admin→horseOwner) + jockey_payout (horseOwner→jockey) ──
-        const originalCurrency = raceRound.currencyType || 'USD';
+        const originalCurrency = raceRound.currencyType || 'VND';
         const createdPayments = [];
         const participantJockeyIds = [];
         for (const result of results) {

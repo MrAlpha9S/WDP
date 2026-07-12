@@ -174,6 +174,26 @@ export default function HireJockeyModal({
   // Eligibility metadata — wire up horseOwnerService.getRaceEligibilityMetadata() when ready
   const [metadata, setMetadata] = useState<RaceMetadata | null>(null);
 
+  // Attendance history — surfaces a no-show warning; reuses the same profile
+  // endpoint JockeyDetailModal uses, no dedicated stats endpoint needed.
+  const [hasNoShowHistory, setHasNoShowHistory] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadHistory() {
+      try {
+        const res = await horseOwnerService.getJockeyProfile(String(jockey.id));
+        if (!cancelled && res?.data?.recentRaces) {
+          setHasNoShowHistory(res.data.recentRaces.some((r) => r.attendance === "no_show"));
+        }
+      } catch {
+        // Non-critical: no warning shown if history can't be loaded
+      }
+    }
+    loadHistory();
+    return () => { cancelled = true; };
+  }, [jockey.id]);
+
   // Fetch the eligibility rule for the selected race
   useEffect(() => {
     setMetadata(null);
@@ -377,6 +397,13 @@ export default function HireJockeyModal({
               <X size={13} />
             </button>
           </div>
+
+          {hasNoShowHistory && (
+            <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg border border-red-700/40 bg-red-500/10">
+              <AlertCircle size={13} className="text-red-400 shrink-0" />
+              <span className="text-[11.5px] text-red-400 font-medium">Has a no-show on record</span>
+            </div>
+          )}
 
           {/* Step indicators */}
           <div className="flex items-center gap-0">

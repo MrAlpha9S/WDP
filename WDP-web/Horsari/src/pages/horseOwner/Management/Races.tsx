@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, MapPin, Plus, Loader2, AlertCircle, X, Trophy, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
 import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
-import { horseOwnerService } from "../../../api/horseOwnerService";
+import { horseOwnerService, type RaceInvitationEntry } from "../../../api/horseOwnerService";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
@@ -14,50 +14,51 @@ function mapToMyRace(raw: any, i: number): MyRace {
   const roundStatus = (raw?.raceRound?.status ?? "").toLowerCase();
 
   const statusMap: Record<string, RaceStatus> = {
-    running:   "LIVE",
+    running: "LIVE",
     completed: "FINISHED",
     scheduled: "UPCOMING",
-    prepared:  "PREPARING",
-    draft:     "UPCOMING",
+    prepared: "PREPARING",
+    draft: "UPCOMING",
     cancelled: "FINISHED",
   };
   const status: RaceStatus = statusMap[roundStatus] ?? "UPCOMING";
 
   return {
-    id:     raw.registration?._id ?? raw.raceRound?._id ?? String(i),
-    name:   raw.raceRound?.roundName   ?? "Unnamed Race",
+    id: raw.registration?._id ?? raw.raceRound?._id ?? String(i),
+    name: raw.raceRound?.roundName ?? "Unnamed Race",
     status,
-    date:   raw.raceRound?.raceDate    ? formatDate(raw.raceRound.raceDate) : "TBA",
-    venue:  raw.raceRound?.location    ?? "TBA",
-    horse:  raw.horse?.horseName       ?? raw.horseName  ?? "TBA",
-    jockey: raw.jockey?.fullName       ?? raw.jockeyName ?? "TBA",
-    image:  raw.raceRound?.coverImage  ?? raw.image      ?? "/track.png",
+    date: raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : "TBA",
+    venue: raw.raceRound?.location ?? "TBA",
+    horse: raw.horse?.horseName ?? raw.horseName ?? "TBA",
+    jockey: raw.jockey?.fullName ?? raw.jockeyName ?? "TBA",
+    image: raw.raceRound?.coverImage ?? raw.image ?? "/track.png",
     raceRoundId: raw.raceRound?._id ?? null,
   };
 }
 
 // ── Status configs ────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<RaceStatus, { label: string; dot: string; text: string; bg: string }> = {
-  LIVE:      { label: "LIVE",      dot: "bg-red-400 animate-pulse",  text: "text-red-400",    bg: "bg-red-500/20 border-red-500/40"     },
-  UPCOMING:  { label: "UPCOMING",  dot: "bg-yellow-400",             text: "text-yellow-300", bg: "bg-black/50 border-white/15"         },
-  FINISHED:  { label: "FINISHED",  dot: "bg-gray-500",               text: "text-gray-400",   bg: "bg-black/50 border-white/10"         },
-  PREPARING: { label: "PREPARING", dot: "bg-yellow-400",             text: "text-yellow-300", bg: "bg-black/50 border-white/15"         },
+  LIVE: { label: "LIVE", dot: "bg-red-400 animate-pulse", text: "text-red-400", bg: "bg-red-500/20 border-red-500/40" },
+  UPCOMING: { label: "UPCOMING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
+  FINISHED: { label: "FINISHED", dot: "bg-gray-500", text: "text-gray-400", bg: "bg-black/50 border-white/10" },
+  PREPARING: { label: "PREPARING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
 };
 
 const REG_STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: "PENDING",    color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-600/40" },
-  approved:  { label: "APPROVED",   color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-600/40"    },
-  verified:  { label: "VERIFIED",   color: "text-green-400",  bg: "bg-green-500/10 border-green-600/40"  },
-  failed:    { label: "FAILED",     color: "text-red-400",    bg: "bg-red-500/10 border-red-700/40"      },
-  rejected:  { label: "CANCELLED",  color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/40"   },
-  cancelled: { label: "CANCELLED",  color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/40"   },
+  pending: { label: "PENDING", color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-600/40" },
+  approved: { label: "APPROVED", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-600/40" },
+  verified: { label: "VERIFIED", color: "text-green-400", bg: "bg-green-500/10 border-green-600/40" },
+  failed: { label: "FAILED", color: "text-red-400", bg: "bg-red-500/10 border-red-700/40" },
+  rejected: { label: "CANCELLED", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-600/40" },
+  cancelled: { label: "CANCELLED", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-600/40" },
 };
 
 const INV_STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: "PENDING",   color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/30"   },
-  accepted:  { label: "ACCEPTED",  color: "text-green-400",  bg: "bg-green-500/10 border-green-600/40" },
-  declined:  { label: "DECLINED",  color: "text-red-400",    bg: "bg-red-500/10 border-red-700/40"     },
-  cancelled: { label: "CANCELLED", color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/30"   },
+  pending: { label: "PENDING", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-600/30" },
+  accepted: { label: "ACCEPTED", color: "text-green-400", bg: "bg-green-500/10 border-green-600/40" },
+  declined: { label: "DECLINED", color: "text-red-400", bg: "bg-red-500/10 border-red-700/40" },
+  cancelled: { label: "CANCELLED", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-600/30" },
+  didNotAttend: { label: "NO-SHOW", color: "text-red-400", bg: "bg-red-500/10 border-red-700/40" },
 };
 
 function severityColor(s?: number) {
@@ -172,18 +173,16 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                     {raceRound?.firstPlacePrize > 0 && (
                       <div className="flex items-center gap-1 text-[11px]">
                         <Trophy size={10} className="text-yellow-400" />
-                        <span className="text-yellow-400 font-semibold">${raceRound.firstPlacePrize.toLocaleString()}</span>
+                        <span className="text-yellow-400 font-semibold">{raceRound.firstPlacePrize.toLocaleString()}</span>
                       </div>
                     )}
                     {raceRound?.secondPlacePrize > 0 && (
-                      <span className="text-[11px] text-gray-500">${raceRound.secondPlacePrize.toLocaleString()}</span>
+                      <span className="text-[11px] text-gray-500">{raceRound.secondPlacePrize.toLocaleString()}</span>
                     )}
                     {raceRound?.thirdPlacePrize > 0 && (
-                      <span className="text-[11px] text-gray-500">${raceRound.thirdPlacePrize.toLocaleString()}</span>
+                      <span className="text-[11px] text-gray-500">{raceRound.thirdPlacePrize.toLocaleString()}</span>
                     )}
-                    {raceRound?.currencyType && raceRound.currencyType !== "USD" && (
-                      <span className="text-[10px] text-gray-600">{raceRound.currencyType}</span>
-                    )}
+                    <span className="text-[10px] text-gray-600">{raceRound?.currencyType ?? "VND"}</span>
                   </div>
                 )}
               </div>
@@ -448,8 +447,8 @@ function RegisterTile({ onClick }: { onClick: () => void }) {
 type FilterTab = "ALL" | "LIVE" | "UPCOMING" | "FINISHED";
 
 const FILTER_TABS: { id: FilterTab; label: string }[] = [
-  { id: "ALL",      label: "All"      },
-  { id: "LIVE",     label: "Live"     },
+  { id: "ALL", label: "All" },
+  { id: "LIVE", label: "Live" },
   { id: "UPCOMING", label: "Upcoming" },
   { id: "FINISHED", label: "Finished" },
 ];
@@ -496,7 +495,7 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
         const data = await horseOwnerService.getHorseOwnerInvitations();
         if (cancelled) return;
 
-        const list: unknown[] = data?.data?.items ?? data?.data ?? (Array.isArray(data) ? data : []);
+        const list: RaceInvitationEntry[] = data?.data?.items ?? [];
         setRaces(list.map((r, i) => mapToMyRace(r, i)));
       } catch (err: unknown) {
         if (!cancelled) {
@@ -528,8 +527,8 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
 
   // Count per tab for badges
   const counts: Record<FilterTab, number> = {
-    ALL:      races.length,
-    LIVE:     races.filter(r => r.status === "LIVE").length,
+    ALL: races.length,
+    LIVE: races.filter(r => r.status === "LIVE").length,
     UPCOMING: races.filter(r => r.status === "UPCOMING" || r.status === "PREPARING").length,
     FINISHED: races.filter(r => r.status === "FINISHED").length,
   };
@@ -594,72 +593,72 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
       </header>
       <div className="flex-1 pt-5">
 
-      {/* Loading */}
-      {loading && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2">
-            <Loader2 size={13} className="animate-spin" /> Loading races…
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => <RaceSkeleton key={i} />)}
-          </div>
-        </div>
-      )}
-
-      {/* Error */}
-      {!loading && error && (
-        <div className="flex items-center gap-2 text-red-400 text-[13px] bg-red-900/10 border border-red-700/30 rounded-xl px-5 py-4">
-          <AlertCircle size={14} className="shrink-0" /> {error}
-        </div>
-      )}
-
-      {/* Empty filtered */}
-      {!loading && !error && filteredRaces.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-          <p className="text-[14px] font-semibold text-gray-500">
-            {activeFilter === "ALL" ? "No races found." : `No ${activeFilter.toLowerCase()} races.`}
-          </p>
-          {activeFilter !== "ALL" && (
-            <button
-              onClick={() => setActiveFilter("ALL")}
-              className="text-[12px] text-gray-600 hover:text-gray-300 transition-colors underline underline-offset-2"
-            >
-              Show all races
-            </button>
-          )}
-          {activeFilter === "ALL" && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 w-full mt-4">
-              <RegisterTile onClick={onNavigateToInvitations} />
+        {/* Loading */}
+        {loading && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2">
+              <Loader2 size={13} className="animate-spin" /> Loading races…
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Grid */}
-      {!loading && !error && filteredRaces.length > 0 && (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {pagedRaces.map((race) => (
-              <RaceCard
-                key={race.id}
-                race={race}
-                onDetail={() => race.raceRoundId && setSelectedRaceRoundId(race.raceRoundId)}
-                onLive={() => race.raceRoundId && navigate(`/owner/race-monitor/${race.raceRoundId}`)}
-              />
-            ))}
-            {activeFilter === "ALL" && page === 1 && <RegisterTile onClick={onNavigateToInvitations} />}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => <RaceSkeleton key={i} />)}
+            </div>
           </div>
-          <PaginationBar page={page} totalPages={totalPages} onPrev={() => setPage(p => p - 1)} onNext={() => setPage(p => p + 1)} />
-        </>
-      )}
+        )}
 
-      {/* Detail modal */}
-      {selectedRaceRoundId && (
-        <RaceDetailModal
-          raceRoundId={selectedRaceRoundId}
-          onClose={() => setSelectedRaceRoundId(null)}
-        />
-      )}
+        {/* Error */}
+        {!loading && error && (
+          <div className="flex items-center gap-2 text-red-400 text-[13px] bg-red-900/10 border border-red-700/30 rounded-xl px-5 py-4">
+            <AlertCircle size={14} className="shrink-0" /> {error}
+          </div>
+        )}
+
+        {/* Empty filtered */}
+        {!loading && !error && filteredRaces.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+            <p className="text-[14px] font-semibold text-gray-500">
+              {activeFilter === "ALL" ? "No races found." : `No ${activeFilter.toLowerCase()} races.`}
+            </p>
+            {activeFilter !== "ALL" && (
+              <button
+                onClick={() => setActiveFilter("ALL")}
+                className="text-[12px] text-gray-600 hover:text-gray-300 transition-colors underline underline-offset-2"
+              >
+                Show all races
+              </button>
+            )}
+            {activeFilter === "ALL" && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 w-full mt-4">
+                <RegisterTile onClick={onNavigateToInvitations} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Grid */}
+        {!loading && !error && filteredRaces.length > 0 && (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {pagedRaces.map((race) => (
+                <RaceCard
+                  key={race.id}
+                  race={race}
+                  onDetail={() => race.raceRoundId && setSelectedRaceRoundId(race.raceRoundId)}
+                  onLive={() => race.raceRoundId && navigate(`/owner/race-monitor/${race.raceRoundId}`)}
+                />
+              ))}
+              {activeFilter === "ALL" && page === 1 && <RegisterTile onClick={onNavigateToInvitations} />}
+            </div>
+            <PaginationBar page={page} totalPages={totalPages} onPrev={() => setPage(p => p - 1)} onNext={() => setPage(p => p + 1)} />
+          </>
+        )}
+
+        {/* Detail modal */}
+        {selectedRaceRoundId && (
+          <RaceDetailModal
+            raceRoundId={selectedRaceRoundId}
+            onClose={() => setSelectedRaceRoundId(null)}
+          />
+        )}
       </div>
     </div>
   );

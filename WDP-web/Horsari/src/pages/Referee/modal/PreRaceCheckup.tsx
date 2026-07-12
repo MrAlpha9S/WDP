@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
     AlertTriangle, CheckCircle2,
     ClipboardList, Dna, HeartPulse, Scale, Shield,
-    UserCheck, X,
+    UserCheck, UserX, X,
 } from "lucide-react";
 import type { PassFail } from "../../../shared/types/RaceTypes";
 import type { RegistrationDetail } from "../../../providers/useRaceSocket";
@@ -118,6 +118,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
     const [noJockeyFail, setNoJockeyFail] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [noShowSubmittingId, setNoShowSubmittingId] = useState<string | null>(null);
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
@@ -186,6 +187,32 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
         } catch (err: any) {
             setSubmitError(err?.msg || 'Failed to submit inspection. Please try again.');
             setSubmitting(false);
+        }
+    };
+
+    // Marks a single jockey invitation as a no-show — independent of the overall
+    // verify/fail submission below. confirmRaceResult already skips the payout
+    // percentage for invitationStatus:'didNotAttend', and the backend notifies
+    // both the jockey and the horse owner, so nothing else needs wiring here.
+    const handleMarkNoShow = async (invitationId: string) => {
+        setNoShowSubmittingId(invitationId);
+        setSubmitError(null);
+        try {
+            await refereeService.markJockeyNoShow(invitationId);
+            setFreshRegistration(prev => {
+                const base = prev ?? registration;
+                return {
+                    ...base,
+                    Invitations: (base.Invitations ?? []).map(inv =>
+                        inv._id === invitationId ? { ...inv, invitationStatus: 'didNotAttend' } : inv
+                    ),
+                };
+            });
+            if (selectedInvitationId === invitationId) setSelectedInvitationId(null);
+        } catch (err: any) {
+            setSubmitError(err?.msg || 'Failed to mark jockey as no-show. Please try again.');
+        } finally {
+            setNoShowSubmittingId(null);
         }
     };
 
@@ -341,45 +368,68 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                             ) : invitations.map(inv => {
                                 const jockeyName = (inv.jockeyId?._id as any)?.fullName ?? "Unknown Jockey";
                                 const confirmed = inv.jockeyConfirmation ?? false;
-                                const isSelected = !noJockeyFail && selectedInvitationId === inv._id;
+                                const isNoShow = inv.invitationStatus === 'didNotAttend';
+                                const isSelected = !noJockeyFail && !isNoShow && selectedInvitationId === inv._id;
+                                const canSelect = confirmed && !isNoShow;
+                                const markingNoShow = noShowSubmittingId === inv._id;
                                 return (
-                                    <button
+                                    <div
                                         key={inv._id}
-                                        onClick={() => { if (confirmed) { setSelectedInvitationId(inv._id); setNoJockeyFail(false); } }}
-                                        disabled={!confirmed}
+                                        role="button"
+                                        tabIndex={canSelect ? 0 : -1}
+                                        onClick={() => { if (canSelect) { setSelectedInvitationId(inv._id); setNoJockeyFail(false); } }}
                                         className={["w-full text-left rounded-xl border overflow-hidden transition-all duration-150",
                                             isSelected ? "border-green-700/60 bg-green-500/8" :
+                                            isNoShow ? "border-red-900/50 bg-red-500/[0.03] opacity-75" :
                                             confirmed ? "border-white/8 bg-white/[0.02] hover:border-white/15 cursor-pointer" :
                                             "border-white/8 bg-white/[0.02] cursor-not-allowed opacity-60",
                                         ].join(" ")}
                                     >
                                         <div className="flex items-center gap-3 px-4 py-3">
                                             <div className={["w-7 h-7 rounded-full flex items-center justify-center shrink-0",
-                                                isSelected ? "bg-green-700" : confirmed ? "bg-green-700" : "bg-amber-700",
+                                                isSelected ? "bg-green-700" : isNoShow ? "bg-red-800" : confirmed ? "bg-green-700" : "bg-amber-700",
                                             ].join(" ")}>
-                                                {confirmed
-                                                    ? <CheckCircle2 size={14} className="text-white" />
-                                                    : <AlertTriangle size={13} className="text-white" />}
+                                                {isNoShow
+                                                    ? <UserX size={13} className="text-white" />
+                                                    : confirmed
+                                                        ? <CheckCircle2 size={14} className="text-white" />
+                                                        : <AlertTriangle size={13} className="text-white" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <p className={["text-[13.5px] font-bold",
-                                                        isSelected ? "text-green-400" : confirmed ? "text-white" : "text-amber-400",
+                                                        isSelected ? "text-green-400" : isNoShow ? "text-red-400" : confirmed ? "text-white" : "text-amber-400",
                                                     ].join(" ")}>{jockeyName}</p>
                                                     {inv.isBackup && (
                                                         <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-blue-700/50 text-blue-400 bg-blue-500/10">
                                                             Backup
                                                         </span>
                                                     )}
+                                                    {isNoShow && (
+                                                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-red-800/50 text-red-400 bg-red-500/10">
+                                                            No-Show
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <p className="text-[11.5px] text-gray-500 mt-0.5">
-                                                    {confirmed ? "Confirmed" : "Pending Confirmation"}
+                                                    {isNoShow ? "Did not attend — no payment will be made" : confirmed ? "Confirmed" : "Pending Confirmation"}
                                                 </p>
                                             </div>
-                                            {isSelected && <span className="text-[11px] font-bold text-green-400 shrink-0">Selected ✓</span>}
-                                            {!isSelected && confirmed && <span className="text-[11px] text-gray-500 shrink-0">Tap to select</span>}
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {isSelected && <span className="text-[11px] font-bold text-green-400">Selected ✓</span>}
+                                                {!isSelected && canSelect && <span className="text-[11px] text-gray-500">Tap to select</span>}
+                                                {confirmed && !isNoShow && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleMarkNoShow(inv._id); }}
+                                                        disabled={markingNoShow}
+                                                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-red-800/50 text-red-400 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                    >
+                                                        {markingNoShow ? <span className="animate-pulse">Marking…</span> : <><UserX size={11} />No-Show</>}
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    </button>
+                                    </div>
                                 );
                             })}
 

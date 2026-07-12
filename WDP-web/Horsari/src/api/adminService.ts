@@ -24,6 +24,15 @@ export interface RaceRefereeAssignment {
   payment?: PaymentEntity | null;
 }
 
+/** The current (referee-scoped) caller's own RaceReferee assignment for a round — distinct from RaceRefereeAssignment, which is the admin's all-referees view. */
+export interface MyRaceRefereeAssignment {
+  _id: string;
+  fee?: number;
+  status?: string;
+  paymentStatus?: string;
+  assignedAt?: string;
+}
+
 export interface PoolHorseEntry {
   registrationId: string;
   horseName: string | null;
@@ -73,6 +82,7 @@ export interface RaceRoundData {
   currencyType?: string;
   Registration?: RaceRegistration[];
   Referee?: RaceRefereeAssignment[];
+  RaceReferee?: MyRaceRefereeAssignment | null;
   predictionPools?: PredictionPool[];
   trackEarnings?: TrackEarnings;
 }

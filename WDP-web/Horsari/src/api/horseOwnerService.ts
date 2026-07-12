@@ -112,7 +112,7 @@ export interface JockeyProfileData {
     fullName: string; image: string | null; dateOfBirth: string;
   };
   stats: { totalRaces: number; wins: number; winRate: number; totalPrize: number; };
-  recentRaces: { race: string; position: string; horse: string; date: string; }[];
+  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup"; }[];
   violations: JockeyViolationEntry[];
 }
 
@@ -244,7 +244,7 @@ export interface RaceDetailResponse {
 
 export interface JockeyInvitationEntry {
   _id: string;
-  jockey: { fullName: string | null; image: string | null } | null;
+  jockey: { _id: string; fullName: string | null; image: string | null } | null;
   horse: { horseName: string } | null;
   raceRound: { roundName: string; raceDate: string; location: string } | null;
   status: string;

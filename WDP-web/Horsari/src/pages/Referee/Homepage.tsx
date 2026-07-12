@@ -58,7 +58,7 @@ export default function HomePage() {
                             venue: round.location ?? "Unknown Venue",
                             trackLocation: round.address ?? "",
                             status: mappedStatus,
-                            fee: round.minimalRidingFees ?? 0,
+                            fee: inv.fee ?? 0,
                             sentAt: new Date(inv.assignedAt).toLocaleDateString(),
                             isNew: false,
                             role: "Referee",

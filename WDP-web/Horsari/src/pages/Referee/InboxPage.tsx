@@ -41,7 +41,7 @@ function mapInvitation(inv: any): RaceInvite {
         trackLocation: round.address || "",
         role: "Referee",
         status: mappedStatus as InviteStatus,
-        fee: inv.fee ?? round.minimalRidingFees ?? 0,
+        fee: inv.fee ?? 0,
         expectedPayment: inv.expectedPayment ?? 0,
         sentAt: new Date(inv.assignedAt).toLocaleDateString(),
         isNew: false,

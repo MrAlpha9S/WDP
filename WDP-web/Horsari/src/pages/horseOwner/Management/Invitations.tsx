@@ -4,7 +4,7 @@ import {
   Info, Ruler, Loader2, Users, Trophy, ChevronLeft, ChevronRight, Search,
 } from "lucide-react";
 import { type Invitation, type InviteJockeyStatus, type InviteStatus } from "../../../types/Racingtypes";
-import { horseOwnerService } from "../../../api/horseOwnerService";
+import { horseOwnerService, type JockeyInvitationEntry } from "../../../api/horseOwnerService";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const INVITE_STATUS_CFG: Record<InviteStatus | InviteJockeyStatus, { text: string; bg: string; border: string }> = {
@@ -56,7 +56,7 @@ function mapApiToInvitation(raw: any): Invitation {
     status: normalizeInviteStatus(raw.registration?.registrationStatus),
     date: raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : "TBA",
     venue: raw.raceRound?.location ?? raw.location ?? "TBA",
-    prize: raw.raceRound?.firstPlacePrize != null ? `${raw.raceRound?.currencyType ?? "USD"} ${raw.raceRound.firstPlacePrize.toLocaleString()}` : "TBA",
+    prize: raw.raceRound?.firstPlacePrize != null ? `${raw.raceRound?.currencyType ?? "VND"} ${raw.raceRound.firstPlacePrize.toLocaleString()}` : "TBA",
     distance: raw.raceRound?.trackLength != null ? `${raw.raceRound.trackLength}m` : "TBA",
     sentBy: raw.sentBy ?? raw.organizer ?? "Organizer",
     sentAt: raw.sentAt ?? raw.createdAt ?? "",
@@ -64,12 +64,13 @@ function mapApiToInvitation(raw: any): Invitation {
     prize1st: raw.raceRound?.firstPlacePrize ?? null,
     prize2nd: raw.raceRound?.secondPlacePrize ?? null,
     prize3rd: raw.raceRound?.thirdPlacePrize ?? null,
-    currencyType: raw.raceRound?.currencyType ?? "USD",
+    currencyType: raw.raceRound?.currencyType ?? "VND",
   };
 }
 
 interface JockeyInvitation {
   id: string;
+  jockeyId: string | null;
   jockeyName: string;
   jockeyImage: string | null;
   raceName: string;
@@ -84,6 +85,7 @@ interface JockeyInvitation {
 function mapApiToJockeyInvitation(raw: any, i: number): JockeyInvitation {
   return {
     id: raw._id ?? String(i),
+    jockeyId: raw.jockey?._id ?? raw.jockeyId ?? null,
     jockeyName: raw.jockeyName ?? raw.jockey?.fullName ?? "Unknown Jockey",
     jockeyImage: raw.jockeyImage ?? raw.jockey?.image ?? null,
     raceName: raw.raceName ?? raw.raceRound?.roundName ?? "Unnamed Race",
@@ -284,8 +286,10 @@ function InvitationCard({
 // ── Jockey Invitation Card ────────────────────────────────────────────────────
 function JockeyInvitationCard({
   inv,
+  hasNoShowHistory,
 }: {
   inv: JockeyInvitation;
+  hasNoShowHistory?: boolean;
 }) {
   const stCfg = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
   const isPending = inv.status === "pending";
@@ -310,7 +314,14 @@ function JockeyInvitationCard({
               <span className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase px-2 py-0.5 rounded bg-white/5 border border-white/8">Jockey</span>
               <span className={`text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded border ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
             </div>
-            <h3 className="text-[16px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>{inv.jockeyName}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-[16px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>{inv.jockeyName}</h3>
+              {hasNoShowHistory && (
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-700/40">
+                  No-Show History
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-gray-600 mt-0.5">{inv.sentAt ? formatDate(inv.sentAt) : ""}</p>
           </div>
 
@@ -427,23 +438,26 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   const [activeTab, setActiveTab] = useState<Tab>("race");
 
   // Race invitations
-  const [invitations, setInvitations]     = useState<Invitation[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [raceTotalPages, setRaceTotalPages] = useState(1);
-  const [loadingRace, setLoadingRace]     = useState(true);
-  const [errorRace, setErrorRace]         = useState<string | null>(null);
-  const [selected, setSelected]           = useState<Invitation | null>(null);
-  const [racePage, setRacePage]           = useState(1);
-  const [raceSearch, setRaceSearch]       = useState("");
+  const [loadingRace, setLoadingRace] = useState(true);
+  const [errorRace, setErrorRace] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Invitation | null>(null);
+  const [racePage, setRacePage] = useState(1);
+  const [raceSearch, setRaceSearch] = useState("");
   const [raceSearchInput, setRaceSearchInput] = useState("");
 
   // Jockey invitations
-  const [jockeyInvs, setJockeyInvs]           = useState<JockeyInvitation[]>([]);
+  const [jockeyInvs, setJockeyInvs] = useState<JockeyInvitation[]>([]);
   const [jockeyTotalPages, setJockeyTotalPages] = useState(1);
-  const [loadingJockey, setLoadingJockey]     = useState(true);
-  const [errorJockey, setErrorJockey]         = useState<string | null>(null);
-  const [jockeyPage, setJockeyPage]           = useState(1);
-  const [jockeySearch, setJockeySearch]       = useState("");
+  const [loadingJockey, setLoadingJockey] = useState(true);
+  const [errorJockey, setErrorJockey] = useState<string | null>(null);
+  const [jockeyPage, setJockeyPage] = useState(1);
+  const [jockeySearch, setJockeySearch] = useState("");
   const [jockeySearchInput, setJockeySearchInput] = useState("");
+  // Jockey ids (from the current page) known to have a no-show on record —
+  // reuses the same profile endpoint JockeyDetailModal uses, no new stats endpoint.
+  const [noShowJockeyIds, setNoShowJockeyIds] = useState<Set<string>>(new Set());
 
   // Debounce: flush input → committed search and reset page
   useEffect(() => {
@@ -493,7 +507,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
           jockeyPage, INV_PAGE_SIZE, jockeySearch || undefined,
         );
         if (cancelled) return;
-        const raw: unknown[] = data?.data?.invitations ?? data?.data ?? (Array.isArray(data) ? data : []);
+        const raw: JockeyInvitationEntry[] = data?.data?.invitations ?? [];
         setJockeyInvs(raw.map((item, i) => mapApiToJockeyInvitation(item, i)));
         setJockeyTotalPages(data?.data?.pagination?.totalPages ?? 1);
       } catch (err: unknown) {
@@ -505,6 +519,25 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     load();
     return () => { cancelled = true; };
   }, [jockeyPage, jockeySearch]);
+
+  // For each distinct jockey on this page, check their history for a no-show —
+  // bounded to page size, so this is a handful of parallel calls at most.
+  useEffect(() => {
+    let cancelled = false;
+    const ids = [...new Set(jockeyInvs.map((i) => i.jockeyId).filter((id): id is string => !!id))];
+    if (!ids.length) { setNoShowJockeyIds(new Set()); return; }
+
+    Promise.all(ids.map((id) =>
+      horseOwnerService.getJockeyProfile(id)
+        .then((res) => ({ id, hasNoShow: !!res?.data?.recentRaces?.some((r) => r.attendance === "no_show") }))
+        .catch(() => ({ id, hasNoShow: false })),
+    )).then((results) => {
+      if (cancelled) return;
+      setNoShowJockeyIds(new Set(results.filter((r) => r.hasNoShow).map((r) => r.id)));
+    });
+
+    return () => { cancelled = true; };
+  }, [jockeyInvs]);
 
   // Race handlers
   async function handleAccept(id: string) {
@@ -524,12 +557,12 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     });
   }
 
-  const racePendingCount   = invitations.filter((i) => i.status === "pending").length;
+  const racePendingCount = invitations.filter((i) => i.status === "pending").length;
   const jockeyPendingCount = jockeyInvs.filter((i) => i.status === "pending").length;
   const selectedLive = selected ? invitations.find((i) => i.id === selected.id) ?? null : null;
 
   const pagedInvitations = invitations;
-  const pagedJockeyInvs  = jockeyInvs;
+  const pagedJockeyInvs = jockeyInvs;
 
   return (
     <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -653,7 +686,11 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
                 )}
                 <div className="space-y-4">
                   {pagedJockeyInvs.map((inv) => (
-                    <JockeyInvitationCard key={inv.id} inv={inv} />
+                    <JockeyInvitationCard
+                      key={inv.id}
+                      inv={inv}
+                      hasNoShowHistory={!!inv.jockeyId && noShowJockeyIds.has(inv.jockeyId)}
+                    />
                   ))}
                 </div>
                 <PaginationBar page={jockeyPage} totalPages={jockeyTotalPages} onPrev={() => setJockeyPage(p => p - 1)} onNext={() => setJockeyPage(p => p + 1)} />

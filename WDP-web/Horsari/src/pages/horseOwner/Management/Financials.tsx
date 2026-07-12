@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import {
   TrendingUp, TrendingDown, Minus, Trophy,
-  Wallet, BarChart2, Search, ChevronRight,
-  Plus, Minus as MinusIcon, Loader2, AlertTriangle,
+  BarChart2, Search, ChevronRight,
+  Loader2, AlertTriangle,
 } from "lucide-react";
 import { horseOwnerService, type FinancialSummary, type FinancialRaceRow } from "../../../api/horseOwnerService";
 import PaymentsPanel from "../../../components/PaymentsPanel";
@@ -46,7 +46,7 @@ const CHART_DATA: Record<ChartRange, { label: string; value: number; highlight: 
   "7D": [
     { label: "MON", value: 30, highlight: false },
     { label: "TUE", value: 55, highlight: false },
-    { label: "WED", value: 90, highlight: true  },
+    { label: "WED", value: 90, highlight: true },
     { label: "THU", value: 40, highlight: false },
     { label: "FRI", value: 70, highlight: false },
     { label: "SAT", value: 35, highlight: false },
@@ -54,14 +54,14 @@ const CHART_DATA: Record<ChartRange, { label: string; value: number; highlight: 
   ],
   "30D": [
     { label: "W1", value: 35, highlight: false },
-    { label: "W2", value: 82, highlight: true  },
+    { label: "W2", value: 82, highlight: true },
     { label: "W3", value: 50, highlight: false },
     { label: "W4", value: 65, highlight: false },
   ],
   "ALL": [
     { label: "Q1", value: 40, highlight: false },
     { label: "Q2", value: 60, highlight: false },
-    { label: "Q3", value: 88, highlight: true  },
+    { label: "Q3", value: 88, highlight: true },
     { label: "Q4", value: 55, highlight: false },
   ],
 };
@@ -84,75 +84,6 @@ function BarChart({ range }: { range: ChartRange }) {
           <span className="text-[9px] text-gray-600 whitespace-nowrap">{bar.label}</span>
         </div>
       ))}
-    </div>
-  );
-}
-
-// ── Top-up Panel ──────────────────────────────────────────────────────────────
-function TopUpPanel() {
-  const [amount, setAmount] = useState(0);
-  const pts = Math.floor(amount / 1000);
-
-  return (
-    <div className="bg-[#1a1a1a] border border-white/8 rounded-xl p-5 flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Wallet size={14} className="text-yellow-500" />
-        <p className="text-[11px] font-bold tracking-widest text-gray-400 uppercase">Top Up Points</p>
-      </div>
-      <div>
-        <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-2">Enter Amount (VND)</p>
-        <div className="bg-[#111] border border-white/10 rounded-lg px-4 py-3 flex items-center justify-between">
-          <span className="text-[22px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
-            {amount.toLocaleString()}
-          </span>
-          <div className="flex flex-col gap-1">
-            <button
-              onClick={() => setAmount(a => a + 100_000)}
-              className="w-5 h-5 rounded bg-white/8 flex items-center justify-center text-gray-400 hover:bg-white/15 hover:text-white transition-colors duration-100"
-            >
-              <Plus size={10} />
-            </button>
-            <button
-              onClick={() => setAmount(a => Math.max(0, a - 100_000))}
-              className="w-5 h-5 rounded bg-white/8 flex items-center justify-center text-gray-400 hover:bg-white/15 hover:text-white transition-colors duration-100"
-            >
-              <MinusIcon size={10} />
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-[11px] text-gray-600">Expected Points:</p>
-          <p className={`text-[11px] font-bold ${pts > 0 ? "text-yellow-400" : "text-gray-600"}`}>
-            {pts.toLocaleString()} PTS
-          </p>
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        {[100_000, 500_000, 1_000_000].map(val => (
-          <button
-            key={val}
-            onClick={() => setAmount(val)}
-            className={`py-1.5 rounded-lg text-[11.5px] font-semibold border transition-all duration-150 ${
-              amount === val
-                ? "bg-yellow-600/20 border-yellow-600/50 text-yellow-400"
-                : "bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:text-white"
-            }`}
-          >
-            {val >= 1_000_000 ? `${val / 1_000_000}M` : `${val / 1_000}k`}
-          </button>
-        ))}
-      </div>
-      <button
-        disabled={pts === 0}
-        className={`w-full py-2.5 rounded-lg text-[12px] font-bold tracking-widest uppercase transition-all duration-150 ${
-          pts > 0
-            ? "bg-yellow-600 hover:bg-yellow-500 text-black shadow-lg shadow-yellow-900/30"
-            : "bg-[#222] border border-white/8 text-gray-600 cursor-not-allowed"
-        }`}
-      >
-        Purchase Points
-      </button>
-      <p className="text-[10px] text-gray-700 text-center">Exchange rate: 1,000 VND = 1 Point</p>
     </div>
   );
 }
@@ -251,14 +182,14 @@ export default function FinancialsPage() {
             <p className="text-[9.5px] font-bold tracking-widest text-gray-500 uppercase mb-1">Net Profit</p>
             <p className="text-[18px] font-black text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
               {summaryLoading ? "…" : fmt(s?.netProfit ?? 0)}
-              {" "}<span className="text-[11px] text-gray-500 font-semibold">PTS</span>
+              {" "}<span className="text-[11px] text-gray-500 font-semibold">₫</span>
             </p>
           </div>
           <div className="bg-red-800 border border-red-700/60 rounded-xl px-5 py-3 text-center shadow-lg shadow-red-900/40">
             <p className="text-[9.5px] font-bold tracking-widest text-red-300 uppercase mb-1">Balance</p>
             <p className="text-[18px] font-black text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
               {summaryLoading ? "…" : fmt(s?.balance ?? 0)}
-              {" "}<span className="text-[11px] text-red-300 font-semibold">PTS</span>
+              {" "}<span className="text-[11px] text-red-300 font-semibold">₫</span>
             </p>
           </div>
         </div>
@@ -284,7 +215,7 @@ export default function FinancialsPage() {
           icon={<Minus size={15} />}
           label="Total Prize"
           value={summaryLoading ? "…" : `+${fmt(s?.totalPrize ?? 0)}`}
-          sub={`Jockey payout: ${fmt(s?.totalJockeyPayout ?? 0)} pts`}
+          sub={`Jockey payout: ${fmt(s?.totalJockeyPayout ?? 0)} ₫`}
           subColor="text-yellow-400"
         />
         <StatCard
@@ -294,31 +225,6 @@ export default function FinancialsPage() {
           sub={s?.totalViolations ? "review required" : "clean record"}
           subColor={s?.totalViolations ? "text-red-400" : "text-gray-500"}
         />
-      </div>
-
-      {/* ── Main grid: chart + top-up ─────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-5 mb-6">
-        <div className="col-span-2 bg-[#1a1a1a] border border-white/8 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <BarChart2 size={14} className="text-red-500" />
-              <p className="text-[12px] font-bold tracking-widest text-gray-400 uppercase">Performance Trends</p>
-            </div>
-            <div className="flex items-center bg-[#111] border border-white/8 rounded-lg overflow-hidden">
-              {(["7D", "30D", "ALL"] as ChartRange[]).map(r => (
-                <button
-                  key={r}
-                  onClick={() => setChartRange(r)}
-                  className={`px-3.5 py-1.5 text-[11px] font-bold transition-colors duration-150 ${chartRange === r ? "bg-red-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
-          <BarChart range={chartRange} />
-        </div>
-        <TopUpPanel />
       </div>
 
       {/* ── Race Activity ─────────────────────────────────────────────────── */}
@@ -386,10 +292,10 @@ export default function FinancialsPage() {
               {positionLabel(row.finishPosition)}
             </span>
             <span className={`text-[13.5px] font-bold ${row.prizeMoney > 0 ? "text-green-400" : "text-gray-600"}`}>
-              {row.prizeMoney > 0 ? `+${fmt(row.prizeMoney)}` : "—"} pts
+              {row.prizeMoney > 0 ? `+${fmt(row.prizeMoney)}` : "—"} ₫
             </span>
             <span className="text-[13px] text-gray-500">
-              {row.jockeyPayout > 0 ? `-${fmt(row.jockeyPayout)} pts` : "—"}
+              {row.jockeyPayout > 0 ? `-${fmt(row.jockeyPayout)} ₫` : "—"}
             </span>
             <ViolationBadge count={row.violations.length} />
           </div>

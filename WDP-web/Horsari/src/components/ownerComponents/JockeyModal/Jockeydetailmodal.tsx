@@ -19,7 +19,7 @@ export interface Jockey {
   weight: string;
   age: number;
   specialties: string[];
-  recentRaces: { race: string; position: string; horse: string; date: string }[];
+  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup" }[];
   image: string | null;
 }
 
@@ -34,6 +34,12 @@ const POSITION_COLOR: Record<string, string> = {
   "1st": "text-yellow-400",
   "2nd": "text-gray-300",
   "3rd": "text-orange-400",
+};
+
+const ATTENDANCE_CFG: Record<string, { label: string; text: string; bg: string; border: string }> = {
+  no_show: { label: "No-Show", text: "text-red-400",  bg: "bg-red-500/10",  border: "border-red-700/40" },
+  main:    { label: "Main",    text: "text-white",     bg: "bg-white/5",     border: "border-white/10"   },
+  backup:  { label: "Backup",  text: "text-blue-400",  bg: "bg-blue-500/10", border: "border-blue-700/40" },
 };
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -130,20 +136,30 @@ export default function JockeyDetailModal({ jockey, onClose }: JockeyDetailModal
               Recent Races
             </p>
             <div className="space-y-2">
-              {jockey.recentRaces.map((r, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between bg-[#141414] border border-white/6 rounded-xl px-4 py-3"
-                >
-                  <div>
-                    <p className="text-[13px] font-semibold text-white">{r.race}</p>
-                    <p className="text-[11px] text-gray-500 mt-0.5">on {r.horse} · {r.date}</p>
+              {jockey.recentRaces.map((r, i) => {
+                const attCfg = r.attendance ? ATTENDANCE_CFG[r.attendance] : null;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between bg-[#141414] border border-white/6 rounded-xl px-4 py-3"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[13px] font-semibold text-white">{r.race}</p>
+                        {attCfg && (
+                          <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${attCfg.bg} ${attCfg.border} ${attCfg.text}`}>
+                            {attCfg.label}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-0.5">on {r.horse} · {r.date}</p>
+                    </div>
+                    <span className={`text-[14px] font-bold ${POSITION_COLOR[r.position] ?? "text-gray-500"}`}>
+                      {r.attendance === "no_show" ? "—" : r.position}
+                    </span>
                   </div>
-                  <span className={`text-[14px] font-bold ${POSITION_COLOR[r.position] ?? "text-gray-500"}`}>
-                    {r.position}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

@@ -58,7 +58,7 @@ const raceRoundSchema = new mongoose.Schema(
         },
         currencyType: {
             type: String,
-            default: 'USD',
+            default: 'VND',
         },
         location: {
             type: String,

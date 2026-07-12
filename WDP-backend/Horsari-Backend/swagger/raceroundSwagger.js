@@ -33,7 +33,7 @@
  *                   firstPlacePrize: { type: number, default: 0 }
  *                   secondPlacePrize: { type: number, default: 0 }
  *                   thirdPlacePrize: { type: number, default: 0 }
- *                   currencyType: { type: string, default: USD }
+ *                   currencyType: { type: string, default: VND }
  *                   location: { type: string }
  *                   address: { type: string }
  *                   eligibilityRuleId: { type: string }

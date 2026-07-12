@@ -124,7 +124,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         firstPlacePrize: data.firstPlacePrize,
                         secondPlacePrize: data.secondPlacePrize,
                         thirdPlacePrize: data.thirdPlacePrize,
-                        currencyType: data.currencyType || "USD",
+                        currencyType: data.currencyType || "VND",
                     });
 
                     const parts = (res.data.Registration || []).map((reg: any) => ({
@@ -640,7 +640,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                     </div>
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prize</span>
-                                                        <span className="text-[#f3b2a5] font-semibold">{p.raceResult.prizeMoney > 0 ? `${detailedOverview?.currencyType ?? 'USD'} ${p.raceResult.prizeMoney.toLocaleString()}` : '-'}</span>
+                                                        <span className="text-[#f3b2a5] font-semibold">{p.raceResult.prizeMoney > 0 ? `${detailedOverview?.currencyType ?? 'VND'} ${p.raceResult.prizeMoney.toLocaleString()}` : '-'}</span>
                                                         {p.raceResult.prizeMoney > 0 && <PaymentStatusBadge payment={p.prizePayment} />}
                                                     </div>
                                                 </>

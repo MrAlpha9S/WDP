@@ -255,7 +255,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                     </p>
 
                     <p className="text-[13px] text-yellow-400 font-semibold">
-                      {race.prizes.first > 0 ? `${fmt(race.prizes.first)} pts` : "—"}
+                      {race.prizes.first > 0 ? `${fmt(race.prizes.first)} ₫` : "—"}
                     </p>
 
                     <div className="flex items-center gap-2 shrink-0">
@@ -439,7 +439,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                       <div>
                         <p className="text-[9px] font-semibold tracking-widest text-gray-600 uppercase">1st Prize</p>
                         <p className="text-[13px] font-bold text-yellow-400 mt-0.5">
-                          {race.prizes.first > 0 ? `${fmt(race.prizes.first)} pts` : "—"}
+                          {race.prizes.first > 0 ? `${fmt(race.prizes.first)} ₫` : "—"}
                         </p>
                       </div>
                       <button

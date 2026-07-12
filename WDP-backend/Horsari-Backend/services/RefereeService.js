@@ -243,6 +243,9 @@ class RefereeService {
                 if (!regsByRound.has(key)) regsByRound.set(key, []);
                 regsByRound.get(key).push(reg);
             }
+            // This referee's own assignment per round — fee/status/paymentStatus,
+            // not the admin's all-referees view.
+            const assignmentByRoundId = new Map(assignments.map(a => [a.raceRoundId.toString(), a]));
 
             // ── 5. Assemble items ─────────────────────────────────────────────
             const items = raceRounds.map(raceRound => {
@@ -263,7 +266,12 @@ class RefereeService {
                     };
                 });
 
-                return { ...raceRound, RaceType: raceType, Registration: registrations };
+                return {
+                    ...raceRound,
+                    RaceType: raceType,
+                    Registration: registrations,
+                    RaceReferee: assignmentByRoundId.get(raceRound._id.toString()) || null,
+                };
             });
 
             return {

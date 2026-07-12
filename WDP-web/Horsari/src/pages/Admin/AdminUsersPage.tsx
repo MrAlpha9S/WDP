@@ -32,7 +32,7 @@ export interface ViolationData {
 }
 export interface HorseData { id: string; name: string; breed: string; age: number; status: string; violations?: ViolationData[]; }
 export interface HorseOwnerData { address: string; licenseStatus: string; licenseLink: string; horses?: HorseData[]; }
-export interface RaceHistoryData { id: string; raceName: string; date: string; position: number | null; finishTime: string | null; prize: number | null; resultStatus: string | null; distance: number | null; horseName: string | null; horseBreed: string | null; horseImg: string | null; violations?: ViolationData[]; }
+export interface RaceHistoryData { id: string; raceName: string; date: string; position: number | null; finishTime: string | null; prize: number | null; resultStatus: string | null; distance: number | null; horseName: string | null; horseBreed: string | null; horseImg: string | null; attendance: "no_show" | "main" | "backup"; violations?: ViolationData[]; }
 export interface JockeyData { height: number; weight: number; matchesRaced: number; totalWins: number; ranking: number; status: string; licenseLink: string; licenseStatus: string; raceHistory?: RaceHistoryData[]; }
 export interface RefereeAssignmentData { assignmentId: string; raceRoundId: string | null; roundName: string | null; raceDate: string | null; raceStatus: string | null; assignmentStatus: string; paymentStatus: string; fee: number; violations?: ViolationData[]; }
 export interface RefereeData { licenseLink: string; licenseStatus: string; totalAssignments: number; assignments?: RefereeAssignmentData[]; }
@@ -144,6 +144,7 @@ function mergeRoleDetail(base: FullUser, detail: any): FullUser {
                 horseName:    r.horseName      ?? null,
                 horseBreed:   r.horseBreed     ?? null,
                 horseImg:     r.horseImg       ?? null,
+                attendance:   r.attendance     ?? 'main',
                 violations: (r.violations || []).map(mapViolation),
             })),
         };

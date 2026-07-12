@@ -25,7 +25,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     const [firstPlacePrize, setFirstPlacePrize] = useState<number | "">("");
     const [secondPlacePrize, setSecondPlacePrize] = useState<number | "">("");
     const [thirdPlacePrize, setThirdPlacePrize] = useState<number | "">("");
-    const [currencyType, setCurrencyType] = useState<string>("USD");
+    const [currencyType, setCurrencyType] = useState<string>("VND");
     const [raceTitle, setRaceTitle] = useState("");
     const [tournamentId, setTournamentId] = useState("");
     const [location, setLocation] = useState("");
@@ -69,7 +69,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                         setFirstPlacePrize(raceToEdit.firstPlacePrize ?? "");
                         setSecondPlacePrize(raceToEdit.secondPlacePrize ?? "");
                         setThirdPlacePrize(raceToEdit.thirdPlacePrize ?? "");
-                        setCurrencyType(raceToEdit.currencyType ?? "USD");
+                        setCurrencyType(raceToEdit.currencyType ?? "VND");
                         // Match the saved raceType string back to a rule _id
                         const matchedRule = data.data?.eligibilityRules?.find((r: any) => r.raceType === raceToEdit.raceType);
                         setCreateRaceType(matchedRule?._id || (data.data?.eligibilityRules?.length > 0 ? data.data.eligibilityRules[0]._id : ""));
@@ -119,7 +119,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             setFirstPlacePrize("");
             setSecondPlacePrize("");
             setThirdPlacePrize("");
-            setCurrencyType("USD");
+            setCurrencyType("VND");
             setError(null);
             setShowConfirm(false);
         }

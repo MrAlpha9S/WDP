@@ -486,7 +486,19 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                                         {/* Race name + date */}
                                         <div className="px-3 pt-3 pb-2 flex items-start justify-between gap-2">
                                             <div className="min-w-0">
-                                                <p className="text-[13px] font-semibold text-white truncate">{race.raceName}</p>
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <p className="text-[13px] font-semibold text-white truncate">{race.raceName}</p>
+                                                    {race.attendance === 'no_show' && (
+                                                        <span className="flex-shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-700/40">
+                                                            No-Show
+                                                        </span>
+                                                    )}
+                                                    {race.attendance === 'backup' && (
+                                                        <span className="flex-shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-700/40">
+                                                            Backup
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-[11px] text-gray-500 mt-0.5">{race.date}</p>
                                             </div>
                                             {race.resultStatus && (
@@ -573,7 +585,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                                         <div className="flex items-center gap-3 text-[11px] text-gray-500">
                                             <span>{a.raceDate || 'TBD'}</span>
                                             <span className={`${a.paymentStatus === 'paid' ? 'text-emerald-400' : 'text-gray-500'}`}>
-                                                {a.fee > 0 ? `${a.fee.toLocaleString()} pts · ${a.paymentStatus}` : 'No fee'}
+                                                {a.fee > 0 ? `${a.fee.toLocaleString()} ₫ · ${a.paymentStatus}` : 'No fee'}
                                             </span>
                                         </div>
                                     </div>
