@@ -303,23 +303,7 @@ export default function AdminStatisticsPage() {
                 </div>
 
                 {/* Finance & Payments */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                    <SectionCard title="Transactions by Type (count / total amount)">
-                        <ResponsiveContainer width="100%" height={220}>
-                            <BarChart
-                                data={Object.entries(stats?.finance.transactionsByType ?? {}).map(([name, v]) => ({ name, total: v.total, count: v.count }))}
-                                margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
-                                <XAxis dataKey="name" tick={{ fill: "#9ca3af", fontSize: 11 }} axisLine={{ stroke: "#333" }} tickLine={false} />
-                                <YAxis tick={{ fill: "#9ca3af", fontSize: 11 }} axisLine={false} tickLine={false} />
-                                <Tooltip contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} labelStyle={{ color: "#fff" }} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                                <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-                                    {Object.keys(stats?.finance.transactionsByType ?? {}).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </SectionCard>
+                <div className="grid grid-cols-1 gap-4 mb-6">
                     <SectionCard title="Payment Verification Status (unpaid / processing / paid)">
                         <CountBarChart data={Object.entries(stats?.payments.byStatus ?? {}).map(([name, v]) => ({ name, value: v.count }))} />
                         {totalPaymentsPending > 0 && (

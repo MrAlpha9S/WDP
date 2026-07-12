@@ -1,3 +1,5 @@
+import { formatWithDots, parseDottedNumber } from "../../../utils/numberFormat";
+
 interface PrizesProps {
     requireEntranceFees: boolean;
     setRequireEntranceFees: (v: boolean) => void;
@@ -20,12 +22,12 @@ export default function CreateRacePrizes(props: PrizesProps) {
                 <div>
                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Minimal Riding Fees</label>
                     <input
-                        type="number"
-                        min="0"
-                        placeholder="e.g. 500"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="e.g. 500.000"
                         disabled={!props.requireEntranceFees}
-                        value={props.minimalRidingFees}
-                        onChange={(e) => props.setMinimalRidingFees(e.target.value ? Number(e.target.value) : "")}
+                        value={formatWithDots(props.minimalRidingFees)}
+                        onChange={(e) => props.setMinimalRidingFees(parseDottedNumber(e.target.value))}
                         onBlur={() => {
                             if (typeof props.minimalRidingFees === 'number' && props.minimalRidingFees < 0) {
                                 props.setMinimalRidingFees(0);
@@ -75,10 +77,10 @@ export default function CreateRacePrizes(props: PrizesProps) {
                     <div className="flex items-center gap-4 bg-[#1a1a1a] border border-white/10 rounded p-2.5 focus-within:border-red-500/50">
                         <label className="text-[12px] font-medium text-gray-400 w-24">1st Place</label>
                         <input
-                            type="number"
-                            min="0"
-                            value={props.firstPlacePrize}
-                            onChange={(e) => props.setFirstPlacePrize(e.target.value ? Number(e.target.value) : "")}
+                            type="text"
+                            inputMode="numeric"
+                            value={formatWithDots(props.firstPlacePrize)}
+                            onChange={(e) => props.setFirstPlacePrize(parseDottedNumber(e.target.value))}
                             className="flex-1 bg-transparent text-[13px] text-white focus:outline-none"
                         />
                     </div>
@@ -86,10 +88,10 @@ export default function CreateRacePrizes(props: PrizesProps) {
                     <div className="flex items-center gap-4 bg-[#1a1a1a] border border-white/10 rounded p-2.5 focus-within:border-red-500/50">
                         <label className="text-[12px] font-medium text-gray-400 w-24">2nd Place</label>
                         <input
-                            type="number"
-                            min="0"
-                            value={props.secondPlacePrize}
-                            onChange={(e) => props.setSecondPlacePrize(e.target.value ? Number(e.target.value) : "")}
+                            type="text"
+                            inputMode="numeric"
+                            value={formatWithDots(props.secondPlacePrize)}
+                            onChange={(e) => props.setSecondPlacePrize(parseDottedNumber(e.target.value))}
                             className="flex-1 bg-transparent text-[13px] text-white focus:outline-none"
                         />
                     </div>
@@ -97,10 +99,10 @@ export default function CreateRacePrizes(props: PrizesProps) {
                     <div className="flex items-center gap-4 bg-[#1a1a1a] border border-white/10 rounded p-2.5 focus-within:border-red-500/50">
                         <label className="text-[12px] font-medium text-gray-400 w-24">3rd Place</label>
                         <input
-                            type="number"
-                            min="0"
-                            value={props.thirdPlacePrize}
-                            onChange={(e) => props.setThirdPlacePrize(e.target.value ? Number(e.target.value) : "")}
+                            type="text"
+                            inputMode="numeric"
+                            value={formatWithDots(props.thirdPlacePrize)}
+                            onChange={(e) => props.setThirdPlacePrize(parseDottedNumber(e.target.value))}
                             className="flex-1 bg-transparent text-[13px] text-white focus:outline-none"
                         />
                     </div>

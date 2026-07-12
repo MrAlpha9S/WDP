@@ -136,7 +136,7 @@ export default function InviteSidebar({ invites: initial }: InviteSidebarProps) 
                                     <div className="flex items-center justify-between mt-2">
                                         <div className="flex items-center gap-2">
                                             <StatusPill status={inv.status} />
-                                            <span className="text-[11px] font-bold text-gray-400">${inv.fee.toLocaleString()}</span>
+                                            <span className="text-[11px] font-bold text-gray-400">{inv.fee.toLocaleString()} ₫</span>
                                         </div>
                                         <span className="text-[10px] text-gray-600">{inv.sentAt}</span>
                                     </div>

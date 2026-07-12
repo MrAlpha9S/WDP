@@ -209,6 +209,14 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                 };
             });
             if (selectedInvitationId === invitationId) setSelectedInvitationId(null);
+
+            // If that was the only confirmed, available rider, there's nobody left to
+            // race — auto-fail the entry instead of leaving the referee stuck with no
+            // valid selection and a disabled submit button.
+            const hasOtherAvailableJockey = invitations.some(inv =>
+                inv._id !== invitationId && inv.jockeyConfirmation && inv.invitationStatus !== 'didNotAttend'
+            );
+            if (!hasOtherAvailableJockey) setNoJockeyFail(true);
         } catch (err: any) {
             setSubmitError(err?.msg || 'Failed to mark jockey as no-show. Please try again.');
         } finally {

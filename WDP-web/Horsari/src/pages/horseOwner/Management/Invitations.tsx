@@ -318,7 +318,7 @@ function JockeyInvitationCard({
               <h3 className="text-[16px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>{inv.jockeyName}</h3>
               {hasNoShowHistory && (
                 <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-700/40">
-                  No-Show History
+                  No-Show
                 </span>
               )}
             </div>

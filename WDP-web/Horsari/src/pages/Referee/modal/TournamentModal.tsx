@@ -194,7 +194,7 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
                     { label: "Assigned Races", value: `${t.assignedRaces ?? 0}/${totalRaces}`, sub: "of total", subColor: c.label },
                     { label: "Completed", value: `${completed}`, sub: "races done", subColor: "text-gray-500" },
                     { label: "Violations Filed", value: `${violations}`, sub: "this series", subColor: violations > 0 ? "text-yellow-400" : "text-gray-500" },
-                    { label: "Total Earnings", value: `$${totalEarnings.toLocaleString()}`, sub: "series total", subColor: "text-green-400" },
+                    { label: "Total Earnings", value: `${totalEarnings.toLocaleString()} ₫`, sub: "series total", subColor: "text-green-400" },
                 ].map(card => (
                     <div key={card.label} className="bg-white/[0.03] rounded-xl border border-white/8 px-4 py-3.5">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1.5">{card.label}</p>

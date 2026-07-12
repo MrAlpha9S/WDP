@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { formatWithDots, parseDottedNumber } from "../../../utils/numberFormat";
 
 interface ParticipantsProps {
     metadata: any;
@@ -102,16 +103,16 @@ export default function CreateRaceParticipants(props: ParticipantsProps) {
                                     <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors flex-1 truncate">{refName}</span>
                                     {props.selectedReferees.includes(String(refereeId)) && (
                                         <input
-                                            type="number"
-                                            min="0"
+                                            type="text"
+                                            inputMode="numeric"
                                             placeholder="Fee (₫)"
-                                            value={props.refereeFees[String(refereeId)] || ""}
+                                            value={formatWithDots(props.refereeFees[String(refereeId)] || "")}
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => {
-                                                const val = e.target.value ? Number(e.target.value) : 0;
+                                                const val = parseDottedNumber(e.target.value) || 0;
                                                 props.setRefereeFees({ ...props.refereeFees, [String(refereeId)]: val });
                                             }}
-                                            className="w-[80px] bg-[#161616] border border-white/10 rounded p-1 text-[11px] text-white focus:outline-none focus:border-red-500/50"
+                                            className="w-[110px] bg-[#161616] border border-white/10 rounded p-1 text-[11px] text-white focus:outline-none focus:border-red-500/50"
                                         />
                                     )}
                                 </label>

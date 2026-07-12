@@ -148,7 +148,7 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                         <div className="px-4 py-3 flex flex-col gap-2">
                             <div className="flex items-center justify-between">
                                 <span className="text-[13px] text-gray-500">Referee Fee</span>
-                                <span className="text-[17px] font-black text-white">${invite.fee.toLocaleString()}</span>
+                                <span className="text-[17px] font-black text-white">{invite.fee.toLocaleString()} ₫</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span className="text-[13px] text-gray-500">Expected Payout</span>
@@ -267,7 +267,7 @@ export function InviteCard({ invite, onAccept, onDecline, onConfirmPayment }: In
                         </div>
                         <div className="flex items-center gap-3 mt-1.5">
                             <p className="text-[11px] text-gray-600">Invited {invite.sentAt} · {invite.id}</p>
-                            <span className="text-[12px] font-bold text-gray-300">${invite.fee.toLocaleString()}</span>
+                            <span className="text-[12px] font-bold text-gray-300">{invite.fee.toLocaleString()} ₫</span>
                             <PaymentPill status={invite.paymentStatus} />
                         </div>
                     </div>
