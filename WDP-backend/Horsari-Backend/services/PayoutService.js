@@ -175,6 +175,7 @@ class PayoutService {
                 msg: `${settled.length} predictions settled`,
             };
         } catch (err) {
+            console.error('[PayoutService] distributeRacePayouts error:', err);
             return { code: 500, msg: err.message };
         }
     }

@@ -165,7 +165,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
             <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
                 <StatCard
                     label="Pool Betting Wallet"
-                    value={loading ? "..." : (stats?.finance?.mainAdminWallet ?? 0).toLocaleString()}
+                    value={loading ? "..." : (stats?.finance?.mainAdminWallet ?? 0).toLocaleString() + " vnd"}
                     sub="Lifetime pool takeout (statistic only)"
                     subColor="text-gray-500"
                     icon={<Wallet size={16} />}

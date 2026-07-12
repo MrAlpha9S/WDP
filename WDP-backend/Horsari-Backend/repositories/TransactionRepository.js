@@ -33,6 +33,26 @@ class TransactionRepository {
         return { items, totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit };
     }
 
+    // Admin-only, system-wide wallet-ledger view — every deposit/withdrawal/
+    // reward/refund row regardless of whose wallet it belongs to (spectator
+    // prediction payouts, house-take deposits, etc.), unlike
+    // findByUserIdPaginated which is scoped to one user.
+    async findAllLedgerEntries({ page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = {}) {
+        const skip = (page - 1) * limit;
+        const filter = { transactionType: { $ne: null } };
+
+        const allowedSortFields = ['createdAt', 'amount'];
+        const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortObj = { [sortField]: order === 'asc' ? 1 : -1 };
+
+        const [items, totalItems] = await Promise.all([
+            Transaction.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
+            Transaction.countDocuments(filter),
+        ]);
+
+        return { items, totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit };
+    }
+
     async sumAmountByUserId(userId, filter = {}) {
         const result = await Transaction.aggregate([
             { $match: { userId: new mongoose.Types.ObjectId(String(userId)), ...filter } },

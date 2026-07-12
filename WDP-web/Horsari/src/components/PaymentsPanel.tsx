@@ -9,7 +9,7 @@ import type { PaymentEntity, PaymentStatus, PaymentsResponse } from "../api/paym
 // Real money changes hands outside the system — this only records whether
 // both sides have confirmed it happened.
 
-const PAYMENT_TYPE_LABEL: Record<string, string> = {
+export const PAYMENT_TYPE_LABEL: Record<string, string> = {
     race_prize: "Race Prize",
     referee_fee: "Referee Fee",
     jockey_payout: "Jockey Payout",

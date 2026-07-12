@@ -985,4 +985,22 @@ export const adminService = {
       throw error.response?.data || { msg: 'Failed to fetch ledger' };
     }
   },
+
+  // System-wide wallet ledger — every reward/deposit/withdrawal/refund row for
+  // any user (e.g. spectator prediction payouts alongside admin house-take),
+  // unlike getLedger which is scoped to the caller's own (admin) rows.
+  getAllLedger: async (
+    page = 1,
+    limit = 10,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ): Promise<LedgerResponse> => {
+    try {
+      const params: Record<string, unknown> = { page, limit, sortBy, order };
+      const response = await api.get('/admin/ledger/all', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch ledger' };
+    }
+  },
 };

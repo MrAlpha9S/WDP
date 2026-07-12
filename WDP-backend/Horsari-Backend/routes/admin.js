@@ -91,5 +91,7 @@ router.put('/payments/:paymentId/confirm-paid', authMiddleware, authAdmin, Payme
 
 // --- Wallet ledger (parimutuel house-take deposits — auto-applied, no confirmation) ---
 router.get('/ledger', authMiddleware, authAdmin, PaymentController.listMyLedger);
+// System-wide wallet ledger (all reward/deposit/withdrawal/refund rows, any user — e.g. spectator prediction payouts)
+router.get('/ledger/all', authMiddleware, authAdmin, PaymentController.listAllLedger);
 
 module.exports = router;

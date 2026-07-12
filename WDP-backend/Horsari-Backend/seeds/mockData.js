@@ -772,6 +772,14 @@ async function seed() {
         rewardPoints: 12_000,
       },
       {
+        spectatorId: spectators[2]._id,
+        registrationId: r4Regs[1]._id,
+        predictedHorseId: horses[1]._id,
+        predictionMethodId: predictionMethods[2]._id, // Exacta (race_winner)
+        predictionStatus: "pending",
+        rewardPoints: 15_000,
+      },
+      {
         spectatorId: spectators[1]._id,
         registrationId: r4Regs[2]._id,
         predictedHorseId: horses[2]._id,
@@ -780,22 +788,28 @@ async function seed() {
         rewardPoints: 9_000,
       },
       {
-        spectatorId: spectators[2]._id,
-        registrationId: r4Regs[1]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[1]._id, // Ranking (race_rank)
-        predictedRank: 2,
+        spectatorId: spectators[0]._id,
+        registrationId: r4Regs[3]._id,
+        predictedHorseId: horses[3]._id,
+        predictionMethodId: predictionMethods[2]._id, // Exacta (race_winner)
         predictionStatus: "pending",
-        rewardPoints: 15_000,
+        rewardPoints: 10_000,
       },
       {
         spectatorId: spectators[3]._id,
         registrationId: r4Regs[4]._id,
         predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[1]._id, // Ranking (race_rank)
-        predictedRank: 3,
+        predictionMethodId: predictionMethods[2]._id, // Exacta (race_winner)
         predictionStatus: "pending",
         rewardPoints: 8_000,
+      },
+      {
+        spectatorId: spectators[1]._id,
+        registrationId: r4Regs[5]._id,
+        predictedHorseId: horses[5]._id,
+        predictionMethodId: predictionMethods[2]._id, // Exacta (race_winner)
+        predictionStatus: "pending",
+        rewardPoints: 11_000,
       },
     ]);
 

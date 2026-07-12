@@ -141,6 +141,22 @@ class PaymentService {
         }
     }
 
+    // Ledger rows are userId-scoped (not payer/payee), so attach the owning
+    // user's display name and role (e.g. 'spectator', 'admin') directly —
+    // distinct from _attachPartyNames, which resolves payer/payee pairs.
+    async _attachUserRoles(entries) {
+        if (!entries.length) return;
+        const User = require('../entities/User');
+        const userIds = [...new Set(entries.map(e => String(e.userId)).filter(Boolean))];
+        const users = await User.find({ _id: { $in: userIds } }, 'fullName role').lean();
+        const userById = new Map(users.map(u => [String(u._id), u]));
+        for (const entry of entries) {
+            const user = userById.get(String(entry.userId));
+            entry.userName = user?.fullName ?? null;
+            entry.userRole = user?.role ?? null;
+        }
+    }
+
     async listMyPayments(userId, role, direction = 'all', status = null, page = 1, limit = 10, sortBy = 'createdAt', order = 'desc') {
         try {
             const { items, totalItems, totalPages, currentPage, limit: lim } =
@@ -190,6 +206,27 @@ class PaymentService {
                 code: 200,
                 data: { items, pagination: { totalItems, totalPages, currentPage, limit: lim } },
                 msg: 'Ledger retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Admin-only, system-wide wallet-ledger view — every reward/deposit/
+    // withdrawal/refund row regardless of whose wallet it belongs to (e.g.
+    // spectator prediction payouts alongside admin house-take deposits),
+    // unlike listMyLedger which is scoped to the caller's own rows.
+    async listAllLedger(page = 1, limit = 10, sortBy = 'createdAt', order = 'desc') {
+        try {
+            const { items, totalItems, totalPages, currentPage, limit: lim } =
+                await TransactionRepository.findAllLedgerEntries({ page, limit, sortBy, order });
+
+            await this._attachUserRoles(items);
+
+            return {
+                code: 200,
+                data: { items, pagination: { totalItems, totalPages, currentPage, limit: lim } },
+                msg: 'All ledger entries retrieved successfully',
             };
         } catch (error) {
             return { code: 500, msg: error.message };

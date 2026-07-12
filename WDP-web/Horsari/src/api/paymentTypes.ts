@@ -42,8 +42,7 @@ export interface PaymentsResponse {
 }
 
 // Wallet-ledger entries (deposits/withdrawals/rewards/refunds) — distinct from
-// PaymentEntity, which models the payer/payee payment-verification flow. Today
-// only admin's parimutuel house-take deposits show up here.
+// PaymentEntity, which models the payer/payee payment-verification flow.
 export interface LedgerEntry {
   _id: string;
   transactionType: 'reward' | 'deposit' | 'withdrawal' | 'refund';
@@ -51,6 +50,9 @@ export interface LedgerEntry {
   status: 'pending' | 'completed' | 'failed';
   description: string | null;
   createdAt: string;
+  /** Only populated on the system-wide "all ledger" view — the wallet owner's name/role (e.g. spectator prediction payouts, admin house-take). */
+  userName?: string | null;
+  userRole?: string | null;
 }
 
 export interface LedgerResponse {

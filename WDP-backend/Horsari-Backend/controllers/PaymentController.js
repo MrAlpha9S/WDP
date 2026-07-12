@@ -36,6 +36,14 @@ class PaymentController {
         const response = await PaymentService.listMyLedger(req.userId, page, limit, sortBy, order);
         return res.status(response.code).json(response);
     }
+
+    async listAllLedger(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await PaymentService.listAllLedger(page, limit, sortBy, order);
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new PaymentController();

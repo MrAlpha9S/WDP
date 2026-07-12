@@ -93,17 +93,7 @@ export default function HomePage() {
                             Your upcoming race schedule and recent invitations.
                         </p>
                     </div>
-                    <div className="bg-red-800 border border-red-700/60 rounded-xl px-5 py-3 text-center shadow-lg shadow-red-900/40">
-                        <p className="text-[10px] font-semibold tracking-widest text-red-200 uppercase flex items-center gap-1 justify-center">
-                            <Wallet size={11} /> Wallet
-                        </p>
-                        <p
-                            className="text-[20px] font-bold text-white leading-tight mt-1"
-                            style={{ fontFamily: "'Playfair Display', serif" }}
-                        >
-                            {walletInfo ? walletInfo.referee.wallet.toLocaleString() : "..."}
-                        </p>
-                    </div>
+
                 </div>
 
                 {/* Main grid */}
