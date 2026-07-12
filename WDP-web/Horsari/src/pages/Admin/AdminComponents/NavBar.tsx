@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, ChevronDown, User, LogOut } from "lucide-react";
+import { ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { useAdminSocket } from "../../../providers/useAdminSocket";
-import NotificationPopup from "./NotificationPopup";
-import type { AdminNotification } from "../../../types/AdminNotification";
 
 export type AdminTab = "Dashboard" | "Home" | "Tournaments" | "Users" | "Financial" | "Races" | "Rules Managment" | "Horses" | "Inbox" | "Violations" | "Violation Types" | "Statistics";
 
@@ -31,30 +29,10 @@ export default function AdminNavBar({ activeTab, onTabChange }: NavBarProps) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [notifOpen, setNotifOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const notifRef = useRef<HTMLDivElement>(null);
 
-    // Notification + connection state from shared context
-    const { notifications, unreadCount, dismissNotification, clearAllNotifications, markAllRead, wsConnected, wsCount } = useAdminSocket();
-
-    // Action handler — switches tabs based on notification type
-    function handleNotificationAction(n: AdminNotification) {
-        switch (n.type) {
-            case 'race_started':
-            case 'race_ended':
-            case 'objection_filed':
-                onTabChange('Races');
-                break;
-            case 'new_registration':
-            case 'new_user':
-                onTabChange('Users');
-                break;
-            default:
-                break;
-        }
-        setNotifOpen(false);
-    }
+    // Connection state from shared context
+    const { wsConnected } = useAdminSocket();
 
     useEffect(() => {
         function handleClickOutside(e: MouseEvent) {
@@ -88,7 +66,7 @@ export default function AdminNavBar({ activeTab, onTabChange }: NavBarProps) {
                     </span>
                     <span
                         className={`w-1.5 h-1.5 rounded-full ${wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"}`}
-                        title={wsConnected ? `Connected · ping #${wsCount ?? "…"}` : "Disconnected"}
+                        title={wsConnected ? "Connected" : "Disconnected"}
                     />
                 </div>
 
@@ -117,33 +95,6 @@ export default function AdminNavBar({ activeTab, onTabChange }: NavBarProps) {
 
                 {/* Right icons */}
                 <div className="flex items-center gap-3">
-                    {/* Bell / Notification popup */}
-                    <div className="relative" ref={notifRef}>
-                        <button
-                            className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors duration-150"
-                            onClick={() => {
-                                setNotifOpen(o => !o);
-                                if (!notifOpen) markAllRead();
-                            }}
-                        >
-                            <Bell size={17} />
-                            {unreadCount > 0 && (
-                                <span className="absolute top-1 right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white px-0.5">
-                                    {unreadCount > 9 ? "9+" : unreadCount}
-                                </span>
-                            )}
-                        </button>
-                        {notifOpen && (
-                            <NotificationPopup
-                                notifications={notifications}
-                                unreadCount={unreadCount}
-                                onDismiss={dismissNotification}
-                                onAction={handleNotificationAction}
-                                onClearAll={clearAllNotifications}
-                                onClose={() => setNotifOpen(false)}
-                            />
-                        )}
-                    </div>
                     {user && (
                         <div className="relative" ref={menuRef}>
                             <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-white/5 transition-colors duration-150">

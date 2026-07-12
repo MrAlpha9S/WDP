@@ -1,5 +1,4 @@
 const InvitationService = require('../services/InvitationService');
-const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
 const NotificationService = require('../services/NotificationService');
 
 class InvitationController {
@@ -9,10 +8,6 @@ class InvitationController {
       const io = req.app.get('io');
       const result = await InvitationService.createInvitation(req.userId, data, io);
       if (result.code === 200 || result.code === 201) {
-          broadcastAdminEvent(io, 'new_invitation',
-              'New Jockey Invitation Sent',
-              'A horse owner has sent a new jockey invitation.',
-          );
           NotificationService.notify({
               role: 'admin',
               type: 'new_invitation',

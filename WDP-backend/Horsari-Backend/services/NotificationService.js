@@ -5,7 +5,7 @@ class NotificationService {
     // Single entry point for creating + delivering notifications.
     // Pass either `role` (fans out to all active users of that role) or
     // `recipientIds` (explicit list of User._id), or both.
-    async notify({ recipientIds, role, type, title, message, relatedEntityType = null, relatedEntityId = null, actionPayload = null }, io) {
+    async notify({ recipientIds, role, type, title, message, relatedEntityType = null, relatedEntityId = null, actionPayload = null }) {
         try {
             let targets = recipientIds ? recipientIds.map(String) : [];
 
@@ -28,12 +28,6 @@ class NotificationService {
             }));
 
             const created = await NotificationRepository.createMany(docs);
-
-            if (io) {
-                for (const doc of created) {
-                    io.to(`user:${doc.recipientId}`).emit('notification', doc);
-                }
-            }
 
             return created;
         } catch (error) {

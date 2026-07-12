@@ -15,10 +15,8 @@ import AdminPaymentsPage from "./AdminPaymentsPage";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { AdminSocketContext } from "../../providers/useAdminSocket";
-import type { AdminNotification } from "../../types/AdminNotification";
 import { useParams, useNavigate } from "react-router-dom";
 import { TOKEN_KEY } from "../../utils/constants";
-import { adminService } from "../../api/adminService";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -81,56 +79,21 @@ export default function AdminDashboardPage() {
     }, [navigate]);
 
     // ── Shared WebSocket connection ───────────────────────────────────────────
+    // Kept alive (even with no notification code left) because
+    // TournamentManagementPage listens for the global 'tournament:status_changed'
+    // broadcast via this same socket.
     const socketRef = useRef<Socket | null>(null);
     const [wsConnected, setWsConnected] = useState(false);
-    const [wsCount, setWsCount] = useState<number | null>(null);
-    const [notifications, setNotifications] = useState<AdminNotification[]>([]);
-    const [eventCounts, setEventCounts] = useState({ pendingCertifications: 0, racesReadyToStart: 0, activeTournaments: 0, pendingRegistrations: 0 });
-
-    // Seed counts immediately on mount so badges are populated before the first WS push
-    useEffect(() => {
-        adminService.getImportantEvents().then((res: any) => {
-            const d = res?.data ?? {};
-            setEventCounts({
-                pendingCertifications: (d.pendingCertifications ?? []).length,
-                racesReadyToStart:     (d.racesReadyToStart     ?? []).length,
-                activeTournaments:     (d.activeTournaments     ?? []).length,
-                pendingRegistrations:  (d.pendingRegistrations  ?? []).length,
-            });
-        }).catch(() => {});
-    }, []);
 
     useEffect(() => {
-        const token = localStorage.getItem(TOKEN_KEY) ?? '';
         const socket = io(SOCKET_URL, { withCredentials: true });
         socketRef.current = socket;
 
-        socket.on('connect', () => {
-            setWsConnected(true);
-            // Authenticate into the admin room
-            socket.emit('join_admin', { token });
-        });
+        socket.on('connect', () => setWsConnected(true));
         socket.on('disconnect', () => setWsConnected(false));
-        socket.on('admin_ping', ({ count }: { count: number }) => setWsCount(count));
-        socket.on('admin_notification', (notif: AdminNotification) => {
-            setNotifications(prev => [
-                { ...notif, read: false, timestamp: new Date(notif.timestamp) },
-                ...prev,
-            ]);
-        });
-        socket.on('admin:events_update', (counts: typeof eventCounts) => {
-            setEventCounts(counts);
-        });
 
         return () => { socket.disconnect(); };
     }, []);
-
-    const dismissNotification = (id: string) =>
-        setNotifications(prev => prev.filter(n => n.id !== id));
-    const clearAllNotifications = () => setNotifications([]);
-    const markAllRead = () =>
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    const unreadCount = notifications.filter(n => !n.read).length;
     // ─────────────────────────────────────────────────────────────────
 
     // Support matching both navbar tabs and sidebar tabs from URL
@@ -166,13 +129,6 @@ export default function AdminDashboardPage() {
         <AdminSocketContext.Provider value={{
             socket: socketRef.current,
             wsConnected,
-            wsCount,
-            notifications,
-            unreadCount,
-            eventCounts,
-            dismissNotification,
-            clearAllNotifications,
-            markAllRead,
         }}>
         <div
             className="h-screen bg-[#111111] text-white flex flex-col overflow-hidden"

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, ChevronDown, Trophy, User, LogOut } from "lucide-react";
+import { ChevronDown, Trophy, User, LogOut } from "lucide-react";
 import { useAuth } from "../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 
@@ -90,10 +90,6 @@ export default function NavBar({ activeTab, onTabChange }: NavBarProps) {
 
         {/* Right icons */}
         <div className="flex items-center gap-3">
-          <button className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors duration-150">
-            <Bell size={17} />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
-          </button>
           {user && (
             <div className="relative" ref={menuRef}>
               <button 

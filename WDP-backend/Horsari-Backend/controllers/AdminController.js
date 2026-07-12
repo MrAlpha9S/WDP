@@ -1,5 +1,4 @@
 const AdminService = require('../services/AdminService');
-const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
 const https = require('https');
 const http = require('http');
 const cloudinary = require('cloudinary').v2;
@@ -102,13 +101,6 @@ class AdminController {
         const { action } = req.body;
         const io = req.app.get('io');
         const response = await AdminService.verifyCertification(userId, action, io);
-        if (response.code === 200) {
-            const label = action === 'approve' ? 'Approved' : 'Rejected';
-            broadcastAdminEvent(req.app.get('io'), 'system_alert',
-                `Certification ${label}`,
-                `A user certification has been ${label.toLowerCase()}.`,
-            );
-        }
         return res.status(response.code).json(response);
     }
 
@@ -229,11 +221,6 @@ class AdminController {
         const { horseId } = req.params;
         const { status } = req.body;
         const response = await AdminService.updateHorseStatus(horseId, status);
-        if (response.code === 200) {
-            broadcastAdminEvent(req.app.get('io'), 'system_alert',
-                'Horse Status Updated',
-                `A horse has been marked as ${status}.`);
-        }
         return res.status(response.code).json(response);
     }
 

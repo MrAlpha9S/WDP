@@ -9,29 +9,25 @@ import {
     Inbox,
 } from "lucide-react";
 import { type AdminTab } from "./NavBar";
-import { useAdminSocket } from "../../../providers/useAdminSocket";
 
 interface SidebarProps {
     activeTab: AdminTab | null;
     onTabChange: (tab: AdminTab) => void;
 }
 
-type BadgeKey = 'users' | 'races';
-
 interface SidebarItem {
     tab: AdminTab;
     icon: React.ReactNode;
-    badgeKey?: BadgeKey;
 }
 
 const ITEMS: SidebarItem[] = [
     { tab: "Dashboard",       icon: <House         size={17} /> },
     { tab: "Statistics",      icon: <ChartColumn   size={17} /> },
     { tab: "Horses",          icon: <User          size={17} /> },
-    { tab: "Users",           icon: <User          size={17} />, badgeKey: "users" },
+    { tab: "Users",           icon: <User          size={17} /> },
     { tab: "Rules Managment", icon: <FileText      size={17} /> },
     { tab: "Tournaments",     icon: <FileText      size={17} /> },
-    { tab: "Races",           icon: <FileText      size={17} />, badgeKey: "races" },
+    { tab: "Races",           icon: <FileText      size={17} /> },
     { tab: "Inbox",           icon: <Inbox         size={17} /> },
     { tab: "Financial",       icon: <Wallet        size={17} /> },
     { tab: "Violations",      icon: <AlertTriangle size={17} /> },
@@ -39,13 +35,6 @@ const ITEMS: SidebarItem[] = [
 ];
 
 export default function AdminSidebar({ activeTab, onTabChange }: SidebarProps) {
-    const { eventCounts } = useAdminSocket();
-
-    const badgeCounts: Record<BadgeKey, number> = {
-        users: eventCounts.pendingCertifications,
-        races: eventCounts.racesReadyToStart,
-    };
-
     return (
         <aside
             className="w-[185px] shrink-0 bg-[#161616] border-r border-white/10 flex flex-col pt-7 pb-6"
@@ -61,9 +50,8 @@ export default function AdminSidebar({ activeTab, onTabChange }: SidebarProps) {
             </div>
 
             <nav className="flex flex-col gap-0.5 px-3">
-                {ITEMS.map(({ tab, icon, badgeKey }) => {
+                {ITEMS.map(({ tab, icon }) => {
                     const isActive = tab === activeTab;
-                    const count = badgeKey ? badgeCounts[badgeKey] : 0;
                     return (
                         <button
                             key={tab}
@@ -78,13 +66,6 @@ export default function AdminSidebar({ activeTab, onTabChange }: SidebarProps) {
                                 {icon}
                             </span>
                             <span className="flex-1">{tab}</span>
-                            {count > 0 && (
-                                <span className={`min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
-                                    isActive ? "bg-white/20 text-white" : "bg-red-700 text-white"
-                                }`}>
-                                    {count > 99 ? "99+" : count}
-                                </span>
-                            )}
                         </button>
                     );
                 })}

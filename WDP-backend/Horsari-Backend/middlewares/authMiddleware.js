@@ -1,7 +1,6 @@
 const TokenUtil = require('../utils/TokenUtil');
 const GoogleTokenUtil = require('../utils/GoogleTokenUtil');
 const UserRepository = require('../repositories/UserRepository');
-const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
 const NotificationService = require('../services/NotificationService');
 
 // Authentication middleware
@@ -68,10 +67,6 @@ const authMiddleware = async (req, res, next) => {
             });
 
             const io = req.app.get('io');
-            broadcastAdminEvent(io, 'new_user',
-                'New User Registered',
-                `${fullName || username} joined as spectator.`,
-            );
             NotificationService.notify({
                 role: 'admin',
                 type: 'new_user',

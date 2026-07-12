@@ -1,5 +1,4 @@
 const tournamentRepository = require('../repositories/TournamentRepository');
-const { broadcastAdminEvent } = require('./AdminEventBroadcaster');
 
 class TournamentService {
     async createTournament(tournamentData) {
@@ -37,14 +36,6 @@ class TournamentService {
                     tournamentId: String(id),
                     status: updateData.status,
                 });
-                if (updateData.status === 'ongoing') {
-                    await broadcastAdminEvent(
-                        io,
-                        'system_alert',
-                        'Tournament Started',
-                        `"${tournament.tournamentName}" has been moved to Ongoing.`
-                    );
-                }
             }
 
             return { code: 200, data: updated, msg: 'Tournament updated successfully' };

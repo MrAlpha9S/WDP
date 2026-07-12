@@ -1,5 +1,4 @@
 const AuthService = require('../services/AuthService');
-const { broadcastAdminEvent } = require('../services/AdminEventBroadcaster');
 const NotificationService = require('../services/NotificationService');
 
 class AuthController {
@@ -19,10 +18,6 @@ class AuthController {
             const io = req.app.get('io');
             const role = req.body.role ?? 'user';
             const name = req.body.fullName ?? 'A new user';
-            broadcastAdminEvent(io, 'new_user',
-                'New User Registered',
-                `${name} joined as ${role}.`,
-            );
             NotificationService.notify({
                 role: 'admin',
                 type: 'new_user',

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import { TOKEN_KEY } from "../../utils/constants";
 import RefereeNavBar, { REFEREE_TABS, type RefereeTab } from "./RefereeComponents/NavBar";
 import RefereeDashboard from "./Homepage";
 import ManagementPage from "./ManagementPage";
@@ -47,40 +46,19 @@ export default function RefereeDashboardPage() {
 
     const socketRef = useRef<Socket | null>(null);
     const [wsConnected, setWsConnected] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        const token = localStorage.getItem(TOKEN_KEY) ?? '';
         const socket = io(SOCKET_URL, { withCredentials: true });
         socketRef.current = socket;
 
-        socket.on('connect', () => {
-            setWsConnected(true);
-            socket.emit('join_referee', { token });
-        });
+        socket.on('connect', () => setWsConnected(true));
         socket.on('disconnect', () => setWsConnected(false));
-
-        // Notifications sent to this referee's personal room (referee:${userId})
-        socket.on('referee_notification', () => {
-            setUnreadCount(prev => prev + 1);
-        });
-
-        // Race status changes relevant to the referee
-        socket.on('race_status_update', () => {
-            setUnreadCount(prev => prev + 1);
-        });
 
         return () => {
             socket.disconnect();
             socketRef.current = null;
         };
     }, []);
-
-    // Clear badge when the user opens Inbox
-    const handleTabChange = (tab: RefereeTab) => {
-        if (tab === "Inbox") setUnreadCount(0);
-        setActiveTab(tab);
-    };
 
     return (
         <div
@@ -89,9 +67,8 @@ export default function RefereeDashboardPage() {
         >
             <RefereeNavBar
                 activeTab={activeTab}
-                onTabChange={handleTabChange}
+                onTabChange={setActiveTab}
                 wsConnected={wsConnected}
-                unreadCount={unreadCount}
             />
             <ActiveView tab={activeTab} />
         </div>

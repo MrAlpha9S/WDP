@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, ChevronDown, Trophy, User, LogOut } from "lucide-react";
+import { ChevronDown, Trophy, User, LogOut } from "lucide-react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 
@@ -11,7 +11,6 @@ interface NavBarProps {
     activeTab: RefereeTab;
     onTabChange: (tab: RefereeTab) => void;
     wsConnected?: boolean;
-    unreadCount?: number;
 }
 
 function getInitials(user: { name?: string; email: string }) {
@@ -26,7 +25,7 @@ function getInitials(user: { name?: string; email: string }) {
     return user.email[0].toUpperCase();
 }
 
-export default function RefereeNavBar({ activeTab, onTabChange, wsConnected, unreadCount = 0 }: NavBarProps) {
+export default function RefereeNavBar({ activeTab, onTabChange, wsConnected }: NavBarProps) {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
@@ -95,14 +94,6 @@ export default function RefereeNavBar({ activeTab, onTabChange, wsConnected, unr
 
                 {/* Right icons */}
                 <div className="flex items-center gap-3">
-                    <button className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors duration-150" onClick={() => onTabChange("Inbox")}>
-                        <Bell size={17} />
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center bg-red-600 rounded-full text-[9px] font-black text-white leading-none">
-                                {unreadCount > 99 ? "99+" : unreadCount}
-                            </span>
-                        )}
-                    </button>
                     {user && (
                         <div className="relative" ref={menuRef}>
                             <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-white/5 transition-colors duration-150">

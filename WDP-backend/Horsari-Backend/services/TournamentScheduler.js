@@ -1,6 +1,5 @@
 const cron = require('node-cron');
 const Tournament = require('../entities/Tournament');
-const { broadcastAdminEvent } = require('./AdminEventBroadcaster');
 
 /**
  * Starts a daily cron job (00:01 server time) that auto-transitions
@@ -44,14 +43,6 @@ function startTournamentScheduler(io) {
                         tournamentId: String(t._id),
                         status: 'ongoing',
                     });
-
-                    // Admin-specific notification via existing helper
-                    await broadcastAdminEvent(
-                        io,
-                        'system_alert',
-                        'Tournament Started',
-                        '"' + t.tournamentName + '" has automatically moved to Ongoing.'
-                    );
                 }
             }
 

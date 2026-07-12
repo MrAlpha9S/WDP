@@ -2,7 +2,6 @@ const RefereeRepository = require('../repositories/RefereeRepository');
 const UserRepository = require('../repositories/UserRepository');
 const RaceRefereeRepository = require('../repositories/RaceRefereeRepository');
 const TransactionRepository = require('../repositories/TransactionRepository');
-const { broadcastAdminEvent } = require('./AdminEventBroadcaster');
 const NotificationService = require('./NotificationService');
 
 const RaceReferee = require('../entities/RaceReferee');
@@ -645,24 +644,6 @@ class RefereeService {
 
             const newStatus = verifiedCount >= 2 ? 'prepared' : 'cancelled';
             await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus });
-
-            if (io) {
-                if (newStatus === 'prepared') {
-                    broadcastAdminEvent(io,
-                        'race_prepared',
-                        'Race Pre-Check Complete',
-                        'A race round has been cleared and is ready to start.',
-                        { actionLabel: 'View Race', actionPayload: { raceRoundId } },
-                    );
-                } else {
-                    broadcastAdminEvent(io,
-                        'race_cancelled',
-                        'Race Cancelled — No Eligible Entries',
-                        'All entries failed or were withdrawn after pre-race inspection.',
-                        { actionLabel: 'View Race', actionPayload: { raceRoundId } },
-                    );
-                }
-            }
 
             return {
                 code: 200,

@@ -1184,23 +1184,6 @@ class AdminService {
                     return { code: 400, msg: 'This role does not support certification verification' };
             }
 
-            if (io) {
-                try {
-                    const result = await this.getImportantEvents();
-                    if (result.code === 200) {
-                        const d = result.data;
-                        io.to('admin').emit('admin:events_update', {
-                            pendingCertifications: (d.pendingCertifications ?? []).length,
-                            racesReadyToStart:     (d.racesReadyToStart     ?? []).length,
-                            activeTournaments:     (d.activeTournaments     ?? []).length,
-                            pendingRegistrations:  (d.pendingRegistrations  ?? []).length,
-                        });
-                    }
-                } catch (err) {
-                    console.error('Failed to trigger ImportantEvent Service via WS:', err);
-                }
-            }
-
             return { code: 200, msg: `Certification ${newStatus} successfully`, data: { licenseStatus: newStatus } };
         } catch (error) {
             return { code: 500, msg: error.message };
@@ -1351,15 +1334,6 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
                 raceRoundId,
                 status: newStatus,
                 timestamp: new Date(),
-            });
-            io.emit('admin_notification', {
-                id: Date.now().toString(),
-                type: newStatus === 'running' ? 'race_started' : 'race_cancelled',
-                title: newStatus === 'running' ? 'Race Round Started' : 'Race Round Cancelled',
-                message: `Race round "${raceRound.roundName}" is now ${newStatus}.`,
-                raceRoundId,
-                timestamp: new Date(),
-                read: false,
             });
         }
 
@@ -1738,15 +1712,6 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
                 raceRoundId,
                 results,
                 timestamp: new Date(),
-            });
-            io.emit('admin_notification', {
-                id: Date.now().toString(),
-                type: 'race_completed',
-                title: 'Race Results Confirmed',
-                message: `Results for "${raceRound.roundName}" have been officially confirmed.`,
-                raceRoundId,
-                timestamp: new Date(),
-                read: false,
             });
         }
 
