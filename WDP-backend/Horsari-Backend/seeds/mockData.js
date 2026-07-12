@@ -897,14 +897,15 @@ async function seed() {
       invitations.push(backupInv);
     }
 
-    // Two referees assigned to Round 4
+    // Two referees assigned to Round 4 — round is still "prepared" (hasn't run,
+    // confirmRaceResult never fired), so nothing has actually been paid yet.
     const raceReferee4a = await RaceReferee.create({
       raceRoundId: round4._id,
       refereeId: referees[0]._id,
       assignedByAdminId: admins[0]._id,
       assignedAt: daysAgo(5),
       status: "assigned",
-      paymentStatus: "paid",
+      paymentStatus: "unpaid",
       fee: 2000,
     });
 
@@ -914,7 +915,7 @@ async function seed() {
       assignedByAdminId: admins[0]._id,
       assignedAt: daysAgo(5),
       status: "assigned",
-      paymentStatus: "paid",
+      paymentStatus: "unpaid",
       fee: 2000,
     });
 
@@ -1459,7 +1460,7 @@ async function seed() {
       .filter(({ seed }) => seed.predictionStatus === "correct" && seed.rewardPoints > 0);
     for (const { seed, doc } of rewardPreds) {
       await Transaction.create({
-        userId: seed.spectatorId,
+        userId: spectators[0]._id,
         transactionType: "reward",
         date: daysAgo(9),
         status: "completed",
@@ -1481,9 +1482,9 @@ async function seed() {
       referenceType: "payment",
     });
 
-    // Withdrawal — spectator3 withdrew winnings
+    // Withdrawal — spectator1 withdrew winnings
     await Transaction.create({
-      userId: spectators[2]._id,
+      userId: spectators[0]._id,
       transactionType: "withdrawal",
       date: daysAgo(8),
       status: "completed",
@@ -1492,20 +1493,9 @@ async function seed() {
       referenceType: "payment",
     });
 
-    // Refund — spectator4's pending prediction refund scenario
-    await Transaction.create({
-      userId: spectators[3]._id,
-      transactionType: "refund",
-      date: daysAgo(1),
-      status: "pending",
-      amount: 100,
-      description: "Refund for cancelled prediction in Round 2",
-      referenceType: "prediction",
-    });
-
     // Failed transaction for edge case testing
     await Transaction.create({
-      userId: spectators[1]._id,
+      userId: spectators[0]._id,
       transactionType: "deposit",
       date: daysAgo(3),
       status: "failed",
@@ -1543,7 +1533,7 @@ async function seed() {
           payerRole: "admin",
           payerId: admins[0]._id,
           payeeRole: "horseowner",
-          payeeId: horses[i].ownerId,
+          payeeId: horseOwners[0]._id,
           amount: prizeAmountVnd,
           originalAmount: raceResult.prizeMoney,
           originalCurrency: round1.currencyType,
@@ -1558,7 +1548,7 @@ async function seed() {
         });
 
         if (state === "paid") {
-          await HorseOwner.findByIdAndUpdate(horses[i].ownerId, { $inc: { wallet: prizeAmountVnd } });
+          await HorseOwner.findByIdAndUpdate(horseOwners[0]._id, { $inc: { wallet: prizeAmountVnd } });
         }
       }
 
@@ -1574,9 +1564,9 @@ async function seed() {
         await Transaction.create({
           paymentType: "jockey_payout",
           payerRole: "horseowner",
-          payerId: horses[i].ownerId,
+          payerId: horseOwners[0]._id,
           payeeRole: "jockey",
-          payeeId: mainInv.jockeyId,
+          payeeId: jockeys[0]._id,
           amount: payoutAmountVnd,
           originalAmount: payoutAmount,
           originalCurrency: round1.currencyType,
@@ -1591,12 +1581,13 @@ async function seed() {
         });
 
         if (state === "paid") {
-          await Jockey.findByIdAndUpdate(mainInv.jockeyId, { $inc: { wallet: payoutAmountVnd } });
+          await Jockey.findByIdAndUpdate(jockeys[0]._id, { $inc: { wallet: payoutAmountVnd } });
         }
       }
     }
 
-    // referee_fee (admin → referee) — raceReferee1 paid, raceReferee2 unpaid
+    // referee_fee (admin → referee) — both raceReferee1 and raceReferee2's fees
+    // tied to referee1 (paid + unpaid), so referee1 has a full payment history.
     const refereeFeeSeeds = [
       { assignment: raceReferee1, state: "paid" },
       { assignment: raceReferee2, state: "unpaid" },
@@ -1609,7 +1600,7 @@ async function seed() {
         payerRole: "admin",
         payerId: admins[0]._id,
         payeeRole: "referee",
-        payeeId: assignment.refereeId,
+        payeeId: referees[0]._id,
         amount: feeAmountVnd,
         originalAmount: assignment.fee,
         originalCurrency: round1.currencyType,
@@ -1624,9 +1615,25 @@ async function seed() {
       });
 
       if (state === "paid") {
-        await Referee.findByIdAndUpdate(assignment.refereeId, { $inc: { wallet: feeAmountVnd } });
+        await Referee.findByIdAndUpdate(referees[0]._id, { $inc: { wallet: feeAmountVnd } });
       }
     }
+
+    // House-take ledger entry — mirrors what PayoutService.distributeRacePayouts
+    // creates when settling Round 1's prediction pools, so the admin ledger UI
+    // has real data right after seeding.
+    const houseTakeVnd = convertToVnd(150, round1.currencyType);
+    await Transaction.create({
+      userId: admins[0]._id,
+      transactionType: "deposit",
+      date: daysAgo(2),
+      status: "completed",
+      amount: houseTakeVnd,
+      description: `Parimutuel house take — race ${round1._id}`,
+      referenceId: String(round1._id),
+      referenceType: "payment",
+    });
+    await Admin.findByIdAndUpdate(admins[0]._id, { $inc: { wallet: houseTakeVnd } });
 
     console.log("\n✅ Seed completed successfully");
     console.log(

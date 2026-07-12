@@ -121,6 +121,7 @@ export interface RefereeInvitationItem {
         location?: string;
         address?: string;
         minimalRidingFees?: number;
+        currencyType?: string;
         eligibilityRuleId?: { raceType?: string } | null;
         tournamentId?: { tournamentName?: string } | null;
     } | null;
@@ -129,7 +130,13 @@ export interface RefereeInvitationItem {
     fee?: number;
     assignedAt?: string;
     assignedByAdminId?: string;
+    assignedByName: string | null;
     paymentStatus: 'unpaid' | 'processing' | 'paid';
+    /** VND — real confirmed Transaction amount once one exists, else a computed estimate. */
+    expectedPayment: number;
+    /** Transaction _id for the matching referee_fee payment — null pre-confirmation. Referee is always the payee. */
+    paymentId: string | null;
+    payeeConfirmed: boolean;
 }
 
 export interface RefereeInvitationsPagination {
@@ -410,9 +417,11 @@ export const refereeService = {
         limit = 10,
         status?: PaymentStatus,
         direction: 'payer' | 'payee' | 'all' = 'all',
+        sortBy = 'createdAt',
+        order: 'asc' | 'desc' = 'desc',
     ): Promise<PaymentsResponse> => {
         try {
-            const params: Record<string, unknown> = { page, limit, direction };
+            const params: Record<string, unknown> = { page, limit, direction, sortBy, order };
             if (status) params.status = status;
             const response = await api.get('/referee/payments', { params });
             return response.data;

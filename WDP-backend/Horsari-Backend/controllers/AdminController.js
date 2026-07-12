@@ -145,6 +145,18 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    async quickVerifyAndRun(req, res) {
+        const io = req.app.get('io');
+        const response = await AdminService.quickVerifyAndRun(req.params.id, io);
+        return res.status(response.code).json(response);
+    }
+
+    async quickFailAndCancel(req, res) {
+        const io = req.app.get('io');
+        const response = await AdminService.quickFailAndCancel(req.params.id, io);
+        return res.status(response.code).json(response);
+    }
+
     async getImportantEvents(req, res) {
         const response = await AdminService.getImportantEvents();
         return res.status(response.code).json(response);

@@ -10,6 +10,8 @@ import AdminHorsesPage from "./AdminHorsesPage";
 import AdminRuleManagementPage from "./AdminRuleManagementPage";
 import ViolationManagementPage from "./ViolationManagementPage";
 import ViolationTypeManagementPage from "./ViolationTypeManagementPage";
+import AdminInvitationsPage from "./AdminInvitationsPage";
+import AdminPaymentsPage from "./AdminPaymentsPage";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { AdminSocketContext } from "../../providers/useAdminSocket";
@@ -40,7 +42,7 @@ function ComingSoon({ title }: { title: string }) {
 function ActiveView({ tab, setActiveTab }: { tab: AdminTab, setActiveTab: (tab: AdminTab) => void }) {
     switch (tab) {
         case "Dashboard":
-            return <SystemDashboardPage />;
+            return <SystemDashboardPage setActiveTab={setActiveTab} />;
         case "Statistics":
             return <AdminStatisticsPage />;
         case "Races":
@@ -57,6 +59,10 @@ function ActiveView({ tab, setActiveTab }: { tab: AdminTab, setActiveTab: (tab: 
             return <ViolationManagementPage />;
         case "Violation Types":
             return <ViolationTypeManagementPage />;
+        case "Inbox":
+            return <AdminInvitationsPage />;
+        case "Financial":
+            return <AdminPaymentsPage />;
         default:
             return <ComingSoon title={tab} />;
     }

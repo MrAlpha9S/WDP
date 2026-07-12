@@ -64,7 +64,8 @@ export function InvitationTable({
     page,
     totalPages,
     setPage,
-    handleRevoke
+    handleRevoke,
+    onViewAll,
 }: {
     title: string;
     invites: Invitee[];
@@ -73,6 +74,7 @@ export function InvitationTable({
     totalPages: number;
     setPage: (p: number) => void;
     handleRevoke: (id: string) => void;
+    onViewAll?: () => void;
 }) {
     return (
         <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-6 mt-4">
@@ -80,9 +82,14 @@ export function InvitationTable({
                 <h2 className="text-[17px] font-semibold text-white">
                     {title}
                 </h2>
-                <button className="text-[13px] text-gray-400 hover:text-white border border-white/[0.1] px-4 py-1.5 rounded-lg transition-colors">
-                    View All
-                </button>
+                {onViewAll && (
+                    <button
+                        onClick={onViewAll}
+                        className="text-[13px] text-gray-400 hover:text-white border border-white/[0.1] px-4 py-1.5 rounded-lg transition-colors"
+                    >
+                        View All
+                    </button>
+                )}
             </div>
 
             {/* Table header */}
@@ -237,18 +244,19 @@ export function InvitationTable({
     );
 }
 
-const LIMIT = 3;
+const DEFAULT_LIMIT = 3;
 
 async function fetchMappedData(
     targetPage: number,
     targetTab: string,
+    limit: number,
 ): Promise<{ mappedInvites: Invitee[]; totalPages: number }> {
     let invitesRes: any = null;
     let mappedInvites: Invitee[] = [];
     let fetchedTotalPages = 1;
 
     if (targetTab === "Horse Owner") {
-        invitesRes = await adminService.getHorseOwnerInvitations(targetPage, LIMIT);
+        invitesRes = await adminService.getHorseOwnerInvitations(targetPage, limit);
         fetchedTotalPages = invitesRes.data?.pagination?.totalPages || 1;
 
         const itemsToMap = invitesRes.data?.items || [];
@@ -281,7 +289,7 @@ async function fetchMappedData(
             } as Invitee;
         });
     } else if (targetTab === "Referee") {
-        invitesRes = await adminService.getRefereeInvitations(targetPage, LIMIT);
+        invitesRes = await adminService.getRefereeInvitations(targetPage, limit);
         fetchedTotalPages = invitesRes.data?.pagination?.totalPages || 1;
 
         const itemsToMap = invitesRes.data?.items || [];
@@ -303,7 +311,7 @@ async function fetchMappedData(
             } as Invitee;
         });
     } else if (targetTab === "Jockey") {
-        invitesRes = await adminService.getJockeyInvitations(targetPage, LIMIT);
+        invitesRes = await adminService.getJockeyInvitations(targetPage, limit);
         fetchedTotalPages = invitesRes.data?.pagination?.totalPages || 1;
 
         const itemsToMap = invitesRes.data?.items || [];
@@ -345,16 +353,16 @@ async function fetchMappedData(
     return { mappedInvites, totalPages: fetchedTotalPages };
 }
 
-export default function InvitationsSection() {
+export default function InvitationsSection({ limit = DEFAULT_LIMIT, onViewAll }: { limit?: number; onViewAll?: () => void }) {
     const [activeTab, setActiveTab] = useState<"Horse Owner" | "Referee" | "Jockey">("Horse Owner");
 
     const fetcher = useCallback(async (page: number) => {
-        const { mappedInvites, totalPages } = await fetchMappedData(page, activeTab);
+        const { mappedInvites, totalPages } = await fetchMappedData(page, activeTab, limit);
         return {
             items: mappedInvites,
-            pagination: { totalPages, total: 0, page, limit: LIMIT },
+            pagination: { totalPages, total: 0, page, limit },
         };
-    }, [activeTab]);
+    }, [activeTab, limit]);
 
     const { data: invites, loading, pagination, page, setPage, mutate } =
         usePaginatedFetch<Invitee>(fetcher, activeTab);
@@ -394,6 +402,7 @@ export default function InvitationsSection() {
                 totalPages={pagination.totalPages}
                 setPage={setPage}
                 handleRevoke={handleRevoke}
+                onViewAll={onViewAll}
             />
         </div>
     );

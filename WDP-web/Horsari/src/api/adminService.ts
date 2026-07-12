@@ -1,7 +1,7 @@
 import api from './axios';
 import type { TournamentDetailData, TournamentRankEntry } from '../shared/types/TournamentTypes';
 import type { ViolationEntity, ViolationTypeEntity } from '../shared/types/ViolationTypes';
-import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
+import type { PaymentEntity, PaymentStatus, PaymentsResponse, LedgerResponse } from './paymentTypes';
 
 export interface RaceRegistration {
   _id: string;
@@ -813,6 +813,26 @@ export const adminService = {
     }
   },
 
+  // Testing/demo shortcuts — bulk-resolve a populated ("scheduled", has
+  // registrations) race round, skipping the normal per-registration referee review.
+  quickVerifyAndRun: async (id: string): Promise<{ code: number; data: RaceRoundData; msg: string }> => {
+    try {
+      const response = await api.post(`/admin/race-rounds/${id}/quick-verify-run`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to quick-run race' };
+    }
+  },
+
+  quickFailAndCancel: async (id: string): Promise<{ code: number; data: RaceRoundData; msg: string }> => {
+    try {
+      const response = await api.post(`/admin/race-rounds/${id}/quick-fail`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to quick-fail race' };
+    }
+  },
+
   // --- Mux Stream & VOD ---
 
   createStream: async (id: string): Promise<StreamInfoResponse> => {
@@ -902,9 +922,11 @@ export const adminService = {
     limit = 10,
     status?: PaymentStatus,
     direction: 'payer' | 'payee' | 'all' = 'all',
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
   ): Promise<PaymentsResponse> => {
     try {
-      const params: any = { page, limit, direction };
+      const params: any = { page, limit, direction, sortBy, order };
       if (status) params.status = status;
       const response = await api.get('/admin/payments', { params });
       return response.data;
@@ -919,6 +941,21 @@ export const adminService = {
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to confirm payment' };
+    }
+  },
+
+  getLedger: async (
+    page = 1,
+    limit = 10,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ): Promise<LedgerResponse> => {
+    try {
+      const params: Record<string, unknown> = { page, limit, sortBy, order };
+      const response = await api.get('/admin/ledger', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch ledger' };
     }
   },
 };

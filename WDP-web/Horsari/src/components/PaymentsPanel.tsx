@@ -30,8 +30,8 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
 
 interface PaymentsPanelProps {
     title: string;
-    /** Role-bound service call, e.g. `(page) => adminService.getPayments(page, 10, undefined, 'payer')`. */
-    fetchPayments: (page: number) => Promise<PaymentsResponse>;
+    /** Role-bound service call, e.g. `(page, sortBy, order) => adminService.getPayments(page, 10, undefined, 'payer', sortBy, order)`. */
+    fetchPayments: (page: number, sortBy: string, order: "asc" | "desc") => Promise<PaymentsResponse>;
     /** Role-bound confirm call, e.g. `adminService.confirmPaymentPaid`. */
     onConfirm: (paymentId: string) => Promise<{ code: number; data?: PaymentEntity; msg: string }>;
     /** Which side of the payment the current role sits on, to know when it's "my turn" to act. */
@@ -41,10 +41,20 @@ interface PaymentsPanelProps {
     cacheKey: string;
 }
 
+const SORT_OPTIONS: { value: string; label: string; sortBy: string; order: "asc" | "desc" }[] = [
+    { value: "createdAt:desc", label: "Newest First", sortBy: "createdAt", order: "desc" },
+    { value: "createdAt:asc", label: "Oldest First", sortBy: "createdAt", order: "asc" },
+    { value: "amount:desc", label: "Amount High–Low", sortBy: "amount", order: "desc" },
+    { value: "amount:asc", label: "Amount Low–High", sortBy: "amount", order: "asc" },
+];
+
 export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleSide, confirmLabel, cacheKey }: PaymentsPanelProps) {
+    const [sortValue, setSortValue] = useState("createdAt:desc");
+    const sortOption = SORT_OPTIONS.find((o) => o.value === sortValue) ?? SORT_OPTIONS[0];
+
     const { data, loading, error, pagination, page, setPage, mutate } = usePaginatedFetch<PaymentEntity>(
-        (p) => fetchPayments(p).then((res) => res.data),
-        cacheKey,
+        (p) => fetchPayments(p, sortOption.sortBy, sortOption.order).then((res) => res.data),
+        `${cacheKey}:${sortValue}`,
     );
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
@@ -67,11 +77,20 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
 
     return (
         <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
                 <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
                     <Wallet size={15} className="text-red-500" />
                     {title}
                 </h2>
+                <select
+                    value={sortValue}
+                    onChange={(e) => { setSortValue(e.target.value); setPage(1); }}
+                    className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                >
+                    {SORT_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                </select>
             </div>
 
             {actionError && (
@@ -91,11 +110,18 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
                     {data.map((payment) => {
                         const myConfirmed = myRoleSide === "payer" ? payment.payerConfirmed : payment.payeeConfirmed;
                         const otherConfirmed = myRoleSide === "payer" ? payment.payeeConfirmed : payment.payerConfirmed;
+                        const counterpartyName = myRoleSide === "payer"
+                            ? payment.payeeName ?? `Unknown ${payment.payeeRole}`
+                            : payment.payerName ?? `Unknown ${payment.payerRole}`;
+                        const counterpartyLabel = myRoleSide === "payer" ? "To" : "From";
                         return (
                             <div key={payment._id} className="flex items-center justify-between py-3 gap-3">
                                 <div>
                                     <p className="text-[13px] font-semibold text-white">
                                         {PAYMENT_TYPE_LABEL[payment.paymentType] ?? payment.paymentType} — {payment.amount.toLocaleString()} ₫
+                                    </p>
+                                    <p className="text-[11px] text-gray-400 mt-0.5">
+                                        {counterpartyLabel}: <span className="text-gray-300 font-medium">{counterpartyName}</span>
                                     </p>
                                     <p className="text-[11px] text-gray-500 mt-0.5">
                                         {payment.originalCurrency && payment.originalCurrency !== 'VND' && payment.originalAmount != null
@@ -107,7 +133,11 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <StatusBadge status={payment.paymentStatus} />
-                                    {myConfirmed ? (
+                                    {payment.paymentStatus === "paid" ? (
+                                        <span className="text-[11px] text-emerald-500 flex items-center gap-1">
+                                            <CheckCircle2 size={12} /> Settled
+                                        </span>
+                                    ) : myConfirmed ? (
                                         <span className="text-[11px] text-gray-500 flex items-center gap-1">
                                             <Clock size={12} /> Waiting
                                         </span>

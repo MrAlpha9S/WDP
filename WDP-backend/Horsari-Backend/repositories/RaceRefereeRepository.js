@@ -22,10 +22,10 @@ class RaceRefereeRepository {
         return await RaceReferee.find(filter)
             .populate({
                 path: 'raceRoundId',
-                select: 'roundName raceDate location address minimalRidingFees eligibilityRuleId tournamentId',
+                select: 'roundName raceDate location address minimalRidingFees currencyType eligibilityRuleId tournamentId',
                 populate: [
                     { path: 'tournamentId', select: 'tournamentName' },
-                    { path: 'eligibilityRuleId', select: 'raceType gradeLevel' }
+                    { path: 'eligibilityRuleId', select: 'raceType' }
                 ]
             })
             .sort({ createdAt: -1 })

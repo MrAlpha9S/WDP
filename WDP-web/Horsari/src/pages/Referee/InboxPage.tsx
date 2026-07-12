@@ -42,15 +42,17 @@ function mapInvitation(inv: any): RaceInvite {
         role: "Referee",
         status: mappedStatus as InviteStatus,
         fee: inv.fee ?? round.minimalRidingFees ?? 0,
+        expectedPayment: inv.expectedPayment ?? 0,
         sentAt: new Date(inv.assignedAt).toLocaleDateString(),
         isNew: false,
         raceType: round.eligibilityRuleId?.raceType || "Flat",
         distance: (round.trackLength || 1000) + "m",
         track: round.raceGround || "Turf",
         entries: round.maxParticipants || 12,
-        assignedBy: "Admin",
-        notes: "Please arrive 1 hour before the first race.",
+        assignedBy: inv.assignedByName ?? null,
         paymentStatus: (inv.paymentStatus || "unpaid") as any,
+        paymentId: inv.paymentId ?? null,
+        payeeConfirmed: inv.payeeConfirmed ?? false,
     };
 }
 
@@ -91,6 +93,20 @@ export default function InboxPage() {
             }
         } catch (error) {
             console.error("Failed to decline invitation:", error);
+        }
+    };
+
+    const handleConfirmPayment = async (invitationId: string, paymentId: string) => {
+        try {
+            const res = await refereeService.confirmPaymentReceived(paymentId);
+            if (res.code === 200 && res.data) {
+                const updatedStatus = res.data.paymentStatus;
+                mutate(prev => prev.map(i => i.id === invitationId
+                    ? { ...i, payeeConfirmed: true, paymentStatus: updatedStatus }
+                    : i));
+            }
+        } catch (error) {
+            console.error("Failed to confirm payment:", error);
         }
     };
 
@@ -152,6 +168,7 @@ export default function InboxPage() {
                                 invite={invite}
                                 onAccept={handleAccept}
                                 onDecline={handleDecline}
+                                onConfirmPayment={handleConfirmPayment}
                             />
                         ))}
                     </div>

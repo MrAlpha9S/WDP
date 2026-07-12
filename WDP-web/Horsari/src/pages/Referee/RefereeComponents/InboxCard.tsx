@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
     CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
-    Clock, CreditCard, Flag, MapPin, XCircle,
+    Clock, CreditCard, Flag, Loader2, MapPin, XCircle,
 } from "lucide-react";
 import type { RaceInvite } from "../../../shared/types/InboxTypes";
 import { RACE_TYPE_DESCRIPTIONS } from "../../../shared/data/InboxData";
@@ -88,10 +88,22 @@ interface ExpandedDetailProps {
     invite: RaceInvite;
     onAccept: (id: string) => void;
     onDecline: (id: string) => void;
+    onConfirmPayment: (invitationId: string, paymentId: string) => void | Promise<void>;
 }
 
-function ExpandedDetail({ invite, onAccept, onDecline }: ExpandedDetailProps) {
+function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: ExpandedDetailProps) {
     const isPending = invite.status === "pending";
+    const [confirming, setConfirming] = useState(false);
+
+    const handleConfirmClick = async () => {
+        if (!invite.paymentId) return;
+        setConfirming(true);
+        try {
+            await onConfirmPayment(invite.id, invite.paymentId);
+        } finally {
+            setConfirming(false);
+        }
+    };
 
     return (
         <div className="border-t border-white/8 bg-white/[0.02]">
@@ -116,19 +128,13 @@ function ExpandedDetail({ invite, onAccept, onDecline }: ExpandedDetailProps) {
                             { label: "Track", value: invite.track },
                             { label: "Location", value: invite.trackLocation },
                             { label: "Entries", value: `${invite.entries} horses` },
-                            { label: "Assigned", value: invite.assignedBy },
+                            { label: "Assigned", value: invite.assignedBy ?? "—" },
                         ].map(({ label, value }) => (
                             <div key={label} className="flex items-center gap-1">
                                 <span className="text-[11px] text-gray-600">{label}:</span>
                                 <span className="text-[11px] font-medium text-gray-500">{value}</span>
                             </div>
                         ))}
-                    </div>
-
-                    {/* Notes */}
-                    <div className="bg-yellow-500/5 border border-yellow-700/30 rounded-xl px-4 py-3 mb-4">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-600 mb-1">Coordinator Notes</p>
-                        <p className="text-[12.5px] text-yellow-200/80 leading-relaxed">{invite.notes}</p>
                     </div>
 
                     {/* Payment */}
@@ -144,6 +150,10 @@ function ExpandedDetail({ invite, onAccept, onDecline }: ExpandedDetailProps) {
                                 <span className="text-[13px] text-gray-500">Referee Fee</span>
                                 <span className="text-[17px] font-black text-white">${invite.fee.toLocaleString()}</span>
                             </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-[13px] text-gray-500">Expected Payout</span>
+                                <span className="text-[13px] font-semibold text-gray-300">≈ {invite.expectedPayment.toLocaleString()}₫</span>
+                            </div>
                             {invite.paymentMethod && (
                                 <div className="flex items-center justify-between">
                                     <span className="text-[13px] text-gray-500">Method</span>
@@ -155,13 +165,23 @@ function ExpandedDetail({ invite, onAccept, onDecline }: ExpandedDetailProps) {
                                     Payment is being processed. Funds typically arrive within 2–3 business days.
                                 </div>
                             )}
-                            {invite.paymentStatus === "unpaid" && invite.status === "accepted" && (
-                                <button className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all duration-150 mt-1">
-                                    <CreditCard size={13} /> Request Payment
+                            {invite.paymentId && !invite.payeeConfirmed && (
+                                <button
+                                    onClick={handleConfirmClick}
+                                    disabled={confirming}
+                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 disabled:opacity-50 transition-all duration-150 mt-1"
+                                >
+                                    {confirming ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                                    Confirm Received
                                 </button>
                             )}
-                            {invite.paymentStatus === "unpaid" && invite.status === "pending" && (
-                                <p className="text-[11.5px] text-gray-600 text-center mt-1">Payment processed after accepting.</p>
+                            {invite.paymentId && invite.payeeConfirmed && invite.paymentStatus !== "paid" && (
+                                <p className="text-[11.5px] text-emerald-500 text-center mt-1 flex items-center justify-center gap-1.5">
+                                    <CheckCircle2 size={12} /> You've confirmed receipt — waiting on admin.
+                                </p>
+                            )}
+                            {!invite.paymentId && (
+                                <p className="text-[11.5px] text-gray-600 text-center mt-1">Payment is created once race results are confirmed.</p>
                             )}
                         </div>
                     </div>
@@ -201,9 +221,10 @@ interface InviteCardProps {
     invite: RaceInvite;
     onAccept: (id: string) => void;
     onDecline: (id: string) => void;
+    onConfirmPayment: (invitationId: string, paymentId: string) => void | Promise<void>;
 }
 
-export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
+export function InviteCard({ invite, onAccept, onDecline, onConfirmPayment }: InviteCardProps) {
     const [expanded, setExpanded] = useState(false);
     const isPending = invite.status === "pending";
 
@@ -285,7 +306,7 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
 
             {/* Expanded panel */}
             {expanded && (
-                <ExpandedDetail invite={invite} onAccept={onAccept} onDecline={onDecline} />
+                <ExpandedDetail invite={invite} onAccept={onAccept} onDecline={onDecline} onConfirmPayment={onConfirmPayment} />
             )}
         </div>
     );

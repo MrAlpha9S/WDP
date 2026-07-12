@@ -510,9 +510,11 @@ export const horseOwnerService = {
     limit = 10,
     status?: PaymentStatus,
     direction: 'payer' | 'payee' | 'all' = 'all',
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
   ): Promise<PaymentsResponse> => {
     try {
-      const params: Record<string, unknown> = { page, limit, direction };
+      const params: Record<string, unknown> = { page, limit, direction, sortBy, order };
       if (status) params.status = status;
       const response = await api.get('/horseowner/payments', { params });
       return response.data;

@@ -5,6 +5,8 @@ import {
     AlertTriangle,
     ShieldAlert,
     ChartColumn,
+    Wallet,
+    Inbox,
 } from "lucide-react";
 import { type AdminTab } from "./NavBar";
 import { useAdminSocket } from "../../../providers/useAdminSocket";
@@ -30,6 +32,8 @@ const ITEMS: SidebarItem[] = [
     { tab: "Rules Managment", icon: <FileText      size={17} /> },
     { tab: "Tournaments",     icon: <FileText      size={17} /> },
     { tab: "Races",           icon: <FileText      size={17} />, badgeKey: "races" },
+    { tab: "Inbox",           icon: <Inbox         size={17} /> },
+    { tab: "Financial",       icon: <Wallet        size={17} /> },
     { tab: "Violations",      icon: <AlertTriangle size={17} /> },
     { tab: "Violation Types", icon: <ShieldAlert   size={17} /> },
 ];

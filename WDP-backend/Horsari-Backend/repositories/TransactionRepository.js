@@ -14,6 +14,25 @@ class TransactionRepository {
         return Transaction.countDocuments({ userId, ...filter });
     }
 
+    // Paginated wallet-ledger view (deposits/withdrawals/rewards/refunds) for a
+    // single user — distinct from findByParty, which is for the payer/payee
+    // payment-verification rows (race_prize/referee_fee/jockey_payout).
+    async findByUserIdPaginated(userId, { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = {}) {
+        const skip = (page - 1) * limit;
+        const filter = { userId };
+
+        const allowedSortFields = ['createdAt', 'amount'];
+        const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortObj = { [sortField]: order === 'asc' ? 1 : -1 };
+
+        const [items, totalItems] = await Promise.all([
+            Transaction.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
+            Transaction.countDocuments(filter),
+        ]);
+
+        return { items, totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit };
+    }
+
     async sumAmountByUserId(userId, filter = {}) {
         const result = await Transaction.aggregate([
             { $match: { userId: new mongoose.Types.ObjectId(String(userId)), ...filter } },
@@ -32,7 +51,7 @@ class TransactionRepository {
         return Transaction.findById(id);
     }
 
-    async findByParty(userId, role, { direction = 'all', status, page = 1, limit = 10 } = {}) {
+    async findByParty(userId, role, { direction = 'all', status, page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = {}) {
         const skip = (page - 1) * limit;
         const filter = {};
 
@@ -51,8 +70,12 @@ class TransactionRepository {
 
         if (status) filter.paymentStatus = status;
 
+        const allowedSortFields = ['createdAt', 'amount', 'paymentStatus'];
+        const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortObj = { [sortField]: order === 'asc' ? 1 : -1 };
+
         const [items, totalItems] = await Promise.all([
-            Transaction.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+            Transaction.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
             Transaction.countDocuments(filter),
         ]);
 

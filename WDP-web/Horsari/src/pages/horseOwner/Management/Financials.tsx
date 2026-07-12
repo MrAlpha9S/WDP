@@ -5,6 +5,7 @@ import {
   Plus, Minus as MinusIcon, Loader2, AlertTriangle,
 } from "lucide-react";
 import { horseOwnerService, type FinancialSummary, type FinancialRaceRow } from "../../../api/horseOwnerService";
+import PaymentsPanel from "../../../components/PaymentsPanel";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type ChartRange = "7D" | "30D" | "ALL";
@@ -423,6 +424,26 @@ export default function FinancialsPage() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Payment verification (statistical wallet tracking only) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+        <PaymentsPanel
+          title="Payments to Jockeys"
+          fetchPayments={(page, sortBy, order) => horseOwnerService.getPayments(page, 10, undefined, 'payer', sortBy, order)}
+          onConfirm={horseOwnerService.confirmPaymentPaid}
+          myRoleSide="payer"
+          confirmLabel="Confirm Paid"
+          cacheKey="owner-payments-payer"
+        />
+        <PaymentsPanel
+          title="Prize Money Owed to You"
+          fetchPayments={(page, sortBy, order) => horseOwnerService.getPayments(page, 10, undefined, 'payee', sortBy, order)}
+          onConfirm={horseOwnerService.confirmPaymentReceived}
+          myRoleSide="payee"
+          confirmLabel="Confirm Received"
+          cacheKey="owner-payments-payee"
+        />
       </div>
     </div>
   );

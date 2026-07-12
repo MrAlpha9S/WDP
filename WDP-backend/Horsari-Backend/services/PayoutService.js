@@ -156,7 +156,17 @@ class PayoutService {
             }
 
             if (houseTake > 0) {
-                await AdminRepository.incrementMainAdminWallet(parseFloat(houseTake.toFixed(2)));
+                const roundedTake = parseFloat(houseTake.toFixed(2));
+                const updatedAdmin = await AdminRepository.incrementMainAdminWallet(roundedTake);
+                await TransactionRepository.create({
+                    userId:          updatedAdmin._id,
+                    transactionType: 'deposit',
+                    amount:          roundedTake,
+                    status:          'completed',
+                    description:     `Parimutuel house take — race ${raceRoundId}`,
+                    referenceId:     String(raceRoundId),
+                    referenceType:   'payment',
+                });
             }
 
             return {
@@ -238,7 +248,17 @@ class PayoutService {
             }
 
             if (houseTake > 0) {
-                await AdminRepository.incrementMainAdminWallet(parseFloat(houseTake.toFixed(2)));
+                const roundedTake = parseFloat(houseTake.toFixed(2));
+                const updatedAdmin = await AdminRepository.incrementMainAdminWallet(roundedTake);
+                await TransactionRepository.create({
+                    userId:          updatedAdmin._id,
+                    transactionType: 'deposit',
+                    amount:          roundedTake,
+                    status:          'completed',
+                    description:     `Parimutuel house take — tournament champion ${tournamentId}`,
+                    referenceId:     String(tournamentId),
+                    referenceType:   'payment',
+                });
             }
 
             return {

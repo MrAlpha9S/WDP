@@ -54,6 +54,10 @@ router.get('/race-rounds/:id/detail', authMiddleware, authAdmin, AdminController
 // Admin starts or cancels a prepared race round
 router.put('/race-rounds/:id/status', authMiddleware, authAdmin, AdminController.setRaceRoundStatus);
 
+// Quick-run shortcuts (testing/demo) — bulk-resolve a populated, unreviewed race round
+router.post('/race-rounds/:id/quick-verify-run', authMiddleware, authAdmin, AdminController.quickVerifyAndRun);
+router.post('/race-rounds/:id/quick-fail', authMiddleware, authAdmin, AdminController.quickFailAndCancel);
+
 // Provision a Mux live stream (must be done before starting the race)
 router.post('/race-rounds/:id/stream', authMiddleware, authAdmin, AdminController.createStream);
 // Mux live stream info (RTMP URL + stream key for OBS operator)
@@ -82,5 +86,8 @@ router.delete('/rules/:id', authMiddleware, authAdmin, AdminController.deleteRul
 // --- Payment verification (admin pays horseOwner prize money / referee fee) ---
 router.get('/payments', authMiddleware, authAdmin, PaymentController.listMyPayments);
 router.put('/payments/:paymentId/confirm-paid', authMiddleware, authAdmin, PaymentController.confirmPaid);
+
+// --- Wallet ledger (parimutuel house-take deposits — auto-applied, no confirmation) ---
+router.get('/ledger', authMiddleware, authAdmin, PaymentController.listMyLedger);
 
 module.exports = router;

@@ -89,10 +89,11 @@ function RaceIcon({ status }: { status: RaceStatus }) {
 }
 
 import InvitationsSection from "./AdminComponents/InvitationsSection";
+import type { AdminTab } from "./AdminComponents/NavBar";
 
 // ── Dashboard Page ────────────────────────────────────────────────────────────
 
-export default function SystemDashboardPage() {
+export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (tab: AdminTab) => void }) {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeRaces, setActiveRaces] = useState<ActiveRace[]>([]);
@@ -203,7 +204,7 @@ export default function SystemDashboardPage() {
             {/* Bottom grid: Invitation Status + Active Races */}
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
 
-                <InvitationsSection />
+                <InvitationsSection onViewAll={() => setActiveTab("Inbox")} />
 
                 {/* Active Races */}
                 <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5">
@@ -246,7 +247,7 @@ export default function SystemDashboardPage() {
             <div className="mt-6">
                 <PaymentsPanel
                     title="Payments Awaiting Your Confirmation"
-                    fetchPayments={(page) => adminService.getPayments(page, 10, undefined, 'payer')}
+                    fetchPayments={(page, sortBy, order) => adminService.getPayments(page, 10, undefined, 'payer', sortBy, order)}
                     onConfirm={adminService.confirmPaymentPaid}
                     myRoleSide="payer"
                     confirmLabel="Confirm Paid"

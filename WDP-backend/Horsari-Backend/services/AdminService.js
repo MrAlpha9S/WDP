@@ -25,6 +25,7 @@ const MuxService = require('./MuxService');
 const PaymentService = require('./PaymentService');
 const NotificationService = require('./NotificationService');
 const CurrencyConverter = require('./CurrencyConverter');
+const PayoutService = require('./PayoutService');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
@@ -1005,13 +1006,16 @@ class AdminService {
 
                 if (pending.length > 0) {
                     // ── Live pool: bets still open ──────────────────────────────────
+                    // Same parimutuel formulas PayoutService.distributeRacePayouts uses
+                    // to actually settle these predictions once confirmRaceResult runs,
+                    // so the admin preview here never drifts from the real payout.
                     const stakeByReg = {};
                     for (const p of pending) {
                         const rid = p.registrationId.toString();
                         stakeByReg[rid] = (stakeByReg[rid] || 0) + (p.rewardPoints || 0);
                     }
-                    const P = Object.values(stakeByReg).reduce((s, v) => s + v, 0);
-                    const N = P * (1 - T);
+                    const P = PayoutService.grossPool(Object.values(stakeByReg));
+                    const N = PayoutService.netPool(P, T);
                     const houseEarning = parseFloat((P * T).toFixed(2));
                     totalHouseEarning += houseEarning;
 
@@ -1029,8 +1033,8 @@ class AdminService {
                                 horseName: regHorseMap[rid] || null,
                                 totalStake: Bi,
                                 poolShare:     P > 0 ? parseFloat((Bi / P * 100).toFixed(2)) : 0,
-                                odds:          Bi > 0 ? parseFloat(((N - Bi) / Bi).toFixed(4)) : 0,
-                                displayPayout: Bi > 0 ? parseFloat((2 * N / Bi).toFixed(2)) : 0,
+                                odds:          parseFloat(PayoutService.oddsForHorse(N, Bi).toFixed(4)),
+                                displayPayout: parseFloat(PayoutService.totalCollect(2, N, Bi).toFixed(2)),
                             }))
                             .sort((a, b) => b.totalStake - a.totalStake),
                     });
@@ -1366,7 +1370,6 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
         }
 
         if (newStatus === 'cancelled') {
-            const PayoutService = require('./PayoutService');
             PayoutService.refundRacePredictions(raceRoundId).catch(err =>
                 console.error('[AdminService] refundRacePredictions error:', err.message)
             );
@@ -1393,6 +1396,72 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
         return { code: 200, data: updated, msg: `Race round status updated to "${newStatus}".` };
     } catch (error) {
         console.error('Error setting race round status:', error);
+        return { code: 500, msg: error.message };
+    }
+};
+
+// ── Admin quick-run shortcuts (testing/demo convenience) ───────────────────────
+// Bypass the normal per-registration referee review — bulk-resolve every
+// registration on a populated, not-yet-reviewed race round, then delegate to
+// setRaceRoundStatus for the actual prepared→running/cancelled transition so
+// all its side effects (simulation start, prediction refunds, notifications,
+// socket emits) fire exactly as they would for a normally-reviewed race.
+
+async function loadPopulatedScheduledRound(raceRoundId) {
+    const raceRound = await RaceRound.findById(raceRoundId).lean();
+    if (!raceRound) return { error: { code: 404, msg: 'Race round not found.' } };
+    if (raceRound.status !== 'scheduled') {
+        return { error: { code: 422, msg: `Race round is "${raceRound.status}" — quick actions only apply to "scheduled" rounds.` } };
+    }
+    const registrations = await Registration.find({ raceRoundId }).lean();
+    if (!registrations.length) {
+        return { error: { code: 422, msg: 'Race round has no registrations to resolve.' } };
+    }
+    return { raceRound, registrations };
+}
+
+// Bulk-verify every registration (simple status flip, not a faithful referee
+// review), auto-provision the Mux stream if missing, then run the race.
+AdminService.prototype.quickVerifyAndRun = async function (raceRoundId, io) {
+    try {
+        const { raceRound, registrations, error } = await loadPopulatedScheduledRound(raceRoundId);
+        if (error) return error;
+
+        await Registration.updateMany(
+            { raceRoundId },
+            { registrationStatus: 'verified', verificationFailReason: null }
+        );
+
+        if (!raceRound.muxLiveStreamId) {
+            await MuxService.createLiveStream(raceRoundId);
+        }
+
+        await RaceRound.findByIdAndUpdate(raceRoundId, { status: 'prepared' });
+
+        return await this.setRaceRoundStatus(raceRoundId, 'running', io);
+    } catch (error) {
+        console.error('Error in quickVerifyAndRun:', error);
+        return { code: 500, msg: error.message };
+    }
+};
+
+// Bulk-fail every registration, then cancel the race (refunds predictions,
+// notifies participants — same as a normal admin cancel).
+AdminService.prototype.quickFailAndCancel = async function (raceRoundId, io) {
+    try {
+        const { error } = await loadPopulatedScheduledRound(raceRoundId);
+        if (error) return error;
+
+        await Registration.updateMany(
+            { raceRoundId },
+            { registrationStatus: 'failed', verificationFailReason: 'Quick-fail (admin shortcut)' }
+        );
+
+        await RaceRound.findByIdAndUpdate(raceRoundId, { status: 'prepared' });
+
+        return await this.setRaceRoundStatus(raceRoundId, 'cancelled', io);
+    } catch (error) {
+        console.error('Error in quickFailAndCancel:', error);
         return { code: 500, msg: error.message };
     }
 };
@@ -1443,10 +1512,16 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
             return { code: 422, msg: `Cannot confirm results for a race with status "${raceRound.status}". Race must be in "awaitingConfirmation" state.` };
         }
 
+        // This is triggered by the referee's confirm-result action, not an admin
+        // directly — so `adminId` here is actually the referee's own user id.
+        // The race round's owning admin is who actually owes the payouts, so
+        // that's who payment Transactions must be attributed to.
+        const payerAdminId = raceRound.createdByAdminId || adminId;
+
         // Mark all pending_confirmation results as official and stamp publishedByAdminId
         await RaceResult.updateMany(
             { raceRoundId },
-            { resultStatus: 'official', publishedByAdminId: adminId }
+            { resultStatus: 'official', publishedByAdminId: payerAdminId }
         );
 
         // Update race round to completed
@@ -1474,7 +1549,7 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
                 const payment = await PaymentService.createIfNotExists({
                     paymentType: 'race_prize',
                     payerRole: 'admin',
-                    payerId: adminId,
+                    payerId: payerAdminId,
                     payeeRole: 'horseowner',
                     payeeId: registration.horseOwnerId,
                     amount: CurrencyConverter.convertToVnd(result.prizeMoney, originalCurrency),
@@ -1524,7 +1599,7 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
                 const payment = await PaymentService.createIfNotExists({
                     paymentType: 'referee_fee',
                     payerRole: 'admin',
-                    payerId: adminId,
+                    payerId: payerAdminId,
                     payeeRole: 'referee',
                     payeeId: assignment.refereeId,
                     amount: CurrencyConverter.convertToVnd(assignment.fee, originalCurrency),
@@ -1861,7 +1936,6 @@ AdminService.prototype.updateHorseStatus = async function (horseId, newStatus) {
 // Settle race-level predictions after a race round is confirmed completed.
 // Called internally by confirmRaceResult.
 AdminService.prototype._settlePredictionsForRace = async function (raceRoundId) {
-    const PayoutService = require('./PayoutService');
     await PayoutService.distributeRacePayouts(raceRoundId);
 };
 
@@ -1881,7 +1955,6 @@ AdminService.prototype.settleTournamentPredictions = async function (tournamentI
 
         await Tournament.findByIdAndUpdate(tournamentId, { championHorseId });
 
-        const PayoutService = require('./PayoutService');
         const result = await PayoutService.distributeTournamentPayouts(tournamentId, championHorseId);
 
         return {

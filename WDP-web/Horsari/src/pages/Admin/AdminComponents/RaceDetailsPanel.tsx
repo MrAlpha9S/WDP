@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
     Shield, X, AlertCircle, Loader2, Calendar, Clock, Tag, Ban, Pencil,
     Map, Flag, Users, DollarSign, Trophy, Play, CheckCircle2, Radio,
-    Copy, Check, Video, Tv, TriangleAlert, TrendingUp, BarChart2, Percent
+    Copy, Check, Video, Tv, TriangleAlert, TrendingUp, BarChart2, Percent, XCircle
 } from "lucide-react";
 import type { ScheduledRace } from "../../../shared/types/RaceTypes";
 import { adminService } from "../../../api/adminService";
@@ -73,6 +73,8 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
     const [isCreatingStream, setIsCreatingStream] = useState(false);
+    const [isQuickRunning, setIsQuickRunning] = useState(false);
+    const [isQuickFailing, setIsQuickFailing] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
 
     // Tab State
@@ -257,9 +259,40 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         }
     };
 
+    const handleQuickVerifyAndRun = async () => {
+        if (!selectedRace) return;
+        setIsQuickRunning(true);
+        setActionError(null);
+        try {
+            await adminService.quickVerifyAndRun(selectedRace.id);
+            if (onRefresh) onRefresh({ type: 'UPDATE', raceRound_id: selectedRace.id });
+            fetchDetails();
+        } catch (error: any) {
+            setActionError(error?.msg || 'Failed to quick-run race');
+        } finally {
+            setIsQuickRunning(false);
+        }
+    };
+
+    const handleQuickFailAndCancel = async () => {
+        if (!selectedRace) return;
+        setIsQuickFailing(true);
+        setActionError(null);
+        try {
+            await adminService.quickFailAndCancel(selectedRace.id);
+            if (onRefresh) onRefresh({ type: 'UPDATE', raceRound_id: selectedRace.id });
+            fetchDetails();
+        } catch (error: any) {
+            setActionError(error?.msg || 'Failed to quick-fail race');
+        } finally {
+            setIsQuickFailing(false);
+        }
+    };
+
     if (!selectedRace) return null;
 
     const status = selectedRace.status;
+    const isScheduled = status === 'scheduled';
     const isPrepared = status === 'prepared';
     const isRunning = status === 'running';
     const isAwaitingConfirmation = status === 'awaitingConfirmation';
@@ -344,6 +377,42 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                             <span className="flex items-center gap-1.5 whitespace-nowrap"><Tag size={14} className="text-gray-500" /> {detailedOverview?.raceType || selectedRace.raceType}</span>
                         )}
                     </div>
+
+                    {/* ── Quick-run shortcuts (testing/demo) ── */}
+                    {isScheduled && detailedParticipants.length > 0 && (
+                        <div className="mt-4 flex flex-col gap-2">
+                            <div className="rounded-xl border border-amber-500/20 bg-[#111] p-3 flex flex-col gap-2">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                                    <TriangleAlert size={12} /> Quick-Run (Testing)
+                                </span>
+                                <p className="text-[11px] text-gray-500">
+                                    Bulk-resolve every registration and skip the manual referee review.
+                                </p>
+                                <button
+                                    onClick={handleQuickVerifyAndRun}
+                                    disabled={isQuickRunning || isQuickFailing}
+                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 text-[12px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {isQuickRunning ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} fill="white" />}
+                                    {isQuickRunning ? 'Verifying & Starting…' : 'Quick Verify & Run'}
+                                </button>
+                                <button
+                                    onClick={handleQuickFailAndCancel}
+                                    disabled={isQuickRunning || isQuickFailing}
+                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 text-[12px] font-bold text-white bg-red-600/80 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {isQuickFailing ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
+                                    {isQuickFailing ? 'Failing & Cancelling…' : 'Quick Fail (Cancel)'}
+                                </button>
+                            </div>
+                            {actionError && (
+                                <div className="flex items-center gap-2 text-[12px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                                    <TriangleAlert size={13} className="shrink-0" />
+                                    {actionError}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* ── Action Buttons ── */}
                     {(isPrepared || isRunning || isAwaitingConfirmation) && (

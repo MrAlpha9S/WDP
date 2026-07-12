@@ -687,7 +687,7 @@ export default function LivePage() {
                         className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
                     >
                         <h2 className="text-[12px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
-                            <Shield size={13} className="text-red-500" /> Verification
+                            <Shield size={13} className="text-red-500" /> Horses List
                         </h2>
                         <ChevronDown size={13} className={`text-gray-600 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
                     </button>

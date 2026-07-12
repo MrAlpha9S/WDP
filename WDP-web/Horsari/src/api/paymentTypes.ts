@@ -12,8 +12,10 @@ export interface PaymentEntity {
   paymentType: PaymentType;
   payerRole: PaymentRole;
   payerId: string;
+  payerName: string | null;
   payeeRole: PaymentRole;
   payeeId: string;
+  payeeName: string | null;
   amount: number;
   sourceType: 'RaceResult' | 'RaceReferee' | 'Invitation';
   sourceId: string;
@@ -34,6 +36,27 @@ export interface PaymentsResponse {
   code: number;
   data: {
     items: PaymentEntity[];
+    pagination: { totalItems: number; totalPages: number; currentPage: number; limit: number };
+  };
+  msg: string;
+}
+
+// Wallet-ledger entries (deposits/withdrawals/rewards/refunds) — distinct from
+// PaymentEntity, which models the payer/payee payment-verification flow. Today
+// only admin's parimutuel house-take deposits show up here.
+export interface LedgerEntry {
+  _id: string;
+  transactionType: 'reward' | 'deposit' | 'withdrawal' | 'refund';
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  description: string | null;
+  createdAt: string;
+}
+
+export interface LedgerResponse {
+  code: number;
+  data: {
+    items: LedgerEntry[];
     pagination: { totalItems: number; totalPages: number; currentPage: number; limit: number };
   };
   msg: string;

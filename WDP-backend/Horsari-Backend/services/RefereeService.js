@@ -42,14 +42,35 @@ class RefereeService {
             // Overwrite with the real status (falls back to 'unpaid' pre-confirmation).
             if (invitations.length) {
                 const Transaction = require('../entities/Transaction');
-                const payments = await Transaction.find({
-                    sourceType: 'RaceReferee',
-                    sourceId: { $in: invitations.map(i => i._id) },
-                    paymentType: 'referee_fee',
-                }).lean();
+                const CurrencyConverter = require('./CurrencyConverter');
+                const User = require('../entities/User');
+                const [payments, assigners] = await Promise.all([
+                    Transaction.find({
+                        sourceType: 'RaceReferee',
+                        sourceId: { $in: invitations.map(i => i._id) },
+                        paymentType: 'referee_fee',
+                    }).lean(),
+                    User.find(
+                        { _id: { $in: invitations.map(i => i.assignedByAdminId).filter(Boolean) } },
+                        'fullName',
+                    ).lean(),
+                ]);
                 const paymentBySourceId = new Map(payments.map(p => [String(p.sourceId), p]));
+                const assignerNameById = new Map(assigners.map(u => [String(u._id), u.fullName]));
                 for (const inv of invitations) {
-                    inv.paymentStatus = paymentBySourceId.get(String(inv._id))?.paymentStatus || 'unpaid';
+                    const matchedPayment = paymentBySourceId.get(String(inv._id));
+                    inv.paymentStatus = matchedPayment?.paymentStatus || 'unpaid';
+                    // Real confirmed amount once a Transaction exists; otherwise the same
+                    // VND estimate confirmRaceResult itself would compute, so the two are
+                    // guaranteed consistent.
+                    inv.expectedPayment = matchedPayment
+                        ? matchedPayment.amount
+                        : CurrencyConverter.convertToVnd(inv.fee, inv.raceRoundId?.currencyType);
+                    // Referee is always the payee here — the Transaction _id (not the
+                    // RaceReferee _id) is what confirmAsPayee needs to act on.
+                    inv.paymentId = matchedPayment?._id ?? null;
+                    inv.payeeConfirmed = matchedPayment?.payeeConfirmed ?? false;
+                    inv.assignedByName = assignerNameById.get(String(inv.assignedByAdminId)) ?? null;
                 }
             }
 

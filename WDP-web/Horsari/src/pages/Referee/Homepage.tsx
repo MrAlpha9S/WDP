@@ -123,7 +123,7 @@ export default function HomePage() {
                 <div className="mt-6">
                     <PaymentsPanel
                         title="Payments Awaiting Your Confirmation"
-                        fetchPayments={(page) => refereeService.getPayments(page, 10, undefined, 'payee')}
+                        fetchPayments={(page, sortBy, order) => refereeService.getPayments(page, 10, undefined, 'payee', sortBy, order)}
                         onConfirm={refereeService.confirmPaymentReceived}
                         myRoleSide="payee"
                         confirmLabel="Confirm Received"

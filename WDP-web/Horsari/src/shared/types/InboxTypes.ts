@@ -17,10 +17,14 @@ export interface RaceInvite {
     distance: string;
     track: string;
     entries: number;
-    assignedBy: string;
-    notes: string;
+    assignedBy: string | null;
     fee: number;
+    /** VND — real confirmed amount once paid, else a computed estimate. */
+    expectedPayment: number;
     paymentStatus: PaymentStatus;
+    /** Transaction _id for the matching referee_fee payment — null pre-confirmation. */
+    paymentId: string | null;
+    payeeConfirmed: boolean;
     paymentMethod?: string;
     tournamentName?: string;
     paidOn?: string;
