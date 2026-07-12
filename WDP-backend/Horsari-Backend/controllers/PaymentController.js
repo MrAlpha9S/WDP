@@ -21,6 +21,14 @@ class PaymentController {
         return res.status(response.code).json(response);
     }
 
+    async listAllPayments(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { status, paymentType, sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await PaymentService.listAllPayments(page, limit, status, paymentType, sortBy, order);
+        return res.status(response.code).json(response);
+    }
+
     async listMyLedger(req, res) {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;

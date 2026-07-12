@@ -311,7 +311,7 @@ export default function HireJockeyModal({
       await onConfirm?.({
         jockeyId: String(jockey.id),
         registrationId: String(selectedRace.id),
-        percentagePayout: percentagePayout / 100,
+        percentagePayout,
         horseId: String(selectedHorse.id),
         isBackup: position,
       });

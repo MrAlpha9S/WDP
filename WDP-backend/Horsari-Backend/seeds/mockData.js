@@ -21,16 +21,11 @@ const RaceEligibilityRule = require("../entities/RaceEligibilityRule");
 const Registration = require("../entities/Registration");
 const Invitation = require("../entities/Invitation");
 const RaceReferee = require("../entities/RaceReferee");
-const RaceResult = require("../entities/RaceResult");
 
 const ViolationType = require("../entities/ViolationType");
 const Violation = require("../entities/Violation");
 
 const PredictionMethod = require("../entities/PredictionMethod");
-const Prediction = require("../entities/Prediction");
-
-const Transaction = require("../entities/Transaction");
-const { convertToVnd } = require("../services/CurrencyConverter");
 
 const PASSWORD_HASH =
   "$2b$10$smxEWfBiOmkrAkvaBpyfJ.Lv/uxe4inN8KRymH6TN.W10RSAWMbrO";
@@ -473,33 +468,10 @@ async function seed() {
     ]);
 
     /* ================================================
-           5. RACE ROUND (3 — 2 in T1, 1 in T2)
+           5. RACE ROUND (2 — 1 in T1, 1 in T2)
            ================================================ */
 
     const rounds = await RaceRound.create([
-      {
-        tournamentId: tournaments[0]._id,
-        createdByAdminId: admins[0]._id,
-        roundName: "Quarter Final — Stakes G1 1600m",
-        raceDate: atHour(daysAgo(10), 10),
-        trackLength: 1600,
-        maxParticipants: 6,
-        status: "completed",
-        minimalRidingFees: 500,
-        raceGround: "Grass",
-        requireEntranceFees: true,
-        firstPlacePrize: 50000,
-        secondPlacePrize: 20000,
-        thirdPlacePrize: 10000,
-        currencyType: "USD",
-        location: "Phu Tho Racetrack",
-        address: "1 Ly Thuong Kiet, Ward 8, District 11, Ho Chi Minh City",
-        eligibilityRuleId: rules[0]._id,
-        muxLiveStreamId: "mux-live-id-round1",
-        muxStreamKey: "mux-stream-key-round1",
-        muxPlaybackId: "mux-playback-id-round1",
-        muxVodPlaybackId: "mux-vod-id-round1",
-      },
       {
         tournamentId: tournaments[0]._id,
         createdByAdminId: admins[0]._id,
@@ -548,34 +520,15 @@ async function seed() {
       },
     ]);
 
-    const round1 = rounds[0]; // completed
-    const round2 = rounds[1]; // scheduled
-    const round3 = rounds[2]; // draft
+    const round2 = rounds[0]; // scheduled
+    const round3 = rounds[1]; // draft
 
     /* ================================================
            6. REGISTRATION
-           — Round 1: horses[0..5] approved + lanes 1-6
-                      horses[6] cancelled (owner never responded → auto-cancelled at race completion)
            — Round 2: horses[0..4], mix of statuses
            ================================================ */
 
     const registrations = [];
-
-    // Round 1 — 6 horses, referee-verified, lanes 1-6
-    // Flow: admin invited → owner approved → owner created invitation → jockey accepted
-    //       → referee verified → race completed
-    for (let i = 0; i < 6; i++) {
-      const reg = await Registration.create({
-        raceRoundId: round1._id,
-        horseId: horses[i]._id,
-        horseOwnerId: horses[i].ownerId,
-        approvedByAdminId: admins[0]._id,
-        registrationStatus: "verified",
-        laneNumber: i + 1,
-        registeredAt: daysAgo(20),
-      });
-      registrations.push(reg);
-    }
 
     // Round 2 — 5 horses, mixed owner-decision statuses
     // Flow: admin invited owners → owners responded independently
@@ -603,24 +556,7 @@ async function seed() {
       registrations.push(reg);
     }
 
-    // Round 1 extra — cancelled registration (no-show)
-    // Owner was invited but never approved before race day;
-    // referee cancelled it as a no-show via cancelRegistration (only valid on pending regs).
-    // No verificationFailReason — cancellation is not a verification failure.
-    const r1CancelledReg = await Registration.create({
-      raceRoundId: round1._id,
-      horseId: horses[6]._id,
-      horseOwnerId: horses[6].ownerId,
-      approvedByAdminId: admins[0]._id,
-      registrationStatus: "cancelled",
-      registeredAt: daysAgo(22),
-    });
-    registrations.push(r1CancelledReg);
-
-    // Shorthand refs for Round 1 registrations (verified — completed race)
-    const r1Regs = registrations.slice(0, 6);
-    // Round 2 registrations start at index 7 (index 6 = r1CancelledReg)
-    const r2Regs = registrations.slice(7);
+    const r2Regs = registrations;
 
     /* ================================================
            7. INVITATION
@@ -635,64 +571,6 @@ async function seed() {
     // Helper: pick a backup jockey that is different from the main and any already used backups
     const pickBackup = (mainIdx, ...excludeIdx) =>
       jockeys.find((j, i) => i !== mainIdx && !excludeIdx.includes(i));
-
-    // ── Round 1 (completed) — 1 main + 1–2 backups per registration ───────────
-    // Main jockey indices for each of the 6 registrations
-    const r1MainJockeyIdx = [0, 1, 2, 3, 0, 1];
-    // Indexed alongside r1Regs/resultData for the payment-verification seeding below
-    const r1MainInvitations = [];
-
-    for (let i = 0; i < r1Regs.length; i++) {
-      const reg = r1Regs[i];
-      const horse = horses[i];                       // same horse as registration
-      const mainIdx = r1MainJockeyIdx[i];
-
-      // Main — accepted (race already completed)
-      const mainInv = await Invitation.create({
-        horseId: horse._id,
-        jockeyId: jockeys[mainIdx]._id,
-        registrationId: reg._id,
-        ownerConfirmation: true,
-        jockeyConfirmation: true,
-        invitationStatus: "accepted",
-        isBackup: false,
-        percentagePayout: 10,
-        bookingFees: 100,
-      });
-      invitations.push(mainInv);
-      r1MainInvitations.push(mainInv);
-      await Registration.findByIdAndUpdate(reg._id, { jockeyInRaceId: mainInv._id, horseId: horse._id });
-
-      // Backup 1 — pending (owner sent, jockey hasn't replied)
-      const backup1Jockey = pickBackup(mainIdx);
-      const backup1Inv = await Invitation.create({
-        horseId: horse._id,
-        jockeyId: backup1Jockey._id,
-        registrationId: reg._id,
-        ownerConfirmation: true,
-        jockeyConfirmation: false,
-        invitationStatus: "pending",
-        isBackup: true,
-        percentagePayout: 8,
-      });
-      invitations.push(backup1Inv);
-
-      // Backup 2 for first two registrations — declined scenario
-      if (i < 2) {
-        const backup2Jockey = pickBackup(mainIdx, jockeys.indexOf(backup1Jockey));
-        const backup2Inv = await Invitation.create({
-          horseId: horse._id,
-          jockeyId: backup2Jockey._id,
-          registrationId: reg._id,
-          ownerConfirmation: true,
-          jockeyConfirmation: false,
-          invitationStatus: "declined",
-          isBackup: true,
-          percentagePayout: 8,
-        });
-        invitations.push(backup2Inv);
-      }
-    }
 
     // ── Round 2 (scheduled) — invitations only for approved registrations ────────
     // r2Regs[0]=pending  → no invitation (owner hasn't approved yet;
@@ -745,29 +623,8 @@ async function seed() {
 
     /* ================================================
            8. RACE REFEREE
-           — Round 1: 2 referees assigned
            — Round 2: 1 referee pending
            ================================================ */
-
-    const raceReferee1 = await RaceReferee.create({
-      raceRoundId: round1._id,
-      refereeId: referees[0]._id,
-      assignedByAdminId: admins[0]._id,
-      assignedAt: daysAgo(15),
-      status: "assigned",
-      paymentStatus: "paid",
-      fee: 2000,
-    });
-
-    const raceReferee2 = await RaceReferee.create({
-      raceRoundId: round1._id,
-      refereeId: referees[1]._id,
-      assignedByAdminId: admins[0]._id,
-      assignedAt: daysAgo(15),
-      status: "assigned",
-      paymentStatus: "paid",
-      fee: 2000,
-    });
 
     await RaceReferee.create({
       raceRoundId: round2._id,
@@ -780,47 +637,7 @@ async function seed() {
     });
 
     /* ================================================
-           9. RACE RESULT (Round 1 — top 3 + one cancelled)
-           ================================================ */
-
-    const resultData = [
-      { reg: r1Regs[0], pos: 1, time: "1:38.20", prize: 50000, distance: 3.75 }, // 0.75s gap to 2nd → 3¾L
-      { reg: r1Regs[1], pos: 2, time: "1:38.95", prize: 20000, distance: 2.25 }, // 0.45s gap to 3rd → 2¼L
-      { reg: r1Regs[2], pos: 3, time: "1:39.40", prize: 10000, distance: 3.5 }, // 0.70s gap to 4th → 3½L
-      { reg: r1Regs[3], pos: 4, time: "1:40.10", prize: 0, distance: 6 }, // 1.20s gap to 5th → 6L
-      { reg: r1Regs[4], pos: 5, time: "1:41.30", prize: 0, distance: 0 }, // last finisher
-    ];
-
-    // Indexed alongside resultData for the payment-verification seeding below
-    const r1RaceResults = [];
-    for (const rd of resultData) {
-      const raceResult = await RaceResult.create({
-        raceRoundId: round1._id,
-        registrationId: rd.reg._id,
-        publishedByAdminId: admins[0]._id,
-        finishPosition: rd.pos,
-        finishTime: rd.time,
-        distance: rd.distance,
-        prizeMoney: rd.prize,
-        resultStatus: "official",
-      });
-      r1RaceResults.push(raceResult);
-    }
-
-    // Cancelled result (horse[5] disqualified)
-    await RaceResult.create({
-      raceRoundId: round1._id,
-      registrationId: r1Regs[5]._id,
-      publishedByAdminId: admins[0]._id,
-      finishPosition: 6,
-      finishTime: "DQ",
-      distance: 0,
-      prizeMoney: 0,
-      resultStatus: "cancelled",
-    });
-
-    /* ================================================
-       9b. PREPARED RACE ROUND (Round 4 — ready for simulation)
+       9. PREPARED RACE ROUND (Round 4 — ready for simulation)
        ================================================ */
 
     const round4 = await RaceRound.create({
@@ -923,34 +740,6 @@ async function seed() {
            10. VIOLATIONS
            ================================================ */
 
-    // ── Round 1 — all 5 violation types across different horses ──────────────
-
-    // False start — horse[4] (pre-race, confirmed)
-    await Violation.create({
-      raceRoundId: round1._id,
-      registrationId: r1Regs[4]._id,
-      raceRefereeId: raceReferee1._id,
-      violationTypeId: violationTypes.find(v => v.violationName === "False Start")._id,
-      description: "Horse broke early from gate #5 before the official start signal",
-      severity: 1,
-      actualPenalty: "Verbal warning issued to jockey",
-      stewardAction: "warning",
-      violationStatus: "confirmed",
-    });
-
-    // Illegal equipment — horse[1] (pre-race, confirmed → fine)
-    await Violation.create({
-      raceRoundId: round1._id,
-      registrationId: r1Regs[1]._id,
-      raceRefereeId: raceReferee1._id,
-      violationTypeId: violationTypes.find(v => v.violationName === "Unauthorized Equipment")._id,
-      description: "Non-regulation blinkers detected during post-race equipment check",
-      severity: 2,
-      actualPenalty: "Fine of $200 issued to owner",
-      stewardAction: "fine",
-      violationStatus: "confirmed",
-    });
-
     // ── Round 4 — pre-race violations (not yet resolved) ─────────────────────
 
     // False start during warm-up — horse[3] (confirmed, warning)
@@ -966,674 +755,8 @@ async function seed() {
       violationStatus: "confirmed",
     });
 
-    /* ================================================
-   11. PREDICTION
-   ================================================ */
-
-    // Champion of tournament 1
-    await Tournament.findByIdAndUpdate(tournaments[0]._id, {
-      championHorseId: horses[0]._id,
-    });
-
-    const predictionSeeds = [
-      /* ==========================
-       CHAMPION (12)
-       ========================== */
-
-      {
-        spectatorId: spectators[0]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "correct",
-        rewardPoints: 500,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "correct",
-        rewardPoints: 500,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[3]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[0]._id,
-        tournamentId: tournaments[1]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "pending",
-        rewardPoints: 400,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        tournamentId: tournaments[1]._id,
-        predictedHorseId: horses[3]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "pending",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        tournamentId: tournaments[1]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "pending",
-        rewardPoints: 600,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        tournamentId: tournaments[1]._id,
-        predictedHorseId: horses[5]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "pending",
-        rewardPoints: 250,
-      },
-
-      {
-        spectatorId: spectators[0]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "correct",
-        rewardPoints: 500,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        tournamentId: tournaments[0]._id,
-        predictedHorseId: horses[7]._id,
-        predictionMethodId: predictionMethods[0]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      /* ==========================
-       RACE RANK (15)
-       ========================== */
-
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[1]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[2]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 3,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[3]._id,
-        predictedHorseId: horses[3]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 4,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[1]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[2]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 5,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[2]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 3,
-        predictionStatus: "correct",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[3]._id,
-        predictedHorseId: horses[3]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[5]._id,
-        predictedHorseId: horses[5]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[1]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "pending",
-        rewardPoints: 200,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[2]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[4]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "pending",
-        rewardPoints: 180,
-      },
-
-      /* ==========================
-       RACE WINNER (15)
-       ========================== */
-
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "correct",
-        rewardPoints: 1000,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r1Regs[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "correct",
-        rewardPoints: 1000,
-      },
-
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[1]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[4]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "correct",
-        rewardPoints: 1000,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[5]._id,
-        predictedHorseId: horses[5]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[1]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 300,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[2]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 700,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r2Regs[4]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 450,
-      },
-
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[2]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r1Regs[3]._id,
-        predictedHorseId: horses[3]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "correct",
-        rewardPoints: 1000,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r1Regs[4]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "incorrect",
-        rewardPoints: 0,
-      },
-
-      /* ==========================
-       ROUND 4 — RACE RANK (8)
-       ========================== */
-
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r4Regs[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r4Regs[2]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 3,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r4Regs[1]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r4Regs[3]._id,
-        predictedHorseId: horses[3]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r4Regs[4]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r4Regs[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 2,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r4Regs[2]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 1,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r4Regs[5]._id,
-        predictedHorseId: horses[5]._id,
-        predictionMethodId: predictionMethods[1]._id,
-        predictedRank: 3,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-
-      /* ==========================
-       ROUND 4 — RACE WINNER (6)
-       ========================== */
-
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r4Regs[0]._id,
-        predictedHorseId: horses[0]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[0]._id,
-        registrationId: r4Regs[5]._id,
-        predictedHorseId: horses[5]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[1]._id,
-        registrationId: r4Regs[2]._id,
-        predictedHorseId: horses[2]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r4Regs[1]._id,
-        predictedHorseId: horses[1]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[2]._id,
-        registrationId: r4Regs[3]._id,
-        predictedHorseId: horses[3]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-      {
-        spectatorId: spectators[3]._id,
-        registrationId: r4Regs[4]._id,
-        predictedHorseId: horses[4]._id,
-        predictionMethodId: predictionMethods[2]._id,
-        predictionStatus: "pending",
-        rewardPoints: 150,
-      },
-    ];
-
-    const predictions = await Prediction.insertMany(predictionSeeds);
-
-    /* ================================================
-           12. TRANSACTION
-           ================================================ */
-
-    // Reward transactions for correct predictions (uses correct field names from predictionSeeds)
-    const rewardPreds = predictionSeeds
-      .map((p, idx) => ({ seed: p, doc: predictions[idx] }))
-      .filter(({ seed }) => seed.predictionStatus === "correct" && seed.rewardPoints > 0);
-    for (const { seed, doc } of rewardPreds) {
-      await Transaction.create({
-        userId: spectators[0]._id,
-        transactionType: "reward",
-        date: daysAgo(9),
-        status: "completed",
-        amount: seed.rewardPoints,
-        description: `Prediction reward on Round 1`,
-        referenceId: doc._id.toString(),
-        referenceType: "prediction",
-      });
-    }
-
-    // Deposit — spectator1 topped up balance
-    await Transaction.create({
-      userId: spectators[0]._id,
-      transactionType: "deposit",
-      date: daysAgo(25),
-      status: "completed",
-      amount: 2000,
-      description: "Wallet top-up via VNPay",
-      referenceType: "payment",
-    });
-
-    // Withdrawal — spectator1 withdrew winnings
-    await Transaction.create({
-      userId: spectators[0]._id,
-      transactionType: "withdrawal",
-      date: daysAgo(8),
-      status: "completed",
-      amount: 1000,
-      description: "Withdrawal to linked bank account",
-      referenceType: "payment",
-    });
-
-    // Failed transaction for edge case testing
-    await Transaction.create({
-      userId: spectators[0]._id,
-      transactionType: "deposit",
-      date: daysAgo(3),
-      status: "failed",
-      amount: 500,
-      description: "Deposit failed — insufficient funds",
-      referenceType: "payment",
-    });
-
-    /* ================================================
-           13. PAYMENT VERIFICATION (race_prize / referee_fee / jockey_payout)
-           Mirrors exactly what AdminService.confirmRaceResult would create for
-           Round 1 (already "completed" above), with varied confirmation states
-           so the new payment/wallet UI has real data right after seeding.
-           - Position 1: paid (both sides confirmed) → wallets credited below
-           - Position 2: processing (payer confirmed only)
-           - Position 3: unpaid (neither confirmed) — deliberately differs from
-             raceReferee2's stale legacy paymentStatus "paid" below, proving the
-             real Transaction-derived status is what the UI now shows
-           - Positions 4-5: booking-fee-only payouts (prize was 0), left unpaid
-           ================================================ */
-
-    const r1PayoutState = ["paid", "processing", "unpaid", "unpaid", "unpaid"];
-
-    for (let i = 0; i < r1RaceResults.length; i++) {
-      const raceResult = r1RaceResults[i];
-      const state = r1PayoutState[i];
-      const isPayerConfirmed = state === "paid" || state === "processing";
-      const isPayeeConfirmed = state === "paid";
-
-      // race_prize (admin → horseOwner) — only when the horse actually placed
-      if (raceResult.prizeMoney > 0) {
-        const prizeAmountVnd = convertToVnd(raceResult.prizeMoney, round1.currencyType);
-        await Transaction.create({
-          paymentType: "race_prize",
-          payerRole: "admin",
-          payerId: admins[0]._id,
-          payeeRole: "horseowner",
-          payeeId: horseOwners[0]._id,
-          amount: prizeAmountVnd,
-          originalAmount: raceResult.prizeMoney,
-          originalCurrency: round1.currencyType,
-          sourceType: "RaceResult",
-          sourceId: raceResult._id,
-          raceRoundId: round1._id,
-          payerConfirmed: isPayerConfirmed,
-          payerConfirmedAt: isPayerConfirmed ? daysAgo(2) : null,
-          payeeConfirmed: isPayeeConfirmed,
-          payeeConfirmedAt: isPayeeConfirmed ? daysAgo(1) : null,
-          paymentStatus: state,
-        });
-
-        if (state === "paid") {
-          await HorseOwner.findByIdAndUpdate(horseOwners[0]._id, { $inc: { wallet: prizeAmountVnd } });
-        }
-      }
-
-      // jockey_payout (horseOwner → jockey) — booking fee + percentage-of-prize cut,
-      // same formula as AdminService.confirmRaceResult
-      const mainInv = r1MainInvitations[i];
-      const percentageCut = raceResult.prizeMoney > 0
-        ? Math.round((mainInv.percentagePayout / 100) * raceResult.prizeMoney)
-        : 0;
-      const payoutAmount = (mainInv.bookingFees || 0) + percentageCut;
-      if (payoutAmount > 0) {
-        const payoutAmountVnd = convertToVnd(payoutAmount, round1.currencyType);
-        await Transaction.create({
-          paymentType: "jockey_payout",
-          payerRole: "horseowner",
-          payerId: horseOwners[0]._id,
-          payeeRole: "jockey",
-          payeeId: jockeys[0]._id,
-          amount: payoutAmountVnd,
-          originalAmount: payoutAmount,
-          originalCurrency: round1.currencyType,
-          sourceType: "Invitation",
-          sourceId: mainInv._id,
-          raceRoundId: round1._id,
-          payerConfirmed: isPayerConfirmed,
-          payerConfirmedAt: isPayerConfirmed ? daysAgo(2) : null,
-          payeeConfirmed: isPayeeConfirmed,
-          payeeConfirmedAt: isPayeeConfirmed ? daysAgo(1) : null,
-          paymentStatus: state,
-        });
-
-        if (state === "paid") {
-          await Jockey.findByIdAndUpdate(jockeys[0]._id, { $inc: { wallet: payoutAmountVnd } });
-        }
-      }
-    }
-
-    // referee_fee (admin → referee) — both raceReferee1 and raceReferee2's fees
-    // tied to referee1 (paid + unpaid), so referee1 has a full payment history.
-    const refereeFeeSeeds = [
-      { assignment: raceReferee1, state: "paid" },
-      { assignment: raceReferee2, state: "unpaid" },
-    ];
-    for (const { assignment, state } of refereeFeeSeeds) {
-      const isConfirmed = state === "paid";
-      const feeAmountVnd = convertToVnd(assignment.fee, round1.currencyType);
-      await Transaction.create({
-        paymentType: "referee_fee",
-        payerRole: "admin",
-        payerId: admins[0]._id,
-        payeeRole: "referee",
-        payeeId: referees[0]._id,
-        amount: feeAmountVnd,
-        originalAmount: assignment.fee,
-        originalCurrency: round1.currencyType,
-        sourceType: "RaceReferee",
-        sourceId: assignment._id,
-        raceRoundId: round1._id,
-        payerConfirmed: isConfirmed,
-        payerConfirmedAt: isConfirmed ? daysAgo(2) : null,
-        payeeConfirmed: isConfirmed,
-        payeeConfirmedAt: isConfirmed ? daysAgo(1) : null,
-        paymentStatus: state,
-      });
-
-      if (state === "paid") {
-        await Referee.findByIdAndUpdate(referees[0]._id, { $inc: { wallet: feeAmountVnd } });
-      }
-    }
-
-    // House-take ledger entry — mirrors what PayoutService.distributeRacePayouts
-    // creates when settling Round 1's prediction pools, so the admin ledger UI
-    // has real data right after seeding.
-    const houseTakeVnd = convertToVnd(150, round1.currencyType);
-    await Transaction.create({
-      userId: admins[0]._id,
-      transactionType: "deposit",
-      date: daysAgo(2),
-      status: "completed",
-      amount: houseTakeVnd,
-      description: `Parimutuel house take — race ${round1._id}`,
-      referenceId: String(round1._id),
-      referenceType: "payment",
-    });
-    await Admin.findByIdAndUpdate(admins[0]._id, { $inc: { wallet: houseTakeVnd } });
+    // No Prediction or Transaction seeding — real usage creates these via
+    // spectator predictions, PayoutService settlement, and confirmRaceResult.
 
     console.log("\n✅ Seed completed successfully");
     console.log(
@@ -1643,13 +766,11 @@ async function seed() {
     );
     console.log("   Horses     :", horses.length);
     console.log("   Tournaments:", tournaments.length);
-    console.log("   RaceRounds :", rounds.length + 1, "(3 archived + 1 prepared)");
+    console.log("   RaceRounds :", rounds.length + 1, "(1 scheduled + 1 draft + 1 prepared)");
     console.log("   Registrations:", registrations.length + r4Regs.length);
     console.log("   Invitations:", invitations.length);
-    console.log("   RaceResults: 6");
     console.log("   ViolationTypes: 29 (pre-race, during-race, after-race)");
-    console.log("   Violations : 7 (5 Round 1 + 2 Round 4 pre-race)");
-    console.log("   Predictions:", predictions.length);
+    console.log("   Violations : 1 (Round 4 pre-race)");
 
     process.exit(0);
   } catch (err) {

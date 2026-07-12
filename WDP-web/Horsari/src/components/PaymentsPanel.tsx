@@ -39,6 +39,13 @@ interface PaymentsPanelProps {
     confirmLabel: string;
     /** Unique key for this panel's pagination cache — bump when the underlying query params change. */
     cacheKey: string;
+    /**
+     * Logged-in user's own id — when provided, the confirm button only renders on rows
+     * where this user is actually the payer/payee (e.g. an admin viewing a system-wide
+     * list that includes other admins' or other roles' payments). Omit for panels that
+     * are already server-side scoped to the caller's own rows (e.g. referee's payments).
+     */
+    currentUserId?: string;
 }
 
 const SORT_OPTIONS: { value: string; label: string; sortBy: string; order: "asc" | "desc" }[] = [
@@ -48,7 +55,7 @@ const SORT_OPTIONS: { value: string; label: string; sortBy: string; order: "asc"
     { value: "amount:asc", label: "Amount Low–High", sortBy: "amount", order: "asc" },
 ];
 
-export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleSide, confirmLabel, cacheKey }: PaymentsPanelProps) {
+export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleSide, confirmLabel, cacheKey, currentUserId }: PaymentsPanelProps) {
     const [sortValue, setSortValue] = useState("createdAt:desc");
     const sortOption = SORT_OPTIONS.find((o) => o.value === sortValue) ?? SORT_OPTIONS[0];
 
@@ -110,6 +117,9 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
                     {data.map((payment) => {
                         const myConfirmed = myRoleSide === "payer" ? payment.payerConfirmed : payment.payeeConfirmed;
                         const otherConfirmed = myRoleSide === "payer" ? payment.payeeConfirmed : payment.payerConfirmed;
+                        const canConfirm = currentUserId
+                            ? (myRoleSide === "payer" ? payment.payerId : payment.payeeId) === currentUserId
+                            : true;
                         const counterpartyName = myRoleSide === "payer"
                             ? payment.payeeName ?? `Unknown ${payment.payeeRole}`
                             : payment.payerName ?? `Unknown ${payment.payerRole}`;
@@ -137,9 +147,9 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
                                         <span className="text-[11px] text-emerald-500 flex items-center gap-1">
                                             <CheckCircle2 size={12} /> Settled
                                         </span>
-                                    ) : myConfirmed ? (
+                                    ) : myConfirmed || !canConfirm ? (
                                         <span className="text-[11px] text-gray-500 flex items-center gap-1">
-                                            <Clock size={12} /> Waiting
+                                            <Clock size={12} /> {myConfirmed ? "Waiting" : "Not yours to confirm"}
                                         </span>
                                     ) : (
                                         <button

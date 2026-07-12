@@ -82,6 +82,27 @@ class TransactionRepository {
         return { items, totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit };
     }
 
+    // Admin-only, system-wide payment-verification list — no payer/payee scoping,
+    // unlike findByParty. Mirrors AdminService.getRaceRounds's "no userId filter" shape.
+    async findAllPayments({ paymentType, status, page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = {}) {
+        const skip = (page - 1) * limit;
+        const filter = { paymentType: { $ne: null } };
+
+        if (paymentType) filter.paymentType = paymentType;
+        if (status) filter.paymentStatus = status;
+
+        const allowedSortFields = ['createdAt', 'amount', 'paymentStatus'];
+        const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortObj = { [sortField]: order === 'asc' ? 1 : -1 };
+
+        const [items, totalItems] = await Promise.all([
+            Transaction.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
+            Transaction.countDocuments(filter),
+        ]);
+
+        return { items, totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit };
+    }
+
     async updateById(id, updateData) {
         return Transaction.findByIdAndUpdate(id, updateData, { new: true });
     }

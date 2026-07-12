@@ -1400,68 +1400,151 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
     }
 };
 
-// ── Admin quick-run shortcuts (testing/demo convenience) ───────────────────────
-// Bypass the normal per-registration referee review — bulk-resolve every
-// registration on a populated, not-yet-reviewed race round, then delegate to
-// setRaceRoundStatus for the actual prepared→running/cancelled transition so
-// all its side effects (simulation start, prediction refunds, notifications,
-// socket emits) fire exactly as they would for a normally-reviewed race.
-
-async function loadPopulatedScheduledRound(raceRoundId) {
-    const raceRound = await RaceRound.findById(raceRoundId).lean();
-    if (!raceRound) return { error: { code: 404, msg: 'Race round not found.' } };
-    if (raceRound.status !== 'scheduled') {
-        return { error: { code: 422, msg: `Race round is "${raceRound.status}" — quick actions only apply to "scheduled" rounds.` } };
-    }
-    const registrations = await Registration.find({ raceRoundId }).lean();
-    if (!registrations.length) {
-        return { error: { code: 422, msg: 'Race round has no registrations to resolve.' } };
-    }
-    return { raceRound, registrations };
-}
-
-// Bulk-verify every registration (simple status flip, not a faithful referee
-// review), auto-provision the Mux stream if missing, then run the race.
-AdminService.prototype.quickVerifyAndRun = async function (raceRoundId, io) {
+// ── Admin quick-assign shortcut (testing/demo convenience) ────────────────────
+// Fills in the setup step (horse + jockey) for registrations that haven't
+// gotten there yet via the normal owner-approves / owner-hires-jockey /
+// jockey-accepts flow, so the assigned referee's real review
+// (verifyRegistration → finalizeRaceRound) has something to act on.
+// Registrations already "approved" with an accepted main invitation are left
+// untouched — this only fills gaps, never overwrites legitimate state. It
+// never verifies, prepares, or starts the race itself.
+AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId) {
     try {
-        const { raceRound, registrations, error } = await loadPopulatedScheduledRound(raceRoundId);
-        if (error) return error;
-
-        await Registration.updateMany(
-            { raceRoundId },
-            { registrationStatus: 'verified', verificationFailReason: null }
-        );
-
-        if (!raceRound.muxLiveStreamId) {
-            await MuxService.createLiveStream(raceRoundId);
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+        if (!raceRound) return { code: 404, msg: 'Race round not found.' };
+        if (raceRound.status !== 'scheduled') {
+            return { code: 422, msg: `Race round is "${raceRound.status}" — quick-assign only applies to "scheduled" rounds.` };
         }
 
-        await RaceRound.findByIdAndUpdate(raceRoundId, { status: 'prepared' });
+        const registrations = await Registration.find({ raceRoundId }).lean();
+        if (!registrations.length) {
+            return { code: 422, msg: 'Race round has no registrations to resolve.' };
+        }
 
-        return await this.setRaceRoundStatus(raceRoundId, 'running', io);
-    } catch (error) {
-        console.error('Error in quickVerifyAndRun:', error);
-        return { code: 500, msg: error.message };
-    }
-};
+        const rule = raceRound.eligibilityRuleId
+            ? await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean()
+            : null;
 
-// Bulk-fail every registration, then cancel the race (refunds predictions,
-// notifies participants — same as a normal admin cancel).
-AdminService.prototype.quickFailAndCancel = async function (raceRoundId, io) {
-    try {
-        const { error } = await loadPopulatedScheduledRound(raceRoundId);
-        if (error) return error;
+        // Mirrors the frontend's checkEligibility (CreateRaceModal.tsx) so an
+        // auto-assigned horse is never one the admin's own UI would reject.
+        const isHorseEligible = (horse, wins, racesRun) => {
+            if (!rule) return true;
+            if (horse.status !== 'active' || horse.healthStatus !== 'healthy') return false;
+            if (rule.minRacesWon != null && wins < rule.minRacesWon) return false;
+            if (rule.minRacesRun != null && racesRun < rule.minRacesRun) return false;
+            const age = horse.dateOfBirth ? (new Date().getFullYear() - new Date(horse.dateOfBirth).getFullYear()) : 0;
+            if (rule.minAge != null && age < rule.minAge) return false;
+            if (rule.maxAge != null && age > rule.maxAge) return false;
+            if (rule.requiredGender && rule.requiredGender !== 'both' && rule.requiredGender !== horse.gender) return false;
+            if (rule.requiredBreed && rule.requiredBreed !== horse.breed) return false;
+            return true;
+        };
 
-        await Registration.updateMany(
-            { raceRoundId },
-            { registrationStatus: 'failed', verificationFailReason: 'Quick-fail (admin shortcut)' }
+        const regIds = registrations.map(r => r._id);
+        const existingInvitations = await Invitation.find({ registrationId: { $in: regIds } }).lean();
+        const acceptedMainByReg = new Map(
+            existingInvitations
+                .filter(inv => !inv.isBackup && inv.invitationStatus === 'accepted')
+                .map(inv => [String(inv.registrationId), inv])
         );
 
-        await RaceRound.findByIdAndUpdate(raceRoundId, { status: 'prepared' });
+        const jockeys = await Jockey.find().lean();
+        const usedHorseIds = new Set();
+        const usedJockeyIds = new Set();
+        let jockeyCursor = 0;
 
-        return await this.setRaceRoundStatus(raceRoundId, 'cancelled', io);
+        let assigned = 0, alreadyReady = 0, skipped = 0;
+
+        for (const reg of registrations) {
+            const alreadyDone = reg.registrationStatus === 'approved' && acceptedMainByReg.has(String(reg._id));
+            if (alreadyDone) {
+                alreadyReady++;
+                if (reg.horseId) usedHorseIds.add(String(reg.horseId));
+                const inv = acceptedMainByReg.get(String(reg._id));
+                if (inv?.jockeyId) usedJockeyIds.add(String(inv.jockeyId));
+                continue;
+            }
+
+            const ownerHorses = await Horse.find({ ownerId: reg.horseOwnerId, status: 'active' }).lean();
+            let eligibleHorse = null;
+            for (const horse of ownerHorses) {
+                if (usedHorseIds.has(String(horse._id))) continue;
+                const horseInvitations = await Invitation.find({ horseId: horse._id, registrationId: { $ne: null } }).lean();
+                const resultRegIds = horseInvitations.map(inv => inv.registrationId);
+                const results = await RaceResult.find({ registrationId: { $in: resultRegIds } }).lean();
+                const wins = results.filter(r => r.finishPosition === 1).length;
+                const racesRun = results.length;
+                if (isHorseEligible(horse, wins, racesRun)) {
+                    eligibleHorse = horse;
+                    break;
+                }
+            }
+            if (!eligibleHorse) {
+                skipped++;
+                continue;
+            }
+
+            let jockey = null;
+            if (jockeys.length) {
+                for (let i = 0; i < jockeys.length; i++) {
+                    const candidate = jockeys[(jockeyCursor + i) % jockeys.length];
+                    if (!usedJockeyIds.has(String(candidate._id))) {
+                        jockey = candidate;
+                        jockeyCursor = (jockeyCursor + i + 1) % jockeys.length;
+                        break;
+                    }
+                }
+                if (!jockey) jockey = jockeys[jockeyCursor % jockeys.length]; // all reused — fall back
+            }
+            if (!jockey) {
+                skipped++;
+                continue;
+            }
+
+            usedHorseIds.add(String(eligibleHorse._id));
+            usedJockeyIds.add(String(jockey._id));
+
+            await Registration.findByIdAndUpdate(reg._id, {
+                horseId: eligibleHorse._id,
+                registrationStatus: 'approved',
+            });
+
+            const existingNonAccepted = existingInvitations.find(
+                inv => !inv.isBackup && String(inv.registrationId) === String(reg._id)
+            );
+            if (existingNonAccepted) {
+                await Invitation.findByIdAndUpdate(existingNonAccepted._id, {
+                    horseId: eligibleHorse._id,
+                    jockeyId: jockey._id,
+                    ownerConfirmation: true,
+                    jockeyConfirmation: true,
+                    invitationStatus: 'accepted',
+                });
+            } else {
+                await Invitation.create({
+                    horseId: eligibleHorse._id,
+                    jockeyId: jockey._id,
+                    registrationId: reg._id,
+                    ownerConfirmation: true,
+                    jockeyConfirmation: true,
+                    invitationStatus: 'accepted',
+                    isBackup: false,
+                    percentagePayout: 10,
+                    // bookingFees intentionally omitted — real owner-created invitations
+                    // (Hirejockey.tsx) never set it either, so it defaults to 0 same as them.
+                });
+            }
+
+            assigned++;
+        }
+
+        return {
+            code: 200,
+            data: { assigned, alreadyReady, skipped, total: registrations.length },
+            msg: `${assigned} registration(s) auto-assigned, ${alreadyReady} already ready, ${skipped} skipped (no eligible horse/jockey).`,
+        };
     } catch (error) {
-        console.error('Error in quickFailAndCancel:', error);
+        console.error('Error in quickAssignHorsesAndJockeys:', error);
         return { code: 500, msg: error.message };
     }
 };

@@ -1,7 +1,7 @@
 import api from './axios';
 import type { TournamentDetailData, TournamentRankEntry } from '../shared/types/TournamentTypes';
 import type { ViolationEntity, ViolationTypeEntity } from '../shared/types/ViolationTypes';
-import type { PaymentEntity, PaymentStatus, PaymentsResponse, LedgerResponse } from './paymentTypes';
+import type { PaymentEntity, PaymentStatus, PaymentType, PaymentsResponse, LedgerResponse } from './paymentTypes';
 
 export interface RaceRegistration {
   _id: string;
@@ -813,23 +813,18 @@ export const adminService = {
     }
   },
 
-  // Testing/demo shortcuts — bulk-resolve a populated ("scheduled", has
-  // registrations) race round, skipping the normal per-registration referee review.
-  quickVerifyAndRun: async (id: string): Promise<{ code: number; data: RaceRoundData; msg: string }> => {
+  // Testing/demo shortcut — auto-pick a horse + jockey for registrations on a
+  // "scheduled" race round that aren't already approved with an accepted
+  // invitation (already-ready ones are left untouched), so the assigned
+  // referee's normal prepare/cancel review has something to act on.
+  quickAssignHorsesAndJockeys: async (
+    id: string,
+  ): Promise<{ code: number; data: { assigned: number; alreadyReady: number; skipped: number; total: number }; msg: string }> => {
     try {
-      const response = await api.post(`/admin/race-rounds/${id}/quick-verify-run`);
+      const response = await api.post(`/admin/race-rounds/${id}/quick-assign`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to quick-run race' };
-    }
-  },
-
-  quickFailAndCancel: async (id: string): Promise<{ code: number; data: RaceRoundData; msg: string }> => {
-    try {
-      const response = await api.post(`/admin/race-rounds/${id}/quick-fail`);
-      return response.data;
-    } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to quick-fail race' };
+      throw error.response?.data || { msg: 'Failed to quick-assign horses and jockeys' };
     }
   },
 
@@ -929,6 +924,28 @@ export const adminService = {
       const params: any = { page, limit, direction, sortBy, order };
       if (status) params.status = status;
       const response = await api.get('/admin/payments', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch payments' };
+    }
+  },
+
+  // System-wide payment list — every race_prize/referee_fee/jockey_payout
+  // transaction regardless of party, unlike getPayments which is scoped to
+  // rows where the logged-in admin is the payer.
+  getAllPayments: async (
+    page = 1,
+    limit = 10,
+    status?: PaymentStatus,
+    paymentType?: PaymentType,
+    sortBy = 'createdAt',
+    order: 'asc' | 'desc' = 'desc',
+  ): Promise<PaymentsResponse> => {
+    try {
+      const params: any = { page, limit, sortBy, order };
+      if (status) params.status = status;
+      if (paymentType) params.paymentType = paymentType;
+      const response = await api.get('/admin/payments/all', { params });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to fetch payments' };

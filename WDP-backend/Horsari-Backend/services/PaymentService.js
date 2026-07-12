@@ -158,6 +158,26 @@ class PaymentService {
         }
     }
 
+    // Admin-only, system-wide payment list — every race_prize/referee_fee/
+    // jockey_payout transaction regardless of who the parties are, unlike
+    // listMyPayments which is scoped to the caller's own payer/payee rows.
+    async listAllPayments(page = 1, limit = 10, status = null, paymentType = null, sortBy = 'createdAt', order = 'desc') {
+        try {
+            const { items, totalItems, totalPages, currentPage, limit: lim } =
+                await TransactionRepository.findAllPayments({ paymentType, status, page, limit, sortBy, order });
+
+            await this._attachPartyNames(items);
+
+            return {
+                code: 200,
+                data: { items, pagination: { totalItems, totalPages, currentPage, limit: lim } },
+                msg: 'All payments retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
     // Wallet-ledger view (deposits/withdrawals/rewards/refunds) — distinct from
     // listMyPayments, which is the payer/payee payment-verification flow. Today
     // only admin accrues entries here (parimutuel house-take deposits).

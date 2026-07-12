@@ -4,6 +4,7 @@ import { adminService } from "../../api/adminService";
 import PaymentsPanel from "../../components/PaymentsPanel";
 import { Pagination } from "../../components/Pagination";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
+import { useAuth } from "../../providers/AuthProvider";
 import type { PaymentStatus, LedgerEntry } from "../../api/paymentTypes";
 
 const LIMIT = 20;
@@ -77,6 +78,7 @@ function LedgerPanel() {
 
 export default function AdminPaymentsPage() {
     const [status, setStatus] = useState<PaymentStatus | "All">("All");
+    const { user } = useAuth();
 
     return (
         <div className="px-8 py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -89,7 +91,7 @@ export default function AdminPaymentsPage() {
                         Payments
                     </h1>
                     <p className="text-[13px] text-gray-500 mt-0.5">
-                        All race prize and referee fee payments owed by admin (statistical wallet tracking only).
+                        Every race prize, referee fee, and jockey payout in the system (statistical wallet tracking only).
                     </p>
                 </div>
 
@@ -108,9 +110,10 @@ export default function AdminPaymentsPage() {
             <div className="flex flex-col gap-4">
                 <PaymentsPanel
                     title="All Payments"
-                    fetchPayments={(page, sortBy, order) => adminService.getPayments(page, LIMIT, status !== "All" ? status : undefined, "payer", sortBy, order)}
+                    fetchPayments={(page, sortBy, order) => adminService.getAllPayments(page, LIMIT, status !== "All" ? status : undefined, undefined, sortBy, order)}
                     onConfirm={adminService.confirmPaymentPaid}
                     myRoleSide="payer"
+                    currentUserId={user?.id}
                     confirmLabel="Confirm Paid"
                     cacheKey={`admin-payments-all-${status}`}
                 />

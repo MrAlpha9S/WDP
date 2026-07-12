@@ -54,9 +54,9 @@ router.get('/race-rounds/:id/detail', authMiddleware, authAdmin, AdminController
 // Admin starts or cancels a prepared race round
 router.put('/race-rounds/:id/status', authMiddleware, authAdmin, AdminController.setRaceRoundStatus);
 
-// Quick-run shortcuts (testing/demo) — bulk-resolve a populated, unreviewed race round
-router.post('/race-rounds/:id/quick-verify-run', authMiddleware, authAdmin, AdminController.quickVerifyAndRun);
-router.post('/race-rounds/:id/quick-fail', authMiddleware, authAdmin, AdminController.quickFailAndCancel);
+// Quick-assign shortcut (testing/demo) — auto-pick horse+jockey for registrations
+// not yet approved/accepted, so the referee's real review has something to act on
+router.post('/race-rounds/:id/quick-assign', authMiddleware, authAdmin, AdminController.quickAssignHorsesAndJockeys);
 
 // Provision a Mux live stream (must be done before starting the race)
 router.post('/race-rounds/:id/stream', authMiddleware, authAdmin, AdminController.createStream);
@@ -85,6 +85,8 @@ router.delete('/rules/:id', authMiddleware, authAdmin, AdminController.deleteRul
 
 // --- Payment verification (admin pays horseOwner prize money / referee fee) ---
 router.get('/payments', authMiddleware, authAdmin, PaymentController.listMyPayments);
+// System-wide payment list (all race_prize/referee_fee/jockey_payout rows, any party)
+router.get('/payments/all', authMiddleware, authAdmin, PaymentController.listAllPayments);
 router.put('/payments/:paymentId/confirm-paid', authMiddleware, authAdmin, PaymentController.confirmPaid);
 
 // --- Wallet ledger (parimutuel house-take deposits — auto-applied, no confirmation) ---
