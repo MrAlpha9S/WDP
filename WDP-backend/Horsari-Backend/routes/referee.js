@@ -28,6 +28,7 @@ router.delete('/violations/:violationId', authMiddleware, authReferee, RefereeCo
 // Wallet + payment verification
 router.get('/wallet', authMiddleware, authReferee, RefereeController.getWalletInfo);
 router.get('/statistics', authMiddleware, authReferee, RefereeController.getStatistics);
+router.get('/work-history', authMiddleware, authReferee, RefereeController.getWorkHistory);
 router.get('/payments', authMiddleware, authReferee, PaymentController.listMyPayments);
 router.put('/payments/:paymentId/confirm-received', authMiddleware, authReferee, PaymentController.confirmReceived);
 

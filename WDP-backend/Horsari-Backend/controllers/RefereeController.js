@@ -79,6 +79,15 @@ class RefereeController {
         return res.status(response.code).json(response);
     }
 
+    // GET /work-history — completed race rounds + violations logged against them
+    async getWorkHistory(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { sortBy = 'raceDate', order = 'desc' } = req.query;
+        const response = await RefereeService.getWorkHistory(req.userId, page, limit, sortBy, order);
+        return res.status(response.code).json(response);
+    }
+
     // Mark a jockey as a no-show for race day
     async markJockeyNoShow(req, res) {
         const { invitationId } = req.params;

@@ -17,6 +17,33 @@ export interface RefereeStatistics {
     pendingCount: number;
     totalFeesEarned: number;
     pendingFeesAmount: number;
+    totalViolationsFiled: number;
+    confirmedViolationsCount: number;
+    dismissedViolationsCount: number;
+}
+
+export interface ViolationHistoryEntry {
+    violationId: string;
+    typeName: string | null;
+    description: string | null;
+    severity: number | null;
+    stewardAction: string | null;
+    violationStatus: string;
+    reportedAt: string;
+}
+
+export interface WorkHistoryEntry {
+    assignmentId: string;
+    raceRoundId: string | null;
+    roundName: string | null;
+    raceDate: string | null;
+    location: string | null;
+    raceGround: string | null;
+    trackLength: number | null;
+    paymentStatus: string;
+    fee: number;
+    assignedAt: string;
+    violations: ViolationHistoryEntry[];
 }
 
 // ── Response shapes ────────────────────────────────────────────────────────────
@@ -409,6 +436,22 @@ export const refereeService = {
             return response.data;
         } catch (error: any) {
             throw error.response?.data || { msg: 'Failed to fetch statistics' };
+        }
+    },
+
+    /** Completed race rounds this referee has officiated, with violations logged against each (paginated). */
+    getWorkHistory: async (
+        page = 1,
+        limit = 10,
+        sortBy = 'raceDate',
+        order: 'asc' | 'desc' = 'desc',
+    ): Promise<{ code: number; data: { items: WorkHistoryEntry[]; pagination: PaginationMeta }; msg: string }> => {
+        try {
+            const params: Record<string, unknown> = { page, limit, sortBy, order };
+            const response = await api.get('/referee/work-history', { params });
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to fetch work history' };
         }
     },
 

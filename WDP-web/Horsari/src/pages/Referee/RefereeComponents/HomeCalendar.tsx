@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Clock, Flag, MapPin } from "lucide-react";
 import type { UpcomingRace, RaceType } from "../../../shared/types/HomepageTypes";
 import {
@@ -43,6 +44,7 @@ interface HomeCalendarProps {
 }
 
 export default function HomeCalendar({ races: rawRaces, activeRules = [] }: HomeCalendarProps) {
+    const navigate = useNavigate();
     const [viewMonth, setViewMonth] = useState(TODAY.getMonth());
     const [viewYear, setViewYear] = useState(TODAY.getFullYear());
     const [selected, setSelected] = useState<Date>(TODAY);
@@ -65,14 +67,14 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
     useEffect(() => {
         if (races.length > 0) {
             const todayStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate()).getTime();
-            
+
             const upcomingRaces = [...races].sort((a, b) => a.date.getTime() - b.date.getTime());
-            
+
             const nextRace = upcomingRaces.find(r => {
                 const raceDate = new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate()).getTime();
                 return raceDate >= todayStart;
             });
-            
+
             if (nextRace) {
                 setSelected(nextRace.date);
                 setViewMonth(nextRace.date.getMonth());
@@ -182,54 +184,55 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
 
             {/* Selected Day Detail */}
             <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                <div className="px-5 py-3 border-b border-white/8">
-                    <p className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">
-                        {`${DAYS[selected.getDay()]}, ${MONTHS[selected.getMonth()]} ${selected.getDate()}`}
-                    </p>
+            <div className="px-5 py-3 border-b border-white/8">
+                <p className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">
+                    {`${DAYS[selected.getDay()]}, ${MONTHS[selected.getMonth()]} ${selected.getDate()}`}
+                </p>
+            </div>
+            {selectedRaces.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                    <p className="text-[13px] text-gray-600">No races scheduled.</p>
                 </div>
-                {selectedRaces.length === 0 ? (
-                    <div className="px-5 py-8 text-center">
-                        <p className="text-[13px] text-gray-600">No races scheduled.</p>
-                    </div>
-                ) : (
-                    <div>
-                        {selectedRaces.map((race, i) => (
-                            <div
-                                key={race.id}
-                                className={`flex items-start gap-3 px-5 py-4 ${i !== selectedRaces.length - 1 ? "border-b border-white/5" : ""}`}
-                            >
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${race.status === "confirmed" ? "bg-red-900/40" : "bg-white/5"}`}>
-                                    <Flag size={14} className={race.status === "confirmed" ? "text-red-500" : "text-gray-600"} />
+            ) : (
+                <div>
+                    {selectedRaces.map((race, i) => (
+                        <div
+                            key={race.id}
+                            onClick={() => navigate(`/referee/race-monitor/${race.id}`)}
+                            className={`flex items-start gap-3 px-5 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors duration-150 ${i !== selectedRaces.length - 1 ? "border-b border-white/5" : ""}`}
+                        >
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${race.status === "confirmed" ? "bg-red-900/40" : "bg-white/5"}`}>
+                                <Flag size={14} className={race.status === "confirmed" ? "text-red-500" : "text-gray-600"} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-[14px] font-bold text-white">{race.label}</span>
+                                    <RaceTypeBadge type={race.raceType} />
+                                    {race.status === "tentative" && (
+                                        <span className="text-[10px] text-gray-600 border border-white/10 px-1.5 py-0.5 rounded">Tentative</span>
+                                    )}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-[14px] font-bold text-white">{race.label}</span>
-                                        <RaceTypeBadge type={race.raceType} />
-                                        {race.status === "tentative" && (
-                                            <span className="text-[10px] text-gray-600 border border-white/10 px-1.5 py-0.5 rounded">Tentative</span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-1.5 mt-1.5">
-                                        <MapPin size={11} className="text-red-600 shrink-0" />
-                                        <span className="text-[12px] text-gray-300 font-semibold">{race.venue}</span>
-                                        {race.trackLocation && (
-                                            <span className="text-[12px] text-gray-600">· {race.trackLocation}</span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-1 flex-wrap">
-                                        <span className="flex items-center gap-1 text-[12px] text-gray-500">
-                                            <Clock size={10} className="text-red-600" /> {race.time}
-                                        </span>
-                                        <span className="text-[11px] font-semibold text-gray-500 bg-white/6 px-2 py-0.5 rounded">
-                                            {race.role}
-                                        </span>
-                                    </div>
+                                <div className="flex items-center gap-1.5 mt-1.5">
+                                    <MapPin size={11} className="text-red-600 shrink-0" />
+                                    <span className="text-[12px] text-gray-300 font-semibold">{race.venue}</span>
+                                    {race.trackLocation && (
+                                        <span className="text-[12px] text-gray-600">· {race.trackLocation}</span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                    <span className="flex items-center gap-1 text-[12px] text-gray-500">
+                                        <Clock size={10} className="text-red-600" /> {race.time}
+                                    </span>
+                                    <span className="text-[11px] font-semibold text-gray-500 bg-white/6 px-2 py-0.5 rounded">
+                                        {race.role}
+                                    </span>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
+        </div >
     );
 }

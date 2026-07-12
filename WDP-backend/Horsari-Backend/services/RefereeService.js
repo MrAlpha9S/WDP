@@ -535,19 +535,36 @@ class RefereeService {
 
             const [
                 totalInvitations,
-                totalRacesOfficiated,
+                assignedAssignments,
                 rejectedCount,
                 pendingCount,
                 totalFeesEarned,
                 pendingFeesAmount,
             ] = await Promise.all([
                 RaceReferee.countDocuments({ refereeId }),
-                RaceReferee.countDocuments({ refereeId, status: 'assigned' }),
+                RaceReferee.find({ refereeId, status: 'assigned' }, '_id raceRoundId').lean(),
                 RaceReferee.countDocuments({ refereeId, status: 'rejected' }),
                 RaceReferee.countDocuments({ refereeId, status: 'pending' }),
                 TransactionRepository.sumAmountByParty(refereeId, 'referee', 'payee', { paymentStatus: 'paid' }),
                 TransactionRepository.sumAmountByParty(refereeId, 'referee', 'payee', { paymentStatus: { $ne: 'paid' } }),
             ]);
+
+            const acceptedCount = assignedAssignments.length;
+            const assignmentIds = assignedAssignments.map(a => a._id);
+            const raceRoundIds = assignedAssignments.map(a => a.raceRoundId);
+
+            // "Officiated" means the race actually happened, not merely that the
+            // invitation was accepted — an 'assigned' race may still be upcoming.
+            const [totalRacesOfficiated, violationCounts] = await Promise.all([
+                RaceRound.countDocuments({ _id: { $in: raceRoundIds }, status: 'completed' }),
+                Violation.aggregate([
+                    { $match: { raceRefereeId: { $in: assignmentIds } } },
+                    { $group: { _id: '$violationStatus', count: { $sum: 1 } } },
+                ]),
+            ]);
+
+            const violationsByStatus = Object.fromEntries(violationCounts.map(v => [v._id, v.count]));
+            const totalViolationsFiled = violationCounts.reduce((sum, v) => sum + v.count, 0);
 
             return {
                 code: 200,
@@ -555,13 +572,98 @@ class RefereeService {
                     wallet: referee.wallet,
                     totalInvitations,
                     totalRacesOfficiated,
-                    acceptedCount: totalRacesOfficiated,
+                    acceptedCount,
                     rejectedCount,
                     pendingCount,
                     totalFeesEarned,
                     pendingFeesAmount,
+                    totalViolationsFiled,
+                    confirmedViolationsCount: violationsByStatus.confirmed ?? 0,
+                    dismissedViolationsCount: violationsByStatus.dismissed ?? 0,
                 },
                 msg: 'Referee statistics retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Referee's own completed-race work history — race rounds they were assigned
+    // to and that have actually finished, each with the violations logged
+    // against that assignment. Mirrors AdminService.getUsersDetail's referee
+    // branch, scoped to the caller and to completed races only.
+    async getWorkHistory(refereeId, page = 1, limit = 10, sortBy = 'raceDate', order = 'desc') {
+        try {
+            const assignments = await RaceReferee.find({ refereeId, status: 'assigned' })
+                .populate('raceRoundId')
+                .lean();
+
+            const completed = assignments.filter(a => a.raceRoundId?.status === 'completed');
+
+            completed.sort((a, b) => {
+                const aVal = sortBy === 'assignedAt' ? new Date(a.assignedAt) : new Date(a.raceRoundId?.raceDate ?? 0);
+                const bVal = sortBy === 'assignedAt' ? new Date(b.assignedAt) : new Date(b.raceRoundId?.raceDate ?? 0);
+                return order === 'asc' ? aVal - bVal : bVal - aVal;
+            });
+
+            const totalItems = completed.length;
+            const skip = (page - 1) * limit;
+            const pageSlice = completed.slice(skip, skip + limit);
+
+            const CurrencyConverter = require('./CurrencyConverter');
+            const Transaction = require('../entities/Transaction');
+
+            // RaceReferee.paymentStatus is legacy and never written to — the
+            // Transaction-backed payment-verification flow is authoritative
+            // (same convention as getRefereeInvitations above).
+            const payments = pageSlice.length
+                ? await Transaction.find({
+                    sourceType: 'RaceReferee',
+                    sourceId: { $in: pageSlice.map(a => a._id) },
+                    paymentType: 'referee_fee',
+                }).lean()
+                : [];
+            const paymentBySourceId = new Map(payments.map(p => [String(p.sourceId), p]));
+
+            const items = await Promise.all(pageSlice.map(async (a) => {
+                const raceRound = a.raceRoundId;
+                const violations = await Violation.find({ raceRefereeId: a._id })
+                    .populate('violationTypeId')
+                    .lean();
+                const matchedPayment = paymentBySourceId.get(String(a._id));
+
+                return {
+                    assignmentId: a._id,
+                    raceRoundId: raceRound?._id ?? null,
+                    roundName: raceRound?.roundName ?? null,
+                    raceDate: raceRound?.raceDate ?? null,
+                    location: raceRound?.location ?? null,
+                    raceGround: raceRound?.raceGround ?? null,
+                    trackLength: raceRound?.trackLength ?? null,
+                    paymentStatus: matchedPayment?.paymentStatus || 'unpaid',
+                    fee: matchedPayment
+                        ? matchedPayment.amount
+                        : CurrencyConverter.convertToVnd(a.fee ?? 0, raceRound?.currencyType),
+                    assignedAt: a.assignedAt,
+                    violations: violations.map(v => ({
+                        violationId: v._id,
+                        typeName: v.violationTypeId?.violationName ?? null,
+                        description: v.description ?? null,
+                        severity: v.severity ?? null,
+                        stewardAction: v.stewardAction ?? null,
+                        violationStatus: v.violationStatus,
+                        reportedAt: v.created_at,
+                    })),
+                };
+            }));
+
+            return {
+                code: 200,
+                data: {
+                    items,
+                    pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit },
+                },
+                msg: 'Work history retrieved successfully',
             };
         } catch (error) {
             return { code: 500, msg: error.message };

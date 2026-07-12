@@ -150,10 +150,7 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                                 <span className="text-[13px] text-gray-500">Referee Fee</span>
                                 <span className="text-[17px] font-black text-white">{invite.fee.toLocaleString()} ₫</span>
                             </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-[13px] text-gray-500">Expected Payout</span>
-                                <span className="text-[13px] font-semibold text-gray-300">≈ {invite.expectedPayment.toLocaleString()}₫</span>
-                            </div>
+
                             {invite.paymentMethod && (
                                 <div className="flex items-center justify-between">
                                     <span className="text-[13px] text-gray-500">Method</span>
