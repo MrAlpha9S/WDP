@@ -563,6 +563,9 @@ class HorseOwnerService {
                 if (rule) raceType = rule;
             }
             raceRound.RaceType = raceType;
+            raceRound.firstPlacePrize = CurrencyConverter.convertToVnd(raceRound.firstPlacePrize ?? 0, raceRound.currencyType);
+            raceRound.secondPlacePrize = CurrencyConverter.convertToVnd(raceRound.secondPlacePrize ?? 0, raceRound.currencyType);
+            raceRound.thirdPlacePrize = CurrencyConverter.convertToVnd(raceRound.thirdPlacePrize ?? 0, raceRound.currencyType);
 
             // Competition roster + slot-fill indicator — "confirmed" means the
             // owner has accepted (registrationStatus 'approved'); this is a
@@ -627,6 +630,10 @@ class HorseOwnerService {
                     ],
                 }).populate('violationTypeId', 'violationName severity').lean(),
             ]);
+
+            if (raceResult) {
+                raceResult.prizeMoney = CurrencyConverter.convertToVnd(raceResult.prizeMoney ?? 0, raceRound.currencyType);
+            }
 
             const selectedInvitation = registration.jockeyInRaceId
                 ? invitations.find(inv => String(inv._id) === String(registration.jockeyInRaceId))
@@ -718,8 +725,18 @@ class HorseOwnerService {
                     .lean(),
             ]);
 
-            const resultByRegId = Object.fromEntries(results.map(r => [String(r.registrationId), r]));
-            const officialResults = results.filter(r => r.finishPosition != null);
+            const regIdToRaceRound = Object.fromEntries(registrations.map(r => [String(r._id), r.raceRoundId]));
+
+            // Convert prizeMoney to VND using each result's own race round currency
+            // (mirrors the fix already applied to getRaceDetail).
+            const resultByRegId = Object.fromEntries(results.map(r => {
+                const raceRound = regIdToRaceRound[String(r.registrationId)];
+                return [String(r.registrationId), {
+                    ...r,
+                    prizeMoney: CurrencyConverter.convertToVnd(r.prizeMoney || 0, raceRound?.currencyType),
+                }];
+            }));
+            const officialResults = Object.values(resultByRegId).filter(r => r.finishPosition != null);
             const wins = officialResults.filter(r => r.finishPosition === 1).length;
             const podiums = officialResults.filter(r => r.finishPosition <= 3).length;
             const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);

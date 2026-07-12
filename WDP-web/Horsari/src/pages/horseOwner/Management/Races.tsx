@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Plus, Loader2, AlertCircle, X, Trophy, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, MapPin, Plus, Loader2, AlertCircle, X, Trophy, ShieldAlert, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
 import { horseOwnerService, type RaceInvitationEntry } from "../../../api/horseOwnerService";
 
@@ -81,6 +81,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
   const [detail, setDetail] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"overview" | "entry" | "results">("overview");
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +98,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
 
   const raceRound = detail?.raceRound;
   const reg = detail?.registration;
+  const competition = detail?.competition;
 
   return (
     <div
@@ -104,7 +106,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
       onClick={onClose}
     >
       <div
-        className="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/60 flex flex-col"
+        className="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] shadow-2xl shadow-black/60 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -121,7 +123,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 flex flex-col gap-5">
+        <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-5">
           {loading && (
             <div className="flex items-center gap-2 text-gray-600 text-[12px] py-8 justify-center">
               <Loader2 size={14} className="animate-spin" /> Loading…
@@ -136,7 +138,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
 
           {!loading && !error && detail && (
             <>
-              {/* Race info */}
+              {/* Compact identity strip */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-3 flex-wrap">
                   {raceRound?.status && (() => {
@@ -167,171 +169,259 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                     {raceRound?.location ?? "TBA"}
                   </div>
                 </div>
-                {/* Prize breakdown */}
-                {(raceRound?.firstPlacePrize || raceRound?.secondPlacePrize || raceRound?.thirdPlacePrize) && (
-                  <div className="flex items-center gap-3 mt-1">
-                    {raceRound?.firstPlacePrize > 0 && (
-                      <div className="flex items-center gap-1 text-[11px]">
-                        <Trophy size={10} className="text-yellow-400" />
-                        <span className="text-yellow-400 font-semibold">{raceRound.firstPlacePrize.toLocaleString()}</span>
-                      </div>
-                    )}
-                    {raceRound?.secondPlacePrize > 0 && (
-                      <span className="text-[11px] text-gray-500">{raceRound.secondPlacePrize.toLocaleString()}</span>
-                    )}
-                    {raceRound?.thirdPlacePrize > 0 && (
-                      <span className="text-[11px] text-gray-500">{raceRound.thirdPlacePrize.toLocaleString()}</span>
-                    )}
-                    <span className="text-[10px] text-gray-600">{raceRound?.currencyType ?? "VND"}</span>
-                  </div>
-                )}
               </div>
 
-              {/* Registration */}
-              {reg ? (
-                <div className="flex flex-col gap-4">
-                  {/* Registration status */}
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Registration</p>
-                    {(() => {
-                      const cfg = REG_STATUS_CFG[reg.registrationStatus] ?? REG_STATUS_CFG.pending;
-                      return (
-                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.color}`}>
-                          {cfg.label}
-                        </span>
-                      );
-                    })()}
-                  </div>
+              {/* Tabs */}
+              <div className="flex items-center gap-1 p-1 bg-[#141414] border border-white/8 rounded-xl w-fit flex-wrap">
+                {([
+                  { id: "overview" as const, label: "Overview", count: competition?.competitors?.length ?? 0 },
+                  { id: "entry" as const, label: "My Entry", count: reg?.invitations?.length ?? 0 },
+                  { id: "results" as const, label: "Results", count: reg?.violations?.length ?? 0 },
+                ]).map(({ id, label, count }) => (
+                  <button
+                    key={id}
+                    onClick={() => setTab(id)}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
+                      tab === id
+                        ? "bg-white/8 text-white border border-white/12"
+                        : "text-gray-500 hover:text-gray-300 border border-transparent"
+                    }`}
+                  >
+                    {label}
+                    {count > 0 && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === id ? "bg-red-700 text-white" : "bg-white/8 text-gray-500"}`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
 
-                  {/* Horse card */}
-                  {reg.horse && (
-                    <div className="bg-[#111] rounded-xl border border-white/8 p-3 flex items-center gap-3">
-                      <img
-                        src={reg.horse.img ?? "/jumping-horse-silhouette-facing-left-side-view.png"}
-                        alt={reg.horse.horseName}
-                        onError={(e) => { e.currentTarget.src = "/jumping-horse-silhouette-facing-left-side-view.png"; }}
-                        className="w-12 h-12 rounded-lg object-contain shrink-0 opacity-70"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-bold text-red-400 truncate">{reg.horse.horseName}</p>
-                        <p className="text-[11px] text-gray-500 mt-0.5">
-                          {[reg.horse.breed, reg.horse.gender].filter(Boolean).join(" · ")}
-                        </p>
-                        <p className="text-[11px] text-gray-600 mt-0.5">
-                          {reg.horse.healthStatus ?? "Unknown health"}
-                          {reg.laneNumber != null ? ` · Lane ${reg.laneNumber}` : ""}
-                        </p>
-                      </div>
+              {/* Overview tab */}
+              {tab === "overview" && (
+                <div className="flex flex-col gap-5">
+                  {/* Prize breakdown */}
+                  {(raceRound?.firstPlacePrize || raceRound?.secondPlacePrize || raceRound?.thirdPlacePrize) ? (
+                    <div className="flex items-center gap-3">
+                      {raceRound?.firstPlacePrize > 0 && (
+                        <div className="flex items-center gap-1 text-[11px]">
+                          <Trophy size={10} className="text-yellow-400" />
+                          <span className="text-yellow-400 font-semibold">{raceRound.firstPlacePrize.toLocaleString()} ₫</span>
+                        </div>
+                      )}
+                      {raceRound?.secondPlacePrize > 0 && (
+                        <span className="text-[11px] text-gray-500">{raceRound.secondPlacePrize.toLocaleString()} ₫</span>
+                      )}
+                      {raceRound?.thirdPlacePrize > 0 && (
+                        <span className="text-[11px] text-gray-500">{raceRound.thirdPlacePrize.toLocaleString()} ₫</span>
+                      )}
                     </div>
+                  ) : (
+                    <p className="text-[12px] text-gray-600">No prize money set for this race.</p>
                   )}
 
-                  {/* Jockey invitations */}
-                  {reg.invitations?.length > 0 && (
+                  {/* Competitors */}
+                  {competition && (
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Jockey Invitations</p>
-                      <div className="flex flex-col gap-1.5">
-                        {reg.invitations.map((inv: any) => {
-                          const isSelected = reg.jockeyInRaceId && String(inv._id) === String(reg.jockeyInRaceId);
-                          const invCfg = INV_STATUS_CFG[inv.invitationStatus] ?? INV_STATUS_CFG.pending;
-                          return (
-                            <div
-                              key={inv._id}
-                              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-[12px] ${isSelected ? "border-yellow-600/40 bg-yellow-500/5" : "border-white/8 bg-white/[0.02]"}`}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-white font-semibold truncate">
-                                    {inv.jockey?.fullName ?? "Unknown Jockey"}
-                                  </span>
-                                  {isSelected && (
-                                    <span className="text-[9px] font-black uppercase tracking-wider text-yellow-400 bg-yellow-500/15 border border-yellow-600/30 px-1.5 py-0.5 rounded-full">
-                                      In Race
-                                    </span>
-                                  )}
-                                  {inv.isBackup && (
-                                    <span className="text-[9px] font-bold uppercase text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full">
-                                      Backup
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[11px] text-gray-600">{inv.percentagePayout}% payout</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {inv.jockeyConfirmation && (
-                                  <span className="text-green-400 text-[10px]">✓</span>
-                                )}
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg border ${invCfg.bg} ${invCfg.color}`}>
-                                  {invCfg.label}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Competitors</p>
+                        <span className="text-[11px] text-gray-500">
+                          {competition.confirmedCount}/{competition.maxParticipants ?? "?"} · {competition.openSlots} open
+                        </span>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Race result */}
-                  {reg.raceResult && (
-                    <div className="bg-[#111] rounded-xl border border-white/8 p-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Race Result</p>
-                      {reg.raceResult.resultStatus === "cancelled" ? (
-                        <div className="flex items-center gap-2 text-red-400 text-[13px] font-bold">
-                          <ShieldAlert size={14} /> DISQUALIFIED
+                      {competition.competitors?.length > 0 ? (
+                        <div className="flex flex-col gap-1.5">
+                          {competition.competitors.map((c: any) => (
+                            <div
+                              key={c.registrationId}
+                              className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-white/8 bg-white/[0.02] text-[12px]"
+                            >
+                              <Users size={12} className="text-gray-600 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-white font-semibold truncate">{c.horseName ?? "Unnamed Horse"}</span>
+                                {c.ownerName && <span className="text-gray-600"> · {c.ownerName}</span>}
+                              </div>
+                              {c.jockeyName && (
+                                <span className="text-gray-500 text-[11px] shrink-0">{c.jockeyName}</span>
+                              )}
+                              {c.laneNumber != null && (
+                                <span className="text-[10px] text-gray-600 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full shrink-0">
+                                  Lane {c.laneNumber}
+                                </span>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-3 gap-3">
-                          {reg.raceResult.finishPosition != null && (
-                            <div>
-                              <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Finish</p>
-                              <p className="text-[18px] font-black text-white">{ordinal(reg.raceResult.finishPosition)}</p>
-                            </div>
-                          )}
-                          {reg.raceResult.finishTime && (
-                            <div>
-                              <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Time</p>
-                              <p className="text-[13px] font-bold text-white font-mono">{reg.raceResult.finishTime}</p>
-                            </div>
-                          )}
-                          {reg.raceResult.prizeMoney > 0 && (
-                            <div>
-                              <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>
-                              <p className="text-[13px] font-bold text-yellow-400">${reg.raceResult.prizeMoney.toLocaleString()}</p>
-                            </div>
-                          )}
-                        </div>
+                        <p className="text-[12px] text-gray-600">No other confirmed entries yet.</p>
                       )}
                     </div>
                   )}
+                </div>
+              )}
 
-                  {/* Violations */}
-                  {reg.violations?.length > 0 && (
+              {/* My Entry tab */}
+              {tab === "entry" && (
+                reg ? (
+                  <div className="flex flex-col gap-4">
+                    {/* Registration status */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Registration</p>
+                      {(() => {
+                        const cfg = REG_STATUS_CFG[reg.registrationStatus] ?? REG_STATUS_CFG.pending;
+                        return (
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.color}`}>
+                            {cfg.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Horse card */}
+                    {reg.horse && (
+                      <div className="bg-[#111] rounded-xl border border-white/8 p-3 flex items-center gap-3">
+                        <img
+                          src={reg.horse.img ?? "/jumping-horse-silhouette-facing-left-side-view.png"}
+                          alt={reg.horse.horseName}
+                          onError={(e) => { e.currentTarget.src = "/jumping-horse-silhouette-facing-left-side-view.png"; }}
+                          className="w-12 h-12 rounded-lg object-contain shrink-0 opacity-70"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14px] font-bold text-red-400 truncate">{reg.horse.horseName}</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            {[reg.horse.breed, reg.horse.gender].filter(Boolean).join(" · ")}
+                          </p>
+                          <p className="text-[11px] text-gray-600 mt-0.5">
+                            {reg.horse.healthStatus ?? "Unknown health"}
+                            {reg.laneNumber != null ? ` · Lane ${reg.laneNumber}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Jockey invitations */}
+                    {reg.invitations?.length > 0 ? (
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Jockey Invitations</p>
+                        <div className="flex flex-col gap-1.5">
+                          {reg.invitations.map((inv: any) => {
+                            const isSelected = reg.jockeyInRaceId && String(inv._id) === String(reg.jockeyInRaceId);
+                            const invCfg = INV_STATUS_CFG[inv.invitationStatus] ?? INV_STATUS_CFG.pending;
+                            return (
+                              <div
+                                key={inv._id}
+                                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-[12px] ${isSelected ? "border-yellow-600/40 bg-yellow-500/5" : "border-white/8 bg-white/[0.02]"}`}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-white font-semibold truncate">
+                                      {inv.jockey?.fullName ?? "Unknown Jockey"}
+                                    </span>
+                                    {isSelected && (
+                                      <span className="text-[9px] font-black uppercase tracking-wider text-yellow-400 bg-yellow-500/15 border border-yellow-600/30 px-1.5 py-0.5 rounded-full">
+                                        In Race
+                                      </span>
+                                    )}
+                                    {inv.isBackup && (
+                                      <span className="text-[9px] font-bold uppercase text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full">
+                                        Backup
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-gray-600">{inv.percentagePayout}% payout</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {inv.jockeyConfirmation && (
+                                    <span className="text-green-400 text-[10px]">✓</span>
+                                  )}
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg border ${invCfg.bg} ${invCfg.color}`}>
+                                    {invCfg.label}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[12px] text-gray-600">No jockey invitations sent yet.</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-gray-500 text-center py-4">You haven't registered for this race.</p>
+                )
+              )}
+
+              {/* Results tab */}
+              {tab === "results" && (
+                reg ? (
+                  <div className="flex flex-col gap-4">
+                    {/* Race result */}
+                    {reg.raceResult ? (
+                      <div className="bg-[#111] rounded-xl border border-white/8 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Race Result</p>
+                        {reg.raceResult.resultStatus === "cancelled" ? (
+                          <div className="flex items-center gap-2 text-red-400 text-[13px] font-bold">
+                            <ShieldAlert size={14} /> DISQUALIFIED
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-3">
+                            {reg.raceResult.finishPosition != null && (
+                              <div>
+                                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Finish</p>
+                                <p className="text-[18px] font-black text-white">{ordinal(reg.raceResult.finishPosition)}</p>
+                              </div>
+                            )}
+                            {reg.raceResult.finishTime && (
+                              <div>
+                                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Time</p>
+                                <p className="text-[13px] font-bold text-white font-mono">{reg.raceResult.finishTime}</p>
+                              </div>
+                            )}
+                            {reg.raceResult.prizeMoney > 0 && (
+                              <div>
+                                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>
+                                <p className="text-[13px] font-bold text-yellow-400">{reg.raceResult.prizeMoney.toLocaleString()} ₫</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-[13px] text-gray-500 text-center py-4">This race hasn't been run yet.</p>
+                    )}
+
+                    {/* Violations */}
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-red-600 mb-2 flex items-center gap-1.5">
-                        <ShieldAlert size={11} /> Violations ({reg.violations.length})
+                        <ShieldAlert size={11} /> Violations ({reg.violations?.length ?? 0})
                       </p>
-                      <div className="flex flex-col gap-1.5">
-                        {reg.violations.map((v: any) => {
-                          const vtName = v.violationTypeId?.violationName ?? "Violation";
-                          const severity = v.violationTypeId?.severity ?? v.severity;
-                          const isOwnerReg = v.registrationId && String(v.registrationId) === String(reg._id);
-                          return (
-                            <div
-                              key={v._id}
-                              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red-500/5" : "border-white/8 bg-white/[0.02]"}`}
-                            >
-                              <span className={`w-2 h-2 rounded-full shrink-0 ${severityColor(severity)}`} />
-                              <span className={`flex-1 ${isOwnerReg ? "text-red-400" : "text-gray-400"}`}>{vtName}</span>
-                              <span className="text-[10px] text-gray-600 capitalize">{v.violationStatus}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      {reg.violations?.length > 0 ? (
+                        <div className="flex flex-col gap-1.5">
+                          {reg.violations.map((v: any) => {
+                            const vtName = v.violationTypeId?.violationName ?? "Violation";
+                            const severity = v.violationTypeId?.severity ?? v.severity;
+                            const isOwnerReg = v.registrationId && String(v.registrationId) === String(reg._id);
+                            return (
+                              <div
+                                key={v._id}
+                                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red-500/5" : "border-white/8 bg-white/[0.02]"}`}
+                              >
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${severityColor(severity)}`} />
+                                <span className={`flex-1 ${isOwnerReg ? "text-red-400" : "text-gray-400"}`}>{vtName}</span>
+                                <span className="text-[10px] text-gray-600 capitalize">{v.violationStatus}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-[12px] text-gray-600">No violations logged.</p>
+                      )}
                     </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[13px] text-gray-500 text-center py-4">No registration found for this race.</p>
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-gray-500 text-center py-4">You haven't registered for this race.</p>
+                )
               )}
             </>
           )}

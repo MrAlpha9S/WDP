@@ -70,6 +70,7 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     specialties: raw.specialties ?? [],
     recentRaces: raw.recentRaces ?? [],
     image: raw.image || null,
+    violations: [],
   };
 }
 
@@ -207,10 +208,18 @@ export default function JockeysPage() {
     setProfileLoading(true);
     try {
       const res = await horseOwnerService.getJockeyProfile(String(jockey.id));
-      const { recentRaces } = res.data;
-      setSelected(prev => prev ? { ...prev, recentRaces } : prev);
+      const { recentRaces, stats, violations } = res.data;
+      setSelected(prev => prev ? {
+        ...prev,
+        recentRaces,
+        violations,
+        winRate: stats.winRate,
+        wins: stats.wins,
+        starts: stats.totalRaces,
+        totalPrize: stats.totalPrize,
+      } : prev);
     } catch {
-      // silently fall back to empty recentRaces already in jockey object
+      // silently fall back to the base (list-level) data already in jockey object
     } finally {
       setProfileLoading(false);
     }
@@ -255,7 +264,7 @@ export default function JockeysPage() {
     <div className="flex-1 px-8 py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {selected && (
-        <JockeyDetailModal jockey={selected} onClose={() => setSelected(null)} />
+        <JockeyDetailModal jockey={selected} onClose={() => setSelected(null)} loading={profileLoading} />
       )}
       {hiring && (
         <HireJockeyModal

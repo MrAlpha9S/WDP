@@ -220,7 +220,7 @@ function RaceHistoryTab({ history }: { history: HorseRegistrationEntry[] }) {
                     <div className="text-center min-w-[56px]">
                       <p className="text-[9px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Prize</p>
                       <p className="text-[12px] font-semibold text-green-400">
-                        {res?.prizeMoney ? `$${res.prizeMoney.toLocaleString()}` : "—"}
+                        {res?.prizeMoney ? `${res.prizeMoney.toLocaleString()} ₫` : "—"}
                       </p>
                     </div>
                   </div>
@@ -294,14 +294,27 @@ function ViolationsTab({ violations }: { violations: HorseViolationEntry[] }) {
   );
 }
 
+// ── Overview tab ──────────────────────────────────────────────────────────────
+function OverviewTab({ stats }: { stats: HorseProfileData["stats"] }) {
+  return (
+    <div className="grid grid-cols-5 gap-2">
+      <StatCell label="Races"    value={stats.totalRaces} />
+      <StatCell label="Wins"     value={stats.wins} accent />
+      <StatCell label="Podiums"  value={stats.podiums} />
+      <StatCell label="Win Rate" value={`${stats.winRate}%`} />
+      <StatCell label="Prize"    value={stats.totalPrize > 0 ? `${stats.totalPrize.toLocaleString()} ₫` : "—"} />
+    </div>
+  );
+}
+
 // ── Modal ─────────────────────────────────────────────────────────────────────
-type Tab = "history" | "violations";
+type Tab = "overview" | "history" | "violations";
 
 export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
   const [data, setData] = useState<HorseProfileData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("history");
+  const [tab, setTab] = useState<Tab>("overview");
 
   useEffect(() => {
     if (!horseId) { setData(null); return; }
@@ -422,18 +435,10 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-5 gap-2">
-                  <StatCell label="Races"    value={stats.totalRaces} />
-                  <StatCell label="Wins"     value={stats.wins} accent />
-                  <StatCell label="Podiums"  value={stats.podiums} />
-                  <StatCell label="Win Rate" value={`${stats.winRate}%`} />
-                  <StatCell label="Prize"    value={stats.totalPrize > 0 ? `$${stats.totalPrize.toLocaleString()}` : "—"} />
-                </div>
-
                 {/* Tabs */}
                 <div className="flex items-center gap-1 p-1 bg-[#1a1a1a] border border-white/8 rounded-xl w-fit">
                   {([
+                    { id: "overview"   as Tab, label: "Overview",     count: 0 },
                     { id: "history"    as Tab, label: "Race History", count: raceHistory.length },
                     { id: "violations" as Tab, label: "Violations",   count: violations.length  },
                   ] as { id: Tab; label: string; count: number }[]).map(({ id, label, count }) => (
@@ -458,6 +463,7 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
                 </div>
 
                 {/* Tab content */}
+                {tab === "overview"   && <OverviewTab stats={stats} />}
                 {tab === "history"    && <RaceHistoryTab history={raceHistory} />}
                 {tab === "violations" && <ViolationsTab violations={violations} />}
 
