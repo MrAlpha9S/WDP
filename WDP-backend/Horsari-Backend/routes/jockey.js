@@ -14,6 +14,9 @@ router.get('/all', JockeyController.getAllJockeys);
 router.get('/my-race-schedule', authMiddleware, authJockey, JockeyController.getMyRaceScheduleFlat);
 router.get('/my-invitations', authMiddleware, authJockey, JockeyController.getMyInvitationsFlat);
 router.put('/invitation/:invitationId/respond', authMiddleware, authJockey, JockeyController.respondToInvitationById);
+router.get('/my-profile', authMiddleware, authJockey, JockeyController.getMyProfile);
+router.put('/my-profile', authMiddleware, authJockey, JockeyController.updateMyProfile);
+router.get('/all-races', authMiddleware, authJockey, JockeyController.getAllRaces);
 
 // Wallet + payment verification
 router.get('/wallet', authMiddleware, authJockey, JockeyController.getWalletInfo);

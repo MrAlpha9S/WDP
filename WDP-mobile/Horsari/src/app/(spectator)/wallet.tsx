@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
@@ -18,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   depositPoints,
+  withdrawPoints,
   getTransactionHistory,
   getWalletInfo,
   getSpectatorProfile,
@@ -159,7 +161,7 @@ function PointsModal({
     setErr(null);
     const result = isDeposit
       ? await depositPoints(num)
-      : await depositPoints(num); // withdrawPoints would go here if separated
+      : await withdrawPoints(num);
     if (result.ok) {
       onSuccess();
       onClose();
@@ -226,6 +228,7 @@ function PointsModal({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function WalletScreen() {
+  const router = useRouter();
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [winRate, setWinRate] = useState<number | null>(null);
@@ -270,9 +273,6 @@ export default function WalletScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>VÍ ĐIỂM THƯỞNG</Text>
-          <Pressable hitSlop={8}>
-            <Ionicons name="notifications-outline" size={22} color={Palette.textMuted} />
-          </Pressable>
         </View>
 
         {isLoading ? (
@@ -342,7 +342,7 @@ export default function WalletScreen() {
                 <Text style={styles.txTitle}>Lịch sử giao dịch</Text>
               </View>
               {transactions.length > 0 && (
-                <Pressable hitSlop={8}>
+                <Pressable hitSlop={8} onPress={() => router.push('/(spectator)/transactions' as any)}>
                   <Text style={styles.txViewAll}>Xem tất cả</Text>
                 </Pressable>
               )}

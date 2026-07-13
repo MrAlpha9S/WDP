@@ -192,9 +192,6 @@ export default function ScheduleScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>LỊCH ĐUA</Text>
-          <Pressable hitSlop={8}>
-            <Ionicons name="notifications-outline" size={22} color={Palette.textMuted} />
-          </Pressable>
         </View>
 
         {/* ─── Filter bar ─── */}

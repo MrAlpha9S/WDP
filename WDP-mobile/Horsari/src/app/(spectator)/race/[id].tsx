@@ -661,22 +661,52 @@ export default function LiveRaceScreen() {
           {!activeFinishResults && (
             (raceRound?.status === 'running' || liveUpdate !== null) ? (
               <View style={[styles.videoPlaceholder, { overflow: 'hidden' }]}>
-                {Platform.OS === 'web' ? (
-                  // @ts-ignore — iframe is valid in react-native-web
-                  <iframe
-                    src="https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1"
-                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
-                    allow="autoplay; encrypted-media"
-                  />
+                {raceRound?.livestreamUrl ? (
+                  Platform.OS === 'web' ? (
+                    // @ts-ignore — video is valid in react-native-web
+                    <video
+                      src={raceRound.livestreamUrl}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    // Best-effort HLS playback via a plain <video> tag inside the
+                    // WebView — reliable on iOS (native HLS support), degrades on
+                    // Android (no HLS.js loaded). No dedicated video library is
+                    // installed for a guaranteed cross-platform player.
+                    <WebView
+                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                      source={{
+                        html: `<html><body style="margin:0;background:#000;"><video src="${raceRound.livestreamUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video></body></html>`,
+                      }}
+                      mediaPlaybackRequiresUserAction={false}
+                      allowsInlineMediaPlayback
+                      scrollEnabled={false}
+                      pointerEvents="none"
+                    />
+                  )
                 ) : (
-                  <WebView
-                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                    source={{ uri: 'https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1' }}
-                    mediaPlaybackRequiresUserAction={false}
-                    allowsInlineMediaPlayback
-                    scrollEnabled={false}
-                    pointerEvents="none"
-                  />
+                  // No stream configured for this race — placeholder video.
+                  Platform.OS === 'web' ? (
+                    // @ts-ignore — iframe is valid in react-native-web
+                    <iframe
+                      src="https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1"
+                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
+                      allow="autoplay; encrypted-media"
+                    />
+                  ) : (
+                    <WebView
+                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                      source={{ uri: 'https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1' }}
+                      mediaPlaybackRequiresUserAction={false}
+                      allowsInlineMediaPlayback
+                      scrollEnabled={false}
+                      pointerEvents="none"
+                    />
+                  )
                 )}
               </View>
             ) : (

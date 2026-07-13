@@ -32,6 +32,27 @@ class JockeyController {
     return res.status(response.code).json(response);
   }
 
+  // Mobile: GET /my-profile — rank, stats, recent races (self-service)
+  async getMyProfile(req, res) {
+    const response = await JockeyService.getMyProfile(req.userId);
+    return res.status(response.code).json(response);
+  }
+
+  // Mobile: PUT /my-profile — self-service profile edit
+  async updateMyProfile(req, res) {
+    const response = await JockeyService.updateMyProfile(req.userId, req.body);
+    return res.status(response.code).json(response);
+  }
+
+  // Mobile: GET /all-races — browse every race round, like admin does
+  async getAllRaces(req, res) {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const { filter, status, sortBy = 'raceDate', order = 'asc' } = req.query;
+    const response = await JockeyService.getAllRaces(page, limit, filter || status || null, sortBy, order);
+    return res.status(response.code).json(response);
+  }
+
   // GET /wallet — wallet statistic + payment stats
   async getWalletInfo(req, res) {
     const response = await JockeyService.getWalletInfo(req.userId);

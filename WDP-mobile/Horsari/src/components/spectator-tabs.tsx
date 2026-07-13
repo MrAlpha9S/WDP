@@ -85,6 +85,14 @@ export default function SpectatorTabs() {
           tabBarStyle: { display: 'none' },
         }}
       />
+      {/* Full transaction history — hidden from tab bar, pushed from Wallet */}
+      <Tabs.Screen
+        name="transactions"
+        options={{
+          href: null,
+          tabBarStyle: { display: 'none' },
+        }}
+      />
     </Tabs>
   );
 }

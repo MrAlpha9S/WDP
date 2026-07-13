@@ -301,10 +301,15 @@ class SpectatorService {
     }
 
     async getRaceSchedule(userId, page = 1, limit = 10, status = null, sortBy = 'raceDate', order = 'asc') {
-        try {
-            const spectator = await SpectatorRepository.findBySpectatorId(userId);
-            if (!spectator) return { code: 404, msg: 'Spectator not found' };
+        const spectator = await SpectatorRepository.findBySpectatorId(userId);
+        if (!spectator) return { code: 404, msg: 'Spectator not found' };
+        return this._listAllRaceRounds(page, limit, status, sortBy, order);
+    }
 
+    // Role-agnostic race-round listing — no user-specific filtering. Shared
+    // by spectator's race schedule and jockey's "view all races" browser.
+    async _listAllRaceRounds(page = 1, limit = 10, status = null, sortBy = 'raceDate', order = 'asc') {
+        try {
             const filter = { ...(status && { status }) };
 
             const VALID_SORT = new Set(['raceDate', 'createdAt', 'updatedAt']);
@@ -432,6 +437,10 @@ class SpectatorService {
 
             const raceRound = await RaceRound.findById(raceRoundId).populate('tournamentId').lean();
             if (!raceRound) return { code: 404, msg: 'Race round not found' };
+
+            raceRound.livestreamUrl = raceRound.muxPlaybackId
+                ? `https://stream.mux.com/${raceRound.muxPlaybackId}.m3u8`
+                : null;
 
             const registrations = await Registration.find({
                 raceRoundId,

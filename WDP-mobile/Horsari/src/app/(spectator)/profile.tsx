@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
@@ -88,6 +89,7 @@ function SettingsRow({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function SpectatorProfileScreen() {
+  const router = useRouter();
   const { session, logout } = useAuth();
   const [profile, setProfile] = useState<SpectatorProfile | null>(null);
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
@@ -135,9 +137,6 @@ export default function SpectatorProfileScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>HỒ SƠ CỦA TÔI</Text>
-          <Pressable hitSlop={8}>
-            <Ionicons name="notifications-outline" size={22} color={Palette.textMuted} />
-          </Pressable>
         </View>
 
         {isLoading ? (
@@ -183,9 +182,6 @@ export default function SpectatorProfileScreen() {
                     {rewardPoints.toLocaleString()} điểm thưởng
                   </Text>
                 </View>
-                <Pressable style={styles.btnEdit}>
-                  <Text style={styles.btnEditText}>CHỈNH SỬA HỒ SƠ</Text>
-                </Pressable>
               </View>
             </View>
 
@@ -256,11 +252,15 @@ export default function SpectatorProfileScreen() {
                     </View>
                   </View>
                   <View style={styles.walletActions}>
-                    <Pressable style={styles.walletBtnDeposit}>
+                    <Pressable
+                      style={styles.walletBtnDeposit}
+                      onPress={() => router.push('/(spectator)/wallet' as any)}>
                       <Ionicons name="add-circle-outline" size={15} color={Palette.gold} />
                       <Text style={styles.walletBtnDepositText}>NẠP ĐIỂM</Text>
                     </Pressable>
-                    <Pressable style={styles.walletBtnWithdraw}>
+                    <Pressable
+                      style={styles.walletBtnWithdraw}
+                      onPress={() => router.push('/(spectator)/wallet' as any)}>
                       <Ionicons name="arrow-down-circle-outline" size={15} color={Palette.textMuted} />
                       <Text style={styles.walletBtnWithdrawText}>RÚT ĐIỂM</Text>
                     </Pressable>
@@ -288,11 +288,6 @@ export default function SpectatorProfileScreen() {
                       value={profile.user.address}
                     />
                   )}
-                  <SettingsRow
-                    icon="shield-checkmark-outline"
-                    label="Đổi mật khẩu"
-                    onPress={() => {}}
-                  />
                   <SettingsRow
                     icon="globe-outline"
                     label="Ngôn ngữ"
@@ -418,23 +413,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Palette.gold,
   },
-  btnEdit: {
-    height: 40,
-    alignSelf: 'stretch',
-    backgroundColor: Palette.gold,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  btnEditText: {
-    fontFamily: Fonts.mono,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-    color: '#0A0A0B',
-  },
-
   // Stats
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   statCard: {

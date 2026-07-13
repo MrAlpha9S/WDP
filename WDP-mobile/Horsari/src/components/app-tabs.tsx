@@ -60,12 +60,29 @@ export default function AppTabs() {
         }}
       />
       <Tabs.Screen
+        name="payments"
+        options={{
+          title: 'PAYMENTS',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cash-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'PROFILE',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
           ),
+        }}
+      />
+      {/* Edit profile — hidden from tab bar, pushed from Profile */}
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null,
+          tabBarStyle: { display: 'none' },
         }}
       />
     </Tabs>

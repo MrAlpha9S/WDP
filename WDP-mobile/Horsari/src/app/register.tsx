@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
@@ -18,12 +19,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../auth/AuthContext';
-import { loginUser } from '../auth/authService';
+import { registerUser } from '../auth/authService';
 import { Fonts } from '@/constants/theme';
 
 /**
- * Fixed "elite racing" dark palette. This screen intentionally ignores the
- * system color scheme so the brand look is consistent.
+ * Fixed "elite racing" dark palette — mirrors login.tsx exactly.
  */
 const Palette = {
   background: '#0A0A0B',
@@ -43,53 +43,63 @@ const Palette = {
 
 type Role = 'spectator' | 'jockey';
 
-const ROLES: { key: Role; label: string; placeholder: string }[] = [
-  { key: 'spectator', label: 'Khán Giả', placeholder: 'spectator@horsari.com' },
-  { key: 'jockey', label: 'Jockey', placeholder: 'jockey@horsari.com' },
+const ROLES: { key: Role; label: string }[] = [
+  { key: 'spectator', label: 'Khán Giả' },
+  { key: 'jockey', label: 'Jockey' },
 ];
 
-const ROLE_LABELS: Record<Role, string> = {
-  jockey: 'Jockey',
-  spectator: 'Khán Giả',
-};
-
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const router = useRouter();
+  const { saveAndSetSession } = useAuth();
+
   const [role, setRole] = useState<Role>('spectator');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [license, setLicense] = useState<{ uri: string; name: string; mimeType: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { saveAndSetSession } = useAuth();
-
-  const activeRole = ROLES.find((r) => r.key === role) ?? ROLES[0];
+  const pickLicense = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf' });
+    if (!result.canceled && result.assets?.[0]) {
+      const asset = result.assets[0];
+      setLicense({
+        uri: asset.uri,
+        name: asset.name,
+        mimeType: asset.mimeType ?? 'application/pdf',
+      });
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!email.trim() || !password) {
-      setErrorMsg('Vui lòng nhập email và mật khẩu.');
+    if (!username.trim() || !email.trim() || !password || !fullName.trim()) {
+      setErrorMsg('Vui lòng điền đầy đủ các trường bắt buộc.');
+      return;
+    }
+    if (role === 'jockey' && !license) {
+      setErrorMsg('Vui lòng tải lên giấy phép đua ngựa (PDF).');
       return;
     }
 
     setIsSubmitting(true);
     setErrorMsg(null);
 
-    const result = await loginUser({ email: email.trim(), password: password.trim() });
+    const result = await registerUser({
+      username: username.trim(),
+      email: email.trim(),
+      password,
+      fullName: fullName.trim(),
+      phoneNumber: phoneNumber.trim() || undefined,
+      role,
+      license: role === 'jockey' ? license! : undefined,
+    });
 
     if (!result.ok) {
       setErrorMsg(result.message);
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Client-side role validation: backend does not check the role field.
-    // Reject login if the account's actual role doesn't match the selected one.
-    if (result.session.user.role !== role) {
-      setErrorMsg(
-        `Tài khoản này không phải ${ROLE_LABELS[role]}. Vui lòng chọn đúng vai trò.`
-      );
       setIsSubmitting(false);
       return;
     }
@@ -151,9 +161,9 @@ export default function LoginScreen() {
               </View>
 
               {/* Heading */}
-              <Text style={styles.title}>CHÀO MỪNG TRỞ LẠI</Text>
+              <Text style={styles.title}>ĐĂNG KÝ TÀI KHOẢN</Text>
               <Text style={styles.subtitle}>
-                Vui lòng đăng nhập để quản lý đội đua của bạn
+                Tạo tài khoản để tham gia Horsari
               </Text>
 
               {/* Error banner */}
@@ -164,28 +174,69 @@ export default function LoginScreen() {
                 </View>
               )}
 
-              {/* Email */}
-              <Text style={styles.fieldLabel}>Email hoặc Số điện thoại</Text>
-              <View style={[styles.inputWrapper, focusedField === 'email' && styles.popUpBorder]}>
+              {/* Full name */}
+              <Text style={styles.fieldLabel}>Họ và tên</Text>
+              <View style={styles.inputWrapper}>
                 <Ionicons name="person-outline" size={18} color={Palette.textMuted} />
+                <TextInput
+                  style={styles.input}
+                  value={fullName}
+                  onChangeText={(v) => { setFullName(v); setErrorMsg(null); }}
+                  placeholder="Nguyễn Văn A"
+                  placeholderTextColor={Palette.textPlaceholder}
+                  autoCorrect={false}
+                />
+              </View>
+
+              {/* Username */}
+              <Text style={styles.fieldLabel}>Tên đăng nhập</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="at-outline" size={18} color={Palette.textMuted} />
+                <TextInput
+                  style={styles.input}
+                  value={username}
+                  onChangeText={(v) => { setUsername(v); setErrorMsg(null); }}
+                  placeholder="username"
+                  placeholderTextColor={Palette.textPlaceholder}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              {/* Email */}
+              <Text style={styles.fieldLabel}>Email</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="mail-outline" size={18} color={Palette.textMuted} />
                 <TextInput
                   style={styles.input}
                   value={email}
                   onChangeText={(v) => { setEmail(v); setErrorMsg(null); }}
-                  placeholder={activeRole.placeholder}
+                  placeholder="you@horsari.com"
                   placeholderTextColor={Palette.textPlaceholder}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                   inputMode="email"
-                  onFocus={() => setFocusedField('email')}
-                  onBlur={() => setFocusedField(null)}
+                />
+              </View>
+
+              {/* Phone (optional) */}
+              <Text style={styles.fieldLabel}>Số điện thoại (không bắt buộc)</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="call-outline" size={18} color={Palette.textMuted} />
+                <TextInput
+                  style={styles.input}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  placeholder="0901234567"
+                  placeholderTextColor={Palette.textPlaceholder}
+                  keyboardType="phone-pad"
                 />
               </View>
 
               {/* Password */}
               <Text style={styles.fieldLabel}>Mật khẩu</Text>
-              <View style={[styles.inputWrapper, focusedField === 'password' && styles.popUpBorder]}>
+              <View style={styles.inputWrapper}>
                 <Ionicons name="lock-closed-outline" size={18} color={Palette.textMuted} />
                 <TextInput
                   style={styles.input}
@@ -196,8 +247,6 @@ export default function LoginScreen() {
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  onFocus={() => setFocusedField('password')}
-                  onBlur={() => setFocusedField(null)}
                 />
                 <Pressable
                   hitSlop={8}
@@ -210,6 +259,23 @@ export default function LoginScreen() {
                   />
                 </Pressable>
               </View>
+
+              {/* License upload — jockey only */}
+              {role === 'jockey' && (
+                <>
+                  <Text style={styles.fieldLabel}>Giấy phép đua ngựa (PDF)</Text>
+                  <Pressable style={styles.licenseWrapper} onPress={pickLicense}>
+                    <Ionicons
+                      name={license ? 'document-attach' : 'cloud-upload-outline'}
+                      size={18}
+                      color={license ? Palette.gold : Palette.textMuted}
+                    />
+                    <Text style={[styles.licenseText, license && styles.licenseTextActive]} numberOfLines={1}>
+                      {license ? license.name : 'Chọn tệp PDF...'}
+                    </Text>
+                  </Pressable>
+                </>
+              )}
 
               {/* Submit */}
               <Pressable
@@ -229,7 +295,7 @@ export default function LoginScreen() {
                     {isSubmitting ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
-                      <Text style={styles.submitText}>ĐĂNG NHẬP</Text>
+                      <Text style={styles.submitText}>ĐĂNG KÝ</Text>
                     )}
                   </LinearGradient>
                 )}
@@ -237,9 +303,9 @@ export default function LoginScreen() {
 
               <View style={styles.divider} />
 
-              <Text style={styles.footerPrompt}>Chưa có tài khoản chuyên gia?</Text>
-              <Pressable hitSlop={8} onPress={() => router.push('/register')}>
-                <Text style={styles.registerLink}>ĐĂNG KÝ TÀI KHOẢN CHUYÊN GIA</Text>
+              <Text style={styles.footerPrompt}>Đã có tài khoản?</Text>
+              <Pressable hitSlop={8} onPress={() => router.back()}>
+                <Text style={styles.loginLink}>ĐĂNG NHẬP</Text>
               </Pressable>
             </View>
 
@@ -317,7 +383,7 @@ const styles = StyleSheet.create({
   },
   toggleLabelActive: { color: Palette.text },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '800',
     letterSpacing: 1,
     color: Palette.text,
@@ -360,10 +426,6 @@ const styles = StyleSheet.create({
     color: Palette.textMuted,
     marginBottom: 8,
   },
-  popUpBorder: {
-    borderColor: '#E6A19C',
-    borderWidth: 2,
-  },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -384,10 +446,30 @@ const styles = StyleSheet.create({
     fontSize: 15,
     height: '100%',
   },
+  licenseWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    height: 52,
+    backgroundColor: Palette.inputBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Palette.inputBorder,
+    paddingHorizontal: 14,
+    marginBottom: 18,
+    gap: 10,
+  },
+  licenseText: {
+    flex: 1,
+    fontSize: 14,
+    color: Palette.textPlaceholder,
+  },
+  licenseTextActive: { color: Palette.text },
   submitPressable: {
     alignSelf: 'stretch',
     borderRadius: 12,
     overflow: 'hidden',
+    marginTop: 4,
   },
   submitDisabled: { opacity: 0.7 },
   submitButton: {
@@ -421,7 +503,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-  registerLink: {
+  loginLink: {
     fontFamily: Fonts.mono,
     fontSize: 12,
     fontWeight: '700',

@@ -823,7 +823,7 @@ class HorseOwnerService {
 
             const [jockeyDoc, user] = await Promise.all([
                 Jockey.findById(jockeyId).lean(),
-                User.findById(jockeyId).select('fullName image dateOfBirth address').lean(),
+                User.findById(jockeyId).select('fullName image dateOfBirth address phoneNumber').lean(),
             ]);
             if (!jockeyDoc || !user) return { code: 404, msg: 'Jockey not found' };
 
@@ -877,13 +877,17 @@ class HorseOwnerService {
                 };
             }).sort((a, b) => 0); // preserve DB order (most recent first via sort below)
 
-            // Stats (wins/totalRaces/winRate) only count races the jockey actually rode —
-            // a no-show never raced, so it stays in recentRaces for history but is excluded here.
+            // Stats (wins/totalRaces/winRate) only count races the jockey actually rode
+            // AND that have been officially scored (a recorded finishPosition) — a
+            // no-show never raced, and an accepted-but-not-yet-run/confirmed race has
+            // no result yet, so neither should inflate "races completed". Both stay in
+            // recentRaces for history (shown as 'DNF') but are excluded from these stats.
             const riddenRegIds = new Set(
                 registrations.filter(reg => invByRegId.get(String(reg._id))?.invitationStatus !== 'didNotAttend')
                     .map(reg => String(reg._id))
             );
             const officialResults = results.filter(r => r.finishPosition != null && riddenRegIds.has(String(r.registrationId)));
+            const completedRegIds = new Set(officialResults.map(r => String(r.registrationId)));
             const wins = officialResults.filter(r => r.finishPosition === 1).length;
             const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
 
@@ -897,9 +901,9 @@ class HorseOwnerService {
                 data: {
                     jockey: { ...jockeyDoc, ...user, rank, totalJockeys },
                     stats: {
-                        totalRaces: riddenRegIds.size,
+                        totalRaces: completedRegIds.size,
                         wins,
-                        winRate: riddenRegIds.size > 0 ? Math.round((wins / riddenRegIds.size) * 100) : 0,
+                        winRate: completedRegIds.size > 0 ? Math.round((wins / completedRegIds.size) * 100) : 0,
                         totalPrize,
                     },
                     recentRaces,

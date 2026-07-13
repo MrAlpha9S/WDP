@@ -36,6 +36,9 @@ export default function AppTabs() {
           <TabTrigger name="invites" href="/invites" asChild>
             <TabButton icon="mail-outline">INVITES</TabButton>
           </TabTrigger>
+          <TabTrigger name="payments" href="/payments" asChild>
+            <TabButton icon="cash-outline">PAYMENTS</TabButton>
+          </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
             <TabButton icon="person-outline">PROFILE</TabButton>
           </TabTrigger>

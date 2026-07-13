@@ -1,5 +1,7 @@
 const JockeyRepository = require("../repositories/JockeyRepository");
 const UserRepository = require("../repositories/UserRepository");
+const HorseOwnerService = require("./HorseOwnerService");
+const SpectatorService = require("./SpectatorService");
 const Invitation = require("../entities/Invitation");
 const Registration = require("../entities/Registration");
 const Horse = require("../entities/Horse");
@@ -182,6 +184,7 @@ class JockeyService {
             invitationId: inv._id,
             isBackup: inv.isBackup,
             percentagePayout: inv.percentagePayout,
+            bookingFees: inv.bookingFees ?? 0,
             horse: horse ? {
               horseId: horse._id,
               horseName: horse.horseName,
@@ -267,6 +270,7 @@ class JockeyService {
             jockeyConfirmation: inv.jockeyConfirmation,
             isBackup: inv.isBackup,
             percentagePayout: inv.percentagePayout,
+            bookingFees: inv.bookingFees ?? 0,
             horse: horse ? {
               horseId: horse._id,
               horseName: horse.horseName,
@@ -313,6 +317,59 @@ class JockeyService {
   // Mobile: respond by invitationId from URL param
   async respondToInvitationById(jockeyId, invitationId, jockeyConfirmation, io) {
     return this.respondToInvitation(jockeyId, { invitationId, jockeyConfirmation }, io);
+  }
+
+  // ─── Profile ─────────────────────────────────────────────────────────────
+
+  // Mobile: jockey's own profile — reuses the horse-owner-facing jockey
+  // profile lookup (rank, stats, recent races), since it's already keyed
+  // purely off jockeyId with no horse-owner-specific access check.
+  async getMyProfile(jockeyId) {
+    return HorseOwnerService.getJockeyProfile(jockeyId);
+  }
+
+  // Mobile: jockey self-service profile edit. Only these whitelisted fields
+  // are ever touched — email/username/password/role/status/licenseStatus/
+  // licenseLink/wallet/matchesRaced/totalWins are system-managed and never
+  // accepted here.
+  async updateMyProfile(jockeyId, updateData) {
+    const { bookingFee, weight, height, fullName, phoneNumber, address, image } = updateData;
+
+    if (bookingFee != null && (typeof bookingFee !== 'number' || bookingFee < 0)) {
+      return { code: 400, msg: 'bookingFee must be a non-negative number' };
+    }
+    if (weight != null && (typeof weight !== 'number' || weight <= 0)) {
+      return { code: 400, msg: 'weight must be a positive number' };
+    }
+    if (height != null && (typeof height !== 'number' || height <= 0)) {
+      return { code: 400, msg: 'height must be a positive number' };
+    }
+
+    const jockeyFields = {};
+    if (bookingFee != null) jockeyFields.bookingFee = bookingFee;
+    if (weight != null) jockeyFields.weight = weight;
+    if (height != null) jockeyFields.height = height;
+
+    const userFields = {};
+    if (fullName != null) userFields.fullName = fullName;
+    if (phoneNumber != null) userFields.phoneNumber = phoneNumber;
+    if (address != null) userFields.address = address;
+    if (image != null) userFields.image = image;
+
+    await Promise.all([
+      Object.keys(jockeyFields).length ? JockeyRepository.updateByJockeyId(jockeyId, jockeyFields) : null,
+      Object.keys(userFields).length ? UserRepository.updateById(jockeyId, userFields) : null,
+    ]);
+
+    return HorseOwnerService.getJockeyProfile(jockeyId);
+  }
+
+  // ─── Races ───────────────────────────────────────────────────────────────
+
+  // Mobile: browse every race round in the system, like admin does — reuses
+  // spectator's role-agnostic race-listing query.
+  async getAllRaces(page, limit, status, sortBy, order) {
+    return SpectatorService._listAllRaceRounds(page, limit, status, sortBy, order);
   }
 
   // ─── Wallet ──────────────────────────────────────────────────────────────

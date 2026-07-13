@@ -14,7 +14,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getMyRaceSchedule, ScheduleItem } from '../../api/jockeyApi';
+import {
+  getAllRaces,
+  getMyRaceSchedule,
+  RaceScheduleItem,
+  ScheduleFilter,
+  ScheduleItem,
+} from '../../api/jockeyApi';
 import { useAuth } from '../../auth/AuthContext';
 import { Fonts } from '@/constants/theme';
 
@@ -27,6 +33,7 @@ const Palette = {
   red: '#C81E2E',
   redLight: '#E8828A',
   gold: '#C9A24B',
+  amber: '#E07B3A',
 } as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,13 +54,6 @@ function buildCountdown(dateStr: string): string {
   return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
 
-function formatDateTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${hh}:${mm} — ${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
-}
-
 function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr);
   const today = dayStart(new Date());
@@ -63,7 +63,31 @@ function formatShortDate(dateStr: string): string {
   return `${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function formatViDateTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm} • ${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
+}
+
+const isRealTournament = (t: { tournamentName: string } | null | undefined): boolean =>
+  !!t && t.tournamentName !== 'Non-tournament';
+
 // ─── Next Race Card ───────────────────────────────────────────────────────────
+
+type RaceVariant = 'live' | 'prepared' | 'scheduled';
+
+function variantForStatus(status: string | undefined): RaceVariant {
+  if (status === 'running') return 'live';
+  if (status === 'prepared') return 'prepared';
+  return 'scheduled';
+}
+
+const VARIANT_BADGE: Record<RaceVariant, { text: string; bg: string; textColor: string }> = {
+  live: { text: 'ĐANG THI ĐẤU', bg: '#C81E2E', textColor: '#FFFFFF' },
+  prepared: { text: 'SẴN SÀNG XUẤT PHÁT', bg: '#C9A24B', textColor: '#1A1408' },
+  scheduled: { text: 'TRẬN ĐẤU TIẾP THEO', bg: '#E8828A', textColor: '#1A0608' },
+};
 
 function NextRaceCard({ item }: { item: ScheduleItem }) {
   const [countdown, setCountdown] = useState(
@@ -82,6 +106,8 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
     item.tournament?.tournamentName ?? item.raceRound?.roundName ?? 'Vòng đua tiếp theo';
   const horse = item.horse?.horseName ?? '—';
   const location = item.raceRound?.location ?? '—';
+  const variant = variantForStatus(item.raceRound?.status);
+  const badge = VARIANT_BADGE[variant];
 
   return (
     <View style={styles.nextRaceCard}>
@@ -90,8 +116,9 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.nextRaceGradient}>
-        <View style={styles.nextRaceBadge}>
-          <Text style={styles.nextRaceBadgeText}>TRẬN ĐẤU TIẾP THEO</Text>
+        <View style={[styles.nextRaceBadge, { backgroundColor: badge.bg }]}>
+          {variant === 'live' && <View style={styles.liveDot} />}
+          <Text style={[styles.nextRaceBadgeText, { color: badge.textColor }]}>{badge.text}</Text>
         </View>
         <View style={styles.nextRaceBody}>
           <View style={styles.nextRaceLeft}>
@@ -125,35 +152,95 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
   );
 }
 
-// ─── Upcoming Race Row ────────────────────────────────────────────────────────
+// ─── All-Races Card (read-only browse — jockeys don't drill into a race) ─────
 
-function UpcomingRow({ item }: { item: ScheduleItem }) {
-  const title =
-    item.tournament?.tournamentName ?? item.raceRound?.roundName ?? 'Vòng đua';
-  const date = item.raceRound?.raceDate ? formatDateTime(item.raceRound.raceDate) : '—';
-  const horse = item.horse?.horseName ?? '—';
+function statusLabel(s: string): { label: string; color: string } {
+  if (s === 'running')              return { label: 'Đang chạy',    color: Palette.red };
+  if (s === 'prepared')             return { label: 'Chuẩn bị',     color: Palette.amber };
+  if (s === 'scheduled')            return { label: 'Sắp diễn ra',  color: Palette.gold };
+  if (s === 'completed')            return { label: 'Đã kết thúc',  color: Palette.textMuted };
+  if (s === 'awaitingConfirmation') return { label: 'Chờ xác nhận', color: Palette.amber };
+  return { label: s, color: Palette.textMuted };
+}
+
+function AllRaceCard({ item }: { item: RaceScheduleItem }) {
+  const { label, color } = statusLabel(item.status);
 
   return (
-    <View style={styles.upcomingRow}>
-      <View style={styles.upcomingTimeCol}>
-        <Text style={styles.upcomingDate}>
-          {item.raceRound?.raceDate ? formatShortDate(item.raceRound.raceDate) : '—'}
-        </Text>
-      </View>
-      <View style={styles.upcomingInfo}>
-        <Text style={styles.upcomingTitle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.upcomingMeta} numberOfLines={1}>
-          {horse} · {item.raceRound?.location ?? '—'}
-        </Text>
-      </View>
-      {item.isBackup && (
-        <View style={styles.backupTag}>
-          <Text style={styles.backupTagText}>DỰ PHÒNG</Text>
+    <View style={[
+      styles.raceCard,
+      item.status === 'running'              && styles.raceCardLive,
+      item.status === 'prepared'             && styles.raceCardPrepared,
+      item.status === 'awaitingConfirmation' && styles.raceCardPrepared,
+    ]}>
+      <View style={styles.raceCardTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.raceName} numberOfLines={2}>{item.roundName}</Text>
+          {isRealTournament(item.tournament) && (
+            <Text style={styles.raceTournament} numberOfLines={1}>
+              {item.tournament!.tournamentName}
+            </Text>
+          )}
         </View>
-      )}
+        <View style={[styles.statusBadge, { borderColor: `${color}55`, backgroundColor: `${color}18` }]}>
+          {(item.status === 'running' || item.status === 'prepared' || item.status === 'awaitingConfirmation') && (
+            <View style={[styles.runningDot, { backgroundColor: color }]} />
+          )}
+          <Text style={[styles.statusBadgeText, { color }]}>{label.toUpperCase()}</Text>
+        </View>
+      </View>
+
+      <View style={styles.raceCardDivider} />
+
+      <View style={styles.metaGrid}>
+        <View style={styles.metaItem}>
+          <Ionicons name="calendar-outline" size={13} color={Palette.gold} />
+          <Text style={styles.metaText}>{formatViDateTime(item.raceDate)}</Text>
+        </View>
+        <View style={styles.metaItem}>
+          <Ionicons name="location-outline" size={13} color={Palette.textMuted} />
+          <Text style={styles.metaText} numberOfLines={1}>{item.location}</Text>
+        </View>
+        {item.trackLength != null && (
+          <View style={styles.metaItem}>
+            <Ionicons name="speedometer-outline" size={13} color={Palette.textMuted} />
+            <Text style={styles.metaText}>{item.trackLength} m</Text>
+          </View>
+        )}
+        {item.raceGround && (
+          <View style={styles.metaItem}>
+            <Ionicons name="layers-outline" size={13} color={Palette.textMuted} />
+            <Text style={styles.metaText}>{item.raceGround}</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.raceCardFooter}>
+        <View style={styles.participantsChip}>
+          <Ionicons name="people-outline" size={12} color={Palette.textMuted} />
+          <Text style={styles.participantsText}>
+            {item.currentParticipants}/{item.maxParticipants ?? '?'} tham gia
+          </Text>
+        </View>
+        {item.tournament?.prizePool != null && item.tournament.prizePool > 0 && (
+          <View style={styles.prizeChip}>
+            <Ionicons name="trophy-outline" size={12} color={Palette.gold} />
+            <Text style={styles.prizeText}>
+              {item.tournament.prizePool.toLocaleString()} ₫
+            </Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
+
+const ALL_RACES_FILTERS: { key: ScheduleFilter; label: string; color: string }[] = [
+  { key: 'running',   label: 'Đang diễn ra', color: Palette.red   },
+  { key: 'prepared',  label: 'Chuẩn bị',     color: Palette.amber },
+  { key: 'scheduled', label: 'Sắp diễn ra',  color: Palette.gold  },
+  { key: 'completed', label: 'Đã kết thúc',  color: Palette.textMuted },
+];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -163,28 +250,57 @@ export default function DashboardScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const [allRacesFilter, setAllRacesFilter] = useState<ScheduleFilter>('scheduled');
+  const [allRaces, setAllRaces] = useState<RaceScheduleItem[]>([]);
+  const [allRacesTotal, setAllRacesTotal] = useState(0);
+  const [isLoadingAllRaces, setIsLoadingAllRaces] = useState(true);
+
   const load = async (silent = false) => {
     if (!silent) setIsLoading(true);
     const data = await getMyRaceSchedule();
-    const sorted = [...data].sort((a, b) => {
-      const ta = a.raceRound?.raceDate ? new Date(a.raceRound.raceDate).getTime() : Infinity;
-      const tb = b.raceRound?.raceDate ? new Date(b.raceRound.raceDate).getTime() : Infinity;
-      return ta - tb;
-    });
-    setSchedule(sorted);
+    setSchedule(data);
     setIsLoading(false);
     setIsRefreshing(false);
   };
 
+  const loadAllRaces = async (filter: ScheduleFilter, silent = false) => {
+    if (!silent) setIsLoadingAllRaces(true);
+    const result = await getAllRaces(filter);
+    setAllRaces(result.raceRounds);
+    setAllRacesTotal(result.meta.total);
+    setIsLoadingAllRaces(false);
+  };
+
   useEffect(() => { load(); }, []);
+  useEffect(() => { loadAllRaces(allRacesFilter); }, [allRacesFilter]);
 
   const onRefresh = () => {
     setIsRefreshing(true);
-    load(true);
+    Promise.all([load(true), loadAllRaces(allRacesFilter, true)]);
   };
 
-  const nextRace = schedule[0] ?? null;
-  const upcomingRest = schedule.slice(1, 4);
+  const onAllRacesFilterChange = (f: ScheduleFilter) => {
+    setAllRacesFilter(f);
+    setAllRaces([]);
+  };
+
+  // A jockey can hold at most one overlapping accepted race at a time
+  // (enforced server-side by JockeyScheduleConflict), so live/prepared are
+  // effectively singular — priority: live > prepared > earliest upcoming.
+  const liveItem = schedule.find((i) => i.raceRound?.status === 'running') ?? null;
+  const preparedItem = liveItem
+    ? null
+    : schedule.find((i) => i.raceRound?.status === 'prepared') ?? null;
+
+  const upcoming = [...schedule]
+    .filter((i) => !['completed', 'cancelled'].includes(i.raceRound?.status ?? ''))
+    .sort((a, b) => {
+      const ta = a.raceRound?.raceDate ? new Date(a.raceRound.raceDate).getTime() : Infinity;
+      const tb = b.raceRound?.raceDate ? new Date(b.raceRound.raceDate).getTime() : Infinity;
+      return ta - tb;
+    });
+
+  const nextRace = liveItem ?? preparedItem ?? upcoming[0] ?? null;
 
   const confirmedCount = schedule.length;
   const officialCount = schedule.filter((i) => !i.isBackup).length;
@@ -205,9 +321,6 @@ export default function DashboardScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>TRANG CHỦ</Text>
-          <Pressable hitSlop={8}>
-            <Ionicons name="notifications-outline" size={22} color={Palette.textMuted} />
-          </Pressable>
         </View>
 
         <ScrollView
@@ -286,36 +399,6 @@ export default function DashboardScreen() {
             </View>
           )}
 
-          {/* ─── Upcoming races ─── */}
-          {upcomingRest.length > 0 && (
-            <>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <View style={styles.sectionAccent} />
-                  <Text style={styles.sectionTitle}>Lịch sắp tới</Text>
-                </View>
-                <View style={styles.countBadge}>
-                  <Text style={styles.countBadgeText}>
-                    {confirmedCount} TRẬN
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.upcomingList}>
-                {upcomingRest.map((item) => (
-                  <UpcomingRow key={item.invitationId} item={item} />
-                ))}
-                {confirmedCount > 4 && (
-                  <View style={styles.moreRow}>
-                    <Text style={styles.moreText}>
-                      +{confirmedCount - 4} trận khác · Xem tất cả ở tab SCHEDULE
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </>
-          )}
-
           {/* ─── Info notice ─── */}
           {schedule.length > 0 && (
             <View style={styles.infoNotice}>
@@ -329,6 +412,49 @@ export default function DashboardScreen() {
                 để kiểm tra sức khỏe và thiết bị.
               </Text>
             </View>
+          )}
+
+          {/* ─── All Races ─── */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Tất cả cuộc đua</Text>
+            </View>
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>{allRacesTotal} TRẬN</Text>
+            </View>
+          </View>
+
+          <View style={styles.filterBar}>
+            {ALL_RACES_FILTERS.map(({ key, label, color }) => {
+              const active = allRacesFilter === key;
+              return (
+                <Pressable
+                  key={key}
+                  style={[
+                    styles.filterPill,
+                    active && { borderColor: color, backgroundColor: `${color}1A` },
+                  ]}
+                  onPress={() => onAllRacesFilterChange(key)}>
+                  <Text style={[styles.filterPillText, active && { color }]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {isLoadingAllRaces ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator color={Palette.red} />
+            </View>
+          ) : allRaces.length === 0 ? (
+            <View style={styles.allRacesEmpty}>
+              <Ionicons name="calendar-outline" size={32} color={Palette.textMuted} />
+              <Text style={styles.noRaceSubText}>Không có cuộc đua nào</Text>
+            </View>
+          ) : (
+            allRaces.map((item) => <AllRaceCard key={item._id} item={item} />)
           )}
 
           <View style={styles.bottomPad} />
@@ -421,12 +547,21 @@ const styles = StyleSheet.create({
   },
   nextRaceGradient: { padding: 20 },
   nextRaceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
     backgroundColor: Palette.redLight,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginBottom: 14,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF9999',
   },
   nextRaceBadgeText: {
     fontFamily: Fonts.mono,
@@ -508,7 +643,36 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Upcoming list
+  backupTag: {
+    backgroundColor: '#1A1A2A',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#2A2A4A',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  backupTagText: {
+    fontFamily: Fonts.mono,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: '#8888CC',
+  },
+
+  // Info notice
+  infoNotice: {
+    flexDirection: 'row',
+    backgroundColor: '#1A1214',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A1A1C',
+    padding: 16,
+    gap: 12,
+    marginBottom: 20,
+  },
+  infoText: { flex: 1, fontSize: 13, lineHeight: 20, color: Palette.textMuted },
+
+  // All Races section
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -539,74 +703,127 @@ const styles = StyleSheet.create({
     color: Palette.textMuted,
   },
 
-  upcomingList: {
+  filterBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+  },
+  filterPillText: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    color: Palette.textMuted,
+  },
+
+  allRacesEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 10,
+    marginBottom: 20,
+  },
+
+  // Race card (All Races section)
+  raceCard: {
     backgroundColor: Palette.card,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: Palette.cardBorder,
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  upcomingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.cardBorder,
+    padding: 16,
+    marginBottom: 14,
     gap: 12,
   },
-  upcomingTimeCol: { minWidth: 56 },
-  upcomingDate: {
-    fontFamily: Fonts.mono,
-    fontSize: 11,
+  raceCardLive: { borderColor: '#5C1A1F' },
+  raceCardPrepared: { borderColor: '#6B3A1A' },
+  raceCardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  raceName: {
+    fontSize: 16,
     fontWeight: '700',
-    color: Palette.gold,
-    letterSpacing: 0.3,
+    color: Palette.text,
+    lineHeight: 21,
+    marginBottom: 3,
   },
-  upcomingInfo: { flex: 1, gap: 3 },
-  upcomingTitle: { fontSize: 14, fontWeight: '700', color: Palette.text },
-  upcomingMeta: { fontSize: 12, color: Palette.textMuted },
-  moreRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  moreText: {
+  raceTournament: {
     fontFamily: Fonts.mono,
     fontSize: 11,
     color: Palette.textMuted,
     letterSpacing: 0.3,
   },
-
-  backupTag: {
-    backgroundColor: '#1A1A2A',
-    borderRadius: 6,
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#2A2A4A',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  backupTagText: {
+  runningDot: { width: 6, height: 6, borderRadius: 3 },
+  statusBadgeText: {
     fontFamily: Fonts.mono,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.5,
-    color: '#8888CC',
   },
-
-  // Info notice
-  infoNotice: {
+  raceCardDivider: { height: 1, backgroundColor: Palette.cardBorder },
+  metaGrid: { gap: 8 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  metaText: { fontSize: 13, color: Palette.textMuted, flex: 1 },
+  raceCardFooter: {
     flexDirection: 'row',
-    backgroundColor: '#1A1214',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2A1A1C',
-    padding: 16,
-    gap: 12,
-    marginBottom: 4,
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
   },
-  infoText: { flex: 1, fontSize: 13, lineHeight: 20, color: Palette.textMuted },
+  participantsChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#1E1E22',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  participantsText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '600',
+    color: Palette.textMuted,
+  },
+  prizeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#1E1A0A',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3A3010',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  prizeText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '700',
+    color: Palette.gold,
+  },
 
   bottomPad: { height: 20 },
 });

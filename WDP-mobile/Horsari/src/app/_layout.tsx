@@ -18,11 +18,11 @@ function RootNavigation() {
   useEffect(() => {
     if (isLoading) return;
 
-    const atLogin = segments[0] === 'login';
+    const isPublicRoute = segments[0] === 'login' || segments[0] === 'register';
 
     if (!session) {
-      // No active session → go to login
-      if (!atLogin) router.replace('/login');
+      // No active session → go to login, unless already on a public route
+      if (!isPublicRoute) router.replace('/login');
       return;
     }
 
@@ -42,6 +42,7 @@ function RootNavigation() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
+      <Stack.Screen name="register" />
       <Stack.Screen name="(jockey)" />
       <Stack.Screen name="(spectator)" />
       <Stack.Screen name="new-prediction" />

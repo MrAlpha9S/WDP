@@ -51,10 +51,11 @@ function formatViDateTime(dateStr: string | null | undefined): string | null {
   return `${hh}:${mm} — ${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
 }
 
-function formatFee(minFee: number | undefined, pct: number | undefined): string | null {
-  if (minFee && minFee > 0) return `$${minFee.toLocaleString()}`;
-  if (pct && pct > 0) return `${pct * 100}%`;
-  return null;
+function formatFee(bookingFees: number | undefined, pct: number | undefined): string | null {
+  const parts: string[] = [];
+  if (bookingFees && bookingFees > 0) parts.push(`${bookingFees.toLocaleString()} ₫`);
+  if (pct && pct > 0) parts.push(`${pct * 100}%`);
+  return parts.length > 0 ? parts.join(' + ') : null;
 }
 
 // ─── Status colour helper (shared by card + sheet) ───────────────────────────
@@ -249,6 +250,13 @@ function InviteDetailSheet({
 
           {/* ── Thù lao ── */}
           <SheetSection title="QUYỀN LỢI">
+            {(invite.bookingFees ?? 0) > 0 && (
+              <SheetRow
+                label="Phí cưỡi"
+                value={`${invite.bookingFees.toLocaleString()} ₫`}
+                valueColor={Palette.gold}
+              />
+            )}
             {(invite.percentagePayout ?? 0) > 0 && (
               <SheetRow
                 label="Tỷ lệ thưởng"
@@ -256,14 +264,7 @@ function InviteDetailSheet({
                 valueColor={Palette.gold}
               />
             )}
-            {/* {(invite.raceRound?.minimalRidingFees ?? 0) > 0 && (
-              <SheetRow
-                label="Phí cưỡi tối thiểu"
-                value={`$${invite.raceRound!.minimalRidingFees!.toLocaleString()}`}
-                valueColor={Palette.gold}
-              />
-            )} */}
-            {(invite.percentagePayout ?? 0) === 0 && (invite.raceRound?.minimalRidingFees ?? 0) === 0 && (
+            {(invite.bookingFees ?? 0) === 0 && (invite.percentagePayout ?? 0) === 0 && (
               <SheetRow label="Thù lao" value="Chưa xác định" />
             )}
           </SheetSection>
@@ -394,9 +395,6 @@ export default function InvitesScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>LỜI MỜI</Text>
-          <Pressable hitSlop={8}>
-            <Ionicons name="notifications-outline" size={22} color={Palette.textMuted} />
-          </Pressable>
         </View>
 
         {/* ─── Filter bar ─── */}
@@ -478,7 +476,7 @@ export default function InvitesScreen() {
               const owner = invite.horseOwner?.user?.fullName ?? '—';
               const tournament = invite.tournament?.tournamentName ?? '—';
               const raceDate = formatViDate(invite.raceRound?.raceDate);
-              const fee = formatFee(invite.raceRound?.minimalRidingFees, invite.percentagePayout);
+              const fee = formatFee(invite.bookingFees, invite.percentagePayout);
               const isResponding = respondingId === invite.invitationId;
 
               const { color: statusColor, label: statusText } = getStatusStyle(invite);

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
@@ -54,7 +55,13 @@ function formatShortDate(dateStr: string): string {
 
 // ─── Live Race Card ───────────────────────────────────────────────────────────
 
-function LiveRaceCard({ liveRace }: { liveRace: NonNullable<HomeFeed['liveRace']> }) {
+function LiveRaceCard({
+  liveRace,
+  onWatch,
+}: {
+  liveRace: NonNullable<HomeFeed['liveRace']>;
+  onWatch: () => void;
+}) {
   return (
     <View style={styles.liveCard}>
       <LinearGradient
@@ -105,7 +112,7 @@ function LiveRaceCard({ liveRace }: { liveRace: NonNullable<HomeFeed['liveRace']
 
         {/* Watch button */}
         {liveRace.livestreamUrl ? (
-          <Pressable style={styles.liveWatchBtn}>
+          <Pressable style={styles.liveWatchBtn} onPress={onWatch}>
             <Ionicons name="play-circle-outline" size={16} color={Palette.text} />
             <Text style={styles.liveWatchText}>XEM TRỰC TIẾP</Text>
           </Pressable>
@@ -193,6 +200,7 @@ function HorseCard({ horse }: { horse: HomeFeedHorse }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function SpectatorHomeScreen() {
+  const router = useRouter();
   const [feed, setFeed] = useState<HomeFeed | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -279,7 +287,10 @@ export default function SpectatorHomeScreen() {
                   <View style={styles.sectionAccentRed} />
                   <Text style={styles.sectionTitle}>Đang Diễn Ra</Text>
                 </View>
-                <LiveRaceCard liveRace={feed.liveRace} />
+                <LiveRaceCard
+                  liveRace={feed.liveRace}
+                  onWatch={() => router.push(`/(spectator)/race/${feed.liveRace!._id}` as any)}
+                />
               </>
             ) : (
               <View style={styles.noLiveCard}>

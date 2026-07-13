@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -14,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { getMyProfile, JockeyProfileData } from '../../api/jockeyApi';
 import { Fonts } from '@/constants/theme';
 
 const Palette = {
@@ -28,22 +32,80 @@ const Palette = {
   gold: '#C9A24B',
 } as const;
 
-const SKILLS = [
-  { name: 'Kiểm soát tốc độ', percent: 94, color: Palette.redLight },
-  { name: 'Quản lý sức bền', percent: 88, color: Palette.redLight },
-  { name: 'Định vị chiến thuật', percent: 91, color: Palette.gold },
-];
+// Ordinal position strings look like '1st'/'23rd'/'DNF' — pull the leading
+// number back out, or null for non-numeric finishes (DNF/no-show).
+function parsePosition(position: string): number | null {
+  const n = parseInt(position, 10);
+  return Number.isNaN(n) ? null : n;
+}
 
-const TROPHIES = [
-  { icon: 'trophy-outline' as const, name: "Royal Ascot '23" },
-  { icon: 'medal-outline' as const, name: "Dubai Cup '24" },
-  { icon: 'trophy-outline' as const, name: 'Triple Crown' },
-];
+function attendanceLabel(attendance: JockeyProfileData['recentRaces'][number]['attendance']): string | null {
+  if (attendance === 'backup') return 'DỰ PHÒNG';
+  if (attendance === 'no_show') return 'VẮNG MẶT';
+  return null;
+}
 
 export default function ProfileScreen() {
-  const [notificationsOn, setNotificationsOn] = useState(true);
+  const router = useRouter();
   const [biometricOn, setBiometricOn] = useState(false);
+  const [profile, setProfile] = useState<JockeyProfileData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { logout, session } = useAuth();
+
+  const load = async () => {
+    setIsLoading(true);
+    setError(null);
+    const data = await getMyProfile();
+    if (data) {
+      setProfile(data);
+    } else {
+      setError('Không thể tải hồ sơ. Vui lòng thử lại.');
+    }
+    setIsLoading(false);
+  };
+
+  // Fetches on mount and whenever this screen regains focus (e.g. returning
+  // from Edit Profile), so saved changes show up without a manual refresh.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [])
+  );
+
+  const numericPositions = (profile?.recentRaces ?? [])
+    .map((r) => parsePosition(r.position))
+    .filter((n): n is number => n !== null);
+  const hasPlacement = numericPositions.length > 0;
+  const avgPlacement = hasPlacement
+    ? (numericPositions.reduce((a, b) => a + b, 0) / numericPositions.length).toFixed(1)
+    : null;
+
+  if (isLoading) {
+    return (
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <SafeAreaView style={[styles.safeArea, styles.center]} edges={['top']}>
+          <ActivityIndicator color={Palette.red} size="large" />
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <SafeAreaView style={[styles.safeArea, styles.center]} edges={['top']}>
+          <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
+          <Text style={styles.emptyText}>{error}</Text>
+          <Pressable style={styles.retryBtn} onPress={load}>
+            <Text style={styles.retryText}>THỬ LẠI</Text>
+          </Pressable>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -60,9 +122,6 @@ export default function ProfileScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>HỒ SƠ CỦA TÔI</Text>
-          <Pressable hitSlop={8}>
-            <Ionicons name="notifications-outline" size={22} color={Palette.textMuted} />
-          </Pressable>
         </View>
 
         <ScrollView
@@ -80,7 +139,11 @@ export default function ProfileScreen() {
             <View style={styles.heroContent}>
               <View style={styles.avatarWrapper}>
                 <View style={styles.avatarCircle}>
-                  <Ionicons name="person" size={44} color={Palette.textMuted} />
+                  {profile.jockey.image ? (
+                    <Image source={{ uri: profile.jockey.image }} style={styles.avatarImage} />
+                  ) : (
+                    <Ionicons name="person" size={44} color={Palette.textMuted} />
+                  )}
                 </View>
                 <View style={styles.avatarBadge}>
                   <Ionicons name="trophy" size={10} color={Palette.gold} />
@@ -88,19 +151,17 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.heroName}>{session?.user.fullName || session?.user.username || 'Jockey'}</Text>
               <View style={styles.heroMetaRow}>
-                <Text style={styles.heroRank}>JOCKEY ELITE #5</Text>
-                <View style={styles.heroDot} />
-                <Ionicons name="globe-outline" size={13} color={Palette.textMuted} />
-                <Text style={styles.heroCountry}>Vương quốc Anh</Text>
+                <Text style={styles.heroRank}>
+                  {profile.jockey.rank != null
+                    ? `HẠNG #${profile.jockey.rank} / ${profile.jockey.totalJockeys}`
+                    : 'CHƯA XẾP HẠNG'}
+                </Text>
               </View>
-              <View style={styles.heroActions}>
-                <Pressable style={styles.btnEditProfile}>
-                  <Text style={styles.btnEditProfileText}>CHỈNH SỬA HỒ SƠ</Text>
-                </Pressable>
-                <Pressable style={styles.btnJockeyBio}>
-                  <Text style={styles.btnJockeyBioText}>XEM TIỂU SỬ TAY ĐUA</Text>
-                </Pressable>
-              </View>
+              <Pressable
+                style={styles.btnEditProfile}
+                onPress={() => router.push('/(jockey)/edit-profile')}>
+                <Text style={styles.btnEditProfileText}>CHỈNH SỬA HỒ SƠ</Text>
+              </Pressable>
             </View>
           </View>
 
@@ -110,13 +171,15 @@ export default function ProfileScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>SỐ LẦN THẮNG</Text>
-              <Text style={[styles.statBig, { color: Palette.redLight }]}>1,248</Text>
-              <Text style={styles.statSub}>+12 tháng này</Text>
+              <Text style={[styles.statBig, { color: Palette.redLight }]}>
+                {profile.stats.wins.toLocaleString()}
+              </Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>TỔNG THU NHẬP</Text>
-              <Text style={[styles.statBig, { color: Palette.gold }]}>$14.2M</Text>
-              <Text style={styles.statSub}>Top 2% toàn cầu</Text>
+              <Text style={[styles.statBig, { color: Palette.gold }]}>
+                {profile.stats.totalPrize.toLocaleString()} ₫
+              </Text>
             </View>
           </View>
 
@@ -124,95 +187,65 @@ export default function ProfileScreen() {
             <View style={styles.placementLeft}>
               <Text style={styles.statLabel}>THỨ HẠNG TRUNG BÌNH</Text>
               <View style={styles.placementValueRow}>
-                <Text style={styles.placementBig}>2.4</Text>
-                <Text style={styles.placementSub}>trong số 12 tay đua xuất phát</Text>
+                {hasPlacement ? (
+                  <Text style={styles.placementBig}>{avgPlacement}</Text>
+                ) : (
+                  <Text style={styles.placementEmpty}>Chưa có dữ liệu</Text>
+                )}
+                <Text style={styles.placementSub}>trên {profile.stats.totalRaces} lần đua</Text>
               </View>
-            </View>
-            <View style={styles.miniBars}>
-              {[0.55, 0.85, 1.0].map((h, i) => (
-                <View key={i} style={styles.miniBarTrack}>
-                  <View
-                    style={[
-                      styles.miniBar,
-                      {
-                        height: h * 32,
-                        backgroundColor: i === 2 ? Palette.redLight : '#6B3840',
-                      },
-                    ]}
-                  />
-                </View>
-              ))}
             </View>
           </View>
 
-          {/* ─── Skill Radar ─── */}
-          <View style={styles.skillCard}>
-            <View style={styles.skillCardHeader}>
-              <Ionicons name="bar-chart-outline" size={16} color={Palette.redLight} />
-              <Text style={styles.skillCardTitle}>Bản đồ kỹ năng</Text>
+          <View style={styles.bookingFeeCard}>
+            <View>
+              <Text style={styles.statLabel}>PHÍ ĐẶT CƯỠI MẶC ĐỊNH</Text>
+              <Text style={styles.bookingFeeSub}>Mức phí tối thiểu khi chủ ngựa mời bạn</Text>
             </View>
-            {SKILLS.map((skill) => (
-              <View key={skill.name} style={styles.skillRow}>
-                <View style={styles.skillLabelRow}>
-                  <Text style={styles.skillName}>{skill.name}</Text>
-                  <Text style={styles.skillPercent}>{skill.percent}%</Text>
-                </View>
-                <View style={styles.skillTrack}>
-                  <View
-                    style={[
-                      styles.skillFill,
-                      { width: `${skill.percent}%`, backgroundColor: skill.color },
-                    ]}
-                  />
-                </View>
-              </View>
-            ))}
+            <Text style={styles.bookingFeeValue}>
+              {profile.jockey.bookingFee.toLocaleString()} ₫
+            </Text>
           </View>
 
-          {/* ─── Trophy Cabinet ─── */}
-          <View style={styles.trophySection}>
-            <View style={styles.trophyHeader}>
-              <Text style={styles.cardSectionTitle}>Tủ danh hiệu</Text>
-              <Pressable hitSlop={8}>
-                <Text style={styles.viewAllLink}>XEM TẤT CẢ</Text>
-              </Pressable>
-            </View>
-            <View style={styles.trophyGrid}>
-              {TROPHIES.map((t, i) => (
-                <View key={i} style={styles.trophyItem}>
-                  <View style={styles.trophyIconBg}>
-                    <Ionicons name={t.icon} size={28} color={Palette.gold} />
+          {/* ─── Recent Races ─── */}
+          <Text style={styles.cardSectionTitle}>Đua gần đây</Text>
+          <View style={styles.raceList}>
+            {profile.recentRaces.length === 0 ? (
+              <View style={styles.raceEmpty}>
+                <Ionicons name="flag-outline" size={32} color={Palette.textMuted} />
+                <Text style={styles.emptyText}>Chưa có lịch sử đua nào</Text>
+              </View>
+            ) : (
+              profile.recentRaces.map((race, i) => (
+                <View key={i}>
+                  <View style={styles.raceRow}>
+                    <View style={styles.raceBody}>
+                      <Text style={styles.raceName} numberOfLines={1}>{race.race}</Text>
+                      <Text style={styles.raceMeta} numberOfLines={1}>{race.horse} · {race.date}</Text>
+                    </View>
+                    <View style={styles.raceRight}>
+                      <Text style={styles.racePosition}>{race.position}</Text>
+                      {attendanceLabel(race.attendance) && (
+                        <Text style={styles.raceAttendance}>{attendanceLabel(race.attendance)}</Text>
+                      )}
+                    </View>
                   </View>
-                  <Text style={styles.trophyName} numberOfLines={2}>{t.name}</Text>
+                  {i < profile.recentRaces.length - 1 && <View style={styles.raceDivider} />}
                 </View>
-              ))}
-            </View>
+              ))
+            )}
           </View>
 
           {/* ─── Account Settings ─── */}
           <View style={styles.settingsCard}>
             <Text style={styles.settingsTitle}>Cài đặt tài khoản</Text>
 
-            <Pressable style={styles.settingsRow}>
+            <View style={styles.settingsRow}>
               <Ionicons name="globe-outline" size={18} color={Palette.textMuted} />
               <Text style={styles.settingsLabel}>Ngôn ngữ</Text>
               <View style={styles.settingsRight}>
                 <Text style={styles.settingsValue}>Tiếng Việt</Text>
-                <Ionicons name="chevron-forward" size={16} color={Palette.textMuted} />
               </View>
-            </Pressable>
-
-            <View style={styles.settingsDivider} />
-
-            <View style={styles.settingsRow}>
-              <Ionicons name="notifications-outline" size={18} color={Palette.textMuted} />
-              <Text style={styles.settingsLabel}>Thông báo</Text>
-              <Switch
-                value={notificationsOn}
-                onValueChange={setNotificationsOn}
-                trackColor={{ false: Palette.cardBorder, true: Palette.red }}
-                thumbColor={Palette.text}
-              />
             </View>
 
             <View style={styles.settingsDivider} />
@@ -245,6 +278,22 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Palette.background },
   safeArea: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  emptyText: { fontSize: 14, color: Palette.textMuted, textAlign: 'center' },
+  retryBtn: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Palette.red,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  retryText: {
+    fontFamily: Fonts.mono,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: Palette.red,
+  },
 
   header: {
     flexDirection: 'row',
@@ -303,6 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarImage: { width: 90, height: 90, borderRadius: 45 },
   avatarBadge: {
     position: 'absolute',
     bottom: 2,
@@ -336,26 +386,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     color: Palette.gold,
   },
-  heroDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: Palette.textMuted,
-  },
-  heroCountry: { fontSize: 12, color: Palette.textMuted },
-  heroActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 8,
-    alignSelf: 'stretch',
-  },
   btnEditProfile: {
-    flex: 1,
     height: 40,
+    alignSelf: 'stretch',
     backgroundColor: Palette.red,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 12,
   },
   btnEditProfileText: {
     fontFamily: Fonts.mono,
@@ -364,24 +402,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: Palette.text,
   },
-  btnJockeyBio: {
-    flex: 1,
-    height: 40,
-    backgroundColor: 'transparent',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Palette.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnJockeyBioText: {
-    fontFamily: Fonts.mono,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-    color: Palette.gold,
-  },
-
   // Stats
   cardSectionTitle: {
     fontSize: 18,
@@ -431,101 +451,67 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Palette.text,
   },
+  placementEmpty: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Palette.textMuted,
+  },
   placementSub: { fontSize: 12, color: Palette.textMuted },
-  miniBars: {
+
+  bookingFeeCard: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 6,
-    height: 40,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Palette.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+    padding: 16,
+    marginBottom: 20,
+    gap: 12,
   },
-  miniBarTrack: {
-    width: 14,
-    height: 32,
-    justifyContent: 'flex-end',
-  },
-  miniBar: {
-    width: 14,
-    borderRadius: 3,
+  bookingFeeSub: { fontSize: 11, color: Palette.textMuted, marginTop: 2, maxWidth: 200 },
+  bookingFeeValue: {
+    fontFamily: Fonts.mono,
+    fontSize: 18,
+    fontWeight: '800',
+    color: Palette.gold,
   },
 
-  // Skills
-  skillCard: {
+  // Recent races
+  raceList: {
     backgroundColor: Palette.card,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: Palette.cardBorder,
-    padding: 16,
-    gap: 14,
+    overflow: 'hidden',
     marginBottom: 20,
   },
-  skillCardHeader: {
+  raceEmpty: { alignItems: 'center', paddingVertical: 32, gap: 10 },
+  raceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 2,
+    padding: 14,
+    gap: 12,
   },
-  skillCardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Palette.text,
-  },
-  skillRow: { gap: 6 },
-  skillLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  skillName: { fontSize: 13, fontWeight: '600', color: Palette.text },
-  skillPercent: {
+  raceBody: { flex: 1, gap: 2 },
+  raceName: { fontSize: 14, fontWeight: '600', color: Palette.text },
+  raceMeta: { fontSize: 12, color: Palette.textMuted },
+  raceRight: { alignItems: 'flex-end', gap: 2 },
+  racePosition: {
     fontFamily: Fonts.mono,
-    fontSize: 12,
-    fontWeight: '700',
-    color: Palette.textMuted,
+    fontSize: 14,
+    fontWeight: '800',
+    color: Palette.gold,
   },
-  skillTrack: {
-    height: 6,
-    backgroundColor: '#2A2A2D',
-    borderRadius: 3,
-  },
-  skillFill: {
-    height: 6,
-    borderRadius: 3,
-  },
-
-  // Trophies
-  trophySection: { marginBottom: 20 },
-  trophyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  viewAllLink: {
+  raceAttendance: {
     fontFamily: Fonts.mono,
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.5,
-    color: Palette.red,
+    color: Palette.textMuted,
   },
-  trophyGrid: { flexDirection: 'row', gap: 12 },
-  trophyItem: { flex: 1, alignItems: 'center', gap: 8 },
-  trophyIconBg: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
-    backgroundColor: Palette.card,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trophyName: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Palette.text,
-    textAlign: 'center',
-    lineHeight: 15,
-  },
+  raceDivider: { height: 1, backgroundColor: Palette.cardBorder, marginHorizontal: 14 },
 
   // Settings
   settingsCard: {
