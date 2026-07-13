@@ -24,17 +24,60 @@ class JockeyRepository {
     return await Jockey.find({ status }).populate("_id");
   }
 
-  async findByRanking(minRanking, maxRanking) {
-    return await Jockey.find({
-      ranking: { $gte: minRanking, $lte: maxRanking },
-    }).populate("_id");
+  // Win-rate field shared by getWinRateRank/findAllSortedByWinRate —
+  // computed live (matchesRaced > 0 ? totalWins/matchesRaced : 0), never stored.
+  _addWinRateStage() {
+    return {
+      $addFields: {
+        winRate: {
+          $cond: [
+            { $gt: ["$matchesRaced", 0] },
+            { $divide: ["$totalWins", "$matchesRaced"] },
+            0,
+          ],
+        },
+      },
+    };
   }
 
-  async findTopJockeys(limit = 10) {
-    return await Jockey.find()
-      .populate("_id")
-      .sort({ ranking: 1 })
-      .limit(limit);
+  // This jockey's 1-based leaderboard position among all jockeys, by win rate.
+  async getWinRateRank(jockeyId) {
+    const leaderboard = await Jockey.aggregate([
+      this._addWinRateStage(),
+      { $sort: { winRate: -1, totalWins: -1 } },
+      { $project: { _id: 1, winRate: 1 } },
+    ]);
+    const index = leaderboard.findIndex((j) => String(j._id) === String(jockeyId));
+    return {
+      rank: index === -1 ? null : index + 1,
+      totalJockeys: leaderboard.length,
+      winRate: index === -1 ? 0 : leaderboard[index].winRate,
+    };
+  }
+
+  // Paginated jockey list sorted by win rate, flattened to the same
+  // Jockey-fields + User-fields shape JockeyService.getAllJockeys already
+  // produces for other sort fields (passwordHash excluded, single _id).
+  async findAllSortedByWinRate(limit = 10, skip = 0, orderNum = -1) {
+    const docs = await Jockey.aggregate([
+      this._addWinRateStage(),
+      { $sort: { winRate: orderNum, totalWins: orderNum } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "userDoc",
+        },
+      },
+      { $unwind: "$userDoc" },
+    ]);
+    return docs.map(({ userDoc, ...jockeyFields }) => {
+      const { passwordHash, ...userFields } = userDoc;
+      return { ...jockeyFields, ...userFields };
+    });
   }
 
   // Update
@@ -54,6 +97,16 @@ class JockeyRepository {
     return await Jockey.findByIdAndUpdate(
       jockeyId,
       { $inc: { wallet: amount } },
+      { new: true }
+    );
+  }
+
+  // Called once per official race result for the jockey who actually raced
+  // (never for a no-show) — matchesRaced always +1, totalWins +1 only if won.
+  async incrementRaceStats(jockeyId, { won }) {
+    return await Jockey.findByIdAndUpdate(
+      jockeyId,
+      { $inc: { matchesRaced: 1, totalWins: won ? 1 : 0 } },
       { new: true }
     );
   }

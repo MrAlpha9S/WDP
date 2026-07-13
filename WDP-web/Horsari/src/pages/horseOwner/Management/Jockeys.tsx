@@ -4,7 +4,6 @@ import JockeyDetailModal, { type Jockey, STATUS_CFG } from "../../../components/
 import HireJockeyModal from "../../../components/ownerComponents/JockeyModal/Hirejockey";
 import { horseOwnerService } from "../../../api/horseOwnerService";
 
-const RANKS = ["All", "Elite", "Pro", "Veteran", "Apprentice"] as const;
 const WEIGHTS = ["Weight: All", "Under 54kg", "54–56kg", "Over 56kg"];
 const REGIONS = ["Region: Global", "Europe", "Asia", "Americas", "Oceania"];
 
@@ -17,7 +16,6 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     : 0;
 
   const VALID_STATUSES = ["Available", "In Talks", "Unavailable"] as const;
-  const VALID_RANKS = ["Elite", "Pro", "Veteran", "Apprentice"] as const;
 
   // Jockey must have an approved license before they can be available
   const licenseStatus = (raw.licenseStatus ?? "").toLowerCase();
@@ -44,20 +42,14 @@ function mapApiToJockey(raw: any, index: number): Jockey {
       : "Unavailable";
   }
 
-  // ranking is a numeric position in DB; rank tier comes from a separate field
-  const rawRankValue = typeof raw.rank === "string"
-    ? raw.rank
-    : typeof raw.ranking === "string"
-      ? raw.ranking
-      : "";
-  const rank = VALID_RANKS.includes(rawRankValue as typeof VALID_RANKS[number])
-    ? (rawRankValue as Jockey["rank"])
-    : "Apprentice";
-
   return {
     id: raw._id ?? index,
     name: raw.fullName ?? raw.username ?? "Unknown",
-    rank: rank,
+    // Rank is a live server-computed leaderboard position — the list endpoint
+    // doesn't compute it for every row; openDetail() upgrades this once the
+    // full profile (which does compute it) loads.
+    rank: null,
+    totalJockeys: 0,
     status: status,
     winRate: raw.totalWins && raw.matchesRaced
       ? parseFloat(((raw.totalWins / raw.matchesRaced) * 100).toFixed(1))
@@ -71,6 +63,7 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     recentRaces: raw.recentRaces ?? [],
     image: raw.image || null,
     violations: [],
+    bookingFee: raw.bookingFee ?? 0,
   };
 }
 
@@ -195,7 +188,6 @@ export default function JockeysPage() {
   const [jockeys, setJockeys] = useState<Jockey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [rankFilter, setRankFilter] = useState("All");
   const [weightFilter, setWeightFilter] = useState("Weight: All");
   const [regionFilter, setRegionFilter] = useState("Region: Global");
   const [visibleCount, setVisibleCount] = useState(8);
@@ -208,7 +200,7 @@ export default function JockeysPage() {
     setProfileLoading(true);
     try {
       const res = await horseOwnerService.getJockeyProfile(String(jockey.id));
-      const { recentRaces, stats, violations } = res.data;
+      const { recentRaces, stats, violations, jockey: jockeyDoc } = res.data;
       setSelected(prev => prev ? {
         ...prev,
         recentRaces,
@@ -217,6 +209,9 @@ export default function JockeysPage() {
         wins: stats.wins,
         starts: stats.totalRaces,
         totalPrize: stats.totalPrize,
+        bookingFee: jockeyDoc.bookingFee ?? prev.bookingFee,
+        rank: jockeyDoc.rank ?? null,
+        totalJockeys: jockeyDoc.totalJockeys ?? 0,
       } : prev);
     } catch {
       // silently fall back to the base (list-level) data already in jockey object
@@ -257,7 +252,7 @@ export default function JockeysPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const filtered = jockeys.filter((j) => rankFilter === "All" || j.rank === rankFilter);
+  const filtered = jockeys;
   const visible = filtered.slice(0, visibleCount);
 
   return (
@@ -290,11 +285,6 @@ export default function JockeysPage() {
         </div>
         <div className="flex items-center gap-2 mt-2">
           <SlidersHorizontal size={14} className="text-gray-500" />
-          <FilterSelect
-            options={RANKS.map((r) => (r === "All" ? "Rank: All" : r))}
-            value={rankFilter === "All" ? "Rank: All" : rankFilter}
-            onChange={(v) => setRankFilter(v === "Rank: All" ? "All" : v)}
-          />
           <FilterSelect options={WEIGHTS} value={weightFilter} onChange={setWeightFilter} />
           <FilterSelect options={REGIONS} value={regionFilter} onChange={setRegionFilter} />
         </div>

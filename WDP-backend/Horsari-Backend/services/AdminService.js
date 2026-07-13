@@ -257,19 +257,25 @@ class AdminService {
                             horseBreed: inv.horseId?.breed ?? null,
                             horseImg:  inv.horseId?.img   ?? null,
                             attendance: inv.invitationStatus === 'didNotAttend' ? 'no_show' : inv.isBackup ? 'backup' : 'main',
+                            bookingFees: inv.bookingFees ?? 0,
                             violations: violationsByReg[reg._id.toString()] ?? [],
                         });
                     }
+
+                    const { rank, totalJockeys, winRate } = await JockeyRepository.getWinRateRank(id);
 
                     roleProfile = {
                         height: jockey?.height ?? null,
                         weight: jockey?.weight ?? null,
                         matchesRaced: jockey?.matchesRaced ?? 0,
                         totalWins: jockey?.totalWins ?? 0,
-                        ranking: jockey?.ranking ?? null,
+                        rank,
+                        totalJockeys,
+                        winRate,
                         status: jockey?.status ?? null,
                         licenseLink: jockey?.licenseLink ?? null,
                         licenseStatus: jockey?.licenseStatus ?? null,
+                        bookingFee: jockey?.bookingFee ?? 0,
                         raceHistory,
                     };
                     break;
@@ -576,6 +582,7 @@ class AdminService {
                             isBackup: inv.isBackup,
                             isJockeyInRace: reg.jockeyInRaceId?.toString() === inv._id.toString(),
                             status: inv.invitationStatus,
+                            bookingFees: inv.bookingFees ?? 0,
                         })),
                         horseOwner: horseOwner
                             ? {
@@ -732,7 +739,8 @@ class AdminService {
                         jockeyName: sib.jockeyUser?.fullName || 'Unknown',
                         isBackup: sib.isBackup,
                         isJockeyInRace: reg?.jockeyInRaceId?.toString() === sib._id.toString(),
-                        invitationStatus: sib.invitationStatus
+                        invitationStatus: sib.invitationStatus,
+                        bookingFees: sib.bookingFees ?? 0,
                     })),
                     jockey: jockey ? {
                         jockeyId: jockey._id,
@@ -1505,8 +1513,7 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
                     invitationStatus: 'accepted',
                     isBackup: false,
                     percentagePayout: 10,
-                    // bookingFees intentionally omitted — real owner-created invitations
-                    // (Hirejockey.tsx) never set it either, so it defaults to 0 same as them.
+                    bookingFees: jockey.bookingFee ?? 0,
                 });
             }
 
@@ -1570,6 +1577,12 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
             return { code: 422, msg: `Cannot confirm results for a race with status "${raceRound.status}". Race must be in "awaitingConfirmation" state.` };
         }
 
+        // Re-confirming an already-completed race is allowed (payments are
+        // deduped via PaymentService.createIfNotExists), but jockey stat
+        // increments below have no such per-call dedup key — only apply them
+        // the first time this race round is confirmed.
+        const isFirstConfirmation = raceRound.status !== 'completed';
+
         // This is triggered by the referee's confirm-result action, not an admin
         // directly — so `adminId` here is actually the referee's own user id.
         // The race round's owning admin is who actually owes the payouts, so
@@ -1628,7 +1641,15 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
                     const percentageCut = (!isNoShow && result.prizeMoney > 0)
                         ? Math.round((invitation.percentagePayout / 100) * result.prizeMoney)
                         : 0;
-                    const payoutAmount = (invitation.bookingFees || 0) + percentageCut;
+                    const bookingFeeAmount = isNoShow ? 0 : (invitation.bookingFees || 0);
+                    const payoutAmount = bookingFeeAmount + percentageCut;
+
+                    // A no-show never actually raced — only real starters count
+                    // toward matchesRaced/totalWins. Only on first confirmation
+                    // (see isFirstConfirmation above) to avoid double-counting.
+                    if (!isNoShow && isFirstConfirmation) {
+                        await JockeyRepository.incrementRaceStats(invitation.jockeyId, { won: result.finishPosition === 1 });
+                    }
 
                     if (payoutAmount > 0 && registration.horseOwnerId) {
                         const payment = await PaymentService.createIfNotExists({

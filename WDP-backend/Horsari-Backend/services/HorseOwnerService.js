@@ -1,5 +1,6 @@
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const HorseRepository = require('../repositories/HorseRepository');
+const JockeyRepository = require('../repositories/JockeyRepository');
 const UserRepository = require('../repositories/UserRepository');
 const Registration = require('../entities/Registration');
 const RaceRound = require('../entities/RaceRound');
@@ -533,6 +534,7 @@ class HorseOwnerService {
                 status: inv.invitationStatus,
                 isBackup: inv.isBackup,
                 percentagePayout: inv.percentagePayout,
+                bookingFees: inv.bookingFees ?? 0,
                 createdAt: inv.createdAt,
             }));
 
@@ -871,6 +873,7 @@ class HorseOwnerService {
                         ? new Date(raceRound.raceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
                         : 'N/A',
                     attendance: inv?.invitationStatus === 'didNotAttend' ? 'no_show' : inv?.isBackup ? 'backup' : 'main',
+                    bookingFees: inv?.bookingFees ?? 0,
                 };
             }).sort((a, b) => 0); // preserve DB order (most recent first via sort below)
 
@@ -884,10 +887,15 @@ class HorseOwnerService {
             const wins = officialResults.filter(r => r.finishPosition === 1).length;
             const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
 
+            // Leaderboard position by win rate (matchesRaced/totalWins counters) —
+            // distinct from `stats.winRate` below, which is audited from this
+            // jockey's own actual RaceResult/Invitation records (excludes no-shows).
+            const { rank, totalJockeys } = await JockeyRepository.getWinRateRank(jockeyId);
+
             return {
                 code: 200,
                 data: {
-                    jockey: { ...jockeyDoc, ...user },
+                    jockey: { ...jockeyDoc, ...user, rank, totalJockeys },
                     stats: {
                         totalRaces: riddenRegIds.size,
                         wins,

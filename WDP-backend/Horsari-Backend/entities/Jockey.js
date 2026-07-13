@@ -17,7 +17,6 @@ const jockeySchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
-        ranking: Number,
         licenseLink: {
             type: String,
         },
@@ -32,6 +31,12 @@ const jockeySchema = new mongoose.Schema(
             default: 'active',
         },
         wallet: {
+            type: Number,
+            default: 0,
+        },
+        // Default flat fee this jockey charges to be booked — distinct from
+        // Invitation.bookingFees, which is the actual fee agreed for one hire.
+        bookingFee: {
             type: Number,
             default: 0,
         },

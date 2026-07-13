@@ -32,8 +32,8 @@ export interface ViolationData {
 }
 export interface HorseData { id: string; name: string; breed: string; age: number; status: string; violations?: ViolationData[]; }
 export interface HorseOwnerData { address: string; licenseStatus: string; licenseLink: string; horses?: HorseData[]; }
-export interface RaceHistoryData { id: string; raceName: string; date: string; position: number | null; finishTime: string | null; prize: number | null; resultStatus: string | null; distance: number | null; horseName: string | null; horseBreed: string | null; horseImg: string | null; attendance: "no_show" | "main" | "backup"; violations?: ViolationData[]; }
-export interface JockeyData { height: number; weight: number; matchesRaced: number; totalWins: number; ranking: number; status: string; licenseLink: string; licenseStatus: string; raceHistory?: RaceHistoryData[]; }
+export interface RaceHistoryData { id: string; raceName: string; date: string; position: number | null; finishTime: string | null; prize: number | null; resultStatus: string | null; distance: number | null; horseName: string | null; horseBreed: string | null; horseImg: string | null; attendance: "no_show" | "main" | "backup"; bookingFees: number; violations?: ViolationData[]; }
+export interface JockeyData { height: number; weight: number; matchesRaced: number; totalWins: number; rank: number | null; totalJockeys: number; status: string; licenseLink: string; licenseStatus: string; bookingFee: number; raceHistory?: RaceHistoryData[]; }
 export interface RefereeAssignmentData { assignmentId: string; raceRoundId: string | null; roundName: string | null; raceDate: string | null; raceStatus: string | null; assignmentStatus: string; paymentStatus: string; fee: number; violations?: ViolationData[]; }
 export interface RefereeData { licenseLink: string; licenseStatus: string; totalAssignments: number; assignments?: RefereeAssignmentData[]; }
 export interface SpectatorPredictionData {
@@ -128,10 +128,12 @@ function mergeRoleDetail(base: FullUser, detail: any): FullUser {
             weight: rp.weight ?? 0,
             matchesRaced: rp.matchesRaced ?? 0,
             totalWins: rp.totalWins ?? 0,
-            ranking: rp.ranking ?? 0,
+            rank: rp.rank ?? null,
+            totalJockeys: rp.totalJockeys ?? 0,
             status: rp.status || 'N/A',
             licenseLink: rp.licenseLink || '',
             licenseStatus: rp.licenseStatus || 'N/A',
+            bookingFee: rp.bookingFee ?? 0,
             raceHistory: (rp.raceHistory || []).map((r: any) => ({
                 id: String(r.raceRoundId),
                 raceName: r.roundName || 'Unknown Race',
@@ -145,6 +147,7 @@ function mergeRoleDetail(base: FullUser, detail: any): FullUser {
                 horseBreed:   r.horseBreed     ?? null,
                 horseImg:     r.horseImg       ?? null,
                 attendance:   r.attendance     ?? 'main',
+                bookingFees:  r.bookingFees    ?? 0,
                 violations: (r.violations || []).map(mapViolation),
             })),
         };
@@ -216,7 +219,7 @@ function mapUser(backendUser: any): FullUser {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let data: any = {};
     if (role === 'HorseOwner') data = { address: "N/A", licenseStatus: "N/A", licenseLink: "" };
-    else if (role === 'Jockey') data = { height: 0, weight: 0, matchesRaced: 0, totalWins: 0, ranking: 0, status: "N/A", licenseLink: "", licenseStatus: "N/A" };
+    else if (role === 'Jockey') data = { height: 0, weight: 0, matchesRaced: 0, totalWins: 0, rank: null, totalJockeys: 0, status: "N/A", licenseLink: "", licenseStatus: "N/A" };
     else if (role === 'Referee') data = { certificationNumber: "N/A", licenseNumber: "N/A" };
     else if (role === 'Spectator') data = { wallet: 0, predictions: [], transactions: [] };
     else if (role === 'Admin') data = { adminLevel: 1 };

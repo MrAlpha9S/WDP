@@ -15,16 +15,28 @@ class JockeyService {
   async getAllJockeys(page = 1, limit = 10, sortBy = 'createdAt', order = 'desc') {
     try {
       const skip = (page - 1) * limit;
-      const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
-      const [jockeys, totalItems] = await Promise.all([
-        JockeyRepository.findAll(limit, skip, sortObj),
-        JockeyRepository.count(),
-      ]);
-      const items = jockeys.map((i) => {
-        const { _id, ...rest } = i.toObject();
-        const { passwordHash, ...rest2 } = i._id.toObject();
-        return Object.assign({}, rest, rest2);
-      });
+      const orderNum = order === 'asc' ? 1 : -1;
+
+      let items, totalItems;
+      if (sortBy === 'winRate') {
+        [items, totalItems] = await Promise.all([
+          JockeyRepository.findAllSortedByWinRate(limit, skip, orderNum),
+          JockeyRepository.count(),
+        ]);
+      } else {
+        const sortObj = { [sortBy]: orderNum };
+        const [jockeys, total] = await Promise.all([
+          JockeyRepository.findAll(limit, skip, sortObj),
+          JockeyRepository.count(),
+        ]);
+        items = jockeys.map((i) => {
+          const { _id, ...rest } = i.toObject();
+          const { passwordHash, ...rest2 } = i._id.toObject();
+          return Object.assign({}, rest, rest2);
+        });
+        totalItems = total;
+      }
+
       return {
         code: 200,
         data: {

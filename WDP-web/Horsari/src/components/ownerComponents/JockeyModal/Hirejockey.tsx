@@ -167,6 +167,7 @@ export default function HireJockeyModal({
   const [selectedHorse, setSelectedHorse] = useState<Horse | null>(null);
   const [position, setPosition] = useState(false);
   const [percentagePayout, setPercentagePayout] = useState<number>(10);
+  const [bookingFees, setBookingFees] = useState<number>(jockey.bookingFee);
 
   const [toast, setToast] = useState<ToastState>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -334,6 +335,7 @@ export default function HireJockeyModal({
         percentagePayout,
         horseId: String(selectedHorse.id),
         isBackup: position,
+        bookingFees,
       });
       setToast({ type: "success", message: "Hire Successful" });
       setTimeout(() => {
@@ -523,6 +525,25 @@ export default function HireJockeyModal({
                 </div>
                 <p className="text-[10.5px] text-gray-600 mt-1.5">
                   Share of prize money paid to the jockey.
+                </p>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-[11px] font-bold tracking-[0.18em] text-gray-600 uppercase mb-3">
+                  Booking Fee
+                </p>
+                <div className="flex items-center gap-3 bg-[#141414] rounded-xl border border-white/8 px-4 py-3">
+                  <span className="text-[13px] font-semibold text-gray-500">₫</span>
+                  <input
+                    type="number"
+                    min={jockey.bookingFee}
+                    value={bookingFees}
+                    onChange={(e) => setBookingFees(Math.max(jockey.bookingFee, Number(e.target.value)))}
+                    className="flex-1 bg-transparent text-white text-[15px] font-bold focus:outline-none"
+                  />
+                </div>
+                <p className="text-[10.5px] text-gray-600 mt-1.5">
+                  Flat fee paid regardless of race outcome (unless a no-show). Default is {jockey.bookingFee.toLocaleString()} ₫ — you may offer more.
                 </p>
               </div>
             </div>

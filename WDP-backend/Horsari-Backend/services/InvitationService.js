@@ -2,6 +2,7 @@ const InvitationRepository = require('../repositories/InvitationRepository');
 const Registration = require('../entities/Registration');
 const Invitation = require('../entities/Invitation');
 const Horse = require('../entities/Horse');
+const Jockey = require('../entities/Jockey');
 const NotificationService = require('./NotificationService');
 const { findJockeyScheduleConflict } = require('./JockeyScheduleConflict');
 /**
@@ -58,7 +59,13 @@ class InvitationService {
             };
         }
 
-        const invitation = await InvitationRepository.create(data);
+        // Booking fee floor: the owner may offer more than the jockey's own
+        // default rate, but never less.
+        const jockeyDoc = await Jockey.findById(jockeyId).lean();
+        const defaultFee = jockeyDoc?.bookingFee ?? 0;
+        const finalBookingFees = data.bookingFees != null ? Math.max(data.bookingFees, defaultFee) : defaultFee;
+
+        const invitation = await InvitationRepository.create({ ...data, bookingFees: finalBookingFees });
 
         // Keep Registration.horseId in sync — set once when the first invitation is created
         if (!registration.horseId) {

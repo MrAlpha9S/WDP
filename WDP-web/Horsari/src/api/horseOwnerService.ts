@@ -32,6 +32,7 @@ export interface hireJockey {
   percentagePayout: number,
   isBackup: boolean,
   isJockeyInRace?: boolean,
+  bookingFees: number,
 }
 
 export interface HorseRegistrationEntry {
@@ -107,12 +108,12 @@ export interface JockeyViolationEntry {
 
 export interface JockeyProfileData {
   jockey: {
-    _id: string; matchesRaced: number; totalWins: number; ranking: number;
-    licenseStatus: string; status: string; weight: number;
+    _id: string; matchesRaced: number; totalWins: number; rank: number | null; totalJockeys: number;
+    licenseStatus: string; status: string; weight: number; bookingFee: number;
     fullName: string; image: string | null; dateOfBirth: string;
   };
   stats: { totalRaces: number; wins: number; winRate: number; totalPrize: number; };
-  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup"; }[];
+  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup"; bookingFees: number; }[];
   violations: JockeyViolationEntry[];
 }
 
@@ -250,6 +251,7 @@ export interface JockeyInvitationEntry {
   status: string;
   isBackup: boolean;
   percentagePayout: number;
+  bookingFees: number;
   createdAt: string;
 }
 

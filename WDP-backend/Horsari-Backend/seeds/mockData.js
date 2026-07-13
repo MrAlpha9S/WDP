@@ -101,42 +101,62 @@ async function seed() {
       horseOwners.push(user);
     }
 
-    // --- Jockeys (4) ---
+    // --- Jockeys (6) ---
+    // races/wins start at 0 for all — no race round in this seed script ever
+    // reaches "completed" (round2=scheduled, round3=draft, round4=prepared),
+    // so there's no basis for any jockey to already have a race history.
+    // matchesRaced/totalWins now increment for real via confirmRaceResult.
     const jockeyData = [
       {
         name: "Pham Minh Duc",
         height: 168,
         weight: 57,
-        races: 30,
-        wins: 12,
-        rank: 1,
+        races: 0,
+        wins: 0,
+        bookingFee: 500000
+      },
+      {
+        name: "Tran Minh Anh",
+        height: 175,
+        weight: 55,
+        races: 0,
+        wins: 0,
+        bookingFee: 450000
+      },
+      {
+        name: "Le Hoang Anh",
+        height: 170,
+        weight: 55,
+        races: 0,
+        wins: 0,
+        bookingFee: 450000
       },
       {
         name: "Hoang Tuan Kiet",
         height: 165,
         weight: 55,
-        races: 25,
-        wins: 8,
-        rank: 2,
+        races: 0,
+        wins: 0,
+        bookingFee: 300000
       },
       {
         name: "Vu Quoc Hung",
         height: 170,
         weight: 60,
-        races: 20,
-        wins: 5,
-        rank: 3,
+        races: 0,
+        wins: 0,
+        bookingFee: 250000
       },
       {
         name: "Bui Thanh Long",
         height: 167,
         weight: 58,
-        races: 15,
-        wins: 3,
-        rank: 4,
+        races: 0,
+        wins: 0,
+        bookingFee: 200000
       },
     ];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       const user = await User.create({
         username: `jockey${i + 1}`,
         passwordHash: PASSWORD_HASH,
@@ -153,7 +173,7 @@ async function seed() {
         weight: jockeyData[i].weight,
         matchesRaced: jockeyData[i].races,
         totalWins: jockeyData[i].wins,
-        ranking: jockeyData[i].rank,
+        bookingFee: jockeyData[i].bookingFee,
         licenseLink: `https://cdn.horsari.com/licenses/jockey${i + 1}.pdf`,
         licenseStatus: "approved",
         status: "active",

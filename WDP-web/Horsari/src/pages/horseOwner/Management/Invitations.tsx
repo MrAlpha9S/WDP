@@ -79,6 +79,7 @@ interface JockeyInvitation {
   horse: string;
   status: InviteJockeyStatus;
   sentAt: string;
+  bookingFees: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,6 +98,7 @@ function mapApiToJockeyInvitation(raw: any, i: number): JockeyInvitation {
     horse: raw.horseName ?? raw.horse?.horseName ?? "TBA",
     status: normalizeJockeyInviteStatus(raw.status ?? raw.registrationStatus),
     sentAt: raw.sentAt ?? raw.createdAt ?? "",
+    bookingFees: raw.bookingFees ?? 0,
   };
 }
 
@@ -342,9 +344,17 @@ function JockeyInvitationCard({
           </div>
 
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Horse</p>
-              <p className="text-[12.5px] font-semibold text-red-400">{inv.horse}</p>
+            <div className="flex items-center gap-4">
+              <div>
+                <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Horse</p>
+                <p className="text-[12.5px] font-semibold text-red-400">{inv.horse}</p>
+              </div>
+              {inv.bookingFees > 0 && (
+                <div>
+                  <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Booking Fee</p>
+                  <p className="text-[12.5px] font-semibold text-white">{inv.bookingFees.toLocaleString()} ₫</p>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600">

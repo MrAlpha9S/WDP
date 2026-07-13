@@ -6,12 +6,12 @@ import type { JockeyViolationEntry } from "../../../api/horseOwnerService";
 
 // ── Types (re-exported so Jockeys.tsx can import from one place) ──────────────
 export type JockeyStatus = "Available" | "In Talks" | "Unavailable";
-export type JockeyRank   = "Elite" | "Pro" | "Veteran" | "Apprentice";
 
 export interface Jockey {
   id: number;
   name: string;
-  rank: JockeyRank;
+  rank: number | null;
+  totalJockeys: number;
   status: JockeyStatus;
   winRate: number;
   starts: number;
@@ -20,10 +20,11 @@ export interface Jockey {
   weight: string;
   age: number;
   specialties: string[];
-  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup" }[];
+  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup"; bookingFees?: number }[];
   image: string | null;
   violations: JockeyViolationEntry[];
   totalPrize?: number;
+  bookingFee: number;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -70,6 +71,16 @@ function OverviewTab({ jockey }: { jockey: Jockey }) {
           <p className="text-[10px] text-gray-600 uppercase tracking-wide mt-0.5">{s.label}</p>
         </div>
       ))}
+      <div className="col-span-2 bg-[#141414] rounded-xl px-3 py-3 border border-white/6 text-center">
+        <p className="text-[15px] font-bold text-white">
+          {jockey.rank != null ? `#${jockey.rank} of ${jockey.totalJockeys}` : "Unranked"}
+        </p>
+        <p className="text-[10px] text-gray-600 uppercase tracking-wide mt-0.5">Rank</p>
+      </div>
+      <div className="col-span-2 bg-[#141414] rounded-xl px-3 py-3 border border-white/6 text-center">
+        <p className="text-[15px] font-bold text-white">{jockey.bookingFee.toLocaleString()} ₫</p>
+        <p className="text-[10px] text-gray-600 uppercase tracking-wide mt-0.5">Default Booking Fee</p>
+      </div>
       {jockey.totalPrize != null && jockey.totalPrize > 0 && (
         <div className="col-span-4 bg-[#141414] rounded-xl px-3 py-3 border border-white/6 text-center">
           <p className="text-[15px] font-bold text-yellow-400">{jockey.totalPrize.toLocaleString()} ₫</p>
@@ -111,9 +122,14 @@ function HistoryTab({ recentRaces }: { recentRaces: Jockey["recentRaces"] }) {
               </div>
               <p className="text-[11px] text-gray-500 mt-0.5">on {r.horse} · {r.date}</p>
             </div>
-            <span className={`text-[14px] font-bold ${POSITION_COLOR[r.position] ?? "text-gray-500"}`}>
-              {r.attendance === "no_show" ? "—" : r.position}
-            </span>
+            <div className="text-right">
+              <span className={`text-[14px] font-bold ${POSITION_COLOR[r.position] ?? "text-gray-500"}`}>
+                {r.attendance === "no_show" ? "—" : r.position}
+              </span>
+              {r.bookingFees != null && r.bookingFees > 0 && (
+                <p className="text-[10px] text-gray-600 mt-0.5">{r.bookingFees.toLocaleString()} ₫</p>
+              )}
+            </div>
           </div>
         );
       })}

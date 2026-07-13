@@ -82,7 +82,6 @@ const options = {
                         weight: { type: 'string' },
                         matchesRaced: { type: 'number' },
                         totalWins: { type: 'number' },
-                        ranking: { type: 'number' },
                         status: { type: 'string', enum: ['active', 'inactive', 'retired'] },
                         createdAt: { type: 'string', format: 'date-time' },
                         updatedAt: { type: 'string', format: 'date-time' },

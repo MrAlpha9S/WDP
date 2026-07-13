@@ -280,7 +280,12 @@ function RoleDetails({ user }: { user: FullUser }) {
                     <DetailRow label="Weight" value={user.data?.weight ? `${user.data.weight} kg` : null} />
                     <DetailRow label="Matches Raced" value={user.data?.matchesRaced} />
                     <DetailRow label="Total Wins" value={user.data?.totalWins != null ? <span className="text-emerald-400 font-semibold">{user.data.totalWins}</span> : null} />
-                    <DetailRow label="Ranking" value={user.data?.ranking ? <span className="flex items-center gap-1"><Star size={11} className="text-amber-400" />#{user.data.ranking}</span> : null} />
+                    <DetailRow label="Rank" value={
+                        user.data?.rank != null
+                            ? <span className="flex items-center gap-1"><Star size={11} className="text-amber-400" />#{user.data.rank} of {user.data.totalJockeys}</span>
+                            : <span className="italic text-gray-600">Unranked</span>
+                    } />
+                    <DetailRow label="Booking Fee" value={user.data?.bookingFee != null ? <span className="text-white font-semibold">{user.data.bookingFee.toLocaleString()} ₫</span> : null} />
                     <DetailRow label="Level" value={user.data?.status} />
                     <DetailRow label="License Status" value={
                         user.data?.licenseStatus ? <span className={user.data.licenseStatus === "Valid" ? "text-emerald-400" : "text-red-400"}>{user.data.licenseStatus}</span> : null
@@ -542,10 +547,16 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                                                 <div className="text-center">
                                                     <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>
                                                     <p className={`text-[12px] font-medium ${race.prize ? 'text-emerald-400' : 'text-gray-600'}`}>
-                                                        {race.prize ? `$${race.prize.toLocaleString()}` : '—'}
+                                                        {race.prize ? `${race.prize.toLocaleString()} ₫` : '—'}
                                                     </p>
                                                 </div>
                                             </div>
+                                        )}
+
+                                        {race.bookingFees > 0 && (
+                                            <p className="mx-3 mb-3 text-[11px] text-gray-500">
+                                                Booking Fee: <span className="text-white font-semibold">{race.bookingFees.toLocaleString()} ₫</span>
+                                            </p>
                                         )}
 
                                         <ViolationList violations={race.violations ?? []} />

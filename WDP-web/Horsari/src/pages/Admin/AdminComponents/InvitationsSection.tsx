@@ -21,10 +21,13 @@ export interface Invitee {
     mainJockeyName?: string;
     mainJockeyStatus?: InvitationStatus;
     mainJockeyInvitationId?: string;
+    mainJockeyFee?: number;
     backupJockeyName?: string;
     backupJockeyStatus?: InvitationStatus;
     backupJockeyInvitationId?: string;
+    backupJockeyFee?: number;
     isBackup?: boolean;
+    bookingFees?: number;
 }
 
 const ROLE_COLORS: Record<ApprovalRole, string> = {
@@ -194,11 +197,17 @@ export function InvitationTable({
                                                 <span className="w-[100px] text-gray-500">Main Jockey:</span>
                                                 <span className="text-gray-200 w-[120px]">{a.mainJockeyName || "-"}</span>
                                                 <JockeyStatusText status={a.mainJockeyStatus} />
+                                                {a.mainJockeyFee != null && a.mainJockeyFee > 0 && (
+                                                    <span className="text-white font-medium">{a.mainJockeyFee.toLocaleString()} ₫</span>
+                                                )}
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <span className="w-[100px] text-gray-500">Backup Jockey:</span>
                                                 <span className="text-gray-200 w-[120px]">{a.backupJockeyName || "-"}</span>
                                                 <JockeyStatusText status={a.backupJockeyStatus} />
+                                                {a.backupJockeyFee != null && a.backupJockeyFee > 0 && (
+                                                    <span className="text-white font-medium">{a.backupJockeyFee.toLocaleString()} ₫</span>
+                                                )}
                                             </div>
                                         </div>
                                     </>
@@ -208,6 +217,12 @@ export function InvitationTable({
                                             <span className="text-gray-500 font-medium">Selected Horse:</span>
                                             <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">{a.horseSelected || "None"}</span>
                                         </p>
+                                        {a.bookingFees != null && a.bookingFees > 0 && (
+                                            <p className="flex items-center gap-2">
+                                                <span className="text-gray-500 font-medium">Booking Fee:</span>
+                                                <span className="text-white font-medium">{a.bookingFees.toLocaleString()} ₫</span>
+                                            </p>
+                                        )}
                                     </>
                                 ) : (
                                     !a.registeredRace && <span className="text-[13px] text-gray-600 italic">No additional details</span>
@@ -283,9 +298,11 @@ async function fetchMappedData(
                 mainJockeyName: mainJockey ? mainJockey.jockeyName : "N/A",
                 mainJockeyStatus: mainJockey ? "Accepted" : undefined,
                 mainJockeyInvitationId: mainJockey ? mainJockey.invitationsId : undefined,
+                mainJockeyFee: mainJockey ? mainJockey.bookingFees : undefined,
                 backupJockeyName: backupJockey ? backupJockey.jockeyName : "N/A",
                 backupJockeyStatus: backupJockey ? "Accepted" : undefined,
                 backupJockeyInvitationId: backupJockey ? backupJockey.invitationsId : undefined,
+                backupJockeyFee: backupJockey ? backupJockey.bookingFees : undefined,
             } as Invitee;
         });
     } else if (targetTab === "Referee") {
@@ -340,12 +357,15 @@ async function fetchMappedData(
                     ? (mainJockey.invitationStatus === 'accepted' ? 'Accepted' : mainJockey.invitationStatus === 'declined' ? 'Declined' : 'Pending')
                     : undefined,
                 mainJockeyInvitationId: mainJockey ? mainJockey.invitationId : undefined,
+                mainJockeyFee: mainJockey ? mainJockey.bookingFees : undefined,
                 backupJockeyName: backupJockey ? backupJockey.jockeyName : "N/A",
                 backupJockeyStatus: backupJockey
                     ? (backupJockey.invitationStatus === 'accepted' ? 'Accepted' : backupJockey.invitationStatus === 'declined' ? 'Declined' : 'Pending')
                     : undefined,
                 backupJockeyInvitationId: backupJockey ? backupJockey.invitationId : undefined,
+                backupJockeyFee: backupJockey ? backupJockey.bookingFees : undefined,
                 isBackup: item.isBackup,
+                bookingFees: mainJockey?.bookingFees ?? backupJockey?.bookingFees ?? 0,
             } as Invitee;
         });
     }
