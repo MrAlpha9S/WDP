@@ -17,9 +17,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   getHomeFeed,
+  getRaceSchedule,
   HomeFeed,
   HomeFeedHorse,
   HomeFeedUpcomingRace,
+  RaceScheduleItem,
+  ScheduleFilter,
 } from '../../api/spectatorApi';
 import { Fonts } from '@/constants/theme';
 
@@ -197,6 +200,98 @@ function HorseCard({ horse }: { horse: HomeFeedHorse }) {
   );
 }
 
+// ─── Browse Races Card (moved in from the removed Schedule tab) ──────────────
+
+function browseStatusLabel(s: string): { label: string; color: string } {
+  if (s === 'running')              return { label: 'Đang chạy',    color: Palette.red };
+  if (s === 'prepared')             return { label: 'Chuẩn bị',     color: '#E07B3A' };
+  if (s === 'scheduled')            return { label: 'Sắp diễn ra',  color: Palette.gold };
+  if (s === 'completed')            return { label: 'Đã kết thúc',  color: Palette.textMuted };
+  if (s === 'awaitingConfirmation') return { label: 'Chờ xác nhận', color: '#E07B3A' };
+  return { label: s, color: Palette.textMuted };
+}
+
+function BrowseRaceCard({ item, onPress }: { item: RaceScheduleItem; onPress: () => void }) {
+  const { label, color } = browseStatusLabel(item.status);
+
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+      <View style={[
+        styles.browseCard,
+        item.status === 'running'              && styles.browseCardLive,
+        item.status === 'prepared'             && styles.browseCardPrepared,
+        item.status === 'awaitingConfirmation' && styles.browseCardPrepared,
+      ]}>
+        <View style={styles.browseCardTop}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.browseRaceName} numberOfLines={2}>{item.roundName}</Text>
+            {isRealTournament(item.tournament) && (
+              <Text style={styles.browseTournament} numberOfLines={1}>
+                {item.tournament!.tournamentName}
+              </Text>
+            )}
+          </View>
+          <View style={[styles.browseStatusBadge, { borderColor: `${color}55`, backgroundColor: `${color}18` }]}>
+            {(item.status === 'running' || item.status === 'prepared' || item.status === 'awaitingConfirmation') && (
+              <View style={[styles.browseRunningDot, { backgroundColor: color }]} />
+            )}
+            <Text style={[styles.browseStatusText, { color }]}>{label.toUpperCase()}</Text>
+          </View>
+        </View>
+
+        <View style={styles.browseDivider} />
+
+        <View style={styles.browseMetaGrid}>
+          <View style={styles.browseMetaItem}>
+            <Ionicons name="calendar-outline" size={13} color={Palette.gold} />
+            <Text style={styles.browseMetaText}>{formatViDate(item.raceDate)}</Text>
+          </View>
+          <View style={styles.browseMetaItem}>
+            <Ionicons name="location-outline" size={13} color={Palette.textMuted} />
+            <Text style={styles.browseMetaText} numberOfLines={1}>{item.location}</Text>
+          </View>
+          {item.trackLength != null && (
+            <View style={styles.browseMetaItem}>
+              <Ionicons name="speedometer-outline" size={13} color={Palette.textMuted} />
+              <Text style={styles.browseMetaText}>{item.trackLength} m</Text>
+            </View>
+          )}
+          {item.raceGround && (
+            <View style={styles.browseMetaItem}>
+              <Ionicons name="layers-outline" size={13} color={Palette.textMuted} />
+              <Text style={styles.browseMetaText}>{item.raceGround}</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.browseCardFooter}>
+          <View style={styles.browseParticipantsChip}>
+            <Ionicons name="people-outline" size={12} color={Palette.textMuted} />
+            <Text style={styles.browseParticipantsText}>
+              {item.currentParticipants}/{item.maxParticipants ?? '?'} tham gia
+            </Text>
+          </View>
+          {item.tournament?.prizePool != null && item.tournament.prizePool > 0 && (
+            <View style={styles.browsePrizeChip}>
+              <Ionicons name="trophy-outline" size={12} color={Palette.gold} />
+              <Text style={styles.browsePrizeText}>
+                ${item.tournament.prizePool.toLocaleString()}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+const BROWSE_FILTERS: { key: ScheduleFilter; label: string; color: string }[] = [
+  { key: 'running',   label: 'Đang diễn ra', color: Palette.red },
+  { key: 'prepared',  label: 'Chuẩn bị',     color: '#E07B3A' },
+  { key: 'scheduled', label: 'Sắp diễn ra',  color: Palette.gold },
+  { key: 'completed', label: 'Đã kết thúc',  color: Palette.textMuted },
+];
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function SpectatorHomeScreen() {
@@ -205,6 +300,11 @@ export default function SpectatorHomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [browseFilter, setBrowseFilter] = useState<ScheduleFilter>('scheduled');
+  const [browseRaces, setBrowseRaces] = useState<RaceScheduleItem[]>([]);
+  const [browseTotal, setBrowseTotal] = useState(0);
+  const [isLoadingBrowse, setIsLoadingBrowse] = useState(true);
 
   const load = async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -219,11 +319,25 @@ export default function SpectatorHomeScreen() {
     setIsRefreshing(false);
   };
 
+  const loadBrowseRaces = async (filter: ScheduleFilter, silent = false) => {
+    if (!silent) setIsLoadingBrowse(true);
+    const result = await getRaceSchedule(filter);
+    setBrowseRaces(result.raceRounds);
+    setBrowseTotal(result.meta.total);
+    setIsLoadingBrowse(false);
+  };
+
   useEffect(() => { load(); }, []);
+  useEffect(() => { loadBrowseRaces(browseFilter); }, [browseFilter]);
 
   const onRefresh = () => {
     setIsRefreshing(true);
-    load(true);
+    Promise.all([load(true), loadBrowseRaces(browseFilter, true)]);
+  };
+
+  const onBrowseFilterChange = (f: ScheduleFilter) => {
+    setBrowseFilter(f);
+    setBrowseRaces([]);
   };
 
   return (
@@ -342,6 +456,53 @@ export default function SpectatorHomeScreen() {
                   <Text style={styles.emptyText}>Chưa có dữ liệu cuộc đua</Text>
                 </View>
               )}
+
+            {/* ─── Browse All Races ─── */}
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionAccentGold} />
+              <Text style={styles.sectionTitle}>Tất cả cuộc đua</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{browseTotal}</Text>
+              </View>
+            </View>
+
+            <View style={styles.browseFilterBar}>
+              {BROWSE_FILTERS.map(({ key, label, color }) => {
+                const active = browseFilter === key;
+                return (
+                  <Pressable
+                    key={key}
+                    style={[
+                      styles.browseFilterPill,
+                      active && { borderColor: color, backgroundColor: `${color}1A` },
+                    ]}
+                    onPress={() => onBrowseFilterChange(key)}>
+                    <Text style={[styles.browseFilterPillText, active && { color }]}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {isLoadingBrowse ? (
+              <View style={styles.loadingBrowse}>
+                <ActivityIndicator color={Palette.gold} />
+              </View>
+            ) : browseRaces.length === 0 ? (
+              <View style={styles.browseEmpty}>
+                <Ionicons name="calendar-outline" size={32} color={Palette.textMuted} />
+                <Text style={styles.emptyText}>Không có cuộc đua nào</Text>
+              </View>
+            ) : (
+              browseRaces.map((item) => (
+                <BrowseRaceCard
+                  key={item._id}
+                  item={item}
+                  onPress={() => router.push(`/(spectator)/race/${item._id}` as any)}
+                />
+              ))
+            )}
 
             <View style={styles.bottomPad} />
           </ScrollView>
@@ -681,5 +842,132 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: Palette.gold,
   },
+
+  // Browse All Races (moved in from the removed Schedule tab)
+  browseFilterBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  browseFilterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+  },
+  browseFilterPillText: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    color: Palette.textMuted,
+  },
+  loadingBrowse: {
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  browseEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 10,
+    marginBottom: 20,
+  },
+  browseCard: {
+    backgroundColor: Palette.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+    padding: 16,
+    marginBottom: 14,
+    gap: 12,
+  },
+  browseCardLive: { borderColor: '#5C1A1F' },
+  browseCardPrepared: { borderColor: '#6B3A1A' },
+  browseCardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  browseRaceName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Palette.text,
+    lineHeight: 21,
+    marginBottom: 3,
+  },
+  browseTournament: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    color: Palette.textMuted,
+    letterSpacing: 0.3,
+  },
+  browseStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  browseRunningDot: { width: 6, height: 6, borderRadius: 3 },
+  browseStatusText: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  browseDivider: { height: 1, backgroundColor: Palette.cardBorder },
+  browseMetaGrid: { gap: 8 },
+  browseMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  browseMetaText: { fontSize: 13, color: Palette.textMuted, flex: 1 },
+  browseCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  browseParticipantsChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#1E1E22',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Palette.cardBorder,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  browseParticipantsText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '600',
+    color: Palette.textMuted,
+  },
+  browsePrizeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#1E1A0A',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3A3010',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  browsePrizeText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '700',
+    color: Palette.gold,
+  },
+
   bottomPad: { height: 20 },
 });
