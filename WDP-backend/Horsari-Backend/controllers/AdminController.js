@@ -22,6 +22,34 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // ── Dashboard panel endpoints (independent, fetched in parallel by the frontend) ──
+
+    async getDashboardKpi(req, res) {
+        const r = await AdminService.getDashboardKpi();
+        return res.status(r.code).json(r);
+    }
+
+    async getDashboardHouseEarnings(req, res) {
+        const { groupBy = 'day' } = req.query; // 'day' | 'month'
+        const r = await AdminService.getDashboardHouseEarnings(groupBy);
+        return res.status(r.code).json(r);
+    }
+
+    async getDashboardTopPerformers(req, res) {
+        const r = await AdminService.getDashboardTopPerformers();
+        return res.status(r.code).json(r);
+    }
+
+    async getDashboardPredictions(req, res) {
+        const r = await AdminService.getDashboardPredictions();
+        return res.status(r.code).json(r);
+    }
+
+    async getDashboardSpectatorLeaderboard(req, res) {
+        const r = await AdminService.getDashboardSpectatorLeaderboard();
+        return res.status(r.code).json(r);
+    }
+
     // Get all users
     async getAllUsers(req, res) {
         const { role, search, sortBy = 'createdAt', order = 'desc' } = req.query;

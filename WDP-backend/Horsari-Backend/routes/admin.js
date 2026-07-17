@@ -10,6 +10,14 @@ require('../swagger/adminSwagger');
 // Admin statistics
 router.get('/statistics', authMiddleware, authAdmin, AdminController.getStatistics);
 router.get('/statistics/overview', authMiddleware, authAdmin, AdminController.getSystemStatistics);
+
+// Dashboard panels — each is a lightweight, independent endpoint (loaded in parallel by the frontend)
+router.get('/statistics/dashboard/kpi',                   authMiddleware, authAdmin, AdminController.getDashboardKpi);
+router.get('/statistics/dashboard/house-earnings',        authMiddleware, authAdmin, AdminController.getDashboardHouseEarnings);
+router.get('/statistics/dashboard/top-performers',        authMiddleware, authAdmin, AdminController.getDashboardTopPerformers);
+router.get('/statistics/dashboard/predictions',           authMiddleware, authAdmin, AdminController.getDashboardPredictions);
+router.get('/statistics/dashboard/spectator-leaderboard', authMiddleware, authAdmin, AdminController.getDashboardSpectatorLeaderboard);
+
 router.get('/users/all', authMiddleware, authAdmin, AdminController.getAllUsers);
 router.get('/users/:userId', authMiddleware, authAdmin, AdminController.getUsersDetail);
 

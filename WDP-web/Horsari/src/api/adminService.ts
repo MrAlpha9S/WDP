@@ -113,6 +113,96 @@ export interface AdminStatistics {
   };
 }
 
+// ── Dashboard panel types ────────────────────────────────────────────────────
+
+export interface DashboardKpi {
+  users: { countActive: number };
+  horseOwners: { count: number; pending: number; approved: number };
+  jockeys: { count: number; pending: number; approved: number };
+  tournaments: { count: number; scheduled: number; ongoing: number };
+  finance: { mainAdminWallet: number };
+  predictionPayouts: { totalPaidOut: number; totalWinnersPaid: number };
+}
+
+export interface HouseEarningSeries {
+  date: string;
+  houseEarning: number;
+  payoutToWinners: number;
+  grossPool: number;
+}
+
+export interface DashboardHouseEarnings {
+  totalHouseEarning: number;
+  totalPayoutToWinners: number;
+  totalGrossPool: number;
+  series: HouseEarningSeries[];
+}
+
+export interface DashboardTopHorse {
+  horseId: string;
+  horseName: string;
+  img: string | null;
+  totalEarnings: number;
+  wins: number;
+}
+
+export interface DashboardTopJockey {
+  jockeyId: string;
+  fullName: string;
+  totalEarnings: number;
+  totalWins: number;
+  matchesRaced: number;
+  winRate: number | null;
+}
+
+export interface WinRateLeader {
+  jockeyId: string;
+  fullName: string;
+  totalWins: number;
+  matchesRaced: number;
+  winRate: number;
+}
+
+export interface DashboardTopPerformers {
+  topEarningHorses: DashboardTopHorse[];
+  topEarningJockeys: DashboardTopJockey[];
+  winRateLeaders: WinRateLeader[];
+}
+
+export interface PredictionMethodEntry {
+  count: number;
+  pct: number;
+}
+
+export interface MostPredictedHorse {
+  horseId: string;
+  horseName: string;
+  img: string | null;
+  totalPicks: number;
+  actualWins: number;
+  crowdAccuracy: number;
+  isHot: boolean;
+}
+
+export interface DashboardPredictions {
+  predictionMethods: Record<string, PredictionMethodEntry>;
+  mostPredictedHorses: MostPredictedHorse[];
+}
+
+export interface SpectatorLeaderboardEntry {
+  rank: number;
+  spectatorId: string;
+  fullName: string;
+  total: number;
+  correct: number;
+  incorrect: number;
+  winRate: number;
+}
+
+export interface DashboardSpectatorLeaderboard {
+  spectatorLeaderboard: SpectatorLeaderboardEntry[];
+}
+
 export interface PaginationMeta {
   totalItems: number;
   totalPages: number;
@@ -477,6 +567,53 @@ export const adminService = {
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: 'Failed to fetch system statistics' };
+    }
+  },
+
+  // ── Dashboard panel endpoints (parallel-fetched, one per panel group) ──────
+
+  getDashboardKpi: async (): Promise<{ code: number; data: DashboardKpi; msg: string }> => {
+    try {
+      const response = await api.get('/admin/statistics/dashboard/kpi');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch dashboard KPI' };
+    }
+  },
+
+  getDashboardHouseEarnings: async (groupBy: 'day' | 'week' | 'month' | 'year' = 'day'): Promise<{ code: number; data: DashboardHouseEarnings; msg: string }> => {
+    try {
+      const response = await api.get('/admin/statistics/dashboard/house-earnings', { params: { groupBy } });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch house earnings' };
+    }
+  },
+
+  getDashboardTopPerformers: async (): Promise<{ code: number; data: DashboardTopPerformers; msg: string }> => {
+    try {
+      const response = await api.get('/admin/statistics/dashboard/top-performers');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch top performers' };
+    }
+  },
+
+  getDashboardPredictions: async (): Promise<{ code: number; data: DashboardPredictions; msg: string }> => {
+    try {
+      const response = await api.get('/admin/statistics/dashboard/predictions');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch prediction statistics' };
+    }
+  },
+
+  getDashboardSpectatorLeaderboard: async (): Promise<{ code: number; data: DashboardSpectatorLeaderboard; msg: string }> => {
+    try {
+      const response = await api.get('/admin/statistics/dashboard/spectator-leaderboard');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch spectator leaderboard' };
     }
   },
 

@@ -2550,4 +2550,349 @@ AdminService.prototype.getSystemStatistics = async function () {
     }
 };
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DASHBOARD PANEL ENDPOINTS
+// Each method feeds exactly one panel group. They are designed to be called
+// in parallel from the frontend so no panel blocks another.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 1. KPI cards (Row 1) ─────────────────────────────────────────────────────
+AdminService.prototype.getDashboardKpi = async function () {
+    try {
+        const Transaction = require('../entities/Transaction');
+
+        const [
+            countUserActive,
+            countHorseOwner, horseOwnerPending, horseOwnerApproved,
+            countJockey, jockeyPending, jockeyApproved,
+            countTournament, tournamentScheduled, tournamentOngoing,
+            mainAdmin,
+            predictionPayoutAgg,
+        ] = await Promise.all([
+            require('../entities/User').countDocuments({ status: 'active' }),
+            require('../repositories/HorseOwnerRepository').count(),
+            require('../repositories/HorseOwnerRepository').countByLicenseStatus('pending'),
+            require('../repositories/HorseOwnerRepository').countByLicenseStatus('approved'),
+            require('../repositories/JockeyRepository').count(),
+            require('../repositories/JockeyRepository').countByLicenseStatus('pending'),
+            require('../repositories/JockeyRepository').countByLicenseStatus('approved'),
+            require('../repositories/TournamentRepository').count(),
+            require('../repositories/TournamentRepository').countByStatus('scheduled'),
+            require('../repositories/TournamentRepository').countByStatus('ongoing'),
+            AdminRepository.findMainAdmin(),
+            Transaction.aggregate([
+                { $match: { transactionType: 'reward', referenceType: 'prediction', status: 'completed' } },
+                { $group: { _id: null, totalPaidOut: { $sum: '$amount' }, totalWinnersPaid: { $sum: 1 } } },
+            ]),
+        ]);
+
+        return {
+            code: 200,
+            data: {
+                users: { countActive: countUserActive },
+                horseOwners: { count: countHorseOwner, pending: horseOwnerPending, approved: horseOwnerApproved },
+                jockeys: { count: countJockey, pending: jockeyPending, approved: jockeyApproved },
+                tournaments: { count: countTournament, scheduled: tournamentScheduled, ongoing: tournamentOngoing },
+                finance: { mainAdminWallet: mainAdmin?.wallet || 0 },
+                predictionPayouts: {
+                    totalPaidOut: predictionPayoutAgg[0]?.totalPaidOut || 0,
+                    totalWinnersPaid: predictionPayoutAgg[0]?.totalWinnersPaid || 0,
+                },
+            },
+            msg: 'Dashboard KPI retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// ── 2. House earnings time-series (Row 2 chart) ───────────────────────────────
+// Takeout rates: race_winner = 0.17, race_rank = 0.17, tournament_champion = 0.22
+// We derive grossPool and houseEarning from the settled reward transaction amounts.
+const DASHBOARD_TAKEOUT = 0.17; // race_winner / race_rank are both 0.17
+
+AdminService.prototype.getDashboardHouseEarnings = async function (groupBy = 'day') {
+    try {
+        const Transaction = require('../entities/Transaction');
+        let dateFormat = '%Y-%m-%d';
+        if (groupBy === 'year') dateFormat = '%Y';
+        else if (groupBy === 'month') dateFormat = '%Y-%m';
+        else if (groupBy === 'week') dateFormat = '%Y-%U';
+
+
+        const series = await Transaction.aggregate([
+            { $match: { transactionType: 'reward', referenceType: 'prediction', status: 'completed' } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: dateFormat, date: '$date' } },
+                    payoutToWinners: { $sum: '$amount' },
+                },
+            },
+            { $sort: { _id: 1 } },
+        ]);
+
+        const result = series.map(row => {
+            const N = row.payoutToWinners;
+            const P = parseFloat((N / (1 - DASHBOARD_TAKEOUT)).toFixed(2));
+            const H = parseFloat((P - N).toFixed(2));
+            return { date: row._id, houseEarning: H, payoutToWinners: parseFloat(N.toFixed(2)), grossPool: P };
+        });
+
+        // Ensure we always have at least a baseline of recent periods (e.g. last 7 days) 
+        // to draw a proper line chart, even if there is no data for some dates.
+        const getPastPeriods = (type) => {
+            const pad = n => n.toString().padStart(2, '0');
+            const periods = [];
+            const count = type === 'year' ? 3 : type === 'month' ? 6 : type === 'week' ? 4 : 7;
+            for (let i = count - 1; i >= 0; i--) {
+                const d = new Date();
+                if (type === 'year') {
+                    d.setFullYear(d.getFullYear() - i);
+                    periods.push(`${d.getFullYear()}`);
+                } else if (type === 'month') {
+                    d.setMonth(d.getMonth() - i);
+                    periods.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
+                } else if (type === 'week') {
+                    d.setDate(d.getDate() - (i * 7));
+                    const startOfYear = new Date(d.getFullYear(), 0, 1);
+                    const days = Math.floor((d - startOfYear) / (24 * 60 * 60 * 1000));
+                    const weekNum = Math.floor((days + startOfYear.getDay()) / 7);
+                    periods.push(`${d.getFullYear()}-${pad(weekNum)}`);
+                } else {
+                    d.setDate(d.getDate() - i);
+                    periods.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+                }
+            }
+            return periods;
+        };
+
+        const dbMap = new Map(result.map(r => [r.date, r]));
+        for (const date of getPastPeriods(groupBy)) {
+            if (!dbMap.has(date)) {
+                result.push({ date, houseEarning: 0, payoutToWinners: 0, grossPool: 0 });
+                dbMap.set(date, true);
+            }
+        }
+        result.sort((a, b) => a.date.localeCompare(b.date));
+
+        const totalPayoutToWinners = parseFloat(result.reduce((s, r) => s + r.payoutToWinners, 0).toFixed(2));
+        const totalGrossPool = parseFloat(result.reduce((s, r) => s + r.grossPool, 0).toFixed(2));
+        const totalHouseEarning = parseFloat((totalGrossPool - totalPayoutToWinners).toFixed(2));
+
+        return {
+            code: 200,
+            data: { totalHouseEarning, totalPayoutToWinners, totalGrossPool, series: result },
+            msg: 'House earnings retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// ── 3. Top performers (Row 3: left 3 cards) ───────────────────────────────────
+AdminService.prototype.getDashboardTopPerformers = async function () {
+    try {
+        const Transaction = require('../entities/Transaction');
+
+        // Top earning horses: race_prize transactions → RaceResult → Registration.horseId
+        const topHorsesTx = await Transaction.aggregate([
+            { $match: { paymentType: 'race_prize', paymentStatus: 'paid' } },
+            // sourceType = RaceResult, sourceId = RaceResult._id
+            { $lookup: { from: 'raceresults', localField: 'sourceId', foreignField: '_id', as: 'result' } },
+            { $unwind: { path: '$result', preserveNullAndEmptyArrays: false } },
+            { $lookup: { from: 'registrations', localField: 'result.registrationId', foreignField: '_id', as: 'reg' } },
+            { $unwind: { path: '$reg', preserveNullAndEmptyArrays: false } },
+            { $match: { 'reg.horseId': { $ne: null } } },
+            { $group: { _id: '$reg.horseId', totalEarnings: { $sum: '$amount' }, wins: { $sum: 1 } } },
+            { $sort: { totalEarnings: -1 } },
+            { $limit: 5 },
+        ]);
+
+        const horseIds = topHorsesTx.map(r => r._id).filter(Boolean);
+        const horseDocs = horseIds.length ? await Horse.find({ _id: { $in: horseIds } }, 'horseName img').lean() : [];
+        const horseMap = new Map(horseDocs.map(h => [String(h._id), h]));
+        const topEarningHorses = topHorsesTx.map(r => ({
+            horseId: r._id,
+            horseName: horseMap.get(String(r._id))?.horseName ?? 'Unknown',
+            img: horseMap.get(String(r._id))?.img ?? null,
+            totalEarnings: r.totalEarnings,
+            wins: r.wins,
+        }));
+
+        // Top earning jockeys: jockey_payout transactions grouped by payeeId
+        const topJockeysTx = await Transaction.aggregate([
+            { $match: { paymentType: 'jockey_payout', payeeRole: 'jockey', paymentStatus: 'paid' } },
+            { $group: { _id: '$payeeId', totalEarnings: { $sum: '$amount' } } },
+            { $sort: { totalEarnings: -1 } },
+            { $limit: 5 },
+        ]);
+
+        const jockeyIds = topJockeysTx.map(r => r._id).filter(Boolean);
+        const [jockeyUserDocs, jockeyProfileDocs] = await Promise.all([
+            jockeyIds.length ? User.find({ _id: { $in: jockeyIds } }, 'fullName').lean() : [],
+            jockeyIds.length ? Jockey.find({ _id: { $in: jockeyIds } }, 'totalWins matchesRaced').lean() : [],
+        ]);
+        const jockeyUserMap = new Map(jockeyUserDocs.map(u => [String(u._id), u.fullName]));
+        const jockeyProfileMap = new Map(jockeyProfileDocs.map(j => [String(j._id), j]));
+        const topEarningJockeys = topJockeysTx.map(r => {
+            const profile = jockeyProfileMap.get(String(r._id));
+            const wins = profile?.totalWins ?? 0;
+            const races = profile?.matchesRaced ?? 0;
+            return {
+                jockeyId: r._id,
+                fullName: jockeyUserMap.get(String(r._id)) ?? 'Unknown',
+                totalEarnings: r.totalEarnings,
+                totalWins: wins,
+                matchesRaced: races,
+                winRate: races > 0 ? parseFloat((wins / races * 100).toFixed(1)) : null,
+            };
+        });
+
+        // Win rate leaders: jockeys sorted by winRate
+        const jockeyProfiles = await Jockey.find({ matchesRaced: { $gt: 0 } }, 'totalWins matchesRaced').lean();
+        jockeyProfiles.sort((a, b) => (b.totalWins / b.matchesRaced) - (a.totalWins / a.matchesRaced));
+        const topFiveIds = jockeyProfiles.slice(0, 5).map(j => j._id);
+        const winLeaderUsers = topFiveIds.length ? await User.find({ _id: { $in: topFiveIds } }, 'fullName').lean() : [];
+        const winLeaderUserMap = new Map(winLeaderUsers.map(u => [String(u._id), u.fullName]));
+        const winRateLeaders = jockeyProfiles.slice(0, 5).map(j => ({
+            jockeyId: j._id,
+            fullName: winLeaderUserMap.get(String(j._id)) ?? 'Unknown',
+            totalWins: j.totalWins,
+            matchesRaced: j.matchesRaced,
+            winRate: parseFloat((j.totalWins / j.matchesRaced * 100).toFixed(1)),
+        }));
+
+        return {
+            code: 200,
+            data: { topEarningHorses, topEarningJockeys, winRateLeaders },
+            msg: 'Top performers retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// ── 4. Prediction insights (Row 3: right 2 cards) ─────────────────────────────
+AdminService.prototype.getDashboardPredictions = async function () {
+    try {
+        // Method breakdown (3 types: race_winner, race_rank, tournament_champion)
+        const methodAgg = await Prediction.aggregate([
+            { $group: { _id: '$predictionMethodId', count: { $sum: 1 } } },
+        ]);
+        const methodDocs = await PredictionMethod.find({}, 'methodType').lean();
+        const methodTypeMap = new Map(methodDocs.map(m => [String(m._id), m.methodType]));
+        const methodTotals = {};
+        for (const row of methodAgg) {
+            const type = methodTypeMap.get(String(row._id)) ?? 'unknown';
+            methodTotals[type] = (methodTotals[type] ?? 0) + row.count;
+        }
+        const totalPredictions = Object.values(methodTotals).reduce((s, c) => s + c, 0);
+        const predictionMethods = {};
+        for (const [type, count] of Object.entries(methodTotals)) {
+            predictionMethods[type] = {
+                count,
+                pct: totalPredictions > 0 ? Math.round(count / totalPredictions * 100) : 0,
+            };
+        }
+
+        // Most predicted horses: group by predictedHorseId, cross-ref actual wins via RaceResult → Registration
+        const pickAgg = await Prediction.aggregate([
+            { $match: { predictedHorseId: { $ne: null } } },
+            { $group: { _id: '$predictedHorseId', totalPicks: { $sum: 1 } } },
+            { $sort: { totalPicks: -1 } },
+            { $limit: 10 },
+        ]);
+
+        const predictedHorseIds = pickAgg.map(r => r._id);
+
+        // Actual wins: RaceResult (finishPosition=1, official) → Registration.horseId
+        const winResults = predictedHorseIds.length
+            ? await RaceResult.aggregate([
+                { $match: { finishPosition: 1, resultStatus: 'official' } },
+                { $lookup: { from: 'registrations', localField: 'registrationId', foreignField: '_id', as: 'reg' } },
+                { $unwind: '$reg' },
+                { $match: { 'reg.horseId': { $in: predictedHorseIds } } },
+                { $group: { _id: '$reg.horseId', actualWins: { $sum: 1 } } },
+            ])
+            : [];
+        const winsMap = new Map(winResults.map(r => [String(r._id), r.actualWins]));
+
+        const horseDocs2 = predictedHorseIds.length
+            ? await Horse.find({ _id: { $in: predictedHorseIds } }, 'horseName img').lean()
+            : [];
+        const horseMap2 = new Map(horseDocs2.map(h => [String(h._id), h]));
+
+        // Compute median picks for 🔥 hot badge
+        const pickCounts = pickAgg.map(r => r.totalPicks);
+        const median = pickCounts.length > 0
+            ? pickCounts[Math.floor(pickCounts.length / 2)]
+            : 0;
+
+        const mostPredictedHorses = pickAgg.map(r => {
+            const actualWins = winsMap.get(String(r._id)) ?? 0;
+            return {
+                horseId: r._id,
+                horseName: horseMap2.get(String(r._id))?.horseName ?? 'Unknown',
+                img: horseMap2.get(String(r._id))?.img ?? null,
+                totalPicks: r.totalPicks,
+                actualWins,
+                crowdAccuracy: r.totalPicks > 0 ? parseFloat((actualWins / r.totalPicks * 100).toFixed(1)) : 0,
+                isHot: r.totalPicks > median,
+            };
+        });
+
+        return {
+            code: 200,
+            data: { predictionMethods, mostPredictedHorses },
+            msg: 'Prediction statistics retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// ── 5. Spectator leaderboard (Row 4 table) ────────────────────────────────────
+AdminService.prototype.getDashboardSpectatorLeaderboard = async function () {
+    try {
+        const leaderboardAgg = await Prediction.aggregate([
+            {
+                $group: {
+                    _id: '$spectatorId',
+                    total: { $sum: 1 },
+                    correct: { $sum: { $cond: [{ $eq: ['$predictionStatus', 'correct'] }, 1, 0] } },
+                    incorrect: { $sum: { $cond: [{ $eq: ['$predictionStatus', 'incorrect'] }, 1, 0] } },
+                },
+            },
+            { $sort: { correct: -1 } },
+            { $limit: 20 },
+        ]);
+
+        // Spectator._id === User._id (1:1 relation) — resolve fullName directly from User
+        const spectatorIds = leaderboardAgg.map(r => r._id).filter(Boolean);
+        const userDocs = spectatorIds.length
+            ? await User.find({ _id: { $in: spectatorIds } }, 'fullName').lean()
+            : [];
+        const userMap = new Map(userDocs.map(u => [String(u._id), u.fullName]));
+
+        const spectatorLeaderboard = leaderboardAgg.map((r, idx) => ({
+            rank: idx + 1,
+            spectatorId: r._id,
+            fullName: userMap.get(String(r._id)) ?? 'Unknown',
+            total: r.total,
+            correct: r.correct,
+            incorrect: r.incorrect,
+            winRate: r.total > 0 ? parseFloat((r.correct / r.total * 100).toFixed(1)) : 0,
+        }));
+
+        return {
+            code: 200,
+            data: { spectatorLeaderboard },
+            msg: 'Spectator leaderboard retrieved successfully',
+        };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
 module.exports = new AdminService();
