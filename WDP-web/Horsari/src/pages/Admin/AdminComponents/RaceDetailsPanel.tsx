@@ -330,6 +330,22 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 pt-1">
+                                {isScheduled && detailedParticipants.length > 0 && (
+                                    <div className="relative group flex items-center justify-center">
+                                        <button
+                                            onClick={handleQuickAssign}
+                                            disabled={isQuickAssigning}
+                                            className="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded border border-amber-500/20 transition-colors disabled:opacity-50"
+                                            title="Debug: Quick-Assign"
+                                        >
+                                            {isQuickAssigning ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                                        </button>
+                                        <div className="pointer-events-none absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 w-64 bg-[#1a1a1a] border border-amber-500/20 rounded-lg p-3 text-[11px] text-gray-400 shadow-xl">
+                                            <span className="block font-bold text-amber-500 mb-1">Debug: Quick-Assign</span>
+                                            Auto-pick an eligible horse + jockey for registrations. Leaves already-ready ones untouched. Doesn't verify or start the race.
+                                        </div>
+                                    </div>
+                                )}
                                 <button
                                     onClick={onEdit}
                                     className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded border border-blue-500/20 transition-colors"
@@ -364,25 +380,9 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         )}
                     </div>
 
-                    {/* ── Quick-assign shortcut (testing/demo) ── */}
-                    {isScheduled && detailedParticipants.length > 0 && (
+                    {/* ── Action Messages ── */}
+                    {(quickAssignResult || actionError) && (
                         <div className="mt-4 flex flex-col gap-2">
-                            <div className="rounded-xl border border-amber-500/20 bg-[#111] p-3 flex flex-col gap-2">
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                                    <TriangleAlert size={12} /> Quick-Assign (Testing)
-                                </span>
-                                <p className="text-[11px] text-gray-500">
-                                    Auto-pick an eligible horse + jockey for registrations not yet approved with a confirmed jockey — leaves already-ready ones untouched. Doesn't verify or start the race; the referee still reviews normally.
-                                </p>
-                                <button
-                                    onClick={handleQuickAssign}
-                                    disabled={isQuickAssigning}
-                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 text-[12px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                                >
-                                    {isQuickAssigning ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
-                                    {isQuickAssigning ? 'Assigning…' : 'Quick-Assign Horses & Jockeys'}
-                                </button>
-                            </div>
                             {quickAssignResult && (
                                 <div className="flex items-center gap-2 text-[12px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
                                     <CheckCircle2 size={13} className="shrink-0" />
