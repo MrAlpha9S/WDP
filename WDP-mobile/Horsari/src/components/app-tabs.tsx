@@ -85,6 +85,14 @@ export default function AppTabs() {
           tabBarStyle: { display: 'none' },
         }}
       />
+      {/* Payout/win-rate statistics — hidden from tab bar, pushed from Profile */}
+      <Tabs.Screen
+        name="statistics"
+        options={{
+          href: null,
+          tabBarStyle: { display: 'none' },
+        }}
+      />
     </Tabs>
   );
 }

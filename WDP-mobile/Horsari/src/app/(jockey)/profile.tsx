@@ -207,6 +207,13 @@ export default function ProfileScreen() {
             </Text>
           </View>
 
+          <Pressable
+            style={styles.statsLinkRow}
+            onPress={() => router.push('/(jockey)/statistics' as any)}>
+            <Text style={styles.statsLinkText}>Xem thống kê chi tiết</Text>
+            <Ionicons name="chevron-forward" size={14} color={Palette.red} />
+          </Pressable>
+
           {/* ─── Recent Races ─── */}
           <Text style={styles.cardSectionTitle}>Đua gần đây</Text>
           <View style={styles.raceList}>
@@ -476,6 +483,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: Palette.gold,
+  },
+
+  statsLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  statsLinkText: {
+    fontFamily: Fonts.mono,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: Palette.red,
   },
 
   // Recent races
