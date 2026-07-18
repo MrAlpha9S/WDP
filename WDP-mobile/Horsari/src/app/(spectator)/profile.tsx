@@ -220,6 +220,12 @@ export default function SpectatorProfileScreen() {
                     <View style={{ flex: 1 - profile.stats.winRate / 100 }} />
                   </View>
                 </View>
+                <Pressable
+                  style={styles.statsLinkRow}
+                  onPress={() => router.push('/(spectator)/statistics' as any)}>
+                  <Text style={styles.statsLinkText}>Xem thống kê chi tiết</Text>
+                  <Ionicons name="chevron-forward" size={14} color={Palette.gold} />
+                </Pressable>
               </>
             )}
 
@@ -446,7 +452,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Palette.cardBorder,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 10,
     gap: 16,
   },
   winRateLeft: { flex: 1, gap: 4 },
@@ -463,6 +469,21 @@ const styles = StyleSheet.create({
   miniChartFill: {
     backgroundColor: Palette.gold,
     borderRadius: 4,
+  },
+  statsLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginBottom: 24,
+  },
+  statsLinkText: {
+    fontFamily: Fonts.mono,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: Palette.gold,
   },
 
   // Wallet

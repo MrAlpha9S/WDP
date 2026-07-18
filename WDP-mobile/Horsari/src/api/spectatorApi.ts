@@ -179,6 +179,29 @@ export interface TransactionItem {
   createdAt: string;
 }
 
+// ─── Statistics ───────────────────────────────────────────────────────────────
+
+export interface SpectatorStatistics {
+  wallet: number;
+  totalPredictions: number;
+  correct: number;
+  incorrect: number;
+  pending: number;
+  cancelled: number;
+  refunded: number;
+  /** Win rate over settled predictions only (correct / (correct + incorrect)). */
+  winRate: number;
+  totalRewardsEarned: number;
+  totalStaked: number;
+  netProfit: number;
+  predictionsByMethodType: Partial<Record<PredictionMethodType, { count: number; pct: number }>>;
+}
+
+export interface RewardsEarningsSeries {
+  totalRewardsEarned: number;
+  series: { date: string; rewardsEarned: number }[];
+}
+
 // ─── API functions ────────────────────────────────────────────────────────────
 
 export async function getSpectatorProfile(): Promise<SpectatorProfile | null> {
@@ -249,6 +272,31 @@ export async function getWalletInfo(): Promise<WalletInfo | null> {
   try {
     const res = await apiClient.get<{ code: number; data: WalletInfo; msg: string }>(
       '/api/spectator/wallet'
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getSpectatorStatistics(): Promise<SpectatorStatistics | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: SpectatorStatistics; msg: string }>(
+      '/api/spectator/statistics'
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getRewardsEarningsSeries(
+  groupBy: 'day' | 'week' | 'month' | 'year' = 'day',
+): Promise<RewardsEarningsSeries | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: RewardsEarningsSeries; msg: string }>(
+      '/api/spectator/statistics/rewards-series',
+      { params: { groupBy } },
     );
     return res.data.code === 200 ? res.data.data : null;
   } catch {
