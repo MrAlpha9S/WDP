@@ -95,6 +95,12 @@ class HorseOwnerController {
         const response = await HorseOwnerService.getFinancialRaceResults(req.userId, page, limit, search || null);
         return res.status(response.code).json(response);
     }
+
+    async getFinancialEarningsSeries(req, res) {
+        const { groupBy = 'day' } = req.query;
+        const response = await HorseOwnerService.getFinancialEarningsSeries(req.userId, groupBy);
+        return res.status(response.code).json(response);
+    }
 }
 
 module.exports = new HorseOwnerController();

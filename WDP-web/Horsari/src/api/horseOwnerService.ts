@@ -502,6 +502,15 @@ export const horseOwnerService = {
     }
   },
 
+  getEarningsSeries: async (groupBy: 'day' | 'week' | 'month' | 'year' = 'day'): Promise<{ code: number; data: { date: string, grossPrize: number }[]; msg: string }> => {
+    try {
+      const response = await api.get('/horseowner/financials/earnings-series', { params: { groupBy } });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || error;
+    }
+  },
+
   // --- Payment Verification ---
   // horseOwner is the payee for race_prize (owed by admin) and the payer
   // for jockey_payout (owed to the jockey). Statistical wallet only — the

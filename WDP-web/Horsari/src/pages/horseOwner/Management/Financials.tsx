@@ -2,20 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import {
   TrendingUp, TrendingDown, Minus, Trophy,
   BarChart2, Search, ChevronRight,
-  Loader2, AlertTriangle,
+  Loader2, AlertTriangle, Medal, Calendar
 } from "lucide-react";
 import { horseOwnerService, type FinancialSummary, type FinancialRaceRow } from "../../../api/horseOwnerService";
 import PaymentsPanel from "../../../components/PaymentsPanel";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type ChartRange = "7D" | "30D" | "ALL";
+type ChartRange = "day" | "week" | "month" | "year";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function fmt(n: number) {
-  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
-  return `${n}`;
-}
+function fmt(n: number) { return n.toLocaleString("vi-VN"); }
 
 function positionLabel(pos: number | null) {
   if (pos == null) return "—";
@@ -23,69 +19,210 @@ function positionLabel(pos: number | null) {
   return `${pos}${suffixes[pos - 1] ?? "th"}`;
 }
 
+function fmtDate(d: string, groupBy: ChartRange) {
+    let y, m, day;
+    if (groupBy === 'day' && d.length >= 10) {
+        [y, m, day] = d.split('-');
+        return `${day}/${m}/${y}`;
+    }
+    if (groupBy === 'week') {
+        const [yy, w] = d.split('-');
+        const date = new Date(parseInt(yy), 0, 1 + (parseInt(w) - 1) * 7);
+        day = date.getDate().toString().padStart(2, '0');
+        m = (date.getMonth() + 1).toString().padStart(2, '0');
+        return `${day}/${m}/${date.getFullYear()}`;
+    }
+    if (groupBy === 'month') {
+        [y, m] = d.split('-');
+        return `01/${m}/${y}`;
+    }
+    if (groupBy === 'year') {
+        return `01/01/${d}`;
+    }
+    return d;
+}
+
 // ── Stat Card ─────────────────────────────────────────────────────────────────
-function StatCard({ icon, label, value, sub, subColor }: {
-  icon: React.ReactNode; label: string; value: string; sub: string; subColor: string;
+function StatCard({ icon, label, value, sub, subColor, loading }: {
+  icon: React.ReactNode; label: string; value: string; sub: string; subColor: string; loading?: boolean;
 }) {
   return (
-    <div className="bg-[#1a1a1a] border border-white/8 rounded-xl px-5 py-4 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <p className="text-[10.5px] font-bold tracking-widest text-gray-600 uppercase">{label}</p>
-        <span className="text-gray-600">{icon}</span>
+    <div className="bg-[#1a1a1a] border border-white/8 rounded-xl px-5 py-4 flex flex-col gap-2 relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+        {icon}
       </div>
-      <p className="text-[30px] font-bold text-white leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>
-        {value}
+      <div className="flex items-center justify-between relative z-10">
+        <p className="text-[10.5px] font-bold tracking-widest text-gray-500 uppercase">{label}</p>
+      </div>
+      <p className="text-[28px] font-black text-white leading-none tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+        {loading ? <span className="animate-pulse text-gray-700">…</span> : value}
       </p>
-      <p className={`text-[11.5px] font-medium flex items-center gap-1 ${subColor}`}>{sub}</p>
+      <p className={`text-[11.5px] font-medium flex items-center gap-1 ${subColor} relative z-10`}>
+        {loading ? <span className="animate-pulse text-gray-700">Loading</span> : sub}
+      </p>
     </div>
   );
 }
 
-// ── Placeholder bar chart (static until real time-series data exists) ─────────
-const CHART_DATA: Record<ChartRange, { label: string; value: number; highlight: boolean }[]> = {
-  "7D": [
-    { label: "MON", value: 30, highlight: false },
-    { label: "TUE", value: 55, highlight: false },
-    { label: "WED", value: 90, highlight: true },
-    { label: "THU", value: 40, highlight: false },
-    { label: "FRI", value: 70, highlight: false },
-    { label: "SAT", value: 35, highlight: false },
-    { label: "SUN", value: 50, highlight: false },
-  ],
-  "30D": [
-    { label: "W1", value: 35, highlight: false },
-    { label: "W2", value: 82, highlight: true },
-    { label: "W3", value: 50, highlight: false },
-    { label: "W4", value: 65, highlight: false },
-  ],
-  "ALL": [
-    { label: "Q1", value: 40, highlight: false },
-    { label: "Q2", value: 60, highlight: false },
-    { label: "Q3", value: 88, highlight: true },
-    { label: "Q4", value: 55, highlight: false },
-  ],
-};
+// ── Chart Component ───────────────────────────────────────────────────────────
+function EarningsChart() {
+    const [series, setSeries] = useState<{ date: string, grossPrize: number }[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [groupBy, setGroupBy] = useState<ChartRange>('day');
 
-function BarChart({ range }: { range: ChartRange }) {
-  const bars = CHART_DATA[range];
-  return (
-    <div className="flex items-end gap-2 h-36 w-full">
-      {bars.map((bar, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
-          {bar.highlight && (
-            <span className="text-[9.5px] font-bold text-white bg-red-700 px-1.5 py-0.5 rounded whitespace-nowrap">
-              Peak
-            </span>
-          )}
-          <div
-            className={`w-full rounded-t transition-all duration-500 min-h-[4px] ${bar.highlight ? "bg-red-600" : "bg-[#2e2e2e] hover:bg-[#3e3e3e]"}`}
-            style={{ height: `${bar.value}%` }}
-          />
-          <span className="text-[9px] text-gray-600 whitespace-nowrap">{bar.label}</span>
+    useEffect(() => {
+        let active = true;
+        setLoading(true);
+        horseOwnerService.getEarningsSeries(groupBy).then(res => {
+            if (active) setSeries(res.data);
+        }).finally(() => active && setLoading(false));
+        return () => { active = false; };
+    }, [groupBy]);
+
+    const W = 1000, H = 300;
+    const maxVal = Math.max(...series.map(s => s.grossPrize), 1);
+    const pad = 40;
+    const toX = (i: number) => pad + (i / Math.max(series.length - 1, 1)) * (W - pad * 2);
+    const toY = (v: number) => H - pad - (v / maxVal) * (H - pad * 2);
+
+    const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+    return (
+        <div className="bg-[#1a1a1a] border border-white/8 rounded-xl p-5 flex flex-col xl:col-span-2 h-[420px]">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[13px] font-semibold text-white flex items-center gap-2">
+                    <BarChart2 size={15} className="text-emerald-500" /> Gross Earnings Trend
+                </h3>
+                <div className="flex items-center bg-[#111] rounded-lg p-1 border border-white/10">
+                    {(['day', 'week', 'month', 'year'] as const).map(g => (
+                        <button key={g} onClick={() => setGroupBy(g)} className={`px-3 py-1 text-[11px] font-bold uppercase rounded-md transition-colors ${groupBy === g ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-white'}`}>
+                            {g}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="flex-1 flex items-center justify-center">
+                    <Loader2 size={24} className="animate-spin text-gray-600" />
+                </div>
+            ) : series.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-[12px] text-gray-500">No data</div>
+            ) : (
+                <div className="relative flex-1 min-w-0"
+                     onMouseLeave={() => setHoveredIdx(null)}
+                     onMouseMove={(e) => {
+                         const rect = e.currentTarget.getBoundingClientRect();
+                         const x = e.clientX - rect.left;
+                         const pct = Math.max(0, Math.min(1, x / rect.width));
+                         setHoveredIdx(Math.round(pct * (series.length - 1)));
+                     }}>
+                    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                        {/* Grid */}
+                        {[0, 0.5, 1].map(t => (
+                            <line key={t} x1={pad} x2={W - pad} y1={pad + t * (H - pad * 2)} y2={pad + t * (H - pad * 2)} stroke="#ffffff" strokeOpacity={0.05} strokeWidth={1} />
+                        ))}
+                        {/* Dividers & Labels */}
+                        {series.map((s, i) => (
+                            <g key={i}>
+                                <line x1={toX(i)} x2={toX(i)} y1={pad} y2={H - pad} stroke="#ffffff" strokeOpacity={0.02} strokeWidth={1} />
+                                {series.length <= 15 || i % Math.ceil(series.length / 10) === 0 ? (
+                                    <text x={toX(i)} y={H - 10} fill="#666" fontSize="11" textAnchor="middle" fontWeight="bold">
+                                        {fmtDate(s.date, groupBy).slice(0, 5)}
+                                    </text>
+                                ) : null}
+                            </g>
+                        ))}
+                        {/* Line */}
+                        <polyline
+                            points={series.map((s, i) => `${toX(i)},${toY(s.grossPrize)}`).join(" ")}
+                            fill="none" stroke="#10b981" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+                        />
+                        {/* Hover point */}
+                        {hoveredIdx !== null && (
+                            <circle cx={toX(hoveredIdx)} cy={toY(series[hoveredIdx].grossPrize)} r={4} fill="#10b981" />
+                        )}
+                    </svg>
+
+                    {/* Tooltip */}
+                    {hoveredIdx !== null && (
+                        <div 
+                            className="absolute bg-[#1e1e1e] border border-white/10 rounded-lg px-3 py-2 text-[11px] text-gray-300 whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
+                            style={{ 
+                                left: `${(toX(hoveredIdx) / W) * 100}%`,
+                                top: '5%',
+                                transform: 'translateX(-50%)'
+                            }}
+                        >
+                            <p className="font-bold text-white mb-1">{fmtDate(series[hoveredIdx].date, groupBy)}</p>
+                            <p><span className="text-emerald-400">●</span> Gross Prize: {fmt(series[hoveredIdx].grossPrize)} ₫</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
-      ))}
-    </div>
-  );
+    );
+}
+
+// ── Top Performers Component ──────────────────────────────────────────────────
+function TopPerformers() {
+    const [performers, setPerformers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        horseOwnerService.getTopPerformers(5).then(res => setPerformers(res.data)).finally(() => setLoading(false));
+    }, []);
+
+    return (
+        <div className="bg-[#1a1a1a] border border-white/8 rounded-xl p-5 flex flex-col xl:col-span-1 h-[420px]">
+            <h3 className="text-[13px] font-semibold text-white flex items-center gap-2 mb-4">
+                <Medal size={15} className="text-yellow-500" /> Top Earning Horses
+            </h3>
+            {loading ? (
+                <div className="flex-1 flex items-center justify-center">
+                    <Loader2 size={24} className="animate-spin text-gray-600" />
+                </div>
+            ) : performers.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-[12px] text-gray-500">No horses found</div>
+            ) : (
+                <div className="flex flex-col gap-3">
+                    {performers.map((p, i) => (
+                        <div key={p.id} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-lg hover:bg-white/[0.04] transition-colors">
+                            <span className="text-[16px] font-black text-gray-600 w-4">{i + 1}</span>
+                            <div className="w-10 h-10 rounded-md bg-[#222] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                                {p.img ? (
+                                    <img 
+                                        src={p.img} 
+                                        alt="" 
+                                        className="w-full h-full object-cover" 
+                                        onError={(e) => {
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = "/jumping-horse-silhouette-facing-left-side-view.png";
+                                            e.currentTarget.className = "w-full h-full object-contain p-2 opacity-50 filter invert";
+                                        }}
+                                    />
+                                ) : (
+                                    <img 
+                                        src="/jumping-horse-silhouette-facing-left-side-view.png" 
+                                        alt="" 
+                                        className="w-full h-full object-contain p-2 opacity-50 filter invert" 
+                                    />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[13px] font-bold text-white truncate">{p.name}</p>
+                                <p className="text-[11px] text-gray-400">{p.wins} wins / {p.totalRaces} races</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[13.5px] font-black text-emerald-400">{fmt(p.prizeMoney || 0)} ₫</p>
+                                <p className="text-[10px] text-gray-500">Win Rate: {p.winRate}%</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }
 
 // ── Violation badge ───────────────────────────────────────────────────────────
@@ -100,7 +237,6 @@ function ViolationBadge({ count }: { count: number }) {
 
 // ── Financials Page ───────────────────────────────────────────────────────────
 export default function FinancialsPage() {
-  const [chartRange, setChartRange] = useState<ChartRange>("30D");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -131,7 +267,7 @@ export default function FinancialsPage() {
         const res = await horseOwnerService.getFinancialSummary();
         if (!cancelled) setSummary(res.data);
       } catch {
-        // leave summary null, stat cards show "—"
+        // leave summary null
       } finally {
         if (!cancelled) setSummaryLoading(false);
       }
@@ -169,13 +305,13 @@ export default function FinancialsPage() {
     <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] text-white" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* ── Top header ───────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase mb-1">Management</p>
+          <p className="text-[11px] font-bold tracking-[0.2em] text-emerald-600 uppercase mb-1">Owner Dashboard</p>
           <h1 className="text-[28px] font-black text-white tracking-tight uppercase" style={{ fontFamily: "'Playfair Display', serif" }}>
-            Financial Overview
+            Financials & Earnings
           </h1>
-          <p className="text-[12.5px] text-gray-500 mt-1">Race earnings, jockey payouts, and violation reports.</p>
+          <p className="text-[13px] text-gray-500 mt-1">Track your horse's performance, race earnings, and payments.</p>
         </div>
         <div className="flex items-center gap-3 mt-1">
           <div className="bg-[#1a1a1a] border border-white/10 rounded-xl px-5 py-3 text-center">
@@ -185,11 +321,11 @@ export default function FinancialsPage() {
               {" "}<span className="text-[11px] text-gray-500 font-semibold">₫</span>
             </p>
           </div>
-          <div className="bg-red-800 border border-red-700/60 rounded-xl px-5 py-3 text-center shadow-lg shadow-red-900/40">
-            <p className="text-[9.5px] font-bold tracking-widest text-red-300 uppercase mb-1">Balance</p>
+          <div className="bg-emerald-900/40 border border-emerald-500/50 rounded-xl px-5 py-3 text-center shadow-lg shadow-emerald-900/20">
+            <p className="text-[9.5px] font-bold tracking-widest text-emerald-400 uppercase mb-1">Wallet Balance</p>
             <p className="text-[18px] font-black text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
               {summaryLoading ? "…" : fmt(s?.balance ?? 0)}
-              {" "}<span className="text-[11px] text-red-300 font-semibold">₫</span>
+              {" "}<span className="text-[11px] text-emerald-400 font-semibold">₫</span>
             </p>
           </div>
         </div>
@@ -198,62 +334,72 @@ export default function FinancialsPage() {
       {/* ── Stat cards ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <StatCard
-          icon={<TrendingUp size={15} />}
+          loading={summaryLoading}
+          icon={<TrendingUp size={24} className="text-emerald-500" />}
           label="Total Wins"
-          value={summaryLoading ? "…" : String(s?.totalWins ?? 0)}
+          value={String(s?.totalWins ?? 0)}
           sub={`out of ${s?.totalRaces ?? 0} races`}
-          subColor="text-green-400"
+          subColor="text-emerald-400"
         />
         <StatCard
-          icon={<TrendingDown size={15} />}
+          loading={summaryLoading}
+          icon={<TrendingDown size={24} className="text-red-500" />}
           label="Total Losses"
-          value={summaryLoading ? "…" : String(s?.totalLosses ?? 0)}
+          value={String(s?.totalLosses ?? 0)}
           sub="non-winning finishes"
           subColor="text-red-400"
         />
         <StatCard
-          icon={<Minus size={15} />}
+          loading={summaryLoading}
+          icon={<Minus size={24} className="text-blue-500" />}
           label="Total Prize"
-          value={summaryLoading ? "…" : `+${fmt(s?.totalPrize ?? 0)}`}
+          value={`+${fmt(s?.totalPrize ?? 0)}`}
           sub={`Jockey payout: ${fmt(s?.totalJockeyPayout ?? 0)} ₫`}
-          subColor="text-yellow-400"
+          subColor="text-blue-400"
         />
         <StatCard
-          icon={<Trophy size={15} />}
+          loading={summaryLoading}
+          icon={<Trophy size={24} className={s?.totalViolations ? "text-amber-500" : "text-gray-500"} />}
           label="Violations"
-          value={summaryLoading ? "…" : String(s?.totalViolations ?? 0)}
+          value={String(s?.totalViolations ?? 0)}
           sub={s?.totalViolations ? "review required" : "clean record"}
-          subColor={s?.totalViolations ? "text-red-400" : "text-gray-500"}
+          subColor={s?.totalViolations ? "text-amber-400" : "text-gray-500"}
         />
       </div>
 
+      {/* ── Charts & Performers ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+          <EarningsChart />
+          <TopPerformers />
+      </div>
+
       {/* ── Race Activity ─────────────────────────────────────────────────── */}
-      <div className="bg-[#1a1a1a] border border-white/8 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
-          <p className="text-[13px] font-semibold text-white">Race Activity</p>
+      <div className="bg-[#1a1a1a] border border-white/8 rounded-xl overflow-hidden mb-6">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 bg-[#1f1f1f]">
+          <p className="text-[14px] font-bold text-white">Race Activity & Ledger</p>
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
             <input
               type="text"
               placeholder="Search races or horses..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="bg-[#111] border border-white/10 rounded-lg pl-8 pr-4 py-1.5 text-[12px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 transition-colors duration-150 w-52"
+              className="bg-[#111] border border-white/10 rounded-lg pl-8 pr-4 py-1.5 text-[12px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 transition-colors duration-150 w-64"
             />
           </div>
         </div>
 
         {/* Column headers */}
-        <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1fr_1fr] px-6 py-2.5 border-b border-white/5">
-          {["Race", "Horse", "Jockey", "Position", "Prize", "Jockey Pay", "Violations"].map(h => (
-            <span key={h} className="text-[10px] font-bold tracking-widest text-gray-600 uppercase">{h}</span>
+        <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.5fr_1.5fr_1fr] px-6 py-3 border-b border-white/5 bg-[#171717]">
+          {["Race", "Horse", "Jockey", "Position", "Gross Prize", "Jockey Pay", "Violations"].map(h => (
+            <span key={h} className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">{h}</span>
           ))}
         </div>
 
         {/* Loading */}
         {rowsLoading && (
-          <div className="flex items-center justify-center gap-2 py-10 text-gray-600 text-[12px]">
-            <Loader2 size={13} className="animate-spin" /> Loading…
+          <div className="flex items-center justify-center gap-2 py-12 text-gray-500 text-[12px]">
+            <Loader2 size={16} className="animate-spin" /> Fetching ledger...
           </div>
         )}
 
@@ -264,37 +410,37 @@ export default function FinancialsPage() {
 
         {/* Empty */}
         {!rowsLoading && !rowsError && rows.length === 0 && (
-          <div className="py-10 text-center text-gray-600 text-[13px]">No race activity found.</div>
+          <div className="py-12 text-center text-gray-500 text-[13px]">No race activity found.</div>
         )}
 
         {/* Rows */}
         {!rowsLoading && !rowsError && rows.map((row, i) => (
           <div
             key={String(row.registrationId)}
-            className={`grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1fr_1fr] px-6 py-3.5 items-center hover:bg-white/[0.025] transition-colors duration-150 ${i !== rows.length - 1 ? "border-b border-white/5" : ""}`}
+            className={`grid grid-cols-[2fr_1.5fr_1fr_1fr_1.5fr_1.5fr_1fr] px-6 py-4 items-center hover:bg-white/[0.03] transition-colors duration-150 ${i !== rows.length - 1 ? "border-b border-white/5" : ""}`}
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${row.finishPosition === 1 ? "bg-red-900/60" : "bg-gray-800"}`}>
-                <Trophy size={10} className={row.finishPosition === 1 ? "text-red-400" : "text-gray-600"} />
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${row.finishPosition === 1 ? "bg-emerald-900/40 border border-emerald-500/20" : "bg-white/5 border border-white/10"}`}>
+                <Trophy size={14} className={row.finishPosition === 1 ? "text-emerald-400" : "text-gray-500"} />
               </div>
               <div className="min-w-0">
-                <p className="text-[13px] font-medium text-white truncate">{row.race.name}</p>
+                <p className="text-[13px] font-bold text-white truncate">{row.race.name}</p>
                 {row.race.date && (
-                  <p className="text-[10px] text-gray-600">
-                    {new Date(row.race.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                  <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+                    <Calendar size={10} /> {new Date(row.race.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                   </p>
                 )}
               </div>
             </div>
-            <span className="text-[13px] text-gray-400 truncate">{row.horse.name}</span>
+            <span className="text-[13px] font-medium text-gray-300 truncate">{row.horse.name}</span>
             <span className="text-[13px] text-gray-400 truncate">{row.jockey?.name ?? "—"}</span>
-            <span className={`text-[13px] font-semibold ${row.finishPosition === 1 ? "text-yellow-400" : row.finishPosition != null ? "text-gray-300" : "text-gray-600"}`}>
+            <span className={`text-[13px] font-bold ${row.finishPosition === 1 ? "text-yellow-400" : row.finishPosition != null ? "text-gray-300" : "text-gray-600"}`}>
               {positionLabel(row.finishPosition)}
             </span>
-            <span className={`text-[13.5px] font-bold ${row.prizeMoney > 0 ? "text-green-400" : "text-gray-600"}`}>
-              {row.prizeMoney > 0 ? `+${fmt(row.prizeMoney)}` : "—"} ₫
+            <span className={`text-[14px] font-black ${row.prizeMoney > 0 ? "text-emerald-400" : "text-gray-600"}`}>
+              {row.prizeMoney > 0 ? `+${fmt(row.prizeMoney)} ₫` : "—"}
             </span>
-            <span className="text-[13px] text-gray-500">
+            <span className="text-[13px] font-semibold text-gray-400">
               {row.jockeyPayout > 0 ? `-${fmt(row.jockeyPayout)} ₫` : "—"}
             </span>
             <ViolationBadge count={row.violations.length} />
@@ -303,37 +449,28 @@ export default function FinancialsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && !rowsLoading && (
-          <div className="px-6 py-3.5 border-t border-white/8 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-white/8 flex items-center justify-between bg-[#171717]">
             <button
               disabled={page === 1}
               onClick={() => setPage(p => p - 1)}
-              className="text-[11.5px] font-bold text-gray-500 hover:text-white disabled:opacity-30 transition-colors"
+              className="text-[12px] font-bold text-gray-500 hover:text-white disabled:opacity-30 transition-colors"
             >
-              ← Prev
+              ← Previous
             </button>
-            <span className="text-[11px] text-gray-600">Page {page} of {totalPages}</span>
+            <span className="text-[11px] font-medium text-gray-500">Page {page} of {totalPages}</span>
             <button
               disabled={page === totalPages}
               onClick={() => setPage(p => p + 1)}
-              className="text-[11.5px] font-bold text-gray-500 hover:text-white disabled:opacity-30 transition-colors"
+              className="text-[12px] font-bold text-gray-500 hover:text-white disabled:opacity-30 transition-colors"
             >
               Next →
-            </button>
-          </div>
-        )}
-
-        {/* Footer */}
-        {totalPages <= 1 && rows.length > 0 && (
-          <div className="px-6 py-3.5 border-t border-white/8 flex justify-center">
-            <button className="flex items-center gap-1.5 text-[11.5px] font-bold tracking-widest text-red-500 hover:text-red-400 uppercase transition-colors duration-150">
-              View Full Transaction History <ChevronRight size={13} />
             </button>
           </div>
         )}
       </div>
 
       {/* Payment verification (statistical wallet tracking only) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PaymentsPanel
           title="Payments to Jockeys"
           fetchPayments={(page, sortBy, order) => horseOwnerService.getPayments(page, 10, undefined, 'payer', sortBy, order)}

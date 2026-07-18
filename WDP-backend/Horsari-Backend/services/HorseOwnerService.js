@@ -354,9 +354,12 @@ class HorseOwnerService {
             const horses = await HorseRepository.findByOwnerId(ownerId);
             if (horses.length === 0) return { code: 200, data: [], msg: 'No horses found' };
 
-            const allRegs = await Registration.find({ horseOwnerId: ownerId }).select('_id horseId').lean();
+            const allRegs = await Registration.find({ horseOwnerId: ownerId })
+                .select('_id horseId raceRoundId')
+                .populate('raceRoundId', 'currencyType')
+                .lean();
             const regIds = allRegs.map(r => r._id);
-            const regHorseMap = new Map(allRegs.map(r => [String(r._id), String(r.horseId)]));
+            const regMap = new Map(allRegs.map(r => [String(r._id), r]));
 
             const results = regIds.length > 0
                 ? await RaceResult.find({ registrationId: { $in: regIds }, finishPosition: { $ne: null }, resultStatus: 'official' }).lean()
@@ -365,17 +368,22 @@ class HorseOwnerService {
             // Aggregate stats per horse
             const statsMap = new Map();
             for (const r of results) {
-                const horseId = regHorseMap.get(String(r.registrationId));
-                if (!horseId) continue;
-                if (!statsMap.has(horseId)) statsMap.set(horseId, { totalRaces: 0, wins: 0 });
+                const reg = regMap.get(String(r.registrationId));
+                if (!reg) continue;
+                const horseId = String(reg.horseId);
+                
+                if (!statsMap.has(horseId)) statsMap.set(horseId, { totalRaces: 0, wins: 0, prizeMoney: 0 });
                 const s = statsMap.get(horseId);
                 s.totalRaces++;
                 if (r.finishPosition === 1) s.wins++;
+                
+                const currency = reg.raceRoundId?.currencyType || 'VND';
+                s.prizeMoney += CurrencyConverter.convertToVnd(r.prizeMoney || 0, currency);
             }
 
             const performers = horses
                 .map(h => {
-                    const s = statsMap.get(String(h._id)) ?? { totalRaces: 0, wins: 0 };
+                    const s = statsMap.get(String(h._id)) ?? { totalRaces: 0, wins: 0, prizeMoney: 0 };
                     return {
                         id: h._id,
                         name: h.horseName,
@@ -383,9 +391,10 @@ class HorseOwnerService {
                         winRate: s.totalRaces > 0 ? Math.round((s.wins / s.totalRaces) * 100) : 0,
                         wins: s.wins,
                         totalRaces: s.totalRaces,
+                        prizeMoney: s.prizeMoney
                     };
                 })
-                .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
+                .sort((a, b) => b.prizeMoney - a.prizeMoney || b.wins - a.wins)
                 .slice(0, limit);
 
             return { code: 200, data: performers, msg: 'Top performers retrieved successfully' };
@@ -1092,6 +1101,85 @@ class HorseOwnerService {
                 data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
                 msg: 'Financial race results retrieved successfully',
             };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async getFinancialEarningsSeries(ownerId, groupBy = 'day') {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+
+            let dateFormat = '%Y-%m-%d';
+            
+            if (groupBy === 'week') {
+                dateFormat = '%Y-%U';
+            } else if (groupBy === 'month') {
+                dateFormat = '%Y-%m';
+            } else if (groupBy === 'year') {
+                dateFormat = '%Y';
+            }
+
+            const mongoose = require('mongoose');
+            const pipeline = [
+                { $match: { horseOwnerId: new mongoose.Types.ObjectId(ownerId) } },
+                { $lookup: { from: 'raceresults', localField: '_id', foreignField: 'registrationId', as: 'result' } },
+                { $unwind: { path: '$result', preserveNullAndEmptyArrays: false } },
+                { $match: { 'result.resultStatus': 'official', 'result.prizeMoney': { $gt: 0 } } },
+                { $lookup: { from: 'racerounds', localField: 'raceRoundId', foreignField: '_id', as: 'raceRound' } },
+                { $unwind: { path: '$raceRound', preserveNullAndEmptyArrays: false } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: dateFormat, date: '$raceRound.raceDate' } },
+                        grossPrize: { $sum: '$result.prizeMoney' }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ];
+
+            const rawSeries = await Registration.aggregate(pipeline);
+
+            let result = rawSeries.map(row => ({
+                date: row._id,
+                grossPrize: parseFloat(row.grossPrize.toFixed(2))
+            }));
+
+            const getPastPeriods = (type) => {
+                const pad = n => n.toString().padStart(2, '0');
+                const periods = [];
+                const count = type === 'year' ? 3 : type === 'month' ? 6 : type === 'week' ? 4 : 7;
+                for (let i = count - 1; i >= 0; i--) {
+                    const d = new Date();
+                    if (type === 'year') {
+                        d.setFullYear(d.getFullYear() - i);
+                        periods.push(`${d.getFullYear()}`);
+                    } else if (type === 'month') {
+                        d.setMonth(d.getMonth() - i);
+                        periods.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
+                    } else if (type === 'week') {
+                        d.setDate(d.getDate() - (i * 7));
+                        const startOfYear = new Date(d.getFullYear(), 0, 1);
+                        const days = Math.floor((d - startOfYear) / (24 * 60 * 60 * 1000));
+                        const weekNum = Math.floor((days + startOfYear.getDay()) / 7);
+                        periods.push(`${d.getFullYear()}-${pad(weekNum)}`);
+                    } else {
+                        d.setDate(d.getDate() - i);
+                        periods.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+                    }
+                }
+                return periods;
+            };
+
+            const dbMap = new Map(result.map(r => [r.date, r]));
+            for (const date of getPastPeriods(groupBy)) {
+                if (!dbMap.has(date)) {
+                    result.push({ date, grossPrize: 0 });
+                    dbMap.set(date, true);
+                }
+            }
+            result.sort((a, b) => a.date.localeCompare(b.date));
+
+            return { code: 200, data: result, msg: 'Earnings series retrieved successfully' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }

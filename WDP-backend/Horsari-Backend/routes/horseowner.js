@@ -37,6 +37,7 @@ router.get('/jockeys/:jockeyId/profile', authMiddleware, authHorseOwner, HorseOw
 
 // Financials
 router.get('/financials/summary', authMiddleware, authHorseOwner, HorseOwnerController.getFinancialSummary);
+router.get('/financials/earnings-series', authMiddleware, authHorseOwner, HorseOwnerController.getFinancialEarningsSeries);
 router.get('/financials/race-results', authMiddleware, authHorseOwner, HorseOwnerController.getFinancialRaceResults);
 
 // --- Payment verification ---
