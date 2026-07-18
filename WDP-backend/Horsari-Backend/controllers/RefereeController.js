@@ -79,6 +79,13 @@ class RefereeController {
         return res.status(response.code).json(response);
     }
 
+    // GET /statistics/earnings-series — fees earned over time, gap-filled
+    async getFeesEarningsSeries(req, res) {
+        const { groupBy = 'day' } = req.query;
+        const response = await RefereeService.getFeesEarningsSeries(req.userId, groupBy);
+        return res.status(response.code).json(response);
+    }
+
     // GET /work-history — completed race rounds + violations logged against them
     async getWorkHistory(req, res) {
         const page = parseInt(req.query.page) || 1;
@@ -117,6 +124,15 @@ class RefereeController {
     async getRaceRoundViolations(req, res) {
         const { status, search, sortBy = 'created_at', order = 'desc' } = req.query;
         const response = await RefereeService.getRaceRoundViolations(req.userId, req.params.id, status, search, sortBy, order);
+        return res.status(response.code).json(response);
+    }
+
+    // Get all violations in the system (unscoped browse, not just this referee's assignments)
+    async getAllViolations(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { status, severity, raceRoundId, sortBy = 'created_at', order = 'desc' } = req.query;
+        const response = await RefereeService.getAllViolations(page, limit, { status, severity, raceRoundId, sortBy, order });
         return res.status(response.code).json(response);
     }
 

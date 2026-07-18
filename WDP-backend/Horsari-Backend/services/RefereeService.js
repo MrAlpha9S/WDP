@@ -588,6 +588,115 @@ class RefereeService {
         }
     }
 
+    // Fees earned over time (day/week/month/year), gap-filled so charts always
+    // render a contiguous line. Mirrors AdminService.getDashboardHouseEarnings
+    // and HorseOwnerService.getFinancialEarningsSeries.
+    async getFeesEarningsSeries(refereeId, groupBy = 'day') {
+        try {
+            const mongoose = require('mongoose');
+            const Transaction = require('../entities/Transaction');
+
+            let dateFormat = '%Y-%m-%d';
+            if (groupBy === 'week') dateFormat = '%Y-%U';
+            else if (groupBy === 'month') dateFormat = '%Y-%m';
+            else if (groupBy === 'year') dateFormat = '%Y';
+
+            const series = await Transaction.aggregate([
+                {
+                    $match: {
+                        payeeId: new mongoose.Types.ObjectId(String(refereeId)),
+                        payeeRole: 'referee',
+                        paymentType: 'referee_fee',
+                        paymentStatus: 'paid',
+                    },
+                },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: dateFormat, date: '$date' } },
+                        feesEarned: { $sum: '$amount' },
+                    },
+                },
+                { $sort: { _id: 1 } },
+            ]);
+
+            let result = series.map(row => ({ date: row._id, feesEarned: parseFloat(row.feesEarned.toFixed(2)) }));
+
+            const getPastPeriods = (type) => {
+                const pad = n => n.toString().padStart(2, '0');
+                const periods = [];
+                const count = type === 'year' ? 3 : type === 'month' ? 6 : type === 'week' ? 4 : 7;
+                for (let i = count - 1; i >= 0; i--) {
+                    const d = new Date();
+                    if (type === 'year') {
+                        d.setFullYear(d.getFullYear() - i);
+                        periods.push(`${d.getFullYear()}`);
+                    } else if (type === 'month') {
+                        d.setMonth(d.getMonth() - i);
+                        periods.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
+                    } else if (type === 'week') {
+                        d.setDate(d.getDate() - (i * 7));
+                        const startOfYear = new Date(d.getFullYear(), 0, 1);
+                        const days = Math.floor((d - startOfYear) / (24 * 60 * 60 * 1000));
+                        const weekNum = Math.floor((days + startOfYear.getDay()) / 7);
+                        periods.push(`${d.getFullYear()}-${pad(weekNum)}`);
+                    } else {
+                        d.setDate(d.getDate() - i);
+                        periods.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+                    }
+                }
+                return periods;
+            };
+
+            const dbMap = new Map(result.map(r => [r.date, r]));
+            for (const date of getPastPeriods(groupBy)) {
+                if (!dbMap.has(date)) {
+                    result.push({ date, feesEarned: 0 });
+                    dbMap.set(date, true);
+                }
+            }
+            result.sort((a, b) => a.date.localeCompare(b.date));
+
+            const totalFeesEarned = parseFloat(result.reduce((s, r) => s + r.feesEarned, 0).toFixed(2));
+
+            return { code: 200, data: { totalFeesEarned, series: result }, msg: 'Fees earnings series retrieved successfully' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // System-wide violations list (unscoped — not limited to this referee's
+    // assignments). Mirrors AdminService.getAllViolations.
+    async getAllViolations(page, limit, { status, severity, raceRoundId, sortBy = 'created_at', order = 'desc' } = {}) {
+        try {
+            const filter = {};
+            if (status) filter.violationStatus = status;
+            if (severity) filter.severity = Number(severity);
+            if (raceRoundId) filter.raceRoundId = raceRoundId;
+
+            const allowedViolationSortFields = ['created_at', 'severity', 'violationStatus'];
+            const sortField = allowedViolationSortFields.includes(sortBy) ? sortBy : 'created_at';
+            const sortOrder = order === 'asc' ? 1 : -1;
+
+            const skip = (page - 1) * limit;
+            const [items, totalItems] = await Promise.all([
+                Violation.find(filter)
+                    .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                    .populate('registrationId', 'horseId registrationStatus')
+                    .populate('raceRefereeId', 'refereeId')
+                    .populate('raceRoundId', 'roundName raceDate')
+                    .sort({ [sortField]: sortOrder })
+                    .skip(skip)
+                    .limit(limit)
+                    .lean(),
+                Violation.countDocuments(filter),
+            ]);
+
+            return { code: 200, data: { items, pagination: { page, limit, totalItems, totalPages: Math.ceil(totalItems / limit) || 1 } }, msg: 'Violations retrieved successfully' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
     // Referee's own completed-race work history — race rounds they were assigned
     // to and that have actually finished, each with the violations logged
     // against that assignment. Mirrors AdminService.getUsersDetail's referee

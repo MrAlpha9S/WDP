@@ -21,6 +21,7 @@ router.put('/invitations/:id/accept', authMiddleware, authReferee, RefereeContro
 router.put('/invitations/:id/reject', authMiddleware, authReferee, RefereeController.rejectInvitation);
 router.put('/invitations/:invitationId/no-show', authMiddleware, authReferee, RefereeController.markJockeyNoShow);
 router.get('/violation-types', authMiddleware, authReferee, RefereeController.getViolationTypes);
+router.get('/violations', authMiddleware, authReferee, RefereeController.getAllViolations);
 router.post('/violations', authMiddleware, authReferee, RefereeController.createViolation);
 router.put('/violations/:violationId/confirm', authMiddleware, authReferee, RefereeController.confirmViolation);
 router.delete('/violations/:violationId', authMiddleware, authReferee, RefereeController.deleteViolation);
@@ -28,6 +29,7 @@ router.delete('/violations/:violationId', authMiddleware, authReferee, RefereeCo
 // Wallet + payment verification
 router.get('/wallet', authMiddleware, authReferee, RefereeController.getWalletInfo);
 router.get('/statistics', authMiddleware, authReferee, RefereeController.getStatistics);
+router.get('/statistics/earnings-series', authMiddleware, authReferee, RefereeController.getFeesEarningsSeries);
 router.get('/work-history', authMiddleware, authReferee, RefereeController.getWorkHistory);
 router.get('/payments', authMiddleware, authReferee, PaymentController.listMyPayments);
 router.put('/payments/:paymentId/confirm-received', authMiddleware, authReferee, PaymentController.confirmReceived);

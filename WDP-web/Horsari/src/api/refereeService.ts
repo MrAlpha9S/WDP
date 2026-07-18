@@ -2,6 +2,7 @@ import api from './axios';
 import type { RaceRoundData } from './adminService';
 import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
 import type { RaceRoundDetail } from '../providers/useRaceSocket';
+import type { ViolationEntity } from '../shared/types/ViolationTypes';
 
 export interface RefereeWalletInfo {
     referee: { _id: string; wallet: number };
@@ -351,6 +352,28 @@ export const refereeService = {
         }
     },
 
+    /** System-wide violations list (not scoped to this referee's own assignments). */
+    getAllViolations: async (
+        page = 1,
+        limit = 10,
+        status?: string,
+        severity?: number,
+        raceRoundId?: string,
+        sortBy = 'created_at',
+        order: 'asc' | 'desc' = 'desc',
+    ): Promise<{ code: number; data: { items: ViolationEntity[]; pagination: { page: number; limit: number; totalItems: number; totalPages: number } }; msg: string }> => {
+        try {
+            const params: Record<string, unknown> = { page, limit, sortBy, order };
+            if (status) params.status = status;
+            if (severity) params.severity = severity;
+            if (raceRoundId) params.raceRoundId = raceRoundId;
+            const response = await api.get('/referee/violations', { params });
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to fetch violations' };
+        }
+    },
+
     getRaceRoundViolations: async (
         raceRoundId: string,
         status?: string,
@@ -436,6 +459,18 @@ export const refereeService = {
             return response.data;
         } catch (error: any) {
             throw error.response?.data || { msg: 'Failed to fetch statistics' };
+        }
+    },
+
+    /** Fees earned over time (day/week/month/year), gap-filled so charts always render a contiguous line. */
+    getFeesEarningsSeries: async (
+        groupBy: 'day' | 'week' | 'month' | 'year' = 'day',
+    ): Promise<{ code: number; data: { totalFeesEarned: number; series: { date: string; feesEarned: number }[] }; msg: string }> => {
+        try {
+            const response = await api.get('/referee/statistics/earnings-series', { params: { groupBy } });
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to fetch fees earnings series' };
         }
     },
 
