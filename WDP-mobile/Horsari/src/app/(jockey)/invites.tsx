@@ -37,13 +37,13 @@ const Palette = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatViDate(dateStr: string | null | undefined): string | null {
+function formatDate(dateStr: string | null | undefined): string | null {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   return `${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
 }
 
-function formatViDateTime(dateStr: string | null | undefined): string | null {
+function formatDateTime(dateStr: string | null | undefined): string | null {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   const hh = String(d.getHours()).padStart(2, '0');
@@ -61,12 +61,12 @@ function formatFee(bookingFees: number | undefined, pct: number | undefined): st
 // ─── Status colour helper (shared by card + sheet) ───────────────────────────
 
 function getStatusStyle(inv: InvitationItem): { color: string; label: string } {
-  if (inv.invitationStatus === 'declined')  return { color: Palette.red,     label: 'Đã từ chối'   };
-  if (inv.invitationStatus === 'accepted')  return { color: '#22C55E',        label: 'Đã chấp nhận' };
-  if (inv.invitationStatus === 'cancelled') return { color: Palette.textMuted, label: 'Đã hủy'      };
+  if (inv.invitationStatus === 'declined')  return { color: Palette.red,     label: 'Declined'   };
+  if (inv.invitationStatus === 'accepted')  return { color: '#22C55E',        label: 'Accepted' };
+  if (inv.invitationStatus === 'cancelled') return { color: Palette.textMuted, label: 'Cancelled'      };
   // pending
-  if (inv.jockeyConfirmation) return { color: '#22C55E', label: 'Đã đồng ý'    };
-  return                               { color: Palette.gold, label: 'Chờ phản hồi' };
+  if (inv.jockeyConfirmation) return { color: '#22C55E', label: 'Confirmed'    };
+  return                               { color: Palette.gold, label: 'Awaiting Response' };
 }
 
 // ─── Detail sheet row ─────────────────────────────────────────────────────────
@@ -111,10 +111,10 @@ function InviteDetailSheet({
   const statusStyle = getStatusStyle(invite);
 
   const registrationStatusLabel: Record<string, string> = {
-    pending: 'Đang chờ',
-    approved: 'Đã duyệt',
-    rejected: 'Từ chối',
-    cancelled: 'Đã hủy',
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    cancelled: 'Cancelled',
   };
 
   return (
@@ -134,7 +134,7 @@ function InviteDetailSheet({
         <View style={styles.sheetHeader}>
           <View>
             <Text style={styles.sheetTitle} numberOfLines={1}>
-              {invite.horse?.horseName ?? 'Chi tiết lời mời'}
+              {invite.horse?.horseName ?? 'Invitation Details'}
             </Text>
             <Text style={styles.sheetSubtitle}>
               {invite.tournament?.tournamentName ?? ''}
@@ -165,7 +165,7 @@ function InviteDetailSheet({
               styles.confirmBadgeText,
               invite.ownerConfirmation ? { color: '#22C55E' } : { color: Palette.textMuted },
             ]}>
-              {invite.ownerConfirmation ? 'Chủ ngựa đã xác nhận' : 'Chờ chủ ngựa'}
+              {invite.ownerConfirmation ? 'Confirmed by owner' : 'Awaiting owner'}
             </Text>
           </View> */}
         </View>
@@ -175,33 +175,33 @@ function InviteDetailSheet({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.sheetScrollContent}>
 
-          {/* ── Ngựa ── */}
+          {/* ── Horse ── */}
           {invite.horse && (
-            <SheetSection title="THÔNG TIN NGỰA">
-              <SheetRow label="Tên ngựa" value={invite.horse.horseName} />
-              <SheetRow label="Giống" value={invite.horse.breed ?? '—'} />
-              <SheetRow label="Giới tính" value={invite.horse.gender === 'male' ? 'Đực' : invite.horse.gender === 'female' ? 'Cái' : '—'} />
+            <SheetSection title="HORSE INFO">
+              <SheetRow label="Horse Name" value={invite.horse.horseName} />
+              <SheetRow label="Breed" value={invite.horse.breed ?? '—'} />
+              <SheetRow label="Gender" value={invite.horse.gender === 'male' ? 'Male' : invite.horse.gender === 'female' ? 'Female' : '—'} />
             </SheetSection>
           )}
 
-          {/* ── Vòng đua ── */}
+          {/* ── Race round ── */}
           {invite.raceRound && (
-            <SheetSection title="VÒNG ĐUA">
-              <SheetRow label="Tên vòng" value={invite.raceRound.roundName} />
+            <SheetSection title="RACE ROUND">
+              <SheetRow label="Round Name" value={invite.raceRound.roundName} />
               <SheetRow
-                label="Ngày đua"
-                value={formatViDateTime(invite.raceRound.raceDate) ?? '—'}
+                label="Race Date"
+                value={formatDateTime(invite.raceRound.raceDate) ?? '—'}
               />
-              <SheetRow label="Địa điểm" value={invite.raceRound.location ?? '—'} />
-              <SheetRow label="Mặt đường" value={invite.raceRound.raceGround ?? '—'} />
+              <SheetRow label="Location" value={invite.raceRound.location ?? '—'} />
+              <SheetRow label="Track Surface" value={invite.raceRound.raceGround ?? '—'} />
               <SheetRow
-                label="Cự ly"
+                label="Distance"
                 value={invite.raceRound.trackLength ? `${invite.raceRound.trackLength} m` : '—'}
               />
-              <SheetRow label="Trạng thái" value={invite.raceRound.status === 'draft' ? 'Nháp' : invite.raceRound.status === 'scheduled' ? 'Đã lên lịch' : invite.raceRound.status === 'running' ? 'Đang diễn ra' : invite.raceRound.status === 'completed' ? 'Đã hoàn thành' : invite.raceRound.status === 'cancelled' ? 'Đã hủy' : '—'} />
+              <SheetRow label="Status" value={invite.raceRound.status === 'draft' ? 'Draft' : invite.raceRound.status === 'scheduled' ? 'Scheduled' : invite.raceRound.status === 'running' ? 'Running' : invite.raceRound.status === 'completed' ? 'Completed' : invite.raceRound.status === 'cancelled' ? 'Cancelled' : '—'} />
               {(invite.raceRound.minimalRidingFees ?? 0) > 0 && (
                 <SheetRow
-                  label="Phí tối thiểu"
+                  label="Minimum Fee"
                   value={`$${invite.raceRound.minimalRidingFees!.toLocaleString()}`}
                   valueColor={Palette.gold}
                 />
@@ -209,63 +209,63 @@ function InviteDetailSheet({
             </SheetSection>
           )}
 
-          {/* ── Giải đấu ── */}
+          {/* ── Tournament ── */}
           {invite.tournament && (
-            <SheetSection title="GIẢI ĐẤU">
-              <SheetRow label="Tên giải" value={invite.tournament.tournamentName} />
+            <SheetSection title="TOURNAMENT">
+              <SheetRow label="Tournament Name" value={invite.tournament.tournamentName} />
               {/* {invite.tournament.tournamentId && (
-                <SheetRow label="ID giải" value={String(invite.tournament.tournamentId)} />
+                <SheetRow label="Tournament ID" value={String(invite.tournament.tournamentId)} />
               )} */}
             </SheetSection>
           )}
 
-          {/* ── Chủ ngựa ── */}
+          {/* ── Horse owner ── */}
           {invite.horseOwner && (
-            <SheetSection title="CHỦ NGỰA">
-              <SheetRow label="Họ tên" value={invite.horseOwner.user?.fullName ?? '—'} />
-              <SheetRow label="Số điện thoại" value={invite.horseOwner.user?.phoneNumber ?? '—'} />
+            <SheetSection title="HORSE OWNER">
+              <SheetRow label="Full Name" value={invite.horseOwner.user?.fullName ?? '—'} />
+              <SheetRow label="Phone Number" value={invite.horseOwner.user?.phoneNumber ?? '—'} />
             </SheetSection>
           )}
 
-          {/* ── Đăng ký ── */}
-          <SheetSection title="ĐĂNG KÝ">
+          {/* ── Registration ── */}
+          <SheetSection title="REGISTRATION">
             <SheetRow
-              label="Vai trò"
-              value={invite.isBackup ? 'Dự phòng' : 'Chính thức'}
+              label="Role"
+              value={invite.isBackup ? 'Backup' : 'Official'}
             //   valueColor={invite.isBackup ? Palette.gold : Palette.green}
             />
             {invite.registration && (
               <>
                 <SheetRow
-                  label="Trạng thái đăng ký"
+                  label="Registration Status"
                   value={registrationStatusLabel[invite.registration.registrationStatus] ?? invite.registration.registrationStatus ?? '—'}
                 />
                 <SheetRow
-                  label="Ngày đăng ký"
-                  value={formatViDateTime(invite.registration.registeredAt) ?? '—'}
+                  label="Registered On"
+                  value={formatDateTime(invite.registration.registeredAt) ?? '—'}
                 />
               </>
             )}
           </SheetSection>
 
-          {/* ── Thù lao ── */}
-          <SheetSection title="QUYỀN LỢI">
+          {/* ── Compensation ── */}
+          <SheetSection title="BENEFITS">
             {(invite.bookingFees ?? 0) > 0 && (
               <SheetRow
-                label="Phí cưỡi"
+                label="Booking Fee"
                 value={`${invite.bookingFees.toLocaleString()} ₫`}
                 valueColor={Palette.gold}
               />
             )}
             {(invite.percentagePayout ?? 0) > 0 && (
               <SheetRow
-                label="Tỷ lệ thưởng"
+                label="Payout Rate"
                 value={`${(invite.percentagePayout || 0)}%`}
                 valueColor={Palette.gold}
               />
             )}
             {(invite.bookingFees ?? 0) === 0 && (invite.percentagePayout ?? 0) === 0 && (
-              <SheetRow label="Thù lao" value="Chưa xác định" />
+              <SheetRow label="Compensation" value="Not specified" />
             )}
           </SheetSection>
 
@@ -278,7 +278,7 @@ function InviteDetailSheet({
               style={[styles.sheetBtnDecline, busy && styles.btnDisabled]}
               disabled={busy}
               onPress={() => onRespond(invite.invitationId, 'rejected')}>
-              <Text style={styles.sheetBtnDeclineText}>TỪ CHỐI</Text>
+              <Text style={styles.sheetBtnDeclineText}>DECLINE</Text>
             </Pressable>
             <Pressable
               style={[styles.sheetBtnAccept, busy && styles.btnDisabled]}
@@ -287,7 +287,7 @@ function InviteDetailSheet({
               {busy ? (
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
-                <Text style={styles.sheetBtnAcceptText}>CHẤP NHẬN</Text>
+                <Text style={styles.sheetBtnAcceptText}>ACCEPT</Text>
               )}
             </Pressable>
           </View>
@@ -302,9 +302,9 @@ function InviteDetailSheet({
 type FilterKey = 'pending' | 'confirmed' | 'declined';
 
 const FILTERS: { key: FilterKey; label: string; color: string }[] = [
-  { key: 'pending',   label: 'Chờ phản hồi', color: Palette.gold },
-  { key: 'confirmed', label: 'Đã đồng ý',    color: Palette.green },
-  { key: 'declined',  label: 'Đã từ chối',   color: Palette.red  },
+  { key: 'pending',   label: 'Awaiting Response', color: Palette.gold },
+  { key: 'confirmed', label: 'Confirmed',         color: Palette.green },
+  { key: 'declined',  label: 'Declined',          color: Palette.red  },
 ];
 
 function applyFilter(all: InvitationItem[], filter: FilterKey): InvitationItem[] {
@@ -340,7 +340,7 @@ export default function InvitesScreen() {
       const data = await getMyInvitations();
       setAllInvites(data);
     } catch {
-      setError('Không thể tải lời mời. Vui lòng thử lại.');
+      setError('Could not load invitations. Please try again.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -394,7 +394,7 @@ export default function InvitesScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>LỜI MỜI</Text>
+          <Text style={styles.headerTitle}>INVITES</Text>
         </View>
 
         {/* ─── Filter bar ─── */}
@@ -435,7 +435,7 @@ export default function InvitesScreen() {
             <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
             <Text style={styles.emptyText}>{error}</Text>
             <Pressable style={styles.retryBtn} onPress={() => load()}>
-              <Text style={styles.retryText}>THỬ LẠI</Text>
+              <Text style={styles.retryText}>RETRY</Text>
             </Pressable>
           </View>
         ) : (
@@ -472,10 +472,10 @@ export default function InvitesScreen() {
             </View>
 
             {invites.map((invite) => {
-              const horse = invite.horse?.horseName ?? 'Ngựa không xác định';
+              const horse = invite.horse?.horseName ?? 'Unknown horse';
               const owner = invite.horseOwner?.user?.fullName ?? '—';
               const tournament = invite.tournament?.tournamentName ?? '—';
-              const raceDate = formatViDate(invite.raceRound?.raceDate);
+              const raceDate = formatDate(invite.raceRound?.raceDate);
               const fee = formatFee(invite.bookingFees, invite.percentagePayout);
               const isResponding = respondingId === invite.invitationId;
 
@@ -507,16 +507,16 @@ export default function InvitesScreen() {
                       </View>
                       <View style={styles.inviteHorseInfo}>
                         <View style={styles.horseLabelRow}>
-                          <Text style={styles.inviteHorseLabel}>NGỰA ĐUA</Text>
+                          <Text style={styles.inviteHorseLabel}>RACE HORSE</Text>
                           {invite.isBackup ? (
                             <View style={styles.backupChip}>
                               <Ionicons name="shield-outline" size={9} color={'#6B7280'} />
-                              <Text style={styles.backupChipText}>DỰ PHÒNG</Text>
+                              <Text style={styles.backupChipText}>BACKUP</Text>
                             </View>
                           ) : (
                             <View style={styles.officialChip}>
                               <Ionicons name="checkmark-circle-outline" size={9} color={'#0D9488'} />
-                              <Text style={styles.officialChipText}>CHÍNH THỨC</Text>
+                              <Text style={styles.officialChipText}>OFFICIAL</Text>
                             </View>
                           )}
                         </View>
@@ -537,11 +537,11 @@ export default function InvitesScreen() {
                     <View style={styles.inviteDetails}>
                       <View style={styles.inviteDetailRow}>
                         <View style={styles.inviteDetailCell}>
-                          <Text style={styles.detailLabel}>Chủ ngựa</Text>
+                          <Text style={styles.detailLabel}>Horse Owner</Text>
                           <Text style={styles.detailValue} numberOfLines={1}>{owner}</Text>
                         </View>
                         <View style={styles.inviteDetailCell}>
-                          <Text style={styles.detailLabel}>Giải đấu</Text>
+                          <Text style={styles.detailLabel}>Tournament</Text>
                           <Text style={styles.detailValue} numberOfLines={1}>{tournament}</Text>
                         </View>
                       </View>
@@ -549,13 +549,13 @@ export default function InvitesScreen() {
                         <View style={styles.inviteDetailRow}>
                           {raceDate && (
                             <View style={styles.inviteDetailCell}>
-                              <Text style={styles.detailLabel}>Ngày đua</Text>
+                              <Text style={styles.detailLabel}>Race Date</Text>
                               <Text style={styles.detailValue}>{raceDate}</Text>
                             </View>
                           )}
                           {fee && (
                             <View style={styles.inviteDetailCell}>
-                              <Text style={styles.detailLabel}>Phí / Thưởng</Text>
+                              <Text style={styles.detailLabel}>Fee / Payout</Text>
                               <Text style={[styles.detailValue, { color: Palette.gold }]}>{fee}</Text>
                             </View>
                           )}
@@ -565,7 +565,7 @@ export default function InvitesScreen() {
 
                     {/* Detail hint */}
                     <View style={styles.detailHint}>
-                      <Text style={styles.detailHintText}>Xem chi tiết</Text>
+                      <Text style={styles.detailHintText}>View details</Text>
                       <Ionicons name="chevron-forward" size={13} color={Palette.textMuted} />
                     </View>
                   </Pressable>
@@ -580,14 +580,14 @@ export default function InvitesScreen() {
                         {isResponding ? (
                           <ActivityIndicator color="#FFFFFF" size="small" />
                         ) : (
-                          <Text style={styles.btnAcceptText}>CHẤP NHẬN</Text>
+                          <Text style={styles.btnAcceptText}>ACCEPT</Text>
                         )}
                       </Pressable>
                       <Pressable
                         style={[styles.btnDecline, isResponding && styles.btnDisabled]}
                         disabled={isResponding}
                         onPress={() => respond(invite.invitationId, 'rejected')}>
-                        <Text style={styles.btnDeclineText}>TỪ CHỐI</Text>
+                        <Text style={styles.btnDeclineText}>DECLINE</Text>
                       </Pressable>
                     </View>
                   )}
@@ -598,7 +598,7 @@ export default function InvitesScreen() {
             {invites.length === 0 && !error && (
               <View style={styles.emptyState}>
                 <Ionicons name="mail-outline" size={36} color={Palette.textMuted} />
-                <Text style={styles.emptyText}>Không có lời mời mới</Text>
+                <Text style={styles.emptyText}>No new invitations</Text>
               </View>
             )}
 

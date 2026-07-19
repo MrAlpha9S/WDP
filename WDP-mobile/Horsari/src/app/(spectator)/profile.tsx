@@ -117,7 +117,7 @@ export default function SpectatorProfileScreen() {
     session?.user.fullName ||
     profile?.user.username ||
     session?.user.username ||
-    'Khán giả';
+    'Spectator';
 
   const rewardPoints =
     wallet?.spectator.wallet ?? profile?.spectator.wallet ?? 0;
@@ -136,7 +136,7 @@ export default function SpectatorProfileScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>HỒ SƠ CỦA TÔI</Text>
+          <Text style={styles.headerTitle}>MY PROFILE</Text>
         </View>
 
         {isLoading ? (
@@ -179,7 +179,7 @@ export default function SpectatorProfileScreen() {
                 <View style={styles.heroPointsRow}>
                   <Ionicons name="star" size={14} color={Palette.gold} />
                   <Text style={styles.heroPoints}>
-                    {rewardPoints.toLocaleString()} điểm thưởng
+                    {rewardPoints.toLocaleString()} reward points
                   </Text>
                 </View>
               </View>
@@ -188,42 +188,52 @@ export default function SpectatorProfileScreen() {
             {/* ─── Prediction Stats ─── */}
             {profile?.stats && (
               <>
-                <Text style={styles.sectionTitle}>Thống kê dự đoán</Text>
+                <Text style={styles.sectionTitle}>Prediction Stats</Text>
                 <View style={styles.statsRow}>
                   <StatCard
-                    label="TỔNG DỰ ĐOÁN"
+                    label="TOTAL PREDICTIONS"
                     value={String(profile.stats.totalPredictions)}
-                    sub="tổng số lần"
+                    sub="all-time"
                   />
                   <StatCard
-                    label="DỰ ĐOÁN ĐÚNG"
+                    label="CORRECT PREDICTIONS"
                     value={String(profile.stats.totalCorrectPredictions)}
                     valueColor={Palette.green}
-                    sub="kết quả đúng"
+                    sub="correct results"
                   />
                 </View>
                 <View style={styles.winRateCard}>
-                  <View style={styles.winRateLeft}>
-                    <Text style={styles.statLabel}>TỶ LỆ CHÍNH XÁC</Text>
-                    <View style={styles.winRateValueRow}>
-                      <Text style={[styles.winRateBig, { color: Palette.gold }]}>
-                        {profile.stats.winRate.toFixed(1)}%
-                      </Text>
+                  {profile.stats.totalPredictions === 0 ? (
+                    <View style={styles.winRateLeft}>
+                      <Text style={styles.statLabel}>ACCURACY</Text>
+                      <Text style={styles.winRateEmpty}>NO PREDICTIONS YET</Text>
+                      <Text style={styles.statSub}>Place your first prediction</Text>
                     </View>
-                    <Text style={styles.statSub}>
-                      {profile.stats.totalCorrectPredictions} đúng / {profile.stats.totalPredictions} tổng
-                    </Text>
-                  </View>
-                  {/* Mini bar chart */}
-                  <View style={styles.miniChart}>
-                    <View style={[styles.miniChartFill, { flex: profile.stats.winRate / 100 }]} />
-                    <View style={{ flex: 1 - profile.stats.winRate / 100 }} />
-                  </View>
+                  ) : (
+                    <>
+                      <View style={styles.winRateLeft}>
+                        <Text style={styles.statLabel}>ACCURACY</Text>
+                        <View style={styles.winRateValueRow}>
+                          <Text style={[styles.winRateBig, { color: Palette.gold }]}>
+                            {profile.stats.winRate.toFixed(1)}%
+                          </Text>
+                        </View>
+                        <Text style={styles.statSub}>
+                          {profile.stats.totalCorrectPredictions} correct / {profile.stats.totalPredictions} total
+                        </Text>
+                      </View>
+                      {/* Mini bar chart */}
+                      <View style={styles.miniChart}>
+                        <View style={[styles.miniChartFill, { flex: profile.stats.winRate / 100 }]} />
+                        <View style={{ flex: 1 - profile.stats.winRate / 100 }} />
+                      </View>
+                    </>
+                  )}
                 </View>
                 <Pressable
                   style={styles.statsLinkRow}
                   onPress={() => router.push('/(spectator)/statistics' as any)}>
-                  <Text style={styles.statsLinkText}>Xem thống kê chi tiết</Text>
+                  <Text style={styles.statsLinkText}>View detailed statistics</Text>
                   <Ionicons name="chevron-forward" size={14} color={Palette.gold} />
                 </Pressable>
               </>
@@ -232,7 +242,7 @@ export default function SpectatorProfileScreen() {
             {/* ─── Wallet ─── */}
             {wallet && (
               <>
-                <Text style={styles.sectionTitle}>Ví điểm thưởng</Text>
+                <Text style={styles.sectionTitle}>Rewards Wallet</Text>
                 <View style={styles.walletCard}>
                   <LinearGradient
                     colors={['#1E1A0A', '#161410', '#0E0E12']}
@@ -242,19 +252,19 @@ export default function SpectatorProfileScreen() {
                   />
                   <View style={styles.walletRow}>
                     <View style={styles.walletItem}>
-                      <Text style={styles.walletLabel}>SỐ DƯ HIỆN TẠI</Text>
+                      <Text style={styles.walletLabel}>CURRENT BALANCE</Text>
                       <Text style={[styles.walletValue, { color: Palette.gold }]}>
                         {wallet.spectator.wallet.toLocaleString()}
                       </Text>
-                      <Text style={styles.walletUnit}>điểm</Text>
+                      <Text style={styles.walletUnit}>points</Text>
                     </View>
                     <View style={styles.walletDivider} />
                     <View style={styles.walletItem}>
-                      <Text style={styles.walletLabel}>TỔNG ĐÃ KIẾM</Text>
+                      <Text style={styles.walletLabel}>TOTAL EARNED</Text>
                       <Text style={[styles.walletValue, { color: Palette.green }]}>
                         {wallet.stats.totalEarned.toLocaleString()}
                       </Text>
-                      <Text style={styles.walletUnit}>điểm</Text>
+                      <Text style={styles.walletUnit}>points</Text>
                     </View>
                   </View>
                   <View style={styles.walletActions}>
@@ -262,13 +272,13 @@ export default function SpectatorProfileScreen() {
                       style={styles.walletBtnDeposit}
                       onPress={() => router.push('/(spectator)/wallet' as any)}>
                       <Ionicons name="add-circle-outline" size={15} color={Palette.gold} />
-                      <Text style={styles.walletBtnDepositText}>NẠP ĐIỂM</Text>
+                      <Text style={styles.walletBtnDepositText}>DEPOSIT</Text>
                     </Pressable>
                     <Pressable
                       style={styles.walletBtnWithdraw}
                       onPress={() => router.push('/(spectator)/wallet' as any)}>
                       <Ionicons name="arrow-down-circle-outline" size={15} color={Palette.textMuted} />
-                      <Text style={styles.walletBtnWithdrawText}>RÚT ĐIỂM</Text>
+                      <Text style={styles.walletBtnWithdrawText}>WITHDRAW</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -276,29 +286,24 @@ export default function SpectatorProfileScreen() {
             )}
 
             {/* ─── Account info ─── */}
-            {profile?.user && (
+            {profile?.user && (profile.user.phoneNumber || profile.user.address) && (
               <>
-                <Text style={styles.sectionTitle}>Thông tin tài khoản</Text>
+                <Text style={styles.sectionTitle}>Account Info</Text>
                 <View style={styles.infoCard}>
                   {profile.user.phoneNumber && (
                     <SettingsRow
                       icon="call-outline"
-                      label="Số điện thoại"
+                      label="Phone Number"
                       value={profile.user.phoneNumber}
                     />
                   )}
                   {profile.user.address && (
                     <SettingsRow
                       icon="location-outline"
-                      label="Địa chỉ"
+                      label="Address"
                       value={profile.user.address}
                     />
                   )}
-                  <SettingsRow
-                    icon="globe-outline"
-                    label="Ngôn ngữ"
-                    value="Tiếng Việt"
-                  />
                 </View>
               </>
             )}
@@ -306,7 +311,7 @@ export default function SpectatorProfileScreen() {
             {/* ─── Logout ─── */}
             <Pressable style={styles.logoutBtn} onPress={logout}>
               <Ionicons name="log-out-outline" size={16} color={Palette.red} />
-              <Text style={styles.logoutText}>ĐĂNG XUẤT</Text>
+              <Text style={styles.logoutText}>LOG OUT</Text>
             </Pressable>
 
             <View style={styles.bottomPad} />
@@ -458,6 +463,7 @@ const styles = StyleSheet.create({
   winRateLeft: { flex: 1, gap: 4 },
   winRateValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   winRateBig: { fontSize: 30, fontWeight: '800', letterSpacing: 0.5 },
+  winRateEmpty: { fontSize: 16, fontWeight: '700', color: Palette.textMuted, letterSpacing: 0.5 },
   miniChart: {
     width: 8,
     height: 80,

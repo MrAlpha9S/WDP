@@ -46,7 +46,7 @@ function buildCountdown(dateStr: string): string {
   const now = Date.now();
   const target = new Date(dateStr).getTime();
   const diff = target - now;
-  if (diff <= 0) return 'Đang diễn ra';
+  if (diff <= 0) return 'In progress';
   const days = Math.floor(diff / 86_400_000);
   const hours = Math.floor((diff % 86_400_000) / 3_600_000);
   const mins = Math.floor((diff % 3_600_000) / 60_000);
@@ -58,8 +58,8 @@ function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr);
   const today = dayStart(new Date());
   const ds = dayStart(d);
-  if (ds === today) return 'Hôm nay';
-  if (ds === today + 86_400_000) return 'Ngày mai';
+  if (ds === today) return 'Today';
+  if (ds === today + 86_400_000) return 'Tomorrow';
   return `${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
@@ -84,9 +84,9 @@ function variantForStatus(status: string | undefined): RaceVariant {
 }
 
 const VARIANT_BADGE: Record<RaceVariant, { text: string; bg: string; textColor: string }> = {
-  live: { text: 'ĐANG THI ĐẤU', bg: '#C81E2E', textColor: '#FFFFFF' },
-  prepared: { text: 'SẴN SÀNG XUẤT PHÁT', bg: '#C9A24B', textColor: '#1A1408' },
-  scheduled: { text: 'TRẬN ĐẤU TIẾP THEO', bg: '#E8828A', textColor: '#1A0608' },
+  live: { text: 'LIVE NOW', bg: '#C81E2E', textColor: '#FFFFFF' },
+  prepared: { text: 'READY TO START', bg: '#C9A24B', textColor: '#1A1408' },
+  scheduled: { text: 'NEXT RACE', bg: '#E8828A', textColor: '#1A0608' },
 };
 
 function NextRaceCard({ item }: { item: ScheduleItem }) {
@@ -103,7 +103,7 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
   }, [item.raceRound?.raceDate]);
 
   const title =
-    item.tournament?.tournamentName ?? item.raceRound?.roundName ?? 'Vòng đua tiếp theo';
+    item.tournament?.tournamentName ?? item.raceRound?.roundName ?? 'Next race round';
   const horse = item.horse?.horseName ?? '—';
   const location = item.raceRound?.location ?? '—';
   const variant = variantForStatus(item.raceRound?.status);
@@ -128,7 +128,7 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
               <Text style={styles.nextRaceHorse} numberOfLines={1}>{horse}</Text>
               {item.isBackup && (
                 <View style={styles.backupTag}>
-                  <Text style={styles.backupTagText}>DỰ PHÒNG</Text>
+                  <Text style={styles.backupTagText}>BACKUP</Text>
                 </View>
               )}
             </View>
@@ -138,7 +138,7 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
             </View>
           </View>
           <View style={styles.nextRaceRight}>
-            <Text style={styles.countdownLabel}>KHỞI TRANH TRONG</Text>
+            <Text style={styles.countdownLabel}>STARTS IN</Text>
             <Text style={styles.countdown}>{countdown}</Text>
             {item.raceRound?.raceDate && (
               <Text style={styles.nextRaceDate}>
@@ -155,11 +155,11 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
 // ─── All-Races Card (read-only browse — jockeys don't drill into a race) ─────
 
 function statusLabel(s: string): { label: string; color: string } {
-  if (s === 'running')              return { label: 'Đang chạy',    color: Palette.red };
-  if (s === 'prepared')             return { label: 'Chuẩn bị',     color: Palette.amber };
-  if (s === 'scheduled')            return { label: 'Sắp diễn ra',  color: Palette.gold };
-  if (s === 'completed')            return { label: 'Đã kết thúc',  color: Palette.textMuted };
-  if (s === 'awaitingConfirmation') return { label: 'Chờ xác nhận', color: Palette.amber };
+  if (s === 'running')              return { label: 'Running',              color: Palette.red };
+  if (s === 'prepared')             return { label: 'Preparing',            color: Palette.amber };
+  if (s === 'scheduled')            return { label: 'Upcoming',             color: Palette.gold };
+  if (s === 'completed')            return { label: 'Completed',            color: Palette.textMuted };
+  if (s === 'awaitingConfirmation') return { label: 'Awaiting Confirmation', color: Palette.amber };
   return { label: s, color: Palette.textMuted };
 }
 
@@ -236,10 +236,10 @@ function AllRaceCard({ item }: { item: RaceScheduleItem }) {
 }
 
 const ALL_RACES_FILTERS: { key: ScheduleFilter; label: string; color: string }[] = [
-  { key: 'running',   label: 'Đang diễn ra', color: Palette.red   },
-  { key: 'prepared',  label: 'Chuẩn bị',     color: Palette.amber },
-  { key: 'scheduled', label: 'Sắp diễn ra',  color: Palette.gold  },
-  { key: 'completed', label: 'Đã kết thúc',  color: Palette.textMuted },
+  { key: 'running',   label: 'Live',      color: Palette.red   },
+  { key: 'prepared',  label: 'Preparing', color: Palette.amber },
+  { key: 'scheduled', label: 'Upcoming',  color: Palette.gold  },
+  { key: 'completed', label: 'Completed', color: Palette.textMuted },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -320,7 +320,7 @@ export default function DashboardScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>TRANG CHỦ</Text>
+          <Text style={styles.headerTitle}>HOME</Text>
         </View>
 
         <ScrollView
@@ -335,22 +335,22 @@ export default function DashboardScreen() {
           }>
 
           {/* ─── Welcome ─── */}
-          <Text style={styles.welcomeSub}>CHÀO MỪNG TRỞ LẠI,</Text>
+          <Text style={styles.welcomeSub}>WELCOME BACK,</Text>
           <Text style={styles.welcomeTitle}>
-            {session?.user.fullName || session?.user.username || 'Tay đua'}
+            {session?.user.fullName || session?.user.username || 'Jockey'}
           </Text>
 
           {/* ─── Stats Grid ─── */}
           <View style={styles.statsGrid}>
             <View style={styles.statsRow}>
               <View style={[styles.statCard, styles.statAccentRed]}>
-                <Text style={styles.statLabel}>TỔNG TRẬN ĐÃ XÁC NHẬN</Text>
+                <Text style={styles.statLabel}>CONFIRMED RACES</Text>
                 <Text style={[styles.statValue, { color: Palette.redLight }]}>
                   {isLoading ? '—' : confirmedCount}
                 </Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statLabel}>VAI CHÍNH THỨC</Text>
+                <Text style={styles.statLabel}>OFFICIAL ROLE</Text>
                 <Text style={styles.statValue}>
                   {isLoading ? '—' : officialCount}
                 </Text>
@@ -358,19 +358,19 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.statsRow}>
               <View style={styles.statCard}>
-                <Text style={styles.statLabel}>VAI DỰ PHÒNG</Text>
+                <Text style={styles.statLabel}>BACKUP ROLE</Text>
                 <Text style={[styles.statValue, { color: Palette.gold }]}>
                   {isLoading ? '—' : backupCount}
                 </Text>
               </View>
               <View style={[styles.statCard, styles.statAccentGold]}>
-                <Text style={styles.statLabel}>TRẬN TIẾP THEO</Text>
+                <Text style={styles.statLabel}>NEXT RACE</Text>
                 <Text style={[styles.statValue, { color: Palette.gold, fontSize: 14 }]}>
                   {isLoading
                     ? '—'
                     : nextRace?.raceRound?.raceDate
                       ? formatShortDate(nextRace.raceRound.raceDate)
-                      : 'Chưa có'}
+                      : 'None yet'}
                 </Text>
               </View>
             </View>
@@ -392,9 +392,9 @@ export default function DashboardScreen() {
                 style={StyleSheet.absoluteFill}
               />
               <Ionicons name="calendar-outline" size={28} color={Palette.textMuted} />
-              <Text style={styles.noRaceText}>Chưa có lịch thi đấu nào được xác nhận</Text>
+              <Text style={styles.noRaceText}>No confirmed races on your schedule yet</Text>
               <Text style={styles.noRaceSubText}>
-                Kiểm tra lại trang Lời mời để nhận thêm lịch thi đấu
+                Check the Invites tab for new race invitations
               </Text>
             </View>
           )}
@@ -408,8 +408,8 @@ export default function DashboardScreen() {
                 color={Palette.redLight}
               />
               <Text style={styles.infoText}>
-                Hãy đảm bảo bạn có mặt tại trường đua ít nhất 2 tiếng trước khi bắt đầu
-                để kiểm tra sức khỏe và thiết bị.
+                Make sure to arrive at the track at least 2 hours before the race
+                for a health and equipment check.
               </Text>
             </View>
           )}
@@ -418,10 +418,10 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
               <View style={styles.sectionAccent} />
-              <Text style={styles.sectionTitle}>Tất cả cuộc đua</Text>
+              <Text style={styles.sectionTitle}>All Races</Text>
             </View>
             <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{allRacesTotal} TRẬN</Text>
+              <Text style={styles.countBadgeText}>{allRacesTotal} RACES</Text>
             </View>
           </View>
 
@@ -451,7 +451,7 @@ export default function DashboardScreen() {
           ) : allRaces.length === 0 ? (
             <View style={styles.allRacesEmpty}>
               <Ionicons name="calendar-outline" size={32} color={Palette.textMuted} />
-              <Text style={styles.noRaceSubText}>Không có cuộc đua nào</Text>
+              <Text style={styles.noRaceSubText}>No races found</Text>
             </View>
           ) : (
             allRaces.map((item) => <AllRaceCard key={item._id} item={item} />)

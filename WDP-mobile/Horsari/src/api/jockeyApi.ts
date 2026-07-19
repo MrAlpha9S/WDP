@@ -107,7 +107,7 @@ export async function respondToInvitation(
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.response?.data?.msg ?? 'Lỗi kết nối. Vui lòng thử lại.',
+      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
     };
   }
 }
@@ -183,7 +183,7 @@ export async function confirmPaymentReceived(
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.response?.data?.msg ?? 'Lỗi kết nối. Vui lòng thử lại.',
+      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
     };
   }
 }
@@ -262,7 +262,7 @@ export async function updateMyProfile(
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.response?.data?.msg ?? 'Lỗi kết nối. Vui lòng thử lại.',
+      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
       data: null,
     };
   }

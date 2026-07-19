@@ -58,7 +58,7 @@ export default function EditProfileScreen() {
         setPhoneNumber(profile.jockey.phoneNumber ?? '');
         setAddress(profile.jockey.address ?? '');
       } else {
-        setErrorMsg('Không thể tải hồ sơ. Vui lòng thử lại.');
+        setErrorMsg('Could not load profile. Please try again.');
       }
       setIsLoading(false);
     })();
@@ -70,15 +70,15 @@ export default function EditProfileScreen() {
     const parsedHeight = height.trim() ? Number(height) : undefined;
 
     if (parsedBookingFee != null && (Number.isNaN(parsedBookingFee) || parsedBookingFee < 0)) {
-      setErrorMsg('Phí đặt cưỡi phải là một số không âm.');
+      setErrorMsg('Booking fee must be a non-negative number.');
       return;
     }
     if (parsedWeight != null && (Number.isNaN(parsedWeight) || parsedWeight <= 0)) {
-      setErrorMsg('Cân nặng phải là một số dương.');
+      setErrorMsg('Weight must be a positive number.');
       return;
     }
     if (parsedHeight != null && (Number.isNaN(parsedHeight) || parsedHeight <= 0)) {
-      setErrorMsg('Chiều cao phải là một số dương.');
+      setErrorMsg('Height must be a positive number.');
       return;
     }
 
@@ -128,7 +128,7 @@ export default function EditProfileScreen() {
             <Pressable hitSlop={8} onPress={() => router.back()}>
               <Ionicons name="chevron-back" size={22} color={Palette.text} />
             </Pressable>
-            <Text style={styles.headerTitle}>CHỈNH SỬA HỒ SƠ</Text>
+            <Text style={styles.headerTitle}>EDIT PROFILE</Text>
             <View style={{ width: 22 }} />
           </View>
 
@@ -144,9 +144,9 @@ export default function EditProfileScreen() {
               </View>
             )}
 
-            <Text style={styles.sectionTitle}>Thông tin nghề nghiệp</Text>
+            <Text style={styles.sectionTitle}>Professional Info</Text>
 
-            <Text style={styles.fieldLabel}>Phí đặt cưỡi mặc định (₫)</Text>
+            <Text style={styles.fieldLabel}>Default Booking Fee (₫)</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="cash-outline" size={18} color={Palette.textMuted} />
               <TextInput
@@ -159,7 +159,7 @@ export default function EditProfileScreen() {
               />
             </View>
 
-            <Text style={styles.fieldLabel}>Cân nặng (kg)</Text>
+            <Text style={styles.fieldLabel}>Weight (kg)</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="speedometer-outline" size={18} color={Palette.textMuted} />
               <TextInput
@@ -172,7 +172,7 @@ export default function EditProfileScreen() {
               />
             </View>
 
-            <Text style={styles.fieldLabel}>Chiều cao (cm)</Text>
+            <Text style={styles.fieldLabel}>Height (cm)</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="resize-outline" size={18} color={Palette.textMuted} />
               <TextInput
@@ -185,22 +185,22 @@ export default function EditProfileScreen() {
               />
             </View>
 
-            <Text style={styles.sectionTitle}>Thông tin liên hệ</Text>
+            <Text style={styles.sectionTitle}>Contact Info</Text>
 
-            <Text style={styles.fieldLabel}>Họ và tên</Text>
+            <Text style={styles.fieldLabel}>Full Name</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="person-outline" size={18} color={Palette.textMuted} />
               <TextInput
                 style={styles.input}
                 value={fullName}
                 onChangeText={(v) => { setFullName(v); setErrorMsg(null); }}
-                placeholder="Nguyễn Văn A"
+                placeholder="John Doe"
                 placeholderTextColor={Palette.textPlaceholder}
                 autoCorrect={false}
               />
             </View>
 
-            <Text style={styles.fieldLabel}>Số điện thoại</Text>
+            <Text style={styles.fieldLabel}>Phone Number</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="call-outline" size={18} color={Palette.textMuted} />
               <TextInput
@@ -213,14 +213,14 @@ export default function EditProfileScreen() {
               />
             </View>
 
-            <Text style={styles.fieldLabel}>Địa chỉ</Text>
+            <Text style={styles.fieldLabel}>Address</Text>
             <View style={styles.inputWrapper}>
               <Ionicons name="location-outline" size={18} color={Palette.textMuted} />
               <TextInput
                 style={styles.input}
                 value={address}
                 onChangeText={(v) => { setAddress(v); setErrorMsg(null); }}
-                placeholder="Địa chỉ của bạn"
+                placeholder="Your address"
                 placeholderTextColor={Palette.textPlaceholder}
                 autoCorrect={false}
               />
@@ -233,7 +233,7 @@ export default function EditProfileScreen() {
               {isSubmitting ? (
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
-                <Text style={styles.submitText}>LƯU THAY ĐỔI</Text>
+                <Text style={styles.submitText}>SAVE CHANGES</Text>
               )}
             </Pressable>
 

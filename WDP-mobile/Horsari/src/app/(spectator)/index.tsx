@@ -77,7 +77,7 @@ function LiveRaceCard({
         <View style={styles.liveBadgeRow}>
           <View style={styles.liveBadge}>
             <View style={styles.liveDot} />
-            <Text style={styles.liveBadgeText}>TRỰC TIẾP</Text>
+            <Text style={styles.liveBadgeText}>LIVE</Text>
           </View>
           {isRealTournament(liveRace.tournament) && (
             <Text style={styles.liveTournament} numberOfLines={1}>
@@ -108,7 +108,7 @@ function LiveRaceCard({
               </View>
             ))}
             <Text style={styles.liveParticipantsText}>
-              {liveRace.registrations.length} ngựa đang thi đấu
+              {liveRace.registrations.length} horses racing
             </Text>
           </View>
         )}
@@ -117,12 +117,12 @@ function LiveRaceCard({
         {liveRace.livestreamUrl ? (
           <Pressable style={styles.liveWatchBtn} onPress={onWatch}>
             <Ionicons name="play-circle-outline" size={16} color={Palette.text} />
-            <Text style={styles.liveWatchText}>XEM TRỰC TIẾP</Text>
+            <Text style={styles.liveWatchText}>WATCH LIVE</Text>
           </Pressable>
         ) : (
           <View style={styles.liveNoStream}>
             <Ionicons name="eye-outline" size={14} color={Palette.textMuted} />
-            <Text style={styles.liveNoStreamText}>Chưa có luồng phát sóng</Text>
+            <Text style={styles.liveNoStreamText}>No livestream available</Text>
           </View>
         )}
       </LinearGradient>
@@ -180,9 +180,9 @@ function HorseCard({ horse }: { horse: HomeFeedHorse }) {
       <Text style={styles.horseName} numberOfLines={2}>{horse.horseName}</Text>
       <View style={styles.horseWinRow}>
         <Text style={styles.horseWinRate}>{horse.totalWins}</Text>
-        <Text style={styles.horseWinLabel}>thắng</Text>
+        <Text style={styles.horseWinLabel}>wins</Text>
       </View>
-      <Text style={styles.horseRaces}>{horse.totalRaces} trận</Text>
+      <Text style={styles.horseRaces}>{horse.totalRaces} races</Text>
       {horse.healthStatus && (
         <View style={[
           styles.horseHealthChip,
@@ -192,7 +192,7 @@ function HorseCard({ horse }: { horse: HomeFeedHorse }) {
             styles.horseHealthText,
             horse.healthStatus === 'healthy' && { color: Palette.green },
           ]}>
-            {horse.healthStatus === 'healthy' ? 'Khoẻ mạnh' : horse.healthStatus}
+            {horse.healthStatus === 'healthy' ? 'Healthy' : horse.healthStatus}
           </Text>
         </View>
       )}
@@ -203,11 +203,11 @@ function HorseCard({ horse }: { horse: HomeFeedHorse }) {
 // ─── Browse Races Card (moved in from the removed Schedule tab) ──────────────
 
 function browseStatusLabel(s: string): { label: string; color: string } {
-  if (s === 'running')              return { label: 'Đang chạy',    color: Palette.red };
-  if (s === 'prepared')             return { label: 'Chuẩn bị',     color: '#E07B3A' };
-  if (s === 'scheduled')            return { label: 'Sắp diễn ra',  color: Palette.gold };
-  if (s === 'completed')            return { label: 'Đã kết thúc',  color: Palette.textMuted };
-  if (s === 'awaitingConfirmation') return { label: 'Chờ xác nhận', color: '#E07B3A' };
+  if (s === 'running')              return { label: 'Running',              color: Palette.red };
+  if (s === 'prepared')             return { label: 'Preparing',            color: '#E07B3A' };
+  if (s === 'scheduled')            return { label: 'Upcoming',             color: Palette.gold };
+  if (s === 'completed')            return { label: 'Completed',            color: Palette.textMuted };
+  if (s === 'awaitingConfirmation') return { label: 'Awaiting Confirmation', color: '#E07B3A' };
   return { label: s, color: Palette.textMuted };
 }
 
@@ -286,10 +286,10 @@ function BrowseRaceCard({ item, onPress }: { item: RaceScheduleItem; onPress: ()
 }
 
 const BROWSE_FILTERS: { key: ScheduleFilter; label: string; color: string }[] = [
-  { key: 'running',   label: 'Đang diễn ra', color: Palette.red },
-  { key: 'prepared',  label: 'Chuẩn bị',     color: '#E07B3A' },
-  { key: 'scheduled', label: 'Sắp diễn ra',  color: Palette.gold },
-  { key: 'completed', label: 'Đã kết thúc',  color: Palette.textMuted },
+  { key: 'running',   label: 'Live',      color: Palette.red },
+  { key: 'prepared',  label: 'Preparing', color: '#E07B3A' },
+  { key: 'scheduled', label: 'Upcoming',  color: Palette.gold },
+  { key: 'completed', label: 'Completed', color: Palette.textMuted },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -311,7 +311,7 @@ export default function SpectatorHomeScreen() {
     setError(null);
     const data = await getHomeFeed();
     if (!data) {
-      setError('Không thể tải dữ liệu. Vui lòng thử lại.');
+      setError('Could not load data. Please try again.');
     } else {
       setFeed(data);
     }
@@ -354,12 +354,12 @@ export default function SpectatorHomeScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>TRANG CHỦ</Text>
+          <Text style={styles.headerTitle}>HOME</Text>
           {feed?.spectator != null && (
             <View style={styles.pointsBadge}>
               <Ionicons name="star-outline" size={12} color={Palette.gold} />
               <Text style={styles.pointsBadgeText}>
-                {feed.spectator.wallet.toLocaleString()} điểm
+                {feed.spectator.wallet.toLocaleString()} points
               </Text>
             </View>
           )}
@@ -375,7 +375,7 @@ export default function SpectatorHomeScreen() {
             <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
             <Text style={styles.emptyText}>{error}</Text>
             <Pressable style={styles.retryBtn} onPress={() => load()}>
-              <Text style={styles.retryText}>THỬ LẠI</Text>
+              <Text style={styles.retryText}>RETRY</Text>
             </Pressable>
           </View>
         ) : (
@@ -391,15 +391,15 @@ export default function SpectatorHomeScreen() {
             }>
 
             {/* Welcome */}
-            <Text style={styles.welcomeSub}>CHÀO MỪNG TRỞ LẠI,</Text>
-            <Text style={styles.welcomeTitle}>Đường Đua Hôm Nay</Text>
+            <Text style={styles.welcomeSub}>WELCOME BACK,</Text>
+            <Text style={styles.welcomeTitle}>Today's Races</Text>
 
             {/* ─── Live Race ─── */}
             {feed?.liveRace ? (
               <>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionAccentRed} />
-                  <Text style={styles.sectionTitle}>Đang Diễn Ra</Text>
+                  <Text style={styles.sectionTitle}>Live Now</Text>
                 </View>
                 <LiveRaceCard
                   liveRace={feed.liveRace}
@@ -409,7 +409,7 @@ export default function SpectatorHomeScreen() {
             ) : (
               <View style={styles.noLiveCard}>
                 <Ionicons name="radio-outline" size={22} color={Palette.textMuted} />
-                <Text style={styles.noLiveText}>Hiện không có cuộc đua nào đang diễn ra</Text>
+                <Text style={styles.noLiveText}>No races are currently live</Text>
               </View>
             )}
 
@@ -418,7 +418,7 @@ export default function SpectatorHomeScreen() {
               <>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionAccentGold} />
-                  <Text style={styles.sectionTitle}>Sắp Diễn Ra</Text>
+                  <Text style={styles.sectionTitle}>Upcoming</Text>
                   <View style={styles.countBadge}>
                     <Text style={styles.countBadgeText}>{feed!.upcomingRaces.length}</Text>
                   </View>
@@ -434,7 +434,7 @@ export default function SpectatorHomeScreen() {
               <>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionAccentGold} />
-                  <Text style={styles.sectionTitle}>Ngựa Nổi Bật</Text>
+                  <Text style={styles.sectionTitle}>Featured Horses</Text>
                 </View>
                 <ScrollView
                   horizontal
@@ -453,14 +453,14 @@ export default function SpectatorHomeScreen() {
               (feed?.featuredHorses ?? []).length === 0 && (
                 <View style={styles.emptyState}>
                   <Ionicons name="calendar-outline" size={40} color={Palette.textMuted} />
-                  <Text style={styles.emptyText}>Chưa có dữ liệu cuộc đua</Text>
+                  <Text style={styles.emptyText}>No race data yet</Text>
                 </View>
               )}
 
             {/* ─── Browse All Races ─── */}
             <View style={styles.sectionHeader}>
               <View style={styles.sectionAccentGold} />
-              <Text style={styles.sectionTitle}>Tất cả cuộc đua</Text>
+              <Text style={styles.sectionTitle}>All Races</Text>
               <View style={styles.countBadge}>
                 <Text style={styles.countBadgeText}>{browseTotal}</Text>
               </View>
@@ -492,7 +492,7 @@ export default function SpectatorHomeScreen() {
             ) : browseRaces.length === 0 ? (
               <View style={styles.browseEmpty}>
                 <Ionicons name="calendar-outline" size={32} color={Palette.textMuted} />
-                <Text style={styles.emptyText}>Không có cuộc đua nào</Text>
+                <Text style={styles.emptyText}>No races found</Text>
               </View>
             ) : (
               browseRaces.map((item) => (

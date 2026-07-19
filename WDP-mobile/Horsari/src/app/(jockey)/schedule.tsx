@@ -34,14 +34,14 @@ function dayStart(d: Date): number {
 }
 
 function formatDateLabel(d: Date): string {
-  return `${d.getDate()} THÁNG ${d.getMonth() + 1}`;
+  return `${d.getDate()} MONTH ${d.getMonth() + 1}`;
 }
 
 function buildDateLabel(d: Date): string {
   const today = dayStart(new Date());
   const ds = dayStart(d);
-  if (ds === today) return `HÔM NAY, ${formatDateLabel(d)}`;
-  if (ds === today + 86_400_000) return `NGÀY MAI, ${formatDateLabel(d)}`;
+  if (ds === today) return `TODAY, ${formatDateLabel(d)}`;
+  if (ds === today + 86_400_000) return `TOMORROW, ${formatDateLabel(d)}`;
   return `${formatDateLabel(d)}, ${d.getFullYear()}`;
 }
 
@@ -101,7 +101,7 @@ export default function ScheduleScreen() {
       const data = await getMyRaceSchedule();
       setGroups(groupByDate(data));
     } catch {
-      setError('Không thể tải lịch đua. Vui lòng thử lại.');
+      setError('Could not load schedule. Please try again.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -129,7 +129,7 @@ export default function ScheduleScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>LỊCH TRÌNH ĐUA</Text>
+          <Text style={styles.headerTitle}>RACE SCHEDULE</Text>
         </View>
 
         {/* ─── Body ─── */}
@@ -142,7 +142,7 @@ export default function ScheduleScreen() {
             <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
             <Text style={styles.emptyText}>{error}</Text>
             <Pressable style={styles.retryBtn} onPress={() => load()}>
-              <Text style={styles.retryText}>THỬ LẠI</Text>
+              <Text style={styles.retryText}>RETRY</Text>
             </Pressable>
           </View>
         ) : (
@@ -162,11 +162,11 @@ export default function ScheduleScreen() {
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleRow}>
                   <View style={styles.sectionAccent} />
-                  <Text style={styles.sectionTitle}>Lịch thi đấu</Text>
+                  <Text style={styles.sectionTitle}>Race Schedule</Text>
                 </View>
                 <View style={styles.countBadge}>
                   <Text style={styles.countBadgeText}>
-                    {groups.reduce((s, g) => s + g.items.length, 0)} TRẬN
+                    {groups.reduce((s, g) => s + g.items.length, 0)} RACES
                   </Text>
                 </View>
               </View>
@@ -184,7 +184,7 @@ export default function ScheduleScreen() {
                   const title =
                     item.tournament?.tournamentName ??
                     item.raceRound?.roundName ??
-                    'Vòng đua';
+                    'Race Round';
                   const location = item.raceRound?.location ?? '—';
                   const horse = item.horse?.horseName ?? '—';
 
@@ -209,11 +209,11 @@ export default function ScheduleScreen() {
                             </Text>
                           </View>
                           <View style={styles.tagConfirmed}>
-                            <Text style={styles.tagConfirmedText}>ĐÃ XÁC NHẬN</Text>
+                            <Text style={styles.tagConfirmedText}>CONFIRMED</Text>
                           </View>
                           {item.isBackup && (
                             <View style={styles.tagBackup}>
-                              <Text style={styles.tagBackupText}>DỰ PHÒNG</Text>
+                              <Text style={styles.tagBackupText}>BACKUP</Text>
                             </View>
                           )}
                         </View>
@@ -228,7 +228,7 @@ export default function ScheduleScreen() {
             {groups.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="calendar-outline" size={40} color={Palette.textMuted} />
-                <Text style={styles.emptyText}>Chưa có lịch đua nào</Text>
+                <Text style={styles.emptyText}>No races scheduled yet</Text>
               </View>
             )}
 
@@ -242,8 +242,8 @@ export default function ScheduleScreen() {
                   style={styles.infoIcon}
                 />
                 <Text style={styles.infoText}>
-                  Hãy đảm bảo bạn có mặt tại trường đua ít nhất 2 tiếng trước khi bắt đầu để kiểm tra
-                  sức khỏe và thiết bị.
+                  Make sure to arrive at the track at least 2 hours before the race
+                  for a health and equipment check.
                 </Text>
               </View>
             )}

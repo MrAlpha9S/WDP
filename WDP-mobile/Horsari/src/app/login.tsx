@@ -44,13 +44,13 @@ const Palette = {
 type Role = 'spectator' | 'jockey';
 
 const ROLES: { key: Role; label: string; placeholder: string }[] = [
-  { key: 'spectator', label: 'Khán Giả', placeholder: 'spectator@horsari.com' },
+  { key: 'spectator', label: 'Spectator', placeholder: 'spectator@horsari.com' },
   { key: 'jockey', label: 'Jockey', placeholder: 'jockey@horsari.com' },
 ];
 
 const ROLE_LABELS: Record<Role, string> = {
   jockey: 'Jockey',
-  spectator: 'Khán Giả',
+  spectator: 'Spectator',
 };
 
 export default function LoginScreen() {
@@ -69,7 +69,7 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     if (!email.trim() || !password) {
-      setErrorMsg('Vui lòng nhập email và mật khẩu.');
+      setErrorMsg('Please enter your email and password.');
       return;
     }
 
@@ -88,7 +88,7 @@ export default function LoginScreen() {
     // Reject login if the account's actual role doesn't match the selected one.
     if (result.session.user.role !== role) {
       setErrorMsg(
-        `Tài khoản này không phải ${ROLE_LABELS[role]}. Vui lòng chọn đúng vai trò.`
+        `This account is not a ${ROLE_LABELS[role]}. Please select the correct role.`
       );
       setIsSubmitting(false);
       return;
@@ -151,9 +151,9 @@ export default function LoginScreen() {
               </View>
 
               {/* Heading */}
-              <Text style={styles.title}>CHÀO MỪNG TRỞ LẠI</Text>
+              <Text style={styles.title}>WELCOME BACK</Text>
               <Text style={styles.subtitle}>
-                Vui lòng đăng nhập để quản lý đội đua của bạn
+                Please sign in to manage your racing team
               </Text>
 
               {/* Error banner */}
@@ -165,7 +165,7 @@ export default function LoginScreen() {
               )}
 
               {/* Email */}
-              <Text style={styles.fieldLabel}>Email hoặc Số điện thoại</Text>
+              <Text style={styles.fieldLabel}>Email or Phone Number</Text>
               <View style={[styles.inputWrapper, focusedField === 'email' && styles.popUpBorder]}>
                 <Ionicons name="person-outline" size={18} color={Palette.textMuted} />
                 <TextInput
@@ -184,7 +184,7 @@ export default function LoginScreen() {
               </View>
 
               {/* Password */}
-              <Text style={styles.fieldLabel}>Mật khẩu</Text>
+              <Text style={styles.fieldLabel}>Password</Text>
               <View style={[styles.inputWrapper, focusedField === 'password' && styles.popUpBorder]}>
                 <Ionicons name="lock-closed-outline" size={18} color={Palette.textMuted} />
                 <TextInput
@@ -202,7 +202,7 @@ export default function LoginScreen() {
                 <Pressable
                   hitSlop={8}
                   onPress={() => setShowPassword((v) => !v)}
-                  accessibilityLabel={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={18}
@@ -229,7 +229,7 @@ export default function LoginScreen() {
                     {isSubmitting ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
-                      <Text style={styles.submitText}>ĐĂNG NHẬP</Text>
+                      <Text style={styles.submitText}>SIGN IN</Text>
                     )}
                   </LinearGradient>
                 )}
@@ -237,9 +237,9 @@ export default function LoginScreen() {
 
               <View style={styles.divider} />
 
-              <Text style={styles.footerPrompt}>Chưa có tài khoản chuyên gia?</Text>
+              <Text style={styles.footerPrompt}>Don't have a professional account?</Text>
               <Pressable hitSlop={8} onPress={() => router.push('/register')}>
-                <Text style={styles.registerLink}>ĐĂNG KÝ TÀI KHOẢN CHUYÊN GIA</Text>
+                <Text style={styles.registerLink}>REGISTER PROFESSIONAL ACCOUNT</Text>
               </Pressable>
             </View>
 
