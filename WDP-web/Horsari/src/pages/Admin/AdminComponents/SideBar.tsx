@@ -37,8 +37,7 @@ const ITEMS: SidebarItem[] = [
 export default function AdminSidebar({ activeTab, onTabChange }: SidebarProps) {
     return (
         <aside
-            className="w-[185px] shrink-0 bg-[#161616] border-r border-white/10 flex flex-col pt-7 pb-6"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
+            className="w-[185px] shrink-0 bg-[#161616] border-r border-white/10 flex flex-col pt-7 pb-6 font-sans"
         >
             <div className="px-5 mb-6">
                 <p className="text-[13px] font-semibold text-white leading-tight">

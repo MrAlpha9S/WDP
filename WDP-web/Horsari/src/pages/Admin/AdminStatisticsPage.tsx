@@ -47,8 +47,7 @@ function StatCard({ label, value, sub, subColor = "text-gray-500", icon, highlig
                 <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">{label}</p>
                 <span className="text-gray-600">{icon}</span>
             </div>
-            <p className={`text-[28px] font-bold leading-none ${highlight ? "text-red-400" : "text-white"}`}
-                style={{ fontFamily: "'Playfair Display', serif" }}>{value}</p>
+            <p className={`text-[28px] font-bold leading-none font-serif ${highlight ? "text-red-400" : "text-white"}`}>{value}</p>
             <p className={`text-[12px] ${subColor}`}>{sub}</p>
         </div>
     );
@@ -343,13 +342,12 @@ export default function AdminStatisticsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="min-h-screen bg-[#0f0f0f] font-sans">
             <div className="max-w-7xl mx-auto px-6 py-8">
 
                 {/* Header */}
                 <div className="mb-7">
-                    <h1 className="text-[26px] font-bold text-white tracking-tight"
-                        style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <h1 className="text-[26px] font-bold text-white tracking-tight font-serif">
                         Statistics
                     </h1>
                     <p className="text-[13px] text-gray-500 mt-0.5">

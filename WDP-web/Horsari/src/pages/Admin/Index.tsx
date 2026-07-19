@@ -26,8 +26,7 @@ function ComingSoon({ title }: { title: string }) {
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <p
-                className="text-[32px] font-bold text-white"
-                style={{ fontFamily: "'Playfair Display', serif" }}
+                className="text-[32px] font-bold text-white font-serif"
             >
                 {title}
             </p>
@@ -131,8 +130,7 @@ export default function AdminDashboardPage() {
             wsConnected,
         }}>
         <div
-            className="h-screen bg-[#111111] text-white flex flex-col overflow-hidden"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
+            className="h-screen bg-[#111111] text-white flex flex-col overflow-hidden font-sans"
         >
             <AdminNavBar activeTab={activeTab} onTabChange={setActiveTab} />
 

@@ -97,12 +97,11 @@ export default function AdminPaymentsPage() {
     const { user } = useAuth();
 
     return (
-        <div className="flex flex-col h-full px-8 py-8 overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="flex flex-col h-full px-8 py-8 overflow-hidden font-sans">
             <div className="mb-5 flex items-start justify-between gap-4 flex-wrap shrink-0">
                 <div>
                     <h1
-                        className="text-[26px] font-bold text-white tracking-tight"
-                        style={{ fontFamily: "'Playfair Display', serif" }}
+                        className="text-[26px] font-bold text-white tracking-tight font-serif"
                     >
                         Payments
                     </h1>

@@ -375,7 +375,7 @@ export default function AdminUsersPage() {
     const panelOpen = selectedUser !== null;
 
     return (
-        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? "flex-[0_0_50%]" : "flex-1"}`}>
                     
@@ -384,7 +384,7 @@ export default function AdminUsersPage() {
                         {/* Row 1 */}
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
-                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
                                     Users
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">

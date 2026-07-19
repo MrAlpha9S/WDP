@@ -58,7 +58,7 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-                    <h2 className="text-[16px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <h2 className="text-[16px] font-bold text-white font-serif">
                         {item ? 'Edit Violation Type' : 'Create Violation Type'}
                     </h2>
                     <button onClick={onClose} className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-white/10 transition-colors">

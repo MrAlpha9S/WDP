@@ -187,7 +187,7 @@ export default function RaceSchedulingPage() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden font-sans">
 
 
             {/* ── Top Content Area ── */}
@@ -200,7 +200,7 @@ export default function RaceSchedulingPage() {
                         {/* Row 1 */}
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
-                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
                                     Master Race Schedule
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">

@@ -99,7 +99,7 @@ export default function ViolationTypeManagementPage() {
     const openEdit = (item: ViolationTypeEntity) => { setModalItem(item); setIsModalOpen(true); };
 
     return (
-        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
                 <main className="flex flex-col min-w-0 h-full flex-1">
 
@@ -107,7 +107,7 @@ export default function ViolationTypeManagementPage() {
                     <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
-                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight font-serif">
                                     Violation Types
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">

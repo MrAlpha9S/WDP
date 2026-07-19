@@ -47,9 +47,8 @@ function StatCard({
                 <span className="text-gray-600">{icon}</span>
             </div>
             <p
-                className={`text-[28px] font-bold leading-none ${highlight ? "text-red-400" : "text-white"
+                className={`text-[28px] font-bold leading-none font-serif ${highlight ? "text-red-400" : "text-white"
                     }`}
-                style={{ fontFamily: "'Playfair Display', serif" }}
             >
                 {value}
             </p>
@@ -144,12 +143,11 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
     }, []);
 
     return (
-        <div className="px-8 py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="px-8 py-8 font-sans">
             {/* Header */}
             <div className="mb-7">
                 <h1
-                    className="text-[26px] font-bold text-white tracking-tight"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="text-[26px] font-bold text-white tracking-tight font-serif"
                 >
                     System Dashboard
                 </h1>

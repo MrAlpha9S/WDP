@@ -2,11 +2,10 @@ import InvitationsSection from "./AdminComponents/InvitationsSection";
 
 export default function AdminInvitationsPage() {
     return (
-        <div className="px-8 py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="px-8 py-8 font-sans">
             <div className="mb-7">
                 <h1
-                    className="text-[26px] font-bold text-white tracking-tight"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="text-[26px] font-bold text-white tracking-tight font-serif"
                 >
                     Invitations
                 </h1>
