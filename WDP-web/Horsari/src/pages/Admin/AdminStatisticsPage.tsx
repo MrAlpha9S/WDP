@@ -342,7 +342,7 @@ export default function AdminStatisticsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f0f0f] font-sans">
+        <div className="min-h-screen font-sans">
             <div className="max-w-7xl mx-auto px-6 py-8">
 
                 {/* Header */}

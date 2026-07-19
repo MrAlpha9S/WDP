@@ -111,7 +111,7 @@ export default function InboxPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f0f0f] font-sans">
+        <div className="min-h-screen font-sans">
             <div className="max-w-3xl mx-auto px-5 py-8">
 
                 {/* Header */}
