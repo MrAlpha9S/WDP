@@ -568,7 +568,7 @@ export default function LivePage() {
                 {/* Incident log */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0">
-                        <h2 className="text-[13px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>Incident Log</h2>
+                        <h2 className="text-[13px] font-bold text-white font-serif">Incident Log</h2>
                         {activeViolations.length > 0
                             ? <span className="text-[11px] font-bold text-red-400 flex items-center gap-1"><AlertTriangle size={11} />{activeViolations.length} flagged</span>
                             : <span className="text-[11px] text-gray-600 font-medium">0 flagged</span>

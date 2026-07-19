@@ -111,15 +111,14 @@ export default function InboxPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="min-h-screen bg-[#0f0f0f] font-sans">
             <div className="max-w-3xl mx-auto px-5 py-8">
 
                 {/* Header */}
                 <div className="flex items-start justify-between mb-6">
                     <div>
                         <h1
-                            className="text-[26px] font-bold text-white tracking-tight"
-                            style={{ fontFamily: "'Playfair Display', serif" }}
+                            className="text-[26px] font-bold text-white tracking-tight font-serif"
                         >
                             Inbox
                         </h1>

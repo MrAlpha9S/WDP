@@ -42,13 +42,13 @@ export default function ViolationManagementPage() {
     const selectCls = "bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[13px] text-gray-300 outline-none focus:border-white/25 transition-all appearance-none cursor-pointer w-full";
 
     return (
-        <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="min-h-screen bg-[#0f0f0f] font-sans">
             <div className="max-w-5xl mx-auto px-5 py-8">
 
                 {/* Header */}
                 <div className="flex items-start justify-between mb-8">
                     <div>
-                        <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        <h1 className="text-[26px] font-bold text-white tracking-tight font-serif">
                             Violation Management
                         </h1>
                         <p className="text-[13px] text-gray-500 mt-0.5">Review and record referee identified infractions.</p>
@@ -169,7 +169,7 @@ export default function ViolationManagementPage() {
             {showModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/10 w-full max-w-md p-6 shadow-2xl">
-                        <h2 className="text-[20px] font-bold text-white mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        <h2 className="text-[20px] font-bold text-white mb-1 font-serif">
                             Record Incident
                         </h2>
                         <p className="text-[13px] text-gray-500 mb-5">Log a new referee-identified infraction.</p>

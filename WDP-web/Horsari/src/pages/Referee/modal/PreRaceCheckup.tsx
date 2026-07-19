@@ -339,7 +339,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                 );
                             })()}
                             <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
-                                <h2 className="text-[20px] font-bold text-white leading-tight drop-shadow-lg" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                <h2 className="text-[20px] font-bold text-white leading-tight drop-shadow-lg font-serif">
                                     {horse?.horseName ?? <span className="italic text-gray-400 text-[16px]">No Horse Assigned</span>}
                                 </h2>
                                 {horse?.breed || horse?.color ? (

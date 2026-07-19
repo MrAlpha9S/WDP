@@ -39,7 +39,7 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
                 <button onClick={prevMonth} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
                     <ChevronLeft size={12} />
                 </button>
-                <span className="text-[11px] font-bold text-gray-300" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <span className="text-[11px] font-bold text-gray-300 font-serif">
                     {CAL_MONTHS[viewMonth].slice(0, 3)} {viewYear}
                 </span>
                 <button onClick={nextMonth} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">

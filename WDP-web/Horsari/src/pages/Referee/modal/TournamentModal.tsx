@@ -112,7 +112,7 @@ function RaceDetailPanel({ race, onClose, onOpenRaceMonitor }: { race: RaceRound
         <div className="bg-[#141414] rounded-xl border border-white/10 overflow-hidden mt-1">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
                 <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[13px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>{race.label}</span>
+                    <span className="text-[13px] font-bold text-white font-serif">{race.label}</span>
                     <RaceTypeBadge type={race.raceType} />
                 </div>
                 <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
@@ -198,7 +198,7 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
                 ].map(card => (
                     <div key={card.label} className="bg-white/[0.03] rounded-xl border border-white/8 px-4 py-3.5">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1.5">{card.label}</p>
-                        <p className="text-[26px] font-bold text-white leading-none" style={{ fontFamily: "'Playfair Display', serif" }}>{card.value}</p>
+                        <p className="text-[26px] font-bold text-white leading-none font-serif">{card.value}</p>
                         <p className={`text-[11px] mt-1.5 font-medium ${card.subColor}`}>{card.sub}</p>
                     </div>
                 ))}
@@ -209,7 +209,7 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
                     onClick={() => { }}
                     className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.02] transition-colors"
                 >
-                    <h3 className="text-[13.5px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>Leaderboard</h3>
+                    <h3 className="text-[13.5px] font-bold text-white font-serif">Leaderboard</h3>
                     <div className="flex items-center gap-3">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Coming Soon</span>
                     </div>
@@ -259,7 +259,7 @@ function RacesTab({ t, allRaces, onOpenRaceMonitor }: { t: Tournament; allRaces:
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={`text-[13.5px] font-bold ${isCompleted ? "text-gray-400" : "text-white"}`} style={{ fontFamily: "'Playfair Display', serif" }}>
+                                    <span className={`text-[13.5px] font-bold font-serif ${isCompleted ? "text-gray-400" : "text-white"}`}>
                                         {race.label}
                                     </span>
                                     <RaceTypeBadge type={race.raceType} />
@@ -326,7 +326,7 @@ export function TournamentModal({ tournament: t, allRaces, onClose, onOpenRaceMo
                                     <StatusBadge status={t.status} />
                                     <AssignmentTag assignment={t.assignment ?? "none"} assignedRaces={t.assignedRaces ?? 0} totalRaces={t.totalRaces ?? 0} />
                                 </div>
-                                <h2 className="text-[20px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                <h2 className="text-[20px] font-bold text-white leading-tight font-serif">
                                     {t.name}
                                 </h2>
                             </div>

@@ -12,7 +12,7 @@ function VideoReviewPanel({ raceRound }: { raceRound: any }) {
     return (
         <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8">
-                <h2 className="text-[13px] font-bold text-white flex items-center gap-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
                     <Video size={14} className="text-blue-400" /> Race Video Review
                 </h2>
                 {playbackId && <span className="text-[11px] text-gray-600 font-medium">VOD Playback</span>}
@@ -152,7 +152,7 @@ export default function PostRacePage() {
                 {/* Finish order */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
                     <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8">
-                        <h2 className="text-[13px] font-bold text-white flex items-center gap-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
                             <Medal size={14} className="text-yellow-500" /> Official Finish Order
                         </h2>
                         <div className="flex items-center gap-2">
@@ -228,7 +228,7 @@ export default function PostRacePage() {
                 {/* Incident review */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
                     <div className="px-5 py-3.5 border-b border-white/8">
-                        <h2 className="text-[13px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>Incident Review</h2>
+                        <h2 className="text-[13px] font-bold text-white font-serif">Incident Review</h2>
                     </div>
                     <div className="p-3 flex flex-col gap-2">
                         {violations.map(inc => {

@@ -68,18 +68,18 @@ export default function TournamentListPage({ onSelect, onOpenRaceMonitor }: Tour
     };
 
     return (
-        <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="min-h-screen bg-[#0f0f0f] font-sans">
             <div className="max-w-5xl mx-auto px-5 py-8">
                 <div className="flex items-start justify-between mb-7">
                     <div>
-                        <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        <h1 className="text-[26px] font-bold text-white tracking-tight font-serif">
                             Tournaments
                         </h1>
                         <p className="text-[13px] text-gray-500 mt-0.5">Race series and championship events.</p>
                     </div>
                     {/* <div className="bg-[#1a1a1a] border border-white/8 rounded-xl px-4 py-2.5 text-right">
                         <p className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Assigned</p>
-                        <p className="text-[22px] font-black text-red-500 tracking-tight leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        <p className="text-[22px] font-black text-red-500 tracking-tight leading-tight font-serif">
                             {TOURNAMENTS.filter(t => t.assignment !== "none").length}
                         </p>
                     </div> */}

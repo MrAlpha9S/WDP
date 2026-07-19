@@ -77,15 +77,14 @@ export default function HomePage() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="min-h-screen bg-[#0f0f0f] font-sans">
             <div className="max-w-5xl mx-auto px-6 py-8">
 
                 {/* Header */}
                 <div className="mb-7 flex items-start justify-between gap-4">
                     <div>
                         <h1
-                            className="text-[26px] font-bold text-white tracking-tight"
-                            style={{ fontFamily: "'Playfair Display', serif" }}
+                            className="text-[26px] font-bold text-white tracking-tight font-serif"
                         >
                             Dashboard
                         </h1>

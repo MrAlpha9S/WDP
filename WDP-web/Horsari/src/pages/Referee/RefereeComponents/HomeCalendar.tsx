@@ -115,7 +115,7 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
                     <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">
                         <ChevronLeft size={13} />
                     </button>
-                    <span className="text-[14px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <span className="text-[14px] font-bold text-white font-serif">
                         {MONTHS[viewMonth]} {viewYear}
                     </span>
                     <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">

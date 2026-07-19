@@ -76,7 +76,7 @@ export default function InviteSidebar({ invites: initial }: InviteSidebarProps) 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
                 <div>
-                    <h2 className="text-[14px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <h2 className="text-[14px] font-bold text-white font-serif">
                         Recent Invitations
                     </h2>
                     <p className="text-[11px] text-gray-600 mt-0.5">Race assignments sent to you</p>

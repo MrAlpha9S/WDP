@@ -89,8 +89,7 @@ function PageHeader({ phase, raceRound, onBack, wsConnected }: {
             </div>
             <div>
                 <h1
-                    className="text-[26px] font-bold text-white leading-tight tracking-tight"
-                    style={{ fontFamily: "'Playfair Display', serif" }}
+                    className="text-[26px] font-bold text-white leading-tight tracking-tight font-serif"
                 >
                     {title}
                 </h1>
@@ -261,7 +260,7 @@ export default function RaceMonitorIndex() {
             liveUpdate,
             raceFinished,
         }}>
-            <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <div className="min-h-screen bg-[#0f0f0f] font-sans">
                 <div className="max-w-5xl mx-auto px-5 py-8">
                     <PageHeader phase={phase} raceRound={raceRound} onBack={() => navigate("/referee/tournaments")} wsConnected={wsConnected} />
                     {phase === "pre" && <PreRacePage />}
@@ -277,7 +276,7 @@ export default function RaceMonitorIndex() {
                             <a href="#" className="hover:text-gray-400 transition-colors">Settings</a>
                             <a href="#" className="hover:text-gray-400 transition-colors">Privacy Policy</a>
                         </div>
-                        <span className="font-black uppercase tracking-widest text-gray-500 text-[11px]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        <span className="font-black uppercase tracking-widest text-gray-500 text-[11px] font-serif">
                             Equine Elite
                         </span>
                     </div>

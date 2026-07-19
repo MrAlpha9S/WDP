@@ -54,8 +54,7 @@ function StatCard({
                 <span className="text-gray-600">{icon}</span>
             </div>
             <p
-                className="text-[28px] font-bold leading-none text-white"
-                style={{ fontFamily: "'Playfair Display', serif" }}
+                className="text-[28px] font-bold leading-none text-white font-serif"
             >
                 {value}
             </p>
@@ -448,12 +447,11 @@ export default function StatisticsPage() {
         : 0;
 
     return (
-        <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="min-h-screen bg-[#0f0f0f] font-sans">
             <div className="max-w-5xl mx-auto px-6 py-8">
                 <div className="mb-7">
                     <h1
-                        className="text-[26px] font-bold text-white tracking-tight"
-                        style={{ fontFamily: "'Playfair Display', serif" }}
+                        className="text-[26px] font-bold text-white tracking-tight font-serif"
                     >
                         Statistics
                     </h1>

@@ -99,7 +99,7 @@ export default function PreRacePage() {
                     {/* Horse checklist */}
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
                         <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8">
-                            <h2 className="text-[13px] font-bold text-white flex items-center gap-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+                            <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
                                 <ClipboardList size={14} className="text-yellow-500" /> Horse Inspection Checklist
                             </h2>
                             <span className="text-[11px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-700/50 px-2.5 py-0.5 rounded-full">
@@ -206,7 +206,7 @@ export default function PreRacePage() {
 
                     {/* Venue & Track */}
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-5">
-                        <h2 className="text-[13px] font-bold text-white mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Venue & Track</h2>
+                        <h2 className="text-[13px] font-bold text-white mb-4 font-serif">Venue & Track</h2>
                         <div className="grid grid-cols-2 gap-3">
                             {[
                                 { label: "Surface", value: raceRound?.raceGround ?? "-" },
