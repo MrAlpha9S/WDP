@@ -65,8 +65,7 @@ export default function GoogleRegisterPage() {
   return (
     <div className="min-h-screen bg-[#f0f0ef] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg shadow-black/8 px-9 pt-8 pb-9">
-        <h1 className="text-[26px] font-semibold text-gray-900 text-center tracking-tight mb-1"
-          style={{ fontFamily: "'Playfair Display', serif" }}>
+        <h1 className="text-[26px] font-semibold text-gray-900 text-center tracking-tight mb-1 font-serif">
           Google Sign Up
         </h1>
         <p className="text-[13.5px] text-gray-500 text-center mb-6">

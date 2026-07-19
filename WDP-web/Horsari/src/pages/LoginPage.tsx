@@ -167,8 +167,8 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-10"
-      style={{ background: "#0f0f0f", fontFamily: "'DM Sans', sans-serif" }}
+      className="min-h-screen flex items-center justify-center px-4 py-10 font-sans"
+      style={{ background: "#0f0f0f" }}
     >
       {/* Subtle red glow behind card */}
       <div
@@ -180,8 +180,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <p
-          className="text-center text-[13px] font-bold tracking-[0.22em] text-red-500 uppercase mb-6"
-          style={{ fontFamily: "'Playfair Display', serif" }}
+          className="text-center text-[13px] font-bold tracking-[0.22em] text-red-500 uppercase mb-6 font-serif"
         >
           Horsari
         </p>
@@ -203,8 +202,7 @@ export default function LoginPage() {
 
         {/* Heading */}
         <h1
-          className="text-[24px] font-semibold text-white text-center tracking-tight mb-1"
-          style={{ fontFamily: "'Playfair Display', serif" }}
+          className="text-[24px] font-semibold text-white text-center tracking-tight mb-1 font-serif"
         >
           {tab === "login" ? "Welcome Back" : "Create Account"}
         </h1>

@@ -92,8 +92,7 @@ function RaceCard({ race }: { race: Race }) {
 export default function HomePage() {
   return (
     <div
-      className="min-h-screen bg-[#fdf5f5]"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className="min-h-screen bg-[#fdf5f5] font-sans"
     >
       {/* Subtle vertical stripe background — matches screenshot */}
       <div
@@ -108,8 +107,7 @@ export default function HomePage() {
           {/* ── Featured Derby ─────────────────────────────────────────── */}
           <section className="mb-10">
             <h2
-              className="text-xl font-semibold text-gray-900 mb-4 tracking-tight"
-              style={{ fontFamily: "'Playfair Display', serif" }}
+              className="text-xl font-semibold text-gray-900 mb-4 tracking-tight font-serif"
             >
               Featured Derby
             </h2>
@@ -127,8 +125,7 @@ export default function HomePage() {
               {/* Info */}
               <div className="p-6 flex flex-col justify-center gap-3">
                 <p
-                  className="text-[15px] text-gray-500 italic"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="text-[15px] text-gray-500 italic font-serif"
                 >
                   "{FEATURED.title}"
                 </p>
@@ -161,8 +158,7 @@ export default function HomePage() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2
-                className="text-xl font-semibold text-gray-900 tracking-tight"
-                style={{ fontFamily: "'Playfair Display', serif" }}
+                className="text-xl font-semibold text-gray-900 tracking-tight font-serif"
               >
                 Upcoming Races
               </h2>
