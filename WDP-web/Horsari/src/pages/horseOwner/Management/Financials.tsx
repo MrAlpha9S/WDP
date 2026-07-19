@@ -54,7 +54,7 @@ function StatCard({ icon, label, value, sub, subColor, loading }: {
       <div className="flex items-center justify-between relative z-10">
         <p className="text-[10.5px] font-bold tracking-widest text-gray-500 uppercase">{label}</p>
       </div>
-      <p className="text-[28px] font-black text-white leading-none tracking-tight font-serif">
+      <p className="text-[28px] font-black text-white leading-none tracking-tight font-sans">
         {loading ? <span className="animate-pulse text-gray-700">…</span> : value}
       </p>
       <p className={`text-[11.5px] font-medium flex items-center gap-1 ${subColor} relative z-10`}>
@@ -314,14 +314,14 @@ export default function FinancialsPage() {
         <div className="flex items-center gap-3 mt-1">
           <div className="bg-[#1a1a1a] border border-white/10 rounded-xl px-5 py-3 text-center">
             <p className="text-[9.5px] font-bold tracking-widest text-gray-500 uppercase mb-1">Net Profit</p>
-            <p className="text-[18px] font-black text-white font-serif">
+            <p className="text-[18px] font-black text-white font-sans">
               {summaryLoading ? "…" : fmt(s?.netProfit ?? 0)}
               {" "}<span className="text-[11px] text-gray-500 font-semibold">₫</span>
             </p>
           </div>
           <div className="bg-emerald-900/40 border border-emerald-500/50 rounded-xl px-5 py-3 text-center shadow-lg shadow-emerald-900/20">
             <p className="text-[9.5px] font-bold tracking-widest text-emerald-400 uppercase mb-1">Wallet Balance</p>
-            <p className="text-[18px] font-black text-white font-serif">
+            <p className="text-[18px] font-black text-white font-sans">
               {summaryLoading ? "…" : fmt(s?.wallet ?? 0)}
               {" "}<span className="text-[11px] text-emerald-400 font-semibold">₫</span>
             </p>

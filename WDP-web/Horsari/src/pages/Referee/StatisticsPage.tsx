@@ -54,7 +54,7 @@ function StatCard({
                 <span className="text-gray-600">{icon}</span>
             </div>
             <p
-                className="text-[28px] font-bold leading-none text-white font-serif"
+                className="text-[28px] font-bold leading-none text-white font-sans"
             >
                 {value}
             </p>

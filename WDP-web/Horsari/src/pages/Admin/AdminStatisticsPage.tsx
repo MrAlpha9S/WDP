@@ -47,7 +47,7 @@ function StatCard({ label, value, sub, subColor = "text-gray-500", icon, highlig
                 <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">{label}</p>
                 <span className="text-gray-600">{icon}</span>
             </div>
-            <p className={`text-[28px] font-bold leading-none font-serif ${highlight ? "text-red-400" : "text-white"}`}>{value}</p>
+            <p className={`text-[28px] font-bold leading-none font-sans ${highlight ? "text-red-400" : "text-white"}`}>{value}</p>
             <p className={`text-[12px] ${subColor}`}>{sub}</p>
         </div>
     );

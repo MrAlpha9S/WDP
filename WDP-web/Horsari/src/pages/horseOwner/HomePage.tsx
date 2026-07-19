@@ -174,7 +174,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                 <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase mb-2">{card.label}</p>
                 {card.value == null
                   ? <Skeleton className="h-10 w-16 mt-1 mb-2" />
-                  : <p className="text-[38px] font-bold leading-none text-white font-serif">{card.value}</p>
+                  : <p className="text-[38px] font-bold leading-none text-white font-sans">{card.value}</p>
                 }
                 <p className={`text-[12px] mt-1.5 font-medium ${card.subColor}`}>{card.sub}</p>
               </div>
@@ -312,7 +312,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                   {!performersLoading && performers.map((p, i) => (
                     <div key={String(p.id)} className="flex items-center gap-3 px-5 py-4">
                       <span
-                        className={`text-[18px] font-bold w-6 text-center shrink-0 font-serif ${i === 0 ? "text-red-500" : "text-gray-600"}`}
+                        className={`text-[18px] font-bold w-6 text-center shrink-0 font-sans ${i === 0 ? "text-red-500" : "text-gray-600"}`}
                       >
                         {i + 1}
                       </span>

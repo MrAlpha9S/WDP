@@ -198,7 +198,7 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
                 ].map(card => (
                     <div key={card.label} className="bg-white/[0.03] rounded-xl border border-white/8 px-4 py-3.5">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1.5">{card.label}</p>
-                        <p className="text-[26px] font-bold text-white leading-none font-serif">{card.value}</p>
+                        <p className="text-[26px] font-bold text-white leading-none font-sans">{card.value}</p>
                         <p className={`text-[11px] mt-1.5 font-medium ${card.subColor}`}>{card.sub}</p>
                     </div>
                 ))}
