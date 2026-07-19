@@ -898,7 +898,15 @@ class HorseOwnerService {
             const officialResults = results.filter(r => r.finishPosition != null && riddenRegIds.has(String(r.registrationId)));
             const completedRegIds = new Set(officialResults.map(r => String(r.registrationId)));
             const wins = officialResults.filter(r => r.finishPosition === 1).length;
-            const totalPrize = officialResults.reduce((sum, r) => sum + (r.prizeMoney || 0), 0);
+
+            // Actual paid-out amount for this jockey (bookingFee + percentagePayout%
+            // of prize, VND-converted) — NOT the race's raw prizeMoney, which ignores
+            // the jockey's payout share/currency conversion entirely.
+            const mongoose = require('mongoose');
+            const totalPrize = (await Transaction.aggregate([
+                { $match: { payeeId: new mongoose.Types.ObjectId(String(jockeyId)), payeeRole: 'jockey', paymentType: 'jockey_payout', paymentStatus: 'paid' } },
+                { $group: { _id: null, total: { $sum: '$amount' } } },
+            ]))[0]?.total || 0;
 
             // Leaderboard position by win rate (matchesRaced/totalWins counters) —
             // distinct from `stats.winRate` below, which is audited from this
@@ -942,13 +950,12 @@ class HorseOwnerService {
             const registrations = await Registration.find({ horseOwnerId: ownerId }).lean();
             const regIds = registrations.map(r => r._id);
 
-            const [results, invitations, violations, transactions] = await Promise.all([
+            const [results, invitations, violations] = await Promise.all([
                 regIds.length > 0 ? RaceResult.find({ registrationId: { $in: regIds } }).lean() : [],
                 regIds.length > 0
                     ? Invitation.find({ registrationId: { $in: regIds }, invitationStatus: 'accepted' }).lean()
                     : [],
                 regIds.length > 0 ? Violation.find({ registrationId: { $in: regIds } }).lean() : [],
-                Transaction.find({ userId: ownerId, status: 'completed' }).lean(),
             ]);
 
             // prizeMoney is stored in each race round's own currency — convert to VND
@@ -981,13 +988,6 @@ class HorseOwnerService {
             }
             totalJockeyPayout = Math.round(totalJockeyPayout);
 
-            const balance = transactions.reduce((sum, t) => {
-                if (t.transactionType === 'deposit' || t.transactionType === 'reward' || t.transactionType === 'refund')
-                    return sum + t.amount;
-                if (t.transactionType === 'withdrawal') return sum - t.amount;
-                return sum;
-            }, 0);
-
             const horseOwner = await HorseOwnerRepository.findById(ownerId);
 
             return {
@@ -1000,7 +1000,6 @@ class HorseOwnerService {
                     totalJockeyPayout,
                     netProfit: totalPrize - totalJockeyPayout,
                     totalViolations: violations.length,
-                    balance,
                     wallet: horseOwner?.wallet || 0,
                 },
                 msg: 'Financial summary retrieved successfully',

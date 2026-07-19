@@ -13,6 +13,19 @@ class SpectatorController {
         return res.status(response.code).json(response);
     }
 
+    // ─── Statistics ───────────────────────────────────────────────────────────
+
+    async getStatistics(req, res) {
+        const response = await SpectatorService.getStatistics(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    async getRewardsEarningsSeries(req, res) {
+        const { groupBy = 'day' } = req.query;
+        const response = await SpectatorService.getRewardsEarningsSeries(req.userId, groupBy);
+        return res.status(response.code).json(response);
+    }
+
     async getTransactionHistory(req, res) {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;

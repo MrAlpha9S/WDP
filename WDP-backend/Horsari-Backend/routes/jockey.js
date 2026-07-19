@@ -20,6 +20,8 @@ router.get('/all-races', authMiddleware, authJockey, JockeyController.getAllRace
 
 // Wallet + payment verification
 router.get('/wallet', authMiddleware, authJockey, JockeyController.getWalletInfo);
+router.get('/statistics', authMiddleware, authJockey, JockeyController.getStatistics);
+router.get('/statistics/earnings-series', authMiddleware, authJockey, JockeyController.getEarningsSeries);
 router.get('/payments', authMiddleware, authJockey, PaymentController.listMyPayments);
 router.put('/payments/:paymentId/confirm-received', authMiddleware, authJockey, PaymentController.confirmReceived);
 

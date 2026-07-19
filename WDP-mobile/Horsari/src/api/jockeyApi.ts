@@ -268,6 +268,51 @@ export async function updateMyProfile(
   }
 }
 
+// ─── Statistics ───────────────────────────────────────────────────────────────
+
+export interface JockeyStatistics {
+  wallet: number;
+  matchesRaced: number;
+  totalWins: number;
+  winRate: number;
+  rank: number | null;
+  totalJockeys: number;
+  totalPayoutsEarned: number;
+  pendingPayoutsAmount: number;
+  invitations: { pending: number; accepted: number; declined: number; cancelled: number; noShow: number };
+  byRole: { main: { count: number; earnings: number }; backup: { count: number; earnings: number } };
+}
+
+export interface EarningsSeries {
+  totalPayoutsEarned: number;
+  series: { date: string; payoutsEarned: number }[];
+}
+
+export async function getJockeyStatistics(): Promise<JockeyStatistics | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: JockeyStatistics; msg: string }>(
+      '/api/jockey/statistics'
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getEarningsSeries(
+  groupBy: 'day' | 'week' | 'month' | 'year' = 'day',
+): Promise<EarningsSeries | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: EarningsSeries; msg: string }>(
+      '/api/jockey/statistics/earnings-series',
+      { params: { groupBy } },
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── All-races types ─────────────────────────────────────────────────────────
 // Mirrors spectatorApi.ts's RaceScheduleItem/ScheduleFilter — same backend
 // query (SpectatorService._listAllRaceRounds), reused so jockeys can browse

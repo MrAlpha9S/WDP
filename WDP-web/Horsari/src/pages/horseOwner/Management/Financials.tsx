@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   TrendingUp, TrendingDown, Minus, Trophy,
   BarChart2, Search, ChevronRight,
@@ -258,23 +258,21 @@ export default function FinancialsPage() {
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
   }, [search]);
 
-  // Fetch summary once
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchSummary() {
-      try {
-        setSummaryLoading(true);
-        const res = await horseOwnerService.getFinancialSummary();
-        if (!cancelled) setSummary(res.data);
-      } catch {
-        // leave summary null
-      } finally {
-        if (!cancelled) setSummaryLoading(false);
-      }
+  // Fetch summary (wallet balance, net profit, etc.) — also re-run whenever a
+  // payment fully settles, since that's when the wallet balance actually changes.
+  const fetchSummary = useCallback(async () => {
+    try {
+      setSummaryLoading(true);
+      const res = await horseOwnerService.getFinancialSummary();
+      setSummary(res.data);
+    } catch {
+      // leave summary as-is
+    } finally {
+      setSummaryLoading(false);
     }
-    fetchSummary();
-    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
   // Fetch race results when page or search changes
   useEffect(() => {
@@ -324,7 +322,7 @@ export default function FinancialsPage() {
           <div className="bg-emerald-900/40 border border-emerald-500/50 rounded-xl px-5 py-3 text-center shadow-lg shadow-emerald-900/20">
             <p className="text-[9.5px] font-bold tracking-widest text-emerald-400 uppercase mb-1">Wallet Balance</p>
             <p className="text-[18px] font-black text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
-              {summaryLoading ? "…" : fmt(s?.balance ?? 0)}
+              {summaryLoading ? "…" : fmt(s?.wallet ?? 0)}
               {" "}<span className="text-[11px] text-emerald-400 font-semibold">₫</span>
             </p>
           </div>
@@ -478,6 +476,7 @@ export default function FinancialsPage() {
           myRoleSide="payer"
           confirmLabel="Confirm Paid"
           cacheKey="owner-payments-payer"
+          onSettled={fetchSummary}
         />
         <PaymentsPanel
           title="Prize Money Owed to You"
@@ -486,6 +485,7 @@ export default function FinancialsPage() {
           myRoleSide="payee"
           confirmLabel="Confirm Received"
           cacheKey="owner-payments-payee"
+          onSettled={fetchSummary}
         />
       </div>
     </div>

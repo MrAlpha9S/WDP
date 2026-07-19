@@ -84,6 +84,14 @@ export default function SpectatorTabs() {
           tabBarStyle: { display: 'none' },
         }}
       />
+      {/* Prediction/rewards statistics — hidden from tab bar, pushed from Profile */}
+      <Tabs.Screen
+        name="statistics"
+        options={{
+          href: null,
+          tabBarStyle: { display: 'none' },
+        }}
+      />
     </Tabs>
   );
 }

@@ -12,6 +12,10 @@ router.get('/profile', authMiddleware, authSpectator, SpectatorController.getSpe
 // Protected routes - wallet
 router.get('/wallet', authMiddleware, authSpectator, SpectatorController.getWalletInfo);
 router.get('/transactions', authMiddleware, authSpectator, SpectatorController.getTransactionHistory);
+
+// Protected routes - statistics
+router.get('/statistics', authMiddleware, authSpectator, SpectatorController.getStatistics);
+router.get('/statistics/rewards-series', authMiddleware, authSpectator, SpectatorController.getRewardsEarningsSeries);
 // Mobile-compatible aliases
 router.post('/transactions/deposit', authMiddleware, authSpectator, SpectatorController.depositPoints);
 router.post('/transactions/withdraw', authMiddleware, authSpectator, SpectatorController.withdrawPoints);

@@ -58,6 +58,19 @@ class JockeyController {
     const response = await JockeyService.getWalletInfo(req.userId);
     return res.status(response.code).json(response);
   }
+
+  // GET /statistics — win rate, rank, payouts earned/pending, main-vs-backup breakdown
+  async getStatistics(req, res) {
+    const response = await JockeyService.getStatistics(req.userId);
+    return res.status(response.code).json(response);
+  }
+
+  // GET /statistics/earnings-series — payouts earned over time, gap-filled
+  async getEarningsSeries(req, res) {
+    const { groupBy = 'day' } = req.query;
+    const response = await JockeyService.getEarningsSeries(req.userId, groupBy);
+    return res.status(response.code).json(response);
+  }
 }
 
 module.exports = new JockeyController();
