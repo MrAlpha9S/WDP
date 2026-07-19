@@ -977,7 +977,7 @@ class HorseOwnerService {
             const totalPrize = officialResults.reduce((sum, r) =>
                 sum + CurrencyConverter.convertToVnd(r.prizeMoney || 0, currencyForReg(r.registrationId)), 0);
 
-            const resultByRegId = new Map(results.map(r => [String(r.registrationId), r]));
+            const resultByRegId = new Map(officialResults.map(r => [String(r.registrationId), r]));
             let totalJockeyPayout = 0;
             for (const inv of invitations) {
                 const result = resultByRegId.get(String(inv.registrationId));
