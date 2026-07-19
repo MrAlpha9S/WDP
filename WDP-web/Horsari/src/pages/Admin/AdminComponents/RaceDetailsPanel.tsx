@@ -808,7 +808,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                     <span className="text-right">Stake</span>
                                                     <span className="text-right">Share</span>
                                                     <span className="text-right">Odds</span>
-                                                    <span className="text-right">$2 Pay</span>
+                                                    <span className="text-right">1.000₫ Pay</span>
                                                 </div>
                                                 {pool.perHorse.map((h: any) => (
                                                     <div key={h.registrationId} className="grid grid-cols-[1fr_56px_50px_56px_64px] text-[12px] px-3 py-2.5 border-b border-white/[0.03] last:border-b-0 hover:bg-white/[0.02] transition-colors">

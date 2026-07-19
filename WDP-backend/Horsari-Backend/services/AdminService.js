@@ -1043,7 +1043,7 @@ class AdminService {
                                 totalStake: Bi,
                                 poolShare:     P > 0 ? parseFloat((Bi / P * 100).toFixed(2)) : 0,
                                 odds:          parseFloat(PayoutService.oddsForHorse(N, Bi).toFixed(4)),
-                                displayPayout: parseFloat(PayoutService.totalCollect(2, N, Bi).toFixed(2)),
+                                displayPayout: parseFloat(PayoutService.totalCollect(1000, N, Bi).toFixed(2)),
                             }))
                             .sort((a, b) => b.totalStake - a.totalStake),
                     });
