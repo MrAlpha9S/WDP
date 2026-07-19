@@ -6,6 +6,11 @@ class SpectatorController {
         return res.status(response.code).json(response);
     }
 
+    async updateProfile(req, res) {
+        const response = await SpectatorService.updateProfile(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
     // ─── Wallet ───────────────────────────────────────────────────────────────
 
     async getWalletInfo(req, res) {

@@ -52,6 +52,15 @@ class AuthController {
         return res.status(response.code).json(response);
     }
 
+    // Upload/replace the current user's avatar — role-agnostic
+    async uploadAvatar(req, res) {
+        if (!req.file || !req.file.buffer) {
+            return res.status(400).json({ code: 400, msg: 'Image file is required' });
+        }
+        const response = await AuthService.uploadAvatar(req.userId, req.file.buffer, req.file.originalname);
+        return res.status(response.code).json(response);
+    }
+
     // Logout
     async logout(req, res) {
         res.clearCookie('Authorization');

@@ -2,6 +2,26 @@ const RefereeService = require('../services/RefereeService');
 const AdminService = require('../services/AdminService');
 
 class RefereeController {
+    // Self-service — GET/PUT my own profile
+    async getMyProfile(req, res) {
+        const response = await RefereeService.getMyProfile(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    async updateMyProfile(req, res) {
+        const response = await RefereeService.updateMyProfile(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    // Self-service — re-upload license PDF (resets licenseStatus to pending)
+    async updateMyLicense(req, res) {
+        if (!req.file || !req.file.buffer) {
+            return res.status(400).json({ code: 400, msg: 'License PDF is required' });
+        }
+        const response = await RefereeService.updateMyLicense(req.userId, req.file.buffer, req.file.originalname);
+        return res.status(response.code).json(response);
+    }
+
     // Get referee invitations
     async getRefereeInvitations(req, res) {
         const limit = parseInt(req.query.limit) || 10;

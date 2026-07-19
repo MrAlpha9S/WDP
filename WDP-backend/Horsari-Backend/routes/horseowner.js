@@ -2,11 +2,17 @@ const express = require('express');
 const HorseOwnerController = require('../controllers/HorseOwnerController');
 const PaymentController = require('../controllers/PaymentController');
 const { authMiddleware, authHorseOwner, authAdmin } = require('../middlewares/authMiddleware');
+const upload = require('../middlewares/uploadMiddleware');
 
 const router = express.Router();
 
 require('../swagger/horseownerSwagger');
 const RaceInvitationsController = require('../controllers/RaceInvitationsController');
+
+// Self-service profile
+router.get('/my-profile', authMiddleware, authHorseOwner, HorseOwnerController.getMyProfile);
+router.put('/my-profile', authMiddleware, authHorseOwner, HorseOwnerController.updateMyProfile);
+router.put('/my-profile/license', authMiddleware, authHorseOwner, upload.single('license'), HorseOwnerController.updateMyLicense);
 
 // Protected routes - Horse owner only
 router.get('/my-horses', authMiddleware, authHorseOwner, HorseOwnerController.getMyHorses);

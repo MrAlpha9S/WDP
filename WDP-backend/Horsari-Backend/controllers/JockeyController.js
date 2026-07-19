@@ -44,6 +44,15 @@ class JockeyController {
     return res.status(response.code).json(response);
   }
 
+  // Mobile: PUT /my-profile/license — re-upload license PDF (resets licenseStatus to pending)
+  async updateMyLicense(req, res) {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ code: 400, msg: 'License PDF is required' });
+    }
+    const response = await JockeyService.updateMyLicense(req.userId, req.file.buffer, req.file.originalname);
+    return res.status(response.code).json(response);
+  }
+
   // Mobile: GET /all-races — browse every race round, like admin does
   async getAllRaces(req, res) {
     const page = parseInt(req.query.page) || 1;

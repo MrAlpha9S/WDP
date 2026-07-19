@@ -16,6 +16,17 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // Self-service — GET/PUT my own profile (distinct from managing other users)
+    async getMyProfile(req, res) {
+        const response = await AdminService.getMyProfile(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    async updateMyProfile(req, res) {
+        const response = await AdminService.updateMyProfile(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
     // Get comprehensive system-wide statistics (all entities, snapshot breakdowns)
     async getSystemStatistics(req, res) {
         const response = await AdminService.getSystemStatistics();

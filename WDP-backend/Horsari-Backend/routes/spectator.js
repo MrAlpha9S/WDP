@@ -8,6 +8,7 @@ require('../swagger/spectatorSwagger');
 
 // Protected routes - profile
 router.get('/profile', authMiddleware, authSpectator, SpectatorController.getSpectatorProfile);
+router.put('/profile', authMiddleware, authSpectator, SpectatorController.updateProfile);
 
 // Protected routes - wallet
 router.get('/wallet', authMiddleware, authSpectator, SpectatorController.getWalletInfo);

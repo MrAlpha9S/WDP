@@ -1,5 +1,6 @@
 const AdminRepository = require('../repositories/AdminRepository');
 const UserRepository = require('../repositories/UserRepository');
+const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const JockeyRepository = require('../repositories/JockeyRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
@@ -2907,6 +2908,33 @@ AdminService.prototype.getDashboardSpectatorLeaderboard = async function () {
             data: { spectatorLeaderboard },
             msg: 'Spectator leaderboard retrieved successfully',
         };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+// ─── Self Profile (self-service, distinct from admin-managing-other-users) ──
+
+AdminService.prototype.getMyProfile = async function (adminId) {
+    try {
+        const doc = await AdminRepository.findByAdminId(adminId);
+        if (!doc) return { code: 404, msg: 'Admin not found' };
+        const { _id, ...roleFields } = doc.toObject();
+        const { passwordHash, ...userFields } = doc._id.toObject();
+        return { code: 200, data: { ...roleFields, ...userFields }, msg: 'Profile retrieved successfully' };
+    } catch (error) {
+        return { code: 500, msg: error.message };
+    }
+};
+
+AdminService.prototype.updateMyProfile = async function (adminId, updateData) {
+    try {
+        const { userFields, error } = ProfileUpdateUtil.buildUserFieldUpdates(updateData);
+        if (error) return { code: 400, msg: error };
+        if (Object.keys(userFields).length) {
+            await UserRepository.updateById(adminId, userFields);
+        }
+        return this.getMyProfile(adminId);
     } catch (error) {
         return { code: 500, msg: error.message };
     }

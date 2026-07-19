@@ -2,6 +2,7 @@ const express = require('express');
 const JockeyController = require('../controllers/JockeyController');
 const PaymentController = require('../controllers/PaymentController');
 const { authMiddleware, authJockey, authAdmin } = require('../middlewares/authMiddleware');
+const upload = require('../middlewares/uploadMiddleware');
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.get('/my-invitations', authMiddleware, authJockey, JockeyController.getMy
 router.put('/invitation/:invitationId/respond', authMiddleware, authJockey, JockeyController.respondToInvitationById);
 router.get('/my-profile', authMiddleware, authJockey, JockeyController.getMyProfile);
 router.put('/my-profile', authMiddleware, authJockey, JockeyController.updateMyProfile);
+router.put('/my-profile/license', authMiddleware, authJockey, upload.single('license'), JockeyController.updateMyLicense);
 router.get('/all-races', authMiddleware, authJockey, JockeyController.getAllRaces);
 
 // Wallet + payment verification

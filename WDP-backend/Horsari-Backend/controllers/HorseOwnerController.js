@@ -1,6 +1,27 @@
 const HorseOwnerService = require('../services/HorseOwnerService');
 
 class HorseOwnerController {
+    // Self-service — GET/PUT my own profile (distinct from getJockeyProfile,
+    // which is this owner viewing a jockey's profile)
+    async getMyProfile(req, res) {
+        const response = await HorseOwnerService.getMyProfile(req.userId);
+        return res.status(response.code).json(response);
+    }
+
+    async updateMyProfile(req, res) {
+        const response = await HorseOwnerService.updateMyProfile(req.userId, req.body);
+        return res.status(response.code).json(response);
+    }
+
+    // Self-service — re-upload license PDF (resets licenseStatus to pending)
+    async updateMyLicense(req, res) {
+        if (!req.file || !req.file.buffer) {
+            return res.status(400).json({ code: 400, msg: 'License PDF is required' });
+        }
+        const response = await HorseOwnerService.updateMyLicense(req.userId, req.file.buffer, req.file.originalname);
+        return res.status(response.code).json(response);
+    }
+
     // Get my horses
     async getMyHorses(req, res) {
         const page = parseInt(req.query.page) || 1;

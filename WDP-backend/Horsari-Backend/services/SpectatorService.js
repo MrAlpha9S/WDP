@@ -9,8 +9,25 @@ const Invitation = require('../entities/Invitation');
 const Horse = require('../entities/Horse');
 const Jockey = require('../entities/Jockey');
 const PredictionMethod = require('../entities/PredictionMethod');
+const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
 
 class SpectatorService {
+    // Self-service profile update — spectator has no role-specific editable
+    // fields (only `wallet`, which is system-managed via deposit/withdraw),
+    // so this only ever touches the shared User fields.
+    async updateProfile(spectatorId, updateData) {
+        try {
+            const { userFields, error } = ProfileUpdateUtil.buildUserFieldUpdates(updateData);
+            if (error) return { code: 400, msg: error };
+            if (Object.keys(userFields).length) {
+                await UserRepository.updateById(spectatorId, userFields);
+            }
+            return this.getSpectatorProfile(spectatorId);
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
     async getSpectatorProfile(spectatorId) {
         try {
             const spectator = await SpectatorRepository.findBySpectatorId(spectatorId);

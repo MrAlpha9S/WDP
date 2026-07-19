@@ -257,6 +257,33 @@ class AuthService {
             };
         }
     }
+
+    // Role-agnostic avatar upload — every role shares the same User.image
+    // field, so this doesn't need to live in each role's own service.
+    async uploadAvatar(userId, fileBuffer, fileName) {
+        try {
+            if (!fileBuffer) {
+                return { code: 400, msg: 'Image file is required' };
+            }
+
+            const secureUrl = await CloudinaryUtil.uploadFile(fileBuffer, fileName, 'users', 'image');
+            const user = await UserRepository.updateById(userId, { image: secureUrl });
+            if (!user) {
+                return { code: 404, msg: 'User not found' };
+            }
+
+            return {
+                code: 200,
+                data: { image: secureUrl },
+                msg: 'Avatar updated successfully',
+            };
+        } catch (error) {
+            return {
+                code: 500,
+                msg: error.message,
+            };
+        }
+    }
 }
 
 module.exports = new AuthService();

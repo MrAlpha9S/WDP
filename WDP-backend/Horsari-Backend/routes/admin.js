@@ -7,6 +7,10 @@ const router = express.Router();
 
 require('../swagger/adminSwagger');
 
+// Self-service profile (distinct from /users/:userId, which is admin managing others)
+router.get('/my-profile', authMiddleware, authAdmin, AdminController.getMyProfile);
+router.put('/my-profile', authMiddleware, authAdmin, AdminController.updateMyProfile);
+
 // Admin statistics
 router.get('/statistics', authMiddleware, authAdmin, AdminController.getStatistics);
 router.get('/statistics/overview', authMiddleware, authAdmin, AdminController.getSystemStatistics);

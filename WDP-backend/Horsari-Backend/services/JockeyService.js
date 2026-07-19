@@ -12,6 +12,7 @@ const RaceEligibilityRule = require("../entities/RaceEligibilityRule");
 const Tournament = require("../entities/Tournament");
 const NotificationService = require("./NotificationService");
 const { findJockeyScheduleConflict } = require("./JockeyScheduleConflict");
+const ProfileUpdateUtil = require("../utils/ProfileUpdateUtil");
 
 class JockeyService {
   // Get all jockeys
@@ -334,7 +335,7 @@ class JockeyService {
   // licenseLink/wallet/matchesRaced/totalWins are system-managed and never
   // accepted here.
   async updateMyProfile(jockeyId, updateData) {
-    const { bookingFee, weight, height, fullName, phoneNumber, address, image } = updateData;
+    const { bookingFee, weight, height, fullName, phoneNumber, address, image, dateOfBirth } = updateData;
 
     if (bookingFee != null && (typeof bookingFee !== 'number' || bookingFee < 0)) {
       return { code: 400, msg: 'bookingFee must be a non-negative number' };
@@ -344,6 +345,13 @@ class JockeyService {
     }
     if (height != null && (typeof height !== 'number' || height <= 0)) {
       return { code: 400, msg: 'height must be a positive number' };
+    }
+    let parsedDateOfBirth;
+    if (dateOfBirth != null) {
+      parsedDateOfBirth = new Date(dateOfBirth);
+      if (Number.isNaN(parsedDateOfBirth.getTime()) || parsedDateOfBirth > new Date()) {
+        return { code: 400, msg: 'dateOfBirth must be a valid, non-future date' };
+      }
     }
 
     const jockeyFields = {};
@@ -356,6 +364,7 @@ class JockeyService {
     if (phoneNumber != null) userFields.phoneNumber = phoneNumber;
     if (address != null) userFields.address = address;
     if (image != null) userFields.image = image;
+    if (parsedDateOfBirth != null) userFields.dateOfBirth = parsedDateOfBirth;
 
     await Promise.all([
       Object.keys(jockeyFields).length ? JockeyRepository.updateByJockeyId(jockeyId, jockeyFields) : null,
@@ -363,6 +372,19 @@ class JockeyService {
     ]);
 
     return HorseOwnerService.getJockeyProfile(jockeyId);
+  }
+
+  // Re-uploading a license requires re-verification, so licenseStatus
+  // always resets to 'pending' regardless of its previous value.
+  async updateMyLicense(jockeyId, fileBuffer, fileName) {
+    try {
+      if (!fileBuffer) return { code: 400, msg: 'License PDF is required' };
+      const { licenseLink, licenseStatus } = await ProfileUpdateUtil.reuploadLicense(fileBuffer, fileName, 'licenses/jockey');
+      await JockeyRepository.updateByJockeyId(jockeyId, { licenseLink, licenseStatus });
+      return HorseOwnerService.getJockeyProfile(jockeyId);
+    } catch (error) {
+      return { code: 500, msg: error.message };
+    }
   }
 
   // ─── Races ───────────────────────────────────────────────────────────────

@@ -2,10 +2,16 @@ const express = require('express');
 const RefereeController = require('../controllers/RefereeController');
 const PaymentController = require('../controllers/PaymentController');
 const { authMiddleware, authReferee, authAdmin } = require('../middlewares/authMiddleware');
+const upload = require('../middlewares/uploadMiddleware');
 
 const router = express.Router();
 
 require('../swagger/refereeSwagger');
+
+// Self-service profile
+router.get('/my-profile', authMiddleware, authReferee, RefereeController.getMyProfile);
+router.put('/my-profile', authMiddleware, authReferee, RefereeController.updateMyProfile);
+router.put('/my-profile/license', authMiddleware, authReferee, upload.single('license'), RefereeController.updateMyLicense);
 
 // Protected routes - Referee only
 router.get('/race-rounds', authMiddleware, authReferee, RefereeController.getRefereeRaceRounds);
