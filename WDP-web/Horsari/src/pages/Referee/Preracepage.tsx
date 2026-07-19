@@ -250,8 +250,8 @@ export default function PreRacePage() {
                             return [
                                 {
                                     label: "Verified",
-                                    ok: verifiedCount === registrations.length,
-                                    value: `${verifiedCount} / ${registrations.length}`,
+                                    ok: verifiedCount > 1,
+                                    value: `${verifiedCount}`,
                                 },
                                 {
                                     label: "Failed",
