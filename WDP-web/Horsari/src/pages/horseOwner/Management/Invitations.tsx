@@ -121,7 +121,7 @@ function InvitationDetailModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 font-sans">
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-xl bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[90vh]">
 
@@ -136,7 +136,7 @@ function InvitationDetailModal({
             <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border backdrop-blur-sm ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
           </div>
           <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="text-[24px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>{inv.name}</h2>
+            <h2 className="text-[24px] font-bold text-white leading-tight font-serif">{inv.name}</h2>
             <p className="text-[11.5px] text-gray-400 mt-0.5">Invited by {inv.sentBy} · {inv.sentAt}</p>
           </div>
         </div>
@@ -228,7 +228,7 @@ function InvitationCard({
               <span className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase px-2 py-0.5 rounded bg-white/5 border border-white/8">{inv.type}</span>
               <span className={`text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded border ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
             </div>
-            <h3 className="text-[16px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>{inv.name}</h3>
+            <h3 className="text-[16px] font-bold text-white font-serif">{inv.name}</h3>
             <p className="text-[11px] text-gray-600 mt-0.5">Sent by {inv.sentBy} · {inv.sentAt}</p>
           </div>
 
@@ -317,7 +317,7 @@ function JockeyInvitationCard({
               <span className={`text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded border ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
             </div>
             <div className="flex items-center gap-2">
-              <h3 className="text-[16px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>{inv.jockeyName}</h3>
+              <h3 className="text-[16px] font-bold text-white font-serif">{inv.jockeyName}</h3>
               {hasNoShowHistory && (
                 <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-700/40">
                   No-Show
@@ -575,7 +575,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   const pagedJockeyInvs = jockeyInvs;
 
   return (
-    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col font-sans">
 
       {selectedLive && (
         <InvitationDetailModal
@@ -589,7 +589,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
       <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
               Invitations
             </h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">

@@ -366,8 +366,7 @@ export default function HireJockeyModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-6"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-6 font-sans"
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
@@ -387,7 +386,7 @@ export default function HireJockeyModal({
               </div>
               <div>
                 <p className="text-[10px] font-bold tracking-[0.2em] text-gray-600 uppercase">Hiring</p>
-                <h2 className="text-[18px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <h2 className="text-[18px] font-bold text-white leading-tight font-serif">
                   {jockey.name}
                 </h2>
               </div>

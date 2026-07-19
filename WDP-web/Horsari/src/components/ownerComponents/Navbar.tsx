@@ -52,14 +52,13 @@ export default function NavBar({ activeTab, onTabChange }: NavBarProps) {
 
   return (
     <nav
-      className="w-full border-b border-white/10 bg-[#0f0f0f]"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className="w-full border-b border-white/10 bg-[#0f0f0f] font-sans"
     >
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         {/* Logo */}
         <span
-          className="text-[15px] font-bold tracking-widest text-red-500 uppercase"
-          style={{ fontFamily: "'Playfair Display', serif", letterSpacing: "0.18em" }}
+          className="text-[15px] font-bold tracking-widest text-red-500 uppercase font-serif"
+          style={{ letterSpacing: "0.18em" }}
         >
           Horsari
         </span>

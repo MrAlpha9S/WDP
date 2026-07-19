@@ -424,7 +424,7 @@ function FinishedBanner({ raceFinished }: { raceFinished: any }) {
         <div className="bg-[#1a1a1a] rounded-xl border border-yellow-600/30 p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2">
                 <Trophy size={20} className="text-yellow-400" />
-                <h2 className="text-[15px] font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>Race Finished</h2>
+                <h2 className="text-[15px] font-bold text-white font-serif">Race Finished</h2>
             </div>
             <div className="flex flex-col gap-1.5">
                 {top3.map((r: any, i: number) => (

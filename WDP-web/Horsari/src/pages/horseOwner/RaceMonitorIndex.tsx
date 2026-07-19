@@ -173,7 +173,7 @@ export default function OwnerRaceMonitorIndex() {
             liveUpdate,
             raceFinished,
         }}>
-            <div className="min-h-screen bg-[#0f0f0f]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <div className="min-h-screen bg-[#0f0f0f] font-sans">
                 <div className="max-w-5xl mx-auto px-5 py-8">
                     {/* Header */}
                     <div className="mb-6">
@@ -185,7 +185,7 @@ export default function OwnerRaceMonitorIndex() {
                             <span className={`w-2 h-2 rounded-full ${phaseCfg.dot} ${"pulse" in phaseCfg && wsConnected ? "animate-pulse" : ""}`} />
                             <span className={`text-[11px] font-bold uppercase tracking-widest ${phaseCfg.color}`}>{ownerStatusLabel(raceRound?.status)}</span>
                         </div>
-                        <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight font-serif">
                             {raceRound?.roundName ?? "Race Monitor"}
                         </h1>
                         <p className="text-[13px] text-gray-500 mt-0.5">
@@ -203,7 +203,7 @@ export default function OwnerRaceMonitorIndex() {
                 <footer className="border-t border-white/8 py-4 mt-8">
                     <div className="max-w-5xl mx-auto px-5 flex items-center justify-between text-[12px] text-gray-600">
                         <span>© 2026 Equine Elite Management System</span>
-                        <span className="font-black uppercase tracking-widest text-gray-500 text-[11px]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                        <span className="font-black uppercase tracking-widest text-gray-500 text-[11px] font-serif">
                             Equine Elite
                         </span>
                     </div>

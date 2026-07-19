@@ -142,7 +142,7 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
 
       <div className="px-4 pt-4 pb-5 flex flex-col gap-3 flex-1">
         <div>
-          <h3 className="text-[19px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h3 className="text-[19px] font-bold text-white leading-tight font-serif">
             {jockey.name}
           </h3>
         </div>
@@ -256,7 +256,7 @@ export default function JockeysPage() {
   const visible = filtered.slice(0, visibleCount);
 
   return (
-    <div className="flex-1 px-8 py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="flex-1 px-8 py-8 font-sans">
 
       {selected && (
         <JockeyDetailModal jockey={selected} onClose={() => setSelected(null)} loading={profileLoading} />
@@ -276,7 +276,7 @@ export default function JockeysPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-[36px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+          <h1 className="text-[36px] font-bold text-white leading-tight font-serif">
             Jockey Marketplace
           </h1>
           <p className="text-[13px] text-gray-500 mt-1">

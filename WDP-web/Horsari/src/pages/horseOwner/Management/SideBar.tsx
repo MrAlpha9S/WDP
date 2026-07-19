@@ -55,8 +55,7 @@ export default function Sidebar({ activeTab, onTabChange, pendingInvitations = 0
 
   return (
     <aside
-      className="w-[185px] shrink-0 min-h-screen bg-[#161616] border-r border-white/8 flex flex-col pt-7 pb-6"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className="w-[185px] shrink-0 min-h-screen bg-[#161616] border-r border-white/8 flex flex-col pt-7 pb-6 font-sans"
     >
       {/* Header */}
       <div className="px-5 mb-6">

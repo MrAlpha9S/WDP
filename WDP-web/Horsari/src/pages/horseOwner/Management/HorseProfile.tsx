@@ -119,7 +119,7 @@ function ActiveRegCard({ entry }: { entry: HorseRegistrationEntry }) {
     <div className={`rounded-xl border px-4 py-3.5 flex items-center gap-4 ${statusGlow}`}>
       <Clock size={16} className="text-yellow-500 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-bold text-white truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+        <p className="text-[13px] font-bold text-white truncate font-serif">
           {rr?.roundName ?? "Race Round"}
         </p>
         <div className="flex items-center gap-3 text-[11px] text-gray-500 flex-wrap mt-0.5">
@@ -190,7 +190,7 @@ function RaceHistoryTab({ history }: { history: HorseRegistrationEntry[] }) {
                 <div key={String(reg._id)} className="bg-[#1e1e1e] rounded-xl border border-white/8 px-4 py-3.5 flex items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="text-[13px] font-bold text-white truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+                      <p className="text-[13px] font-bold text-white truncate font-serif">
                         {rr?.roundName ?? "—"}
                       </p>
                       {rr?.tournament && (
@@ -355,8 +355,8 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl flex flex-col bg-[#111111] rounded-2xl border border-white/10 shadow-2xl"
-        style={{ maxHeight: "90vh", fontFamily: "'DM Sans', sans-serif" }}
+        className="relative w-full max-w-2xl flex flex-col bg-[#111111] rounded-2xl border border-white/10 shadow-2xl font-sans"
+        style={{ maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Sticky header ── */}
@@ -409,7 +409,7 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-[22px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    <h2 className="text-[22px] font-bold text-white leading-tight font-serif">
                       {horse.horseName}
                     </h2>
                     <p className="text-[11px] text-gray-500 mt-0.5">

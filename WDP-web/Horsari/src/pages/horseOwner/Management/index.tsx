@@ -11,8 +11,7 @@ function ComingSoon({ title }: { title: string }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 min-h-[60vh]">
       <p
-        className="text-[30px] font-bold text-white"
-        style={{ fontFamily: "'Playfair Display', serif" }}
+        className="text-[30px] font-bold text-white font-serif"
       >
         {title}
       </p>
@@ -49,8 +48,7 @@ export default function ManagementPage({ initialTab }: { initialTab?: Management
 
   return (
     <div
-      className="flex min-h-screen bg-[#111111] text-white"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className="flex min-h-screen bg-[#111111] text-white font-sans"
     >
       <Sidebar
         activeTab={activeTab}

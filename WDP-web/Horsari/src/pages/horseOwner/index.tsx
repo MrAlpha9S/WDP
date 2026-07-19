@@ -30,8 +30,7 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="min-h-screen bg-[#111111] text-white"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className="min-h-screen bg-[#111111] text-white font-sans"
     >
       <NavBar activeTab={activeTab} onTabChange={setActiveTab} />
       <ActiveView tab={activeTab} initialMgmtTab={initialMgmtTab} onNavigate={handleNavigate} />

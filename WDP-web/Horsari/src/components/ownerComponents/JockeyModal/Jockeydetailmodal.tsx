@@ -191,8 +191,7 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans"
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -232,8 +231,7 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
           {/* Name */}
           <div className="absolute bottom-4 left-5">
             <h2
-              className="text-[26px] font-bold text-white leading-tight"
-              style={{ fontFamily: "'Playfair Display', serif" }}
+              className="text-[26px] font-bold text-white leading-tight font-serif"
             >
               {jockey.name}
             </h2>

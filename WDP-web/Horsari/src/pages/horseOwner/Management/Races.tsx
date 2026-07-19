@@ -113,7 +113,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
         <div className="flex items-start justify-between px-5 py-4 border-b border-white/8 shrink-0">
           <div>
             <p className="text-[9px] font-black uppercase tracking-widest text-gray-600 mb-1">Race Detail</p>
-            <h2 className="text-[17px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h2 className="text-[17px] font-bold text-white leading-tight font-serif">
               {raceRound?.roundName ?? "Loading…"}
             </h2>
           </div>
@@ -455,7 +455,7 @@ function RaceCard({ race, onDetail, onLive }: { race: MyRace; onDetail: () => vo
       </div>
 
       <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
-        <h3 className="text-[16px] font-bold text-white leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+        <h3 className="text-[16px] font-bold text-white leading-tight font-serif">
           {race.name}
         </h3>
 
@@ -627,11 +627,11 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
   const pagedRaces = filteredRaces.slice((page - 1) * RACES_PAGE_SIZE, page * RACES_PAGE_SIZE);
 
   return (
-    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col font-sans">
       <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
               My Races
             </h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">

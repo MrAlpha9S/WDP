@@ -136,8 +136,7 @@ function HorseCardItem({
       <div className="px-5 pt-4 pb-5 flex flex-col gap-4 flex-1">
         <div>
           <h3
-            className="text-[18px] font-bold text-white leading-tight"
-            style={{ fontFamily: "'Playfair Display', serif" }}
+            className="text-[18px] font-bold text-white leading-tight font-serif"
           >
             {horse.name}
           </h3>
@@ -272,15 +271,14 @@ function EditHorseModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
-        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col font-sans"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
           <div>
             <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">Edit Horse</p>
-            <h2 className="text-[17px] font-bold text-white mt-0.5" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h2 className="text-[17px] font-bold text-white mt-0.5 font-serif">
               {horse.horseName}
             </h2>
           </div>
@@ -504,15 +502,14 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
-        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden font-sans"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
           <div>
             <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">New Registration</p>
-            <h2 className="text-[17px] font-bold text-white mt-0.5" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h2 className="text-[17px] font-bold text-white mt-0.5 font-serif">
               Register a Horse
             </h2>
           </div>
@@ -734,11 +731,11 @@ export default function HorsesPage() {
         onSaved={() => { setEditTarget(null); setRefreshSeed(s => s + 1); }}
       />
     )}
-    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col font-sans">
       <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
               Active Roster
             </h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
