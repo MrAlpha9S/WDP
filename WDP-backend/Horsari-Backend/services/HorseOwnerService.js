@@ -950,13 +950,12 @@ class HorseOwnerService {
             const registrations = await Registration.find({ horseOwnerId: ownerId }).lean();
             const regIds = registrations.map(r => r._id);
 
-            const [results, invitations, violations, transactions] = await Promise.all([
+            const [results, invitations, violations] = await Promise.all([
                 regIds.length > 0 ? RaceResult.find({ registrationId: { $in: regIds } }).lean() : [],
                 regIds.length > 0
                     ? Invitation.find({ registrationId: { $in: regIds }, invitationStatus: 'accepted' }).lean()
                     : [],
                 regIds.length > 0 ? Violation.find({ registrationId: { $in: regIds } }).lean() : [],
-                Transaction.find({ userId: ownerId, status: 'completed' }).lean(),
             ]);
 
             // prizeMoney is stored in each race round's own currency — convert to VND
@@ -989,13 +988,6 @@ class HorseOwnerService {
             }
             totalJockeyPayout = Math.round(totalJockeyPayout);
 
-            const balance = transactions.reduce((sum, t) => {
-                if (t.transactionType === 'deposit' || t.transactionType === 'reward' || t.transactionType === 'refund')
-                    return sum + t.amount;
-                if (t.transactionType === 'withdrawal') return sum - t.amount;
-                return sum;
-            }, 0);
-
             const horseOwner = await HorseOwnerRepository.findById(ownerId);
 
             return {
@@ -1008,7 +1000,6 @@ class HorseOwnerService {
                     totalJockeyPayout,
                     netProfit: totalPrize - totalJockeyPayout,
                     totalViolations: violations.length,
-                    balance,
                     wallet: horseOwner?.wallet || 0,
                 },
                 msg: 'Financial summary retrieved successfully',

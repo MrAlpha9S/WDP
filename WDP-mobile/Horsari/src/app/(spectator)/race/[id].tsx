@@ -307,22 +307,19 @@ function PredictionChip({
   prediction,
   horses,
   localOutcome,
-  settled,
 }: {
   prediction: PredictionItem;
   horses: LiveHorse[];
   localOutcome?: 'won' | 'lost' | null;
-  settled?: boolean;
 }) {
   const methodType = prediction.predictionMethod?.methodType;
 
-  // Priority: server status (if settled) > local optimistic > raw status
+  // localOutcome is only ever passed once results are confirmed by the referee.
   let displayStatus = prediction.predictionStatus;
   if (prediction.predictionStatus === 'pending' && localOutcome === 'won')  displayStatus = 'correct';
   if (prediction.predictionStatus === 'pending' && localOutcome === 'lost') displayStatus = 'incorrect';
 
   const st = STATUS_CONFIG[displayStatus] ?? STATUS_CONFIG.pending;
-  const isOptimistic = prediction.predictionStatus === 'pending' && localOutcome != null && !settled;
 
   const horseName =
     prediction.registration?.horse?.horseName ??
@@ -349,9 +346,6 @@ function PredictionChip({
 
       <View style={[styles.predStatusBadge, { backgroundColor: st.bg, borderColor: `${st.color}50` }]}>
         <Text style={[styles.predStatusText, { color: st.color }]}>{st.label}</Text>
-        {isOptimistic && (
-          <Text style={[styles.predStatusText, { color: st.color, fontSize: 7, opacity: 0.7 }]}>~</Text>
-        )}
       </View>
     </View>
   );
@@ -362,11 +356,9 @@ function PredictionChip({
 function BetOutcomeBanner({
   predictions,
   results,
-  settled,
 }: {
   predictions: PredictionItem[];
   results: FinishResult[];
-  settled: boolean;
 }) {
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -429,9 +421,6 @@ function BetOutcomeBanner({
       {wonCount > 0 && (
         <Text style={[styles.betBannerPts, { color: accent }]}>+{totalPts} pts</Text>
       )}
-      {!settled && (
-        <Text style={styles.betBannerNote}>Chờ xác nhận chính thức</Text>
-      )}
 
       {/* Divider */}
       <View style={[styles.betBannerDivider, { backgroundColor: border }]} />
@@ -463,12 +452,10 @@ function BetOutcomeBanner({
 
 function FinishedBanner({
   results,
-  isPendingConfirmation,
   distUnit,
   onToggleUnit,
 }: {
   results: FinishResult[];
-  isPendingConfirmation?: boolean;
   distUnit: 'metres' | 'lengths';
   onToggleUnit: () => void;
 }) {
@@ -503,9 +490,22 @@ function FinishedBanner({
           {distUnit === 'metres' ? 'Đổi sang độ dài (L)' : 'Đổi sang mét (m)'}
         </Text>
       </Pressable>
-      {isPendingConfirmation && (
-        <Text style={styles.pendingNote}>Kết quả chờ xác nhận chính thức</Text>
-      )}
+    </View>
+  );
+}
+
+// ─── Awaiting Confirmation Card ──────────────────────────────────────────────
+
+function AwaitingConfirmationCard() {
+  return (
+    <View style={[styles.awaitingCard, styles.awaitingConfirmationCard]}>
+      <View style={[styles.awaitingIconRing, styles.awaitingConfirmationIconRing]}>
+        <Ionicons name="shield-checkmark-outline" size={34} color={Palette.gold} />
+      </View>
+      <Text style={styles.awaitingTitle}>Đang chờ xác nhận kết quả</Text>
+      <Text style={styles.awaitingSub}>
+        Đua đã kết thúc. Ban tổ chức đang xác minh kết quả chính thức — kết quả và cược sẽ sớm được công bố.
+      </Text>
     </View>
   );
 }
@@ -523,8 +523,10 @@ export default function LiveRaceScreen() {
 
   const { connected, liveUpdate, finishResults, confirmedResults } = useSpectatorRaceSocket(id ?? null);
   const [distUnit, setDistUnit] = useState<'lengths' | 'metres'>('lengths');
-  // settled = admin has officially confirmed; optimistic = race_finished fired but not yet confirmed
-  const settled = confirmedResults != null;
+  // settled = referee has officially confirmed results — via a live 'race_results_confirmed'
+  // socket event, or because we loaded the screen after confirmation already happened
+  // (raceRound.status only flips to 'completed' once results are official).
+  const settled = confirmedResults != null || raceRound?.status === 'completed';
 
   useEffect(() => {
     if (!id) return;
@@ -550,6 +552,8 @@ export default function LiveRaceScreen() {
     : null;
 
   const activeFinishResults = finishResults || restFinishResults;
+  // Race is over but the referee hasn't confirmed results yet.
+  const awaitingConfirmation = !settled && activeFinishResults != null;
 
   // Build display horses: use live socket data if available, else fall back to registrations
   const displayHorses: LiveHorse[] = liveUpdate?.horses ??
@@ -572,9 +576,23 @@ export default function LiveRaceScreen() {
   const trackLength = liveUpdate?.trackLength ?? raceRound?.trackLength ?? 2000;
   const elapsed = liveUpdate ? formatElapsed(liveUpdate.elapsedSeconds) : '--:--';
 
+  // Distance still to run for the front-runner — hides the track visualization once
+  // the pack is within 200m of the line (video coverage is more useful at that point).
+  const leadDist = displayHorses.length > 0
+    ? Math.max(...displayHorses.map(h => (h.isFinished ? trackLength : h.currentDistance)))
+    : 0;
+  const remainingDistance = trackLength - leadDist;
+  const showTrackView = !activeFinishResults && remainingDistance > 200;
+  // Same 200m window — standings are replaced by the final-stretch notice too,
+  // since ranks are shifting too fast to read and the video is the better view.
+  const finalStretch = !activeFinishResults && !showTrackView;
+
+  // Only reveal official finish order once the referee has confirmed results.
+  const revealedFinishResults = settled ? activeFinishResults : null;
+
   // Sort standings: finished horses by finishPosition, then running by distance
-  const sortedHorses = activeFinishResults
-    ? (activeFinishResults
+  const sortedHorses = revealedFinishResults
+    ? (revealedFinishResults
         .map((r) => displayHorses.find((h) => h.registrationId === r.registrationId))
         .filter(Boolean) as LiveHorse[])
     : [...displayHorses].sort((a, b) => {
@@ -650,14 +668,14 @@ export default function LiveRaceScreen() {
 
         {/* ── Fixed top: video / awaiting / finished banner ── */}
         <View style={styles.topArea}>
-          {activeFinishResults && (
+          {settled && activeFinishResults && (
             <FinishedBanner
-              results={activeFinishResults}
-              isPendingConfirmation={raceRound?.status === 'awaitingConfirmation'}
+              results={confirmedResults ?? activeFinishResults}
               distUnit={distUnit}
               onToggleUnit={() => setDistUnit(u => u === 'metres' ? 'lengths' : 'metres')}
             />
           )}
+          {awaitingConfirmation && <AwaitingConfirmationCard />}
           {!activeFinishResults && (
             (raceRound?.status === 'running' || liveUpdate !== null) ? (
               <View style={[styles.videoPlaceholder, { overflow: 'hidden' }]}>
@@ -737,7 +755,7 @@ export default function LiveRaceScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
           {/* ── Track visualization ── */}
-          {!activeFinishResults && (
+          {showTrackView && (
             <Section title="VỊ TRÍ TRÊN ĐUA TRƯỜNG">
               {displayHorses.length > 0
                 ? <TrackView horses={displayHorses} trackLength={trackLength} />
@@ -746,34 +764,46 @@ export default function LiveRaceScreen() {
               <Text style={styles.trackNote}>Đường đua: {trackLength.toLocaleString()} m</Text>
             </Section>
           )}
+          {finalStretch && (
+            <View style={styles.finalStretchNotice}>
+              <Ionicons name="flag" size={14} color={Palette.gold} />
+              <Text style={styles.finalStretchText}>Sắp về đích — theo dõi qua video trực tiếp!</Text>
+            </View>
+          )}
 
           {/* ── Standings ── */}
-          <Section title="BẢNG XẾP HẠNG">
-            {sortedHorses.length === 0 ? (
-              <Text style={styles.emptyText}>Chưa có dữ liệu</Text>
-            ) : sortedHorses.map((h, idx) => (
-              <HorseRow
-                key={h.registrationId}
-                horse={h}
-                rank={idx + 1}
-                trackLength={trackLength}
-                isFinished={activeFinishResults !== null}
-              />
-            ))}
-          </Section>
+          {!finalStretch && (
+            <Section title="BẢNG XẾP HẠNG">
+              {awaitingConfirmation ? (
+                <Text style={styles.pendingNote}>Kết quả đang chờ ban tổ chức xác nhận…</Text>
+              ) : sortedHorses.length === 0 ? (
+                <Text style={styles.emptyText}>Chưa có dữ liệu</Text>
+              ) : sortedHorses.map((h, idx) => (
+                <HorseRow
+                  key={h.registrationId}
+                  horse={h}
+                  rank={idx + 1}
+                  trackLength={trackLength}
+                  isFinished={revealedFinishResults !== null}
+                />
+              ))}
+            </Section>
+          )}
 
           {/* ── My predictions ── */}
           {myPredictions.length > 0 && (
             <Section title="CƯỢC CỦA BẠN">
-              {activeFinishResults && (
+              {settled && activeFinishResults && (
                 <BetOutcomeBanner
                   predictions={myPredictions}
                   results={confirmedResults ?? activeFinishResults}
-                  settled={settled}
                 />
               )}
+              {awaitingConfirmation && (
+                <Text style={styles.pendingNote}>Đang chờ xác nhận để công bố kết quả cược…</Text>
+              )}
               {myPredictions.map((p) => {
-                const localOutcome = activeFinishResults
+                const localOutcome = settled && activeFinishResults
                   ? computeLocalOutcome(p, confirmedResults ?? activeFinishResults)
                   : null;
                 return (
@@ -782,7 +812,6 @@ export default function LiveRaceScreen() {
                     prediction={p}
                     horses={displayHorses}
                     localOutcome={localOutcome}
-                    settled={settled}
                   />
                 );
               })}
@@ -1270,6 +1299,35 @@ const styles = StyleSheet.create({
     color: Palette.muted,
     letterSpacing: 0.3,
   },
+  awaitingConfirmationCard: {
+    backgroundColor: '#1A160A',
+    borderColor: '#3A3010',
+  },
+  awaitingConfirmationIconRing: {
+    backgroundColor: '#1A160A',
+    borderColor: '#3A3010',
+  },
+
+  // Final-stretch notice (replaces TrackView within 200m of the finish)
+  finalStretchNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#3A3010',
+    backgroundColor: '#1A160A',
+  },
+  finalStretchText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '700',
+    color: Palette.gold,
+    letterSpacing: 0.3,
+  },
 
   // Bet outcome banner
   betBanner: {
@@ -1293,14 +1351,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
     marginBottom: 2,
-  },
-  betBannerNote: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    color: Palette.muted,
-    textAlign: 'center',
-    marginBottom: 4,
-    letterSpacing: 0.3,
   },
   betBannerDivider: {
     height: 1,

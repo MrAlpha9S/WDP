@@ -2608,35 +2608,52 @@ AdminService.prototype.getDashboardKpi = async function () {
 };
 
 // ── 2. House earnings time-series (Row 2 chart) ───────────────────────────────
-// Takeout rates: race_winner = 0.17, race_rank = 0.17, tournament_champion = 0.22
-// We derive grossPool and houseEarning from the settled reward transaction amounts.
-const DASHBOARD_TAKEOUT = 0.17; // race_winner / race_rank are both 0.17
+// houseEarning is read directly from the same transactions that fund
+// mainAdminWallet (PayoutService.distributeRacePayouts/distributeTournamentPayouts
+// call AdminRepository.incrementMainAdminWallet + log a matching deposit/payment
+// Transaction). Deriving it from reward payouts with a flat takeout rate would
+// drift from the real wallet balance (tournament_champion uses 22%, not 17%,
+// and pools with no winning prediction still credit the house but log no reward
+// transaction at all).
 
 AdminService.prototype.getDashboardHouseEarnings = async function (groupBy = 'day') {
     try {
         const Transaction = require('../entities/Transaction');
+        const mainAdmin = await AdminRepository.findMainAdmin();
         let dateFormat = '%Y-%m-%d';
         if (groupBy === 'year') dateFormat = '%Y';
         else if (groupBy === 'month') dateFormat = '%Y-%m';
         else if (groupBy === 'week') dateFormat = '%Y-%U';
 
-
-        const series = await Transaction.aggregate([
-            { $match: { transactionType: 'reward', referenceType: 'prediction', status: 'completed' } },
-            {
-                $group: {
-                    _id: { $dateToString: { format: dateFormat, date: '$date' } },
-                    payoutToWinners: { $sum: '$amount' },
+        const [houseTakeSeries, payoutSeries] = await Promise.all([
+            Transaction.aggregate([
+                { $match: { userId: mainAdmin?._id, transactionType: 'deposit', referenceType: 'payment', status: 'completed' } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: dateFormat, date: '$date' } },
+                        houseEarning: { $sum: '$amount' },
+                    },
                 },
-            },
-            { $sort: { _id: 1 } },
+            ]),
+            Transaction.aggregate([
+                { $match: { transactionType: 'reward', referenceType: 'prediction', status: 'completed' } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: dateFormat, date: '$date' } },
+                        payoutToWinners: { $sum: '$amount' },
+                    },
+                },
+            ]),
         ]);
 
-        const result = series.map(row => {
-            const N = row.payoutToWinners;
-            const P = parseFloat((N / (1 - DASHBOARD_TAKEOUT)).toFixed(2));
-            const H = parseFloat((P - N).toFixed(2));
-            return { date: row._id, houseEarning: H, payoutToWinners: parseFloat(N.toFixed(2)), grossPool: P };
+        const houseTakeMap = new Map(houseTakeSeries.map(r => [r._id, r.houseEarning]));
+        const payoutMap = new Map(payoutSeries.map(r => [r._id, r.payoutToWinners]));
+        const allDates = new Set([...houseTakeMap.keys(), ...payoutMap.keys()]);
+
+        const result = [...allDates].map(date => {
+            const H = parseFloat((houseTakeMap.get(date) || 0).toFixed(2));
+            const N = parseFloat((payoutMap.get(date) || 0).toFixed(2));
+            return { date, houseEarning: H, payoutToWinners: N, grossPool: parseFloat((H + N).toFixed(2)) };
         });
 
         // Ensure we always have at least a baseline of recent periods (e.g. last 7 days) 
@@ -2677,8 +2694,8 @@ AdminService.prototype.getDashboardHouseEarnings = async function (groupBy = 'da
         result.sort((a, b) => a.date.localeCompare(b.date));
 
         const totalPayoutToWinners = parseFloat(result.reduce((s, r) => s + r.payoutToWinners, 0).toFixed(2));
-        const totalGrossPool = parseFloat(result.reduce((s, r) => s + r.grossPool, 0).toFixed(2));
-        const totalHouseEarning = parseFloat((totalGrossPool - totalPayoutToWinners).toFixed(2));
+        const totalHouseEarning = parseFloat(result.reduce((s, r) => s + r.houseEarning, 0).toFixed(2));
+        const totalGrossPool = parseFloat((totalHouseEarning + totalPayoutToWinners).toFixed(2));
 
         return {
             code: 200,

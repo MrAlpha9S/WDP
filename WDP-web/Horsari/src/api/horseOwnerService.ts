@@ -139,7 +139,7 @@ export interface FinancialRaceRow {
 export interface FinancialSummary {
   totalRaces: number; totalWins: number; totalLosses: number;
   totalPrize: number; totalJockeyPayout: number; netProfit: number;
-  totalViolations: number; balance: number; wallet: number;
+  totalViolations: number; wallet: number;
 }
 
 export interface RaceRoundStatus {

@@ -46,6 +46,8 @@ interface PaymentsPanelProps {
      * are already server-side scoped to the caller's own rows (e.g. referee's payments).
      */
     currentUserId?: string;
+    /** Called after a confirm fully settles the payment (both sides confirmed) — the point where a wallet balance actually changes. */
+    onSettled?: () => void;
 }
 
 const SORT_OPTIONS: { value: string; label: string; sortBy: string; order: "asc" | "desc" }[] = [
@@ -55,7 +57,7 @@ const SORT_OPTIONS: { value: string; label: string; sortBy: string; order: "asc"
     { value: "amount:asc", label: "Amount Low–High", sortBy: "amount", order: "asc" },
 ];
 
-export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleSide, confirmLabel, cacheKey, currentUserId }: PaymentsPanelProps) {
+export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleSide, confirmLabel, cacheKey, currentUserId, onSettled }: PaymentsPanelProps) {
     const [sortValue, setSortValue] = useState("createdAt:desc");
     const sortOption = SORT_OPTIONS.find((o) => o.value === sortValue) ?? SORT_OPTIONS[0];
 
@@ -74,6 +76,7 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
             if (res.code === 200 && res.data) {
                 const updated = res.data;
                 mutate((prev) => prev.map((p) => (p._id === paymentId ? updated : p)));
+                if (updated.paymentStatus === "paid") onSettled?.();
             }
         } catch (err: any) {
             setActionError(err?.msg || "Failed to confirm payment");
