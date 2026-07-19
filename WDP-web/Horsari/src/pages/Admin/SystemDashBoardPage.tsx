@@ -143,111 +143,113 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
     }, []);
 
     return (
-        <div className="px-8 py-8 font-sans">
-            {/* Header */}
-            <div className="mb-7">
-                <h1
-                    className="text-[26px] font-bold text-white tracking-tight font-serif"
-                >
-                    System Dashboard
-                </h1>
-                <p className="text-[13px] text-gray-500 mt-0.5">
-                    High-level overview and administrative controls.
-                </p>
-            </div>
+        <div className="min-h-screen font-sans">
+            <div className="max-w-7xl mx-auto px-6 py-8">
+                {/* Header */}
+                <div className="mb-7">
+                    <h1
+                        className="text-[26px] font-bold text-white tracking-tight font-serif"
+                    >
+                        System Dashboard
+                    </h1>
+                    <p className="text-[13px] text-gray-500 mt-0.5">
+                        High-level overview and administrative controls.
+                    </p>
+                </div>
 
-            {/* Stat cards */}
-            <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
-                <StatCard
-                    label="Pool Betting Wallet"
-                    value={loading ? "..." : (stats?.finance?.mainAdminWallet ?? 0).toLocaleString() + " vnd"}
-                    sub="Lifetime pool takeout (statistic only)"
-                    subColor="text-gray-500"
-                    icon={<Wallet size={16} />}
-                />
-                <StatCard
-                    label="Active Users"
-                    value={loading ? "..." : (stats?.users?.countActive || 0).toString()}
-                    sub="Total registered accounts"
-                    subColor="text-gray-500"
-                    icon={<Users size={16} />}
-                />
-                <StatCard
-                    label="Tournaments"
-                    value={loading ? "..." : (stats?.tournaments?.count || 0).toString()}
-                    sub={loading ? "..." : `${stats?.tournaments?.ongoing || 0} Ongoing · ${stats?.tournaments?.scheduled || 0} Scheduled`}
-                    icon={<Trophy size={16} />}
-                />
-                <StatCard
-                    label="Horse Owners"
-                    value={loading ? "..." : (stats?.horseOwners?.count || 0).toString()}
-                    sub={loading ? "..." : `${stats?.horseOwners?.approved || 0} Active · ${stats?.horseOwners?.pending || 0} Pending`}
-                    subColor={stats?.horseOwners?.pending > 0 ? "text-amber-500" : "text-gray-500"}
-                    icon={<ClipboardList size={16} />}
-                    highlight={stats?.horseOwners?.pending > 0}
-                />
-                <StatCard
-                    label="Jockeys"
-                    value={loading ? "..." : (stats?.jockeys?.count || 0).toString()}
-                    sub={loading ? "..." : `${stats?.jockeys?.approved || 0} Active · ${stats?.jockeys?.pending || 0} Pending`}
-                    subColor={stats?.jockeys?.pending > 0 ? "text-amber-500" : "text-gray-500"}
-                    icon={<Users size={16} />}
-                    highlight={stats?.jockeys?.pending > 0}
-                />
-            </div>
+                {/* Stat cards */}
+                <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+                    <StatCard
+                        label="Pool Betting Wallet"
+                        value={loading ? "..." : (stats?.finance?.mainAdminWallet ?? 0).toLocaleString() + " vnd"}
+                        sub="Lifetime pool takeout (statistic only)"
+                        subColor="text-gray-500"
+                        icon={<Wallet size={16} />}
+                    />
+                    <StatCard
+                        label="Active Users"
+                        value={loading ? "..." : (stats?.users?.countActive || 0).toString()}
+                        sub="Total registered accounts"
+                        subColor="text-gray-500"
+                        icon={<Users size={16} />}
+                    />
+                    <StatCard
+                        label="Tournaments"
+                        value={loading ? "..." : (stats?.tournaments?.count || 0).toString()}
+                        sub={loading ? "..." : `${stats?.tournaments?.ongoing || 0} Ongoing · ${stats?.tournaments?.scheduled || 0} Scheduled`}
+                        icon={<Trophy size={16} />}
+                    />
+                    <StatCard
+                        label="Horse Owners"
+                        value={loading ? "..." : (stats?.horseOwners?.count || 0).toString()}
+                        sub={loading ? "..." : `${stats?.horseOwners?.approved || 0} Active · ${stats?.horseOwners?.pending || 0} Pending`}
+                        subColor={stats?.horseOwners?.pending > 0 ? "text-amber-500" : "text-gray-500"}
+                        icon={<ClipboardList size={16} />}
+                        highlight={stats?.horseOwners?.pending > 0}
+                    />
+                    <StatCard
+                        label="Jockeys"
+                        value={loading ? "..." : (stats?.jockeys?.count || 0).toString()}
+                        sub={loading ? "..." : `${stats?.jockeys?.approved || 0} Active · ${stats?.jockeys?.pending || 0} Pending`}
+                        subColor={stats?.jockeys?.pending > 0 ? "text-amber-500" : "text-gray-500"}
+                        icon={<Users size={16} />}
+                        highlight={stats?.jockeys?.pending > 0}
+                    />
+                </div>
 
-            {/* Bottom grid: Invitation Status + Active Races */}
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
+                {/* Bottom grid: Invitation Status + Active Races */}
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">
 
-                <InvitationsSection onViewAll={() => setActiveTab("Inbox")} />
+                    <InvitationsSection onViewAll={() => setActiveTab("Inbox")} />
 
-                {/* Active Races */}
-                <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5">
-                    <div className="flex items-center justify-between mb-5">
-                        <h2 className="text-[15px] font-semibold text-white">
-                            Active Races
-                        </h2>
-                        <Radio size={14} className="text-red-500" />
-                    </div>
+                    {/* Active Races */}
+                    <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5">
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-[15px] font-semibold text-white">
+                                Active Races
+                            </h2>
+                            <Radio size={14} className="text-red-500" />
+                        </div>
 
-                    <div className="flex flex-col gap-3">
-                        {racesLoading ? (
-                            <p className="text-[13px] text-gray-500 text-center py-4">Loading races...</p>
-                        ) : activeRaces.length === 0 ? (
-                            <p className="text-[13px] text-gray-500 text-center py-4">No active races found.</p>
-                        ) : (
-                            activeRaces.map((race) => (
-                                <div
-                                    key={race.id}
-                                    className="rounded-lg bg-[#1a1a1a] border border-white/[0.05] px-4 py-3 flex items-center justify-between"
-                                >
-                                    <div>
-                                        <RaceStatusBadge status={race.status} />
-                                        <p className="text-[13px] font-semibold text-white mt-1 leading-snug">
-                                            {race.name}
-                                        </p>
-                                        <p className="text-[11px] text-gray-500 mt-0.5">
-                                            {race.detail}
-                                        </p>
+                        <div className="flex flex-col gap-3">
+                            {racesLoading ? (
+                                <p className="text-[13px] text-gray-500 text-center py-4">Loading races...</p>
+                            ) : activeRaces.length === 0 ? (
+                                <p className="text-[13px] text-gray-500 text-center py-4">No active races found.</p>
+                            ) : (
+                                activeRaces.map((race) => (
+                                    <div
+                                        key={race.id}
+                                        className="rounded-lg bg-[#1a1a1a] border border-white/[0.05] px-4 py-3 flex items-center justify-between"
+                                    >
+                                        <div>
+                                            <RaceStatusBadge status={race.status} />
+                                            <p className="text-[13px] font-semibold text-white mt-1 leading-snug">
+                                                {race.name}
+                                            </p>
+                                            <p className="text-[11px] text-gray-500 mt-0.5">
+                                                {race.detail}
+                                            </p>
+                                        </div>
+                                        <RaceIcon status={race.status} />
                                     </div>
-                                    <RaceIcon status={race.status} />
-                                </div>
-                            ))
-                        )}
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Payments awaiting admin confirmation (race prize + referee fee) */}
-            <div className="mt-6">
-                <PaymentsPanel
-                    title="Payments Awaiting Your Confirmation"
-                    fetchPayments={(page, sortBy, order) => adminService.getPayments(page, 10, undefined, 'payer', sortBy, order)}
-                    onConfirm={adminService.confirmPaymentPaid}
-                    myRoleSide="payer"
-                    confirmLabel="Confirm Paid"
-                    cacheKey="admin-payments-payer"
-                />
+                {/* Payments awaiting admin confirmation (race prize + referee fee) */}
+                <div className="mt-6">
+                    <PaymentsPanel
+                        title="Payments Awaiting Your Confirmation"
+                        fetchPayments={(page, sortBy, order) => adminService.getPayments(page, 10, undefined, 'payer', sortBy, order)}
+                        onConfirm={adminService.confirmPaymentPaid}
+                        myRoleSide="payer"
+                        confirmLabel="Confirm Paid"
+                        cacheKey="admin-payments-payer"
+                    />
+                </div>
             </div>
         </div>
     );
