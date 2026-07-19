@@ -40,10 +40,10 @@ function formatViDateTime(dateStr: string): string {
 
 function txTypeLabel(type: TransactionItem['transactionType']): string {
   switch (type) {
-    case 'reward':     return 'Thưởng dự đoán';
-    case 'deposit':    return 'Nạp điểm';
-    case 'withdrawal': return 'Rút điểm';
-    case 'refund':     return 'Hoàn điểm';
+    case 'reward':     return 'Prediction Reward';
+    case 'deposit':    return 'Deposit';
+    case 'withdrawal': return 'Withdrawal';
+    case 'refund':     return 'Refund';
     default:           return type;
   }
 }
@@ -75,9 +75,9 @@ function txStatusColor(status: TransactionItem['status']): string {
 }
 
 function txStatusLabel(status: TransactionItem['status']): string {
-  if (status === 'completed') return 'Thành công';
-  if (status === 'failed')    return 'Thất bại';
-  return 'Đang xử lý';
+  if (status === 'completed') return 'Completed';
+  if (status === 'failed')    return 'Failed';
+  return 'Processing';
 }
 
 function TxRow({ item }: { item: TransactionItem }) {
@@ -158,7 +158,7 @@ export default function TransactionsScreen() {
           <Pressable hitSlop={8} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={22} color={Palette.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>LỊCH SỬ GIAO DỊCH</Text>
+          <Text style={styles.headerTitle}>TRANSACTION HISTORY</Text>
           <View style={{ width: 22 }} />
         </View>
 
@@ -189,7 +189,7 @@ export default function TransactionsScreen() {
               {transactions.length === 0 ? (
                 <View style={styles.txEmpty}>
                   <Ionicons name="receipt-outline" size={36} color={Palette.textMuted} />
-                  <Text style={styles.txEmptyText}>Chưa có giao dịch nào</Text>
+                  <Text style={styles.txEmptyText}>No transactions yet</Text>
                 </View>
               ) : (
                 transactions.map((item, idx) => (

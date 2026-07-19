@@ -55,10 +55,10 @@ function formatViDateTime(dateStr: string): string {
 
 function txTypeLabel(type: TransactionItem['transactionType']): string {
   switch (type) {
-    case 'reward':     return 'Thưởng dự đoán';
-    case 'deposit':    return 'Nạp điểm';
-    case 'withdrawal': return 'Rút điểm';
-    case 'refund':     return 'Hoàn điểm';
+    case 'reward':     return 'Prediction Reward';
+    case 'deposit':    return 'Deposit';
+    case 'withdrawal': return 'Withdrawal';
+    case 'refund':     return 'Refund';
     default:           return type;
   }
 }
@@ -90,9 +90,9 @@ function txStatusColor(status: TransactionItem['status']): string {
 }
 
 function txStatusLabel(status: TransactionItem['status']): string {
-  if (status === 'completed') return 'Thành công';
-  if (status === 'failed')    return 'Thất bại';
-  return 'Đang xử lý';
+  if (status === 'completed') return 'Completed';
+  if (status === 'failed')    return 'Failed';
+  return 'Processing';
 }
 
 function formatPoints(n: number): string {
@@ -151,12 +151,12 @@ function PointsModal({
   const [err, setErr] = useState<string | null>(null);
 
   const isDeposit = mode === 'deposit';
-  const title = isDeposit ? 'NẠP ĐIỂM' : 'RÚT ĐIỂM';
+  const title = isDeposit ? 'DEPOSIT' : 'WITHDRAW';
   const accentColor = isDeposit ? Palette.gold : Palette.red;
 
   const handleSubmit = async () => {
     const num = parseInt(amount.replace(/\D/g, ''), 10);
-    if (!num || num <= 0) { setErr('Số điểm phải lớn hơn 0'); return; }
+    if (!num || num <= 0) { setErr('Points must be greater than 0'); return; }
     setBusy(true);
     setErr(null);
     const result = isDeposit
@@ -189,13 +189,13 @@ function PointsModal({
         </View>
 
         <View style={styles.modalBody}>
-          <Text style={styles.inputLabel}>Số điểm</Text>
+          <Text style={styles.inputLabel}>Points</Text>
           <View style={styles.inputRow}>
             <TextInput
               style={styles.textInput}
               value={amount}
               onChangeText={setAmount}
-              placeholder="Nhập số điểm..."
+              placeholder="Enter amount..."
               placeholderTextColor={Palette.textMuted}
               keyboardType="numeric"
               maxLength={10}
@@ -272,7 +272,7 @@ export default function WalletScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>VÍ ĐIỂM THƯỞNG</Text>
+          <Text style={styles.headerTitle}>REWARDS WALLET</Text>
         </View>
 
         {isLoading ? (
@@ -299,18 +299,18 @@ export default function WalletScreen() {
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
-              <Text style={styles.balanceLabel}>SỐ DƯ HIỆN TẠI</Text>
+              <Text style={styles.balanceLabel}>CURRENT BALANCE</Text>
               <Text style={styles.balanceValue}>
                 {rewardPoints.toLocaleString()} POINT
               </Text>
               <View style={styles.balanceActions}>
                 <Pressable style={styles.btnDeposit} onPress={() => setModal('deposit')}>
                   <Ionicons name="add-circle-outline" size={16} color="#FFF" />
-                  <Text style={styles.btnDepositText}>NẠP ĐIỂM</Text>
+                  <Text style={styles.btnDepositText}>DEPOSIT</Text>
                 </Pressable>
                 <Pressable style={styles.btnWithdraw} onPress={() => setModal('withdraw')}>
                   <Ionicons name="arrow-up-circle-outline" size={16} color={Palette.textMuted} />
-                  <Text style={styles.btnWithdrawText}>RÚT ĐIỂM</Text>
+                  <Text style={styles.btnWithdrawText}>WITHDRAW</Text>
                 </Pressable>
               </View>
             </View>
@@ -319,7 +319,7 @@ export default function WalletScreen() {
             <View style={styles.statsRow}>
               <View style={styles.statCard}>
                 <Ionicons name="bar-chart-outline" size={20} color={Palette.gold} />
-                <Text style={styles.statLabel}>TỔNG THU</Text>
+                <Text style={styles.statLabel}>TOTAL EARNED</Text>
                 <Text style={[styles.statValue, { color: Palette.gold }]}>
                   {formatPoints(totalEarned)} POINT
                 </Text>
@@ -327,7 +327,7 @@ export default function WalletScreen() {
               {winRate !== null && (
                 <View style={styles.statCard}>
                   <Ionicons name="star-outline" size={20} color={Palette.green} />
-                  <Text style={styles.statLabel}>TỶ LỆ THẮNG</Text>
+                  <Text style={styles.statLabel}>WIN RATE</Text>
                   <Text style={[styles.statValue, { color: Palette.green }]}>
                     {winRate.toFixed(1)}%
                   </Text>
@@ -339,11 +339,11 @@ export default function WalletScreen() {
             <View style={styles.txHeader}>
               <View style={styles.txTitleRow}>
                 <View style={styles.txAccent} />
-                <Text style={styles.txTitle}>Lịch sử giao dịch</Text>
+                <Text style={styles.txTitle}>Transaction History</Text>
               </View>
               {transactions.length > 0 && (
                 <Pressable hitSlop={8} onPress={() => router.push('/(spectator)/transactions' as any)}>
-                  <Text style={styles.txViewAll}>Xem tất cả</Text>
+                  <Text style={styles.txViewAll}>View All</Text>
                 </Pressable>
               )}
             </View>
@@ -352,7 +352,7 @@ export default function WalletScreen() {
               {transactions.length === 0 ? (
                 <View style={styles.txEmpty}>
                   <Ionicons name="receipt-outline" size={36} color={Palette.textMuted} />
-                  <Text style={styles.txEmptyText}>Chưa có giao dịch nào</Text>
+                  <Text style={styles.txEmptyText}>No transactions yet</Text>
                 </View>
               ) : (
                 transactions.map((item, idx) => (

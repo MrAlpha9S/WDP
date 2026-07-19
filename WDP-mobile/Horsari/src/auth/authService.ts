@@ -47,11 +47,11 @@ export async function loginUser(
       };
     }
 
-    return { ok: false, message: msg ?? 'Đăng nhập thất bại' };
+    return { ok: false, message: msg ?? 'Login failed' };
   } catch (error: any) {
     const msg =
       error?.response?.data?.msg ??
-      'Không thể kết nối đến máy chủ. Vui lòng thử lại.';
+      'Could not connect to the server. Please try again.';
     return { ok: false, message: msg };
   }
 }
@@ -111,11 +111,11 @@ export async function registerUser(
       };
     }
 
-    return { ok: false, message: msg ?? 'Đăng ký thất bại' };
+    return { ok: false, message: msg ?? 'Registration failed' };
   } catch (error: any) {
     const msg =
       error?.response?.data?.msg ??
-      'Không thể kết nối đến máy chủ. Vui lòng thử lại.';
+      'Could not connect to the server. Please try again.';
     return { ok: false, message: msg };
   }
 }

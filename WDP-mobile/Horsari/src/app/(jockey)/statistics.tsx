@@ -34,10 +34,10 @@ const Palette = {
 
 type GroupBy = 'day' | 'week' | 'month' | 'year';
 const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
-  { value: 'day', label: 'NGÀY' },
-  { value: 'week', label: 'TUẦN' },
-  { value: 'month', label: 'THÁNG' },
-  { value: 'year', label: 'NĂM' },
+  { value: 'day', label: 'DAY' },
+  { value: 'week', label: 'WEEK' },
+  { value: 'month', label: 'MONTH' },
+  { value: 'year', label: 'YEAR' },
 ];
 
 function formatPoints(n: number): string {
@@ -145,7 +145,7 @@ export default function JockeyStatisticsScreen() {
           <Pressable hitSlop={8} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={22} color={Palette.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>THỐNG KÊ</Text>
+          <Text style={styles.headerTitle}>STATISTICS</Text>
           <View style={{ width: 22 }} />
         </View>
 
@@ -163,51 +163,61 @@ export default function JockeyStatisticsScreen() {
 
             {/* ─── Win rate / rank ─── */}
             <View style={styles.winRateCard}>
-              <View style={styles.winRateLeft}>
-                <Text style={styles.statLabel}>TỶ LỆ THẮNG</Text>
-                <Text style={[styles.winRateBig, { color: Palette.redLight }]}>
-                  {((stats?.winRate ?? 0) * 100).toFixed(1)}%
-                </Text>
-                <Text style={styles.statSub}>
-                  {stats?.rank != null ? `HẠNG #${stats.rank} / ${stats.totalJockeys}` : 'CHƯA XẾP HẠNG'}
-                </Text>
-              </View>
-              <View style={styles.miniChart}>
-                <View style={[styles.miniChartFill, { flex: stats?.winRate ?? 0 }]} />
-                <View style={{ flex: 1 - (stats?.winRate ?? 0) }} />
-              </View>
+              {stats && stats.matchesRaced === 0 ? (
+                <View style={styles.winRateLeft}>
+                  <Text style={styles.statLabel}>WIN RATE</Text>
+                  <Text style={styles.winRateEmpty}>NO RACES YET</Text>
+                  <Text style={styles.statSub}>Race for the first time to see your win rate</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.winRateLeft}>
+                    <Text style={styles.statLabel}>WIN RATE</Text>
+                    <Text style={[styles.winRateBig, { color: Palette.redLight }]}>
+                      {((stats?.winRate ?? 0) * 100).toFixed(1)}%
+                    </Text>
+                    <Text style={styles.statSub}>
+                      {stats?.rank != null ? `RANK #${stats.rank} / ${stats.totalJockeys}` : 'UNRANKED'}
+                    </Text>
+                  </View>
+                  <View style={styles.miniChart}>
+                    <View style={[styles.miniChartFill, { flex: stats?.winRate ?? 0 }]} />
+                    <View style={{ flex: 1 - (stats?.winRate ?? 0) }} />
+                  </View>
+                </>
+              )}
             </View>
 
             {/* ─── Stat cards ─── */}
             <View style={styles.statsRow}>
               <StatCard
-                label="ĐÃ NHẬN"
+                label="RECEIVED"
                 value={`${formatPoints(stats?.totalPayoutsEarned ?? 0)}`}
                 valueColor={Palette.gold}
               />
               <StatCard
-                label="ĐANG CHỜ"
+                label="PENDING"
                 value={`${formatPoints(stats?.pendingPayoutsAmount ?? 0)}`}
                 valueColor={Palette.textMuted}
               />
             </View>
             <View style={styles.statsRow}>
               <StatCard
-                label="TRẬN ĐÃ ĐUA"
+                label="RACES"
                 value={String(stats?.matchesRaced ?? 0)}
-                sub={`${stats?.totalWins ?? 0} chiến thắng`}
+                sub={`${stats?.totalWins ?? 0} wins`}
               />
               <StatCard
-                label="LỜI MỜI ĐÃ NHẬN"
+                label="INVITES ACCEPTED"
                 value={String(stats?.invitations.accepted ?? 0)}
-                sub={`${stats?.invitations.noShow ?? 0} vắng mặt`}
+                sub={`${stats?.invitations.noShow ?? 0} no-shows`}
               />
             </View>
 
             {/* ─── Payouts over time ─── */}
             <View style={styles.sectionTitleRow}>
               <View style={styles.txAccent} />
-              <Text style={styles.sectionTitle}>Thu nhập theo thời gian</Text>
+              <Text style={styles.sectionTitle}>Earnings Over Time</Text>
             </View>
             <View style={styles.chartCard}>
               <View style={styles.groupByRow}>
@@ -227,16 +237,16 @@ export default function JockeyStatisticsScreen() {
                 <View style={styles.chartLoading}>
                   <ActivityIndicator color={Palette.red} size="small" />
                 </View>
-              ) : series && series.series.length > 0 ? (
+              ) : series && series.totalPayoutsEarned > 0 ? (
                 <>
                   <PayoutsBarChart series={series.series} />
                   <Text style={styles.chartTotal}>
-                    Tổng: {series.totalPayoutsEarned.toLocaleString()} ₫
+                    Total: {series.totalPayoutsEarned.toLocaleString()} ₫
                   </Text>
                 </>
               ) : (
                 <View style={styles.chartLoading}>
-                  <Text style={styles.statSub}>Chưa có dữ liệu</Text>
+                  <Text style={styles.statSub}>No data yet</Text>
                 </View>
               )}
             </View>
@@ -244,31 +254,39 @@ export default function JockeyStatisticsScreen() {
             {/* ─── Main vs backup breakdown ─── */}
             <View style={styles.sectionTitleRow}>
               <View style={styles.txAccent} />
-              <Text style={styles.sectionTitle}>Theo vai trò</Text>
+              <Text style={styles.sectionTitle}>By Role</Text>
             </View>
             <View style={styles.methodList}>
-              <View style={styles.methodRow}>
-                <View style={styles.methodHeaderRow}>
-                  <Text style={styles.methodName}>Vai chính thức</Text>
-                  <Text style={styles.methodCount}>
-                    {stats?.byRole.main.count ?? 0} · {formatPoints(stats?.byRole.main.earnings ?? 0)} ({mainPct}%)
-                  </Text>
+              {totalRoleCount === 0 ? (
+                <View style={styles.chartLoading}>
+                  <Text style={styles.statSub}>No data yet</Text>
                 </View>
-                <View style={styles.methodBarTrack}>
-                  <View style={[styles.methodBarFill, { width: `${mainPct}%` }]} />
-                </View>
-              </View>
-              <View style={styles.methodRow}>
-                <View style={styles.methodHeaderRow}>
-                  <Text style={styles.methodName}>Vai dự phòng</Text>
-                  <Text style={styles.methodCount}>
-                    {stats?.byRole.backup.count ?? 0} · {formatPoints(stats?.byRole.backup.earnings ?? 0)} ({backupPct}%)
-                  </Text>
-                </View>
-                <View style={styles.methodBarTrack}>
-                  <View style={[styles.methodBarFill, { width: `${backupPct}%` }]} />
-                </View>
-              </View>
+              ) : (
+                <>
+                  <View style={styles.methodRow}>
+                    <View style={styles.methodHeaderRow}>
+                      <Text style={styles.methodName}>Official</Text>
+                      <Text style={styles.methodCount}>
+                        {stats?.byRole.main.count ?? 0} · {formatPoints(stats?.byRole.main.earnings ?? 0)} ({mainPct}%)
+                      </Text>
+                    </View>
+                    <View style={styles.methodBarTrack}>
+                      <View style={[styles.methodBarFill, { width: `${mainPct}%` }]} />
+                    </View>
+                  </View>
+                  <View style={styles.methodRow}>
+                    <View style={styles.methodHeaderRow}>
+                      <Text style={styles.methodName}>Backup</Text>
+                      <Text style={styles.methodCount}>
+                        {stats?.byRole.backup.count ?? 0} · {formatPoints(stats?.byRole.backup.earnings ?? 0)} ({backupPct}%)
+                      </Text>
+                    </View>
+                    <View style={styles.methodBarTrack}>
+                      <View style={[styles.methodBarFill, { width: `${backupPct}%` }]} />
+                    </View>
+                  </View>
+                </>
+              )}
             </View>
 
             <View style={styles.bottomPad} />
@@ -318,6 +336,7 @@ const styles = StyleSheet.create({
   },
   winRateLeft: { flex: 1, gap: 4 },
   winRateBig: { fontFamily: Fonts.mono, fontSize: 28, fontWeight: '900' },
+  winRateEmpty: { fontSize: 16, fontWeight: '700', color: Palette.textMuted, letterSpacing: 0.5 },
   miniChart: {
     flexDirection: 'row',
     height: 10,

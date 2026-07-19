@@ -40,8 +40,8 @@ function parsePosition(position: string): number | null {
 }
 
 function attendanceLabel(attendance: JockeyProfileData['recentRaces'][number]['attendance']): string | null {
-  if (attendance === 'backup') return 'DỰ PHÒNG';
-  if (attendance === 'no_show') return 'VẮNG MẶT';
+  if (attendance === 'backup') return 'BACKUP';
+  if (attendance === 'no_show') return 'NO SHOW';
   return null;
 }
 
@@ -60,7 +60,7 @@ export default function ProfileScreen() {
     if (data) {
       setProfile(data);
     } else {
-      setError('Không thể tải hồ sơ. Vui lòng thử lại.');
+      setError('Could not load profile. Please try again.');
     }
     setIsLoading(false);
   };
@@ -100,7 +100,7 @@ export default function ProfileScreen() {
           <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
           <Text style={styles.emptyText}>{error}</Text>
           <Pressable style={styles.retryBtn} onPress={load}>
-            <Text style={styles.retryText}>THỬ LẠI</Text>
+            <Text style={styles.retryText}>RETRY</Text>
           </Pressable>
         </SafeAreaView>
       </View>
@@ -121,7 +121,7 @@ export default function ProfileScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>HỒ SƠ CỦA TÔI</Text>
+          <Text style={styles.headerTitle}>MY PROFILE</Text>
         </View>
 
         <ScrollView
@@ -152,31 +152,31 @@ export default function ProfileScreen() {
               <Text style={styles.heroName}>{session?.user.fullName || session?.user.username || 'Jockey'}</Text>
               <View style={styles.heroMetaRow}>
                 <Text style={styles.heroRank}>
-                  {profile.jockey.rank != null
-                    ? `HẠNG #${profile.jockey.rank} / ${profile.jockey.totalJockeys}`
-                    : 'CHƯA XẾP HẠNG'}
+                  {profile.stats.totalRaces > 0 && profile.jockey.rank != null
+                    ? `RANK #${profile.jockey.rank} / ${profile.jockey.totalJockeys}`
+                    : 'UNRANKED'}
                 </Text>
               </View>
               <Pressable
                 style={styles.btnEditProfile}
                 onPress={() => router.push('/(jockey)/edit-profile')}>
-                <Text style={styles.btnEditProfileText}>CHỈNH SỬA HỒ SƠ</Text>
+                <Text style={styles.btnEditProfileText}>EDIT PROFILE</Text>
               </Pressable>
             </View>
           </View>
 
           {/* ─── Professional Stats ─── */}
-          <Text style={styles.cardSectionTitle}>Thống kê chuyên môn</Text>
+          <Text style={styles.cardSectionTitle}>Professional Stats</Text>
 
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>SỐ LẦN THẮNG</Text>
+              <Text style={styles.statLabel}>WINS</Text>
               <Text style={[styles.statBig, { color: Palette.redLight }]}>
                 {profile.stats.wins.toLocaleString()}
               </Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>TỔNG THU NHẬP</Text>
+              <Text style={styles.statLabel}>TOTAL EARNINGS</Text>
               <Text style={[styles.statBig, { color: Palette.gold }]}>
                 {profile.stats.totalPrize.toLocaleString()} ₫
               </Text>
@@ -185,22 +185,22 @@ export default function ProfileScreen() {
 
           <View style={styles.placementCard}>
             <View style={styles.placementLeft}>
-              <Text style={styles.statLabel}>THỨ HẠNG TRUNG BÌNH</Text>
+              <Text style={styles.statLabel}>AVG. PLACEMENT</Text>
               <View style={styles.placementValueRow}>
                 {hasPlacement ? (
                   <Text style={styles.placementBig}>{avgPlacement}</Text>
                 ) : (
-                  <Text style={styles.placementEmpty}>Chưa có dữ liệu</Text>
+                  <Text style={styles.placementEmpty}>No data yet</Text>
                 )}
-                <Text style={styles.placementSub}>trên {profile.stats.totalRaces} lần đua</Text>
+                <Text style={styles.placementSub}>across {profile.stats.totalRaces} races</Text>
               </View>
             </View>
           </View>
 
           <View style={styles.bookingFeeCard}>
             <View>
-              <Text style={styles.statLabel}>PHÍ ĐẶT CƯỠI MẶC ĐỊNH</Text>
-              <Text style={styles.bookingFeeSub}>Mức phí tối thiểu khi chủ ngựa mời bạn</Text>
+              <Text style={styles.statLabel}>DEFAULT BOOKING FEE</Text>
+              <Text style={styles.bookingFeeSub}>Minimum fee when a horse owner invites you</Text>
             </View>
             <Text style={styles.bookingFeeValue}>
               {profile.jockey.bookingFee.toLocaleString()} ₫
@@ -210,17 +210,17 @@ export default function ProfileScreen() {
           <Pressable
             style={styles.statsLinkRow}
             onPress={() => router.push('/(jockey)/statistics' as any)}>
-            <Text style={styles.statsLinkText}>Xem thống kê chi tiết</Text>
+            <Text style={styles.statsLinkText}>View detailed statistics</Text>
             <Ionicons name="chevron-forward" size={14} color={Palette.red} />
           </Pressable>
 
           {/* ─── Recent Races ─── */}
-          <Text style={styles.cardSectionTitle}>Đua gần đây</Text>
+          <Text style={styles.cardSectionTitle}>Recent Races</Text>
           <View style={styles.raceList}>
             {profile.recentRaces.length === 0 ? (
               <View style={styles.raceEmpty}>
                 <Ionicons name="flag-outline" size={32} color={Palette.textMuted} />
-                <Text style={styles.emptyText}>Chưa có lịch sử đua nào</Text>
+                <Text style={styles.emptyText}>No race history yet</Text>
               </View>
             ) : (
               profile.recentRaces.map((race, i) => (
@@ -245,21 +245,11 @@ export default function ProfileScreen() {
 
           {/* ─── Account Settings ─── */}
           <View style={styles.settingsCard}>
-            <Text style={styles.settingsTitle}>Cài đặt tài khoản</Text>
-
-            <View style={styles.settingsRow}>
-              <Ionicons name="globe-outline" size={18} color={Palette.textMuted} />
-              <Text style={styles.settingsLabel}>Ngôn ngữ</Text>
-              <View style={styles.settingsRight}>
-                <Text style={styles.settingsValue}>Tiếng Việt</Text>
-              </View>
-            </View>
-
-            <View style={styles.settingsDivider} />
+            <Text style={styles.settingsTitle}>Account Settings</Text>
 
             <View style={styles.settingsRow}>
               <Ionicons name="shield-checkmark-outline" size={18} color={Palette.textMuted} />
-              <Text style={styles.settingsLabel}>Đăng nhập sinh trắc học</Text>
+              <Text style={styles.settingsLabel}>Biometric Login</Text>
               <Switch
                 value={biometricOn}
                 onValueChange={setBiometricOn}
@@ -272,7 +262,7 @@ export default function ProfileScreen() {
           {/* ─── Log out ─── */}
           <Pressable style={styles.logoutBtn} onPress={logout}>
             <Ionicons name="log-out-outline" size={16} color={Palette.red} />
-            <Text style={styles.logoutText}>ĐĂNG XUẤT</Text>
+            <Text style={styles.logoutText}>LOG OUT</Text>
           </Pressable>
 
           <View style={styles.bottomPad} />

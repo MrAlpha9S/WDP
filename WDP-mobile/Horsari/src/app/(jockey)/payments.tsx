@@ -43,9 +43,9 @@ function formatViDateTime(dateStr: string): string {
 
 function paymentTypeLabel(type: PaymentEntity['paymentType']): string {
   switch (type) {
-    case 'jockey_payout': return 'Phí cưỡi ngựa';
-    case 'race_prize':    return 'Giải thưởng đua';
-    case 'referee_fee':   return 'Phí trọng tài';
+    case 'jockey_payout': return 'Jockey Payout';
+    case 'race_prize':    return 'Race Prize';
+    case 'referee_fee':   return 'Referee Fee';
     default:              return type;
   }
 }
@@ -57,9 +57,9 @@ function paymentStatusColor(status: PaymentStatus): string {
 }
 
 function paymentStatusLabel(status: PaymentStatus): string {
-  if (status === 'paid') return 'Đã nhận';
-  if (status === 'processing') return 'Đang xử lý';
-  return 'Chưa nhận';
+  if (status === 'paid') return 'Received';
+  if (status === 'processing') return 'Processing';
+  return 'Unpaid';
 }
 
 // ─── Filter ───────────────────────────────────────────────────────────────────
@@ -67,10 +67,10 @@ function paymentStatusLabel(status: PaymentStatus): string {
 type FilterKey = 'all' | PaymentStatus;
 
 const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: 'all',        label: 'Tất cả' },
-  { key: 'unpaid',     label: 'Chưa nhận' },
-  { key: 'processing', label: 'Đang xử lý' },
-  { key: 'paid',       label: 'Đã nhận' },
+  { key: 'all',        label: 'All' },
+  { key: 'unpaid',     label: 'Unpaid' },
+  { key: 'processing', label: 'Processing' },
+  { key: 'paid',       label: 'Received' },
 ];
 
 // ─── Payment Row ──────────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ function PaymentRow({
             {busy ? (
               <ActivityIndicator color="#FFF" size="small" />
             ) : (
-              <Text style={styles.confirmBtnText}>XÁC NHẬN ĐÃ NHẬN</Text>
+              <Text style={styles.confirmBtnText}>CONFIRM RECEIVED</Text>
             )}
           </Pressable>
         )}
@@ -136,7 +136,7 @@ export default function PaymentsScreen() {
       const { items } = await getMyPayments(1, 20, status);
       setPayments(items);
     } catch {
-      setError('Không thể tải giao dịch. Vui lòng thử lại.');
+      setError('Could not load payments. Please try again.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -175,7 +175,7 @@ export default function PaymentsScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>THANH TOÁN</Text>
+          <Text style={styles.headerTitle}>PAYMENTS</Text>
         </View>
 
         {/* ─── Filter bar ─── */}
@@ -208,7 +208,7 @@ export default function PaymentsScreen() {
             <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
             <Text style={styles.emptyText}>{error}</Text>
             <Pressable style={styles.retryBtn} onPress={() => load()}>
-              <Text style={styles.retryText}>THỬ LẠI</Text>
+              <Text style={styles.retryText}>RETRY</Text>
             </Pressable>
           </View>
         ) : (
@@ -234,7 +234,7 @@ export default function PaymentsScreen() {
               {payments.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="receipt-outline" size={36} color={Palette.textMuted} />
-                  <Text style={styles.emptyText}>Chưa có giao dịch nào</Text>
+                  <Text style={styles.emptyText}>No payments yet</Text>
                 </View>
               ) : (
                 payments.map((item, idx) => (

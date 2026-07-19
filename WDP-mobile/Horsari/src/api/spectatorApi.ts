@@ -338,7 +338,7 @@ export async function depositPoints(
     );
     return { ok: res.data.code === 201, message: res.data.msg };
   } catch (err: any) {
-    return { ok: false, message: err?.response?.data?.msg ?? 'Lỗi kết nối.' };
+    return { ok: false, message: err?.response?.data?.msg ?? 'Connection error.' };
   }
 }
 
@@ -353,7 +353,7 @@ export async function withdrawPoints(
     );
     return { ok: res.data.code === 201, message: res.data.msg };
   } catch (err: any) {
-    return { ok: false, message: err?.response?.data?.msg ?? 'Lỗi kết nối.' };
+    return { ok: false, message: err?.response?.data?.msg ?? 'Connection error.' };
   }
 }
 
@@ -428,7 +428,7 @@ export async function createPrediction(
     );
     return { ok: res.data.code === 201, message: res.data.msg, data: res.data.data };
   } catch (err: any) {
-    return { ok: false, message: err?.response?.data?.msg ?? 'Lỗi kết nối.' };
+    return { ok: false, message: err?.response?.data?.msg ?? 'Connection error.' };
   }
 }
 

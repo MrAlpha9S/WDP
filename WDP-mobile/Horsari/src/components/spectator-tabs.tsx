@@ -35,7 +35,7 @@ export default function SpectatorTabs() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'TRANG CHỦ',
+          title: 'HOME',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -44,7 +44,7 @@ export default function SpectatorTabs() {
       <Tabs.Screen
         name="wallet"
         options={{
-          title: 'VÍ',
+          title: 'WALLET',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="wallet-outline" size={size} color={color} />
           ),
@@ -53,7 +53,7 @@ export default function SpectatorTabs() {
       <Tabs.Screen
         name="predictions"
         options={{
-          title: 'DỰ ĐOÁN',
+          title: 'PREDICTIONS',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart-outline" size={size} color={color} />
           ),
@@ -62,7 +62,7 @@ export default function SpectatorTabs() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'HỒ SƠ',
+          title: 'PROFILE',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
           ),

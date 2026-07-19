@@ -296,11 +296,11 @@ function HorseRow({
 // ─── Prediction chip ──────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: 'ĐANG CHỜ', color: Palette.gold,  bg: '#1E1A0A' },
-  correct:   { label: 'ĐÚNG',     color: Palette.green, bg: '#0A1A0F' },
-  incorrect: { label: 'SAI',      color: Palette.red,   bg: '#1A0A0D' },
-  cancelled: { label: 'HỦY',      color: Palette.muted, bg: '#111' },
-  refunded:  { label: 'HOÀN TIỀN',color: '#8B5CF6',     bg: '#120A1A' },
+  pending:   { label: 'PENDING',  color: Palette.gold,  bg: '#1E1A0A' },
+  correct:   { label: 'CORRECT',  color: Palette.green, bg: '#0A1A0F' },
+  incorrect: { label: 'INCORRECT',color: Palette.red,   bg: '#1A0A0D' },
+  cancelled: { label: 'CANCELLED',color: Palette.muted, bg: '#111' },
+  refunded:  { label: 'REFUNDED', color: '#8B5CF6',     bg: '#120A1A' },
 };
 
 function PredictionChip({
@@ -328,10 +328,10 @@ function PredictionChip({
     '—';
 
   const methodLabel = methodType === 'race_winner'
-    ? 'Thắng'
+    ? 'Winner'
     : methodType === 'race_rank'
-    ? `Hạng #${prediction.predictedRank ?? '?'}`
-    : 'Vô địch';
+    ? `Rank #${prediction.predictedRank ?? '?'}`
+    : 'Champion';
 
   return (
     <View style={styles.predChip}>
@@ -383,10 +383,10 @@ function BetOutcomeBanner({
       '—';
     const methodType = p.predictionMethod?.methodType;
     const methodLabel = methodType === 'race_winner'
-      ? 'Thắng'
+      ? 'Winner'
       : methodType === 'race_rank'
-      ? `Hạng #${p.predictedRank ?? '?'}`
-      : 'Vô địch';
+      ? `Rank #${p.predictedRank ?? '?'}`
+      : 'Champion';
     return { prediction: p, outcome, horseName, methodLabel };
   });
 
@@ -403,10 +403,10 @@ function BetOutcomeBanner({
   const bg       = allWon ? '#081A0F' : allLost ? '#1A0808' : '#1A1508';
   const border   = allWon ? '#1D4A2A' : allLost ? '#4A1A1A' : '#3A3010';
   const headline = allWon
-    ? 'BẠN THẮNG! 🎉'
+    ? 'YOU WON! 🎉'
     : allLost
-    ? 'CHÚC THẮNG LẦN SAU 😔'
-    : `${wonCount}/${predictions.length} CỐC ĐÚNG 🎲`;
+    ? 'BETTER LUCK NEXT TIME 😔'
+    : `${wonCount}/${predictions.length} CORRECT 🎲`;
 
   return (
     <Animated.View
@@ -474,7 +474,7 @@ function FinishedBanner({
   return (
     <View style={styles.finishedBanner}>
       <Ionicons name="trophy" size={28} color={Palette.gold} />
-      <Text style={styles.finishedTitle}>ĐUA KẾT THÚC</Text>
+      <Text style={styles.finishedTitle}>RACE FINISHED</Text>
       {top3.map((r, i) => (
         <View key={r.registrationId} style={styles.finishedRow}>
           <Text style={styles.finishedRowRank}>{rankSuffix(i + 1)}</Text>
@@ -487,7 +487,7 @@ function FinishedBanner({
       ))}
       <Pressable onPress={onToggleUnit} style={styles.distUnitToggle}>
         <Text style={styles.distUnitToggleText}>
-          {distUnit === 'metres' ? 'Đổi sang độ dài (L)' : 'Đổi sang mét (m)'}
+          {distUnit === 'metres' ? 'Switch to lengths (L)' : 'Switch to metres (m)'}
         </Text>
       </Pressable>
     </View>
@@ -502,9 +502,9 @@ function AwaitingConfirmationCard() {
       <View style={[styles.awaitingIconRing, styles.awaitingConfirmationIconRing]}>
         <Ionicons name="shield-checkmark-outline" size={34} color={Palette.gold} />
       </View>
-      <Text style={styles.awaitingTitle}>Đang chờ xác nhận kết quả</Text>
+      <Text style={styles.awaitingTitle}>Awaiting Result Confirmation</Text>
       <Text style={styles.awaitingSub}>
-        Đua đã kết thúc. Ban tổ chức đang xác minh kết quả chính thức — kết quả và cược sẽ sớm được công bố.
+        The race has finished. Officials are verifying the official results — results and bets will be announced shortly.
       </Text>
     </View>
   );
@@ -626,7 +626,7 @@ export default function LiveRaceScreen() {
           </Pressable>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle} numberOfLines={1}>
-              {raceRound?.roundName ?? 'Vòng đua'}
+              {raceRound?.roundName ?? 'Race Round'}
             </Text>
             {isRealTournament(raceRound?.tournament) ? (
               <Text style={styles.headerSub} numberOfLines={1}>
@@ -650,16 +650,16 @@ export default function LiveRaceScreen() {
         {/* ── Stats strip — only shown while race is live ── */}
         {!activeFinishResults && (raceRound?.status === 'running' || liveUpdate !== null) && (
           <View style={styles.statsStrip}>
-            <StatChip label="THỜI GIAN" value={elapsed} color={Palette.gold} />
+            <StatChip label="TIME" value={elapsed} color={Palette.gold} />
             <View style={styles.statsDivider} />
             <StatChip
-              label="DẪN ĐẦU"
+              label="LEADER"
               value={leader ? `#${leader.number} ${leader.horseName.split(' ')[0]}` : '—'}
               color="#f9a8d4"
             />
             <View style={styles.statsDivider} />
             <StatChip
-              label="TỐC ĐỘ"
+              label="SPEED"
               value={leader && leader.currentSpeed > 0 ? `${leader.currentSpeed.toFixed(1)} m/s` : '—'}
               color="#6ee7b7"
             />
@@ -756,28 +756,28 @@ export default function LiveRaceScreen() {
 
           {/* ── Track visualization ── */}
           {showTrackView && (
-            <Section title="VỊ TRÍ TRÊN ĐUA TRƯỜNG">
+            <Section title="TRACK POSITION">
               {displayHorses.length > 0
                 ? <TrackView horses={displayHorses} trackLength={trackLength} />
-                : <Text style={styles.emptyText}>Chưa có ngựa tham gia</Text>
+                : <Text style={styles.emptyText}>No horses participating</Text>
               }
-              <Text style={styles.trackNote}>Đường đua: {trackLength.toLocaleString()} m</Text>
+              <Text style={styles.trackNote}>Track: {trackLength.toLocaleString()} m</Text>
             </Section>
           )}
           {finalStretch && (
             <View style={styles.finalStretchNotice}>
               <Ionicons name="flag" size={14} color={Palette.gold} />
-              <Text style={styles.finalStretchText}>Sắp về đích — theo dõi qua video trực tiếp!</Text>
+              <Text style={styles.finalStretchText}>Approaching the finish — follow along on the live video!</Text>
             </View>
           )}
 
           {/* ── Standings ── */}
           {!finalStretch && (
-            <Section title="BẢNG XẾP HẠNG">
+            <Section title="STANDINGS">
               {awaitingConfirmation ? (
-                <Text style={styles.pendingNote}>Kết quả đang chờ ban tổ chức xác nhận…</Text>
+                <Text style={styles.pendingNote}>Results are awaiting official confirmation…</Text>
               ) : sortedHorses.length === 0 ? (
-                <Text style={styles.emptyText}>Chưa có dữ liệu</Text>
+                <Text style={styles.emptyText}>No data yet</Text>
               ) : sortedHorses.map((h, idx) => (
                 <HorseRow
                   key={h.registrationId}
@@ -792,7 +792,7 @@ export default function LiveRaceScreen() {
 
           {/* ── My predictions ── */}
           {myPredictions.length > 0 && (
-            <Section title="CƯỢC CỦA BẠN">
+            <Section title="YOUR BETS">
               {settled && activeFinishResults && (
                 <BetOutcomeBanner
                   predictions={myPredictions}
@@ -800,7 +800,7 @@ export default function LiveRaceScreen() {
                 />
               )}
               {awaitingConfirmation && (
-                <Text style={styles.pendingNote}>Đang chờ xác nhận để công bố kết quả cược…</Text>
+                <Text style={styles.pendingNote}>Awaiting confirmation to reveal bet results…</Text>
               )}
               {myPredictions.map((p) => {
                 const localOutcome = settled && activeFinishResults

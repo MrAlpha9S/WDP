@@ -43,18 +43,18 @@ const Palette = {
 const isRealTournament = (t: { tournamentName: string } | null | undefined): boolean =>
   !!t && t.tournamentName !== 'Non-tournament';
 
-function formatViDate(dateStr: string): string {
+function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
 }
 
 function predStatusStyle(s: PredictionStatus): { color: string; label: string; icon: string } {
   switch (s) {
-    case 'correct':   return { color: Palette.green,    label: 'Đúng',      icon: 'checkmark-circle' };
-    case 'incorrect': return { color: Palette.red,      label: 'Sai',       icon: 'close-circle' };
-    case 'cancelled': return { color: Palette.textMuted, label: 'Đã hủy',  icon: 'ban-outline' };
-    case 'refunded':  return { color: Palette.gold,     label: 'Hoàn điểm', icon: 'refresh-circle' };
-    default:          return { color: Palette.gold,     label: 'Đang chờ',  icon: 'time-outline' };
+    case 'correct':   return { color: Palette.green,    label: 'Correct',   icon: 'checkmark-circle' };
+    case 'incorrect': return { color: Palette.red,      label: 'Incorrect', icon: 'close-circle' };
+    case 'cancelled': return { color: Palette.textMuted, label: 'Cancelled', icon: 'ban-outline' };
+    case 'refunded':  return { color: Palette.gold,     label: 'Refunded',  icon: 'refresh-circle' };
+    default:          return { color: Palette.gold,     label: 'Pending',   icon: 'time-outline' };
   }
 }
 
@@ -108,18 +108,18 @@ function PayoutSection({
     const est = payout.estimatedCollect ?? 0;
     return (
       <View style={styles.payoutBox}>
-        <Text style={styles.payoutBoxTitle}>TỶ LỆ CƯỢC HIỆN TẠI</Text>
+        <Text style={styles.payoutBoxTitle}>CURRENT ODDS</Text>
         <View style={styles.payoutGrid}>
           <View style={styles.payoutCell}>
-            <Text style={styles.payoutCellLabel}>CƯỢC</Text>
+            <Text style={styles.payoutCellLabel}>STAKE</Text>
             <Text style={styles.payoutCellValue}>{stake.toLocaleString()}</Text>
           </View>
           <View style={[styles.payoutCell, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#2A2A30' }]}>
-            <Text style={styles.payoutCellLabel}>HỆ SỐ</Text>
+            <Text style={styles.payoutCellLabel}>ODDS</Text>
             <Text style={[styles.payoutCellValue, { color: Palette.gold }]}>{odds.toFixed(2)}×</Text>
           </View>
           <View style={styles.payoutCell}>
-            <Text style={styles.payoutCellLabel}>DỰ THẮNG</Text>
+            <Text style={styles.payoutCellLabel}>EST. PAYOUT</Text>
             <Text style={[styles.payoutCellValue, { color: Palette.green }]}>~{Math.round(est).toLocaleString()}</Text>
           </View>
         </View>
@@ -127,7 +127,7 @@ function PayoutSection({
           <View style={styles.payoutMeta}>
             <Ionicons name="people-outline" size={11} color={Palette.textMuted} />
             <Text style={styles.payoutMetaText}>
-              {payout.totalBettors ?? 0} người đặt · Pool: {(payout.grossPool ?? 0).toLocaleString()} pts · Phí: {(((payout.takeoutRate ?? 0.17)) * 100).toFixed(0)}%
+              {payout.totalBettors ?? 0} bettors · Pool: {(payout.grossPool ?? 0).toLocaleString()} pts · Fee: {(((payout.takeoutRate ?? 0.17)) * 100).toFixed(0)}%
             </Text>
           </View>
         )}
@@ -141,7 +141,7 @@ function PayoutSection({
         <View style={styles.payoutResultRow}>
           <Ionicons name="checkmark-circle" size={18} color={Palette.green} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.payoutResultLabel}>ĐIỂM NHẬN ĐƯỢC</Text>
+            <Text style={styles.payoutResultLabel}>POINTS EARNED</Text>
             <Text style={[styles.payoutResultValue, { color: Palette.green }]}>
               +{(payout.actualPayout ?? item.rewardPoints).toLocaleString()} pts
             </Text>
@@ -157,8 +157,8 @@ function PayoutSection({
         <View style={styles.payoutResultRow}>
           <Ionicons name="close-circle" size={18} color={Palette.red} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.payoutResultLabel}>KẾT QUẢ</Text>
-            <Text style={[styles.payoutResultValue, { color: Palette.red }]}>Thua cuộc · 0 pts</Text>
+            <Text style={styles.payoutResultLabel}>RESULT</Text>
+            <Text style={[styles.payoutResultValue, { color: Palette.red }]}>Lost · 0 pts</Text>
           </View>
         </View>
       </View>
@@ -171,8 +171,8 @@ function PayoutSection({
         <View style={styles.payoutResultRow}>
           <Ionicons name="refresh-circle" size={18} color={Palette.gold} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.payoutResultLabel}>HOÀN ĐIỂM</Text>
-            <Text style={[styles.payoutResultValue, { color: Palette.gold }]}>Đã hoàn trả điểm cược</Text>
+            <Text style={styles.payoutResultLabel}>REFUNDED</Text>
+            <Text style={[styles.payoutResultValue, { color: Palette.gold }]}>Stake refunded</Text>
           </View>
         </View>
       </View>
@@ -233,7 +233,7 @@ function PredictionDetailModal({
       : undefined;
 
   const raceDate = item.registration?.raceRound?.raceDate
-    ? formatViDate(item.registration.raceRound.raceDate)
+    ? formatDate(item.registration.raceRound.raceDate)
     : null;
 
   return (
@@ -264,18 +264,18 @@ function PredictionDetailModal({
 
         {/* Detail rows */}
         <View style={styles.detailList}>
-          <DetailRow label="Loại dự đoán" value={item.predictionMethod?.methodName ?? '—'} />
-          <DetailRow label="Ngựa dự đoán" value={horseName} valueColor={Palette.gold} />
-          {tournamentName && <DetailRow label="Giải đấu" value={tournamentName} />}
+          <DetailRow label="Prediction Type" value={item.predictionMethod?.methodName ?? '—'} />
+          <DetailRow label="Predicted Horse" value={horseName} valueColor={Palette.gold} />
+          {tournamentName && <DetailRow label="Tournament" value={tournamentName} />}
           {!isChampion && item.registration?.laneNumber != null && (
-            <DetailRow label="Ô xuất phát" value={`#${item.registration.laneNumber}`} />
+            <DetailRow label="Starting Lane" value={`#${item.registration.laneNumber}`} />
           )}
           {!isChampion && !isRaceWinner && item.predictedRank != null && (
-            <DetailRow label="Hạng dự đoán" value={`Hạng ${item.predictedRank}`} valueColor={Palette.gold} />
+            <DetailRow label="Predicted Rank" value={`Rank ${item.predictedRank}`} valueColor={Palette.gold} />
           )}
-          {raceDate && <DetailRow label="Ngày đua" value={raceDate} />}
+          {raceDate && <DetailRow label="Race Date" value={raceDate} />}
           {item.created_at && (
-            <DetailRow label="Ngày đặt" value={formatViDate(item.created_at)} />
+            <DetailRow label="Placed On" value={formatDate(item.created_at)} />
           )}
         </View>
 
@@ -283,7 +283,7 @@ function PredictionDetailModal({
         <PayoutSection item={item} detail={detail} loading={detailLoading} />
 
         <Pressable style={styles.closeBtn} onPress={onClose}>
-          <Text style={styles.closeBtnText}>ĐÓNG</Text>
+          <Text style={styles.closeBtnText}>CLOSE</Text>
         </Pressable>
       </Animated.View>
     </Modal>
@@ -306,7 +306,7 @@ function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () =
     : (item.registration?.raceRound?.roundName ?? '—');
 
   const subtitleText = isChampion
-    ? 'Vô địch giải đấu'
+    ? 'Tournament Champion'
     : isRealTournament(item.registration?.raceRound?.tournament)
       ? (item.registration?.raceRound?.tournament?.tournamentName ?? null)
       : null;
@@ -336,19 +336,19 @@ function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () =
       {/* Info grid — always 2 columns */}
       <View style={styles.infoGrid}>
         <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>NGỰA DỰ ĐOÁN</Text>
+          <Text style={styles.infoLabel}>PREDICTED HORSE</Text>
           <Text style={[styles.infoValue, { color: Palette.gold }]} numberOfLines={1}>{horseName}</Text>
         </View>
 
         <View style={styles.infoCell}>
           <Text style={styles.infoLabel}>
-            {isChampion ? 'PHƯƠNG THỨC' : (!isRaceWinner && item.predictedRank != null ? 'HẠNG DỰ ĐOÁN' : 'Ô XUẤT PHÁT')}
+            {isChampion ? 'METHOD' : (!isRaceWinner && item.predictedRank != null ? 'PREDICTED RANK' : 'STARTING LANE')}
           </Text>
           <Text style={styles.infoValue} numberOfLines={1}>
             {isChampion
               ? (methodName ?? '—')
               : (!isRaceWinner && item.predictedRank != null
-                  ? `Hạng ${item.predictedRank}`
+                  ? `Rank ${item.predictedRank}`
                   : (laneNumber != null ? `#${laneNumber}` : '—'))}
           </Text>
         </View>
@@ -365,7 +365,7 @@ function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () =
         {item.rewardPoints > 0 ? (
           <View style={styles.pointsChip}>
             <Ionicons name="star" size={10} color={Palette.green} />
-            <Text style={styles.pointsChipText}>+{item.rewardPoints} đ</Text>
+            <Text style={styles.pointsChipText}>+{item.rewardPoints} pts</Text>
           </View>
         ) : (
           <View style={styles.chevronBox}>
@@ -382,10 +382,10 @@ function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () =
 type FilterKey = 'all' | PredictionStatus;
 
 const FILTERS: { key: FilterKey; label: string; color: string }[] = [
-  { key: 'all',       label: 'Tất cả',  color: Palette.textMuted },
-  { key: 'pending',   label: 'Chờ',     color: Palette.gold },
-  { key: 'correct',   label: 'Đúng',    color: Palette.green },
-  { key: 'incorrect', label: 'Sai',     color: Palette.red },
+  { key: 'all',       label: 'All',       color: Palette.textMuted },
+  { key: 'pending',   label: 'Pending',   color: Palette.gold },
+  { key: 'correct',   label: 'Correct',   color: Palette.green },
+  { key: 'incorrect', label: 'Incorrect', color: Palette.red },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -449,7 +449,7 @@ export default function PredictionsScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.headerTitle}>DỰ ĐOÁN</Text>
+          <Text style={styles.headerTitle}>PREDICTIONS</Text>
           {total > 0 && (
             <View style={styles.totalBadge}>
               <Text style={styles.totalBadgeText}>{total}</Text>
@@ -485,7 +485,7 @@ export default function PredictionsScreen() {
             <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
             <Text style={styles.emptyText}>{error}</Text>
             <Pressable style={styles.retryBtn} onPress={() => load(activeFilter)}>
-              <Text style={styles.retryText}>THỬ LẠI</Text>
+              <Text style={styles.retryText}>RETRY</Text>
             </Pressable>
           </View>
         ) : (
@@ -499,9 +499,9 @@ export default function PredictionsScreen() {
             {predictions.length > 0 && (
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionAccent} />
-                <Text style={styles.sectionTitle}>Lịch sử dự đoán</Text>
+                <Text style={styles.sectionTitle}>Prediction History</Text>
                 <View style={styles.countBadge}>
-                  <Text style={styles.countBadgeText}>{total} lần</Text>
+                  <Text style={styles.countBadgeText}>{total} total</Text>
                 </View>
               </View>
             )}
@@ -513,7 +513,7 @@ export default function PredictionsScreen() {
             {predictions.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="stats-chart-outline" size={40} color={Palette.textMuted} />
-                <Text style={styles.emptyText}>Chưa có dự đoán nào</Text>
+                <Text style={styles.emptyText}>No predictions yet</Text>
               </View>
             )}
 

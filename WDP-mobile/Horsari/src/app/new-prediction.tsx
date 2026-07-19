@@ -61,8 +61,8 @@ function formatDate(d: string) {
 }
 
 function statusStyle(s: string): { label: string; color: string } {
-  if (s === 'running' || s === 'ongoing') return { label: 'Đang diễn ra', color: Palette.red };
-  if (s === 'scheduled') return { label: 'Sắp diễn ra', color: Palette.gold };
+  if (s === 'running' || s === 'ongoing') return { label: 'Live', color: Palette.red };
+  if (s === 'scheduled') return { label: 'Upcoming', color: Palette.gold };
   return { label: s, color: Palette.textMuted };
 }
 
@@ -224,7 +224,7 @@ export default function NewPredictionScreen() {
 
     const rewardPoints = parseInt(stakeInput, 10);
     if (!rewardPoints || rewardPoints <= 0) {
-      setSubmitError('Vui lòng nhập số điểm đặt cược hợp lệ (> 0).');
+      setSubmitError('Please enter a valid stake amount (> 0).');
       setIsSubmitting(false);
       return;
     }
@@ -232,7 +232,7 @@ export default function NewPredictionScreen() {
     let body: CreatePredictionBody | null = null;
 
     if (selectedMethod.methodType === 'tournament_champion') {
-      if (!selectedHorseId) { setSubmitError('Vui lòng chọn một con ngựa.'); setIsSubmitting(false); return; }
+      if (!selectedHorseId) { setSubmitError('Please select a horse.'); setIsSubmitting(false); return; }
       body = {
         predictionMethodId: selectedMethodId,
         tournamentId: (target.item as TournamentForPrediction)._id,
@@ -240,12 +240,12 @@ export default function NewPredictionScreen() {
         rewardPoints,
       };
     } else if (selectedMethod.methodType === 'race_winner') {
-      if (!selectedRegId) { setSubmitError('Vui lòng chọn một con ngựa.'); setIsSubmitting(false); return; }
+      if (!selectedRegId) { setSubmitError('Please select a horse.'); setIsSubmitting(false); return; }
       body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, rewardPoints };
     } else if (selectedMethod.methodType === 'race_rank') {
       const rank = parseInt(predictedRank, 10);
-      if (!selectedRegId) { setSubmitError('Vui lòng chọn một con ngựa.'); setIsSubmitting(false); return; }
-      if (!rank || rank < 1) { setSubmitError('Vui lòng nhập thứ hạng hợp lệ (≥ 1).'); setIsSubmitting(false); return; }
+      if (!selectedRegId) { setSubmitError('Please select a horse.'); setIsSubmitting(false); return; }
+      if (!rank || rank < 1) { setSubmitError('Please enter a valid rank (≥ 1).'); setIsSubmitting(false); return; }
       body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, predictedRank: rank, rewardPoints };
     }
 
@@ -270,8 +270,8 @@ export default function NewPredictionScreen() {
   // ─── Header ──────────────────────────────────────────────────────────────────
 
   const stepTitle =
-    step === 'pick-type' ? 'ĐẶT DỰ ĐOÁN MỚI' :
-    step === 'configure' ? 'CẤU HÌNH DỰ ĐOÁN' : 'ĐẶT DỰ ĐOÁN MỚI';
+    step === 'pick-type' ? 'NEW PREDICTION' :
+    step === 'configure' ? 'CONFIGURE PREDICTION' : 'NEW PREDICTION';
 
   const handleBack = () => {
     if (step === 'configure') { setStep('pick-type'); setTarget(null); setStakeInput(''); }
@@ -300,8 +300,8 @@ export default function NewPredictionScreen() {
             {/* Type tabs */}
             <View style={styles.typeTabs}>
               {([
-                { key: 'race' as TargetType, label: 'Cuộc đua', icon: 'flag-outline' },
-                { key: 'tournament' as TargetType, label: 'Giải đấu', icon: 'ribbon-outline' },
+                { key: 'race' as TargetType, label: 'Race', icon: 'flag-outline' },
+                { key: 'tournament' as TargetType, label: 'Tournament', icon: 'ribbon-outline' },
               ] as const).map(({ key, label, icon }) => {
                 const active = activeType === key;
                 return (
@@ -324,7 +324,7 @@ export default function NewPredictionScreen() {
                   races.length === 0 ? (
                     <View style={styles.emptyState}>
                       <Ionicons name="flag-outline" size={40} color={Palette.textMuted} />
-                      <Text style={styles.emptyText}>Không có cuộc đua nào đang mở dự đoán</Text>
+                      <Text style={styles.emptyText}>No races are currently open for predictions</Text>
                     </View>
                   ) : races.map(race => {
                     const { label, color } = statusStyle(race.status);
@@ -352,7 +352,7 @@ export default function NewPredictionScreen() {
                   tournaments.length === 0 ? (
                     <View style={styles.emptyState}>
                       <Ionicons name="ribbon-outline" size={40} color={Palette.textMuted} />
-                      <Text style={styles.emptyText}>Không có giải đấu nào đang mở dự đoán nhà vô địch</Text>
+                      <Text style={styles.emptyText}>No tournaments are currently open for champion predictions</Text>
                     </View>
                   ) : tournaments.map(t => {
                     const { label, color } = statusStyle(t.status);
@@ -367,15 +367,15 @@ export default function NewPredictionScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.listCardTitle} numberOfLines={1}>{t.tournamentName}</Text>
-                          <Text style={styles.listCardSub}>{t.horses.length} ngựa tham dự</Text>
+                          <Text style={styles.listCardSub}>{t.horses.length} horses entered</Text>
                           {t.prizePool != null && t.prizePool > 0 && (
-                            <Text style={styles.listCardMeta}>Giải thưởng: ${t.prizePool.toLocaleString()}</Text>
+                            <Text style={styles.listCardMeta}>Prize Pool: ${t.prizePool.toLocaleString()}</Text>
                           )}
                         </View>
                         {t.alreadyPredicted ? (
                           <View style={[styles.statusPill, { borderColor: Palette.green + '44', backgroundColor: Palette.green + '18' }]}>
                             <Ionicons name="checkmark" size={10} color={Palette.green} />
-                            <Text style={[styles.statusPillText, { color: Palette.green }]}>Đã đoán</Text>
+                            <Text style={[styles.statusPillText, { color: Palette.green }]}>Predicted</Text>
                           </View>
                         ) : (
                           <View style={[styles.statusPill, { borderColor: `${color}44`, backgroundColor: `${color}18` }]}>
@@ -399,8 +399,8 @@ export default function NewPredictionScreen() {
           ) : success ? (
             <View style={styles.center}>
               <Ionicons name="checkmark-circle" size={64} color={Palette.green} />
-              <Text style={styles.successTitle}>Đặt dự đoán thành công!</Text>
-              <Text style={styles.successSub}>Đang quay lại...</Text>
+              <Text style={styles.successTitle}>Prediction placed successfully!</Text>
+              <Text style={styles.successSub}>Going back...</Text>
             </View>
           ) : (
             <ScrollView
@@ -426,11 +426,11 @@ export default function NewPredictionScreen() {
               {/* Method picker — race only (tournament auto-selects champion) */}
               {target?.type === 'race' && (
                 <View style={styles.section}>
-                  <SectionLabel text="PHƯƠNG THỨC DỰ ĐOÁN" />
+                  <SectionLabel text="PREDICTION METHOD" />
                   {methods.length === 0 ? (
                     <View style={styles.inlineEmpty}>
                       <Ionicons name="bulb-outline" size={20} color={Palette.textMuted} />
-                      <Text style={styles.inlineEmptyText}>Không có phương thức dự đoán nào khả dụng</Text>
+                      <Text style={styles.inlineEmptyText}>No prediction methods available</Text>
                     </View>
                   ) : (
                     <View style={styles.methodList}>
@@ -455,14 +455,14 @@ export default function NewPredictionScreen() {
               {/* Horse picker — always show once method selected */}
               {(selectedMethodId || target?.type === 'tournament') && (
                 <View style={styles.section}>
-                  <SectionLabel text={target?.type === 'tournament' ? 'CHỌN NGỰA VÔ ĐỊCH' : 'CHỌN NGỰA'} />
+                  <SectionLabel text={target?.type === 'tournament' ? 'SELECT CHAMPION HORSE' : 'SELECT HORSE'} />
                   {horses.length === 0 ? (
                     <View style={styles.inlineEmpty}>
                       <Ionicons name="ribbon-outline" size={20} color={Palette.textMuted} />
                       <Text style={styles.inlineEmptyText}>
                         {target?.type === 'race'
-                          ? 'Chưa có ngựa đăng ký cho cuộc đua này'
-                          : 'Chưa có ngựa nào trong giải đấu này'}
+                          ? 'No horses registered for this race yet'
+                          : 'No horses in this tournament yet'}
                       </Text>
                     </View>
                   ) : (
@@ -484,9 +484,9 @@ export default function NewPredictionScreen() {
               {/* Rank input — race_rank only, after horse selected */}
               {selectedMethod?.methodType === 'race_rank' && selectedHorseId && (
                 <View style={styles.section}>
-                  <SectionLabel text="THỨ HẠNG DỰ ĐOÁN" />
+                  <SectionLabel text="PREDICTED RANK" />
                   <View style={styles.rankRow}>
-                    <Text style={styles.rankLabel}>Hạng</Text>
+                    <Text style={styles.rankLabel}>Rank</Text>
                     <TextInput
                       style={styles.rankInput}
                       value={predictedRank}
@@ -502,9 +502,9 @@ export default function NewPredictionScreen() {
 
               {/* Stake amount — always visible in configure step */}
               <View style={styles.section}>
-                <SectionLabel text="SỐ ĐIỂM ĐẶT CƯỢC" />
+                <SectionLabel text="STAKE AMOUNT" />
                 <View style={styles.rankRow}>
-                  <Text style={styles.rankLabel}>Điểm</Text>
+                  <Text style={styles.rankLabel}>Points</Text>
                   <TextInput
                     style={styles.rankInput}
                     value={stakeInput}
@@ -537,7 +537,7 @@ export default function NewPredictionScreen() {
               disabled={isSubmitting}>
               {isSubmitting
                 ? <ActivityIndicator color={Palette.background} size="small" />
-                : <Text style={styles.submitBtnText}>ĐẶT DỰ ĐOÁN</Text>
+                : <Text style={styles.submitBtnText}>PLACE PREDICTION</Text>
               }
             </Pressable>
           </SafeAreaView>

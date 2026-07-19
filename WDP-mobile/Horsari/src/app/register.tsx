@@ -44,7 +44,7 @@ const Palette = {
 type Role = 'spectator' | 'jockey';
 
 const ROLES: { key: Role; label: string }[] = [
-  { key: 'spectator', label: 'Khán Giả' },
+  { key: 'spectator', label: 'Spectator' },
   { key: 'jockey', label: 'Jockey' },
 ];
 
@@ -77,11 +77,11 @@ export default function RegisterScreen() {
 
   const handleSubmit = async () => {
     if (!username.trim() || !email.trim() || !password || !fullName.trim()) {
-      setErrorMsg('Vui lòng điền đầy đủ các trường bắt buộc.');
+      setErrorMsg('Please fill in all required fields.');
       return;
     }
     if (role === 'jockey' && !license) {
-      setErrorMsg('Vui lòng tải lên giấy phép đua ngựa (PDF).');
+      setErrorMsg('Please upload your racing license (PDF).');
       return;
     }
 
@@ -161,9 +161,9 @@ export default function RegisterScreen() {
               </View>
 
               {/* Heading */}
-              <Text style={styles.title}>ĐĂNG KÝ TÀI KHOẢN</Text>
+              <Text style={styles.title}>CREATE ACCOUNT</Text>
               <Text style={styles.subtitle}>
-                Tạo tài khoản để tham gia Horsari
+                Create an account to join Horsari
               </Text>
 
               {/* Error banner */}
@@ -175,21 +175,21 @@ export default function RegisterScreen() {
               )}
 
               {/* Full name */}
-              <Text style={styles.fieldLabel}>Họ và tên</Text>
+              <Text style={styles.fieldLabel}>Full Name</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="person-outline" size={18} color={Palette.textMuted} />
                 <TextInput
                   style={styles.input}
                   value={fullName}
                   onChangeText={(v) => { setFullName(v); setErrorMsg(null); }}
-                  placeholder="Nguyễn Văn A"
+                  placeholder="John Doe"
                   placeholderTextColor={Palette.textPlaceholder}
                   autoCorrect={false}
                 />
               </View>
 
               {/* Username */}
-              <Text style={styles.fieldLabel}>Tên đăng nhập</Text>
+              <Text style={styles.fieldLabel}>Username</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="at-outline" size={18} color={Palette.textMuted} />
                 <TextInput
@@ -221,7 +221,7 @@ export default function RegisterScreen() {
               </View>
 
               {/* Phone (optional) */}
-              <Text style={styles.fieldLabel}>Số điện thoại (không bắt buộc)</Text>
+              <Text style={styles.fieldLabel}>Phone Number (optional)</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="call-outline" size={18} color={Palette.textMuted} />
                 <TextInput
@@ -235,7 +235,7 @@ export default function RegisterScreen() {
               </View>
 
               {/* Password */}
-              <Text style={styles.fieldLabel}>Mật khẩu</Text>
+              <Text style={styles.fieldLabel}>Password</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="lock-closed-outline" size={18} color={Palette.textMuted} />
                 <TextInput
@@ -251,7 +251,7 @@ export default function RegisterScreen() {
                 <Pressable
                   hitSlop={8}
                   onPress={() => setShowPassword((v) => !v)}
-                  accessibilityLabel={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={18}
@@ -263,7 +263,7 @@ export default function RegisterScreen() {
               {/* License upload — jockey only */}
               {role === 'jockey' && (
                 <>
-                  <Text style={styles.fieldLabel}>Giấy phép đua ngựa (PDF)</Text>
+                  <Text style={styles.fieldLabel}>Racing License (PDF)</Text>
                   <Pressable style={styles.licenseWrapper} onPress={pickLicense}>
                     <Ionicons
                       name={license ? 'document-attach' : 'cloud-upload-outline'}
@@ -271,7 +271,7 @@ export default function RegisterScreen() {
                       color={license ? Palette.gold : Palette.textMuted}
                     />
                     <Text style={[styles.licenseText, license && styles.licenseTextActive]} numberOfLines={1}>
-                      {license ? license.name : 'Chọn tệp PDF...'}
+                      {license ? license.name : 'Select PDF file...'}
                     </Text>
                   </Pressable>
                 </>
@@ -295,7 +295,7 @@ export default function RegisterScreen() {
                     {isSubmitting ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
-                      <Text style={styles.submitText}>ĐĂNG KÝ</Text>
+                      <Text style={styles.submitText}>REGISTER</Text>
                     )}
                   </LinearGradient>
                 )}
@@ -303,9 +303,9 @@ export default function RegisterScreen() {
 
               <View style={styles.divider} />
 
-              <Text style={styles.footerPrompt}>Đã có tài khoản?</Text>
+              <Text style={styles.footerPrompt}>Already have an account?</Text>
               <Pressable hitSlop={8} onPress={() => router.back()}>
-                <Text style={styles.loginLink}>ĐĂNG NHẬP</Text>
+                <Text style={styles.loginLink}>SIGN IN</Text>
               </Pressable>
             </View>
 

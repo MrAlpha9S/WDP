@@ -35,16 +35,16 @@ const Palette = {
 
 type GroupBy = 'day' | 'week' | 'month' | 'year';
 const GROUP_BY_OPTIONS: { value: GroupBy; label: string }[] = [
-  { value: 'day', label: 'NGÀY' },
-  { value: 'week', label: 'TUẦN' },
-  { value: 'month', label: 'THÁNG' },
-  { value: 'year', label: 'NĂM' },
+  { value: 'day', label: 'DAY' },
+  { value: 'week', label: 'WEEK' },
+  { value: 'month', label: 'MONTH' },
+  { value: 'year', label: 'YEAR' },
 ];
 
 const METHOD_TYPE_LABELS: Record<PredictionMethodType, string> = {
-  race_winner: 'Thắng cuộc',
-  race_rank: 'Thứ hạng',
-  tournament_champion: 'Vô địch giải',
+  race_winner: 'Race Winner',
+  race_rank: 'Race Rank',
+  tournament_champion: 'Tournament Champion',
 };
 
 function formatPoints(n: number): string {
@@ -152,7 +152,7 @@ export default function StatisticsScreen() {
           <Pressable hitSlop={8} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={22} color={Palette.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>THỐNG KÊ</Text>
+          <Text style={styles.headerTitle}>STATISTICS</Text>
           <View style={{ width: 22 }} />
         </View>
 
@@ -170,42 +170,52 @@ export default function StatisticsScreen() {
 
             {/* ─── Win rate ─── */}
             <View style={styles.winRateCard}>
-              <View style={styles.winRateLeft}>
-                <Text style={styles.statLabel}>TỶ LỆ THẮNG</Text>
-                <Text style={[styles.winRateBig, { color: Palette.gold }]}>
-                  {(stats?.winRate ?? 0).toFixed(1)}%
-                </Text>
-                <Text style={styles.statSub}>
-                  {stats?.correct ?? 0} đúng / {(stats?.correct ?? 0) + (stats?.incorrect ?? 0)} đã kết thúc
-                </Text>
-              </View>
-              <View style={styles.miniChart}>
-                <View style={[styles.miniChartFill, { flex: (stats?.winRate ?? 0) / 100 }]} />
-                <View style={{ flex: 1 - (stats?.winRate ?? 0) / 100 }} />
-              </View>
+              {stats && stats.totalPredictions === 0 ? (
+                <View style={styles.winRateLeft}>
+                  <Text style={styles.statLabel}>WIN RATE</Text>
+                  <Text style={styles.winRateEmpty}>NO PREDICTIONS YET</Text>
+                  <Text style={styles.statSub}>Place your first prediction</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.winRateLeft}>
+                    <Text style={styles.statLabel}>WIN RATE</Text>
+                    <Text style={[styles.winRateBig, { color: Palette.gold }]}>
+                      {(stats?.winRate ?? 0).toFixed(1)}%
+                    </Text>
+                    <Text style={styles.statSub}>
+                      {stats?.correct ?? 0} correct / {(stats?.correct ?? 0) + (stats?.incorrect ?? 0)} settled
+                    </Text>
+                  </View>
+                  <View style={styles.miniChart}>
+                    <View style={[styles.miniChartFill, { flex: (stats?.winRate ?? 0) / 100 }]} />
+                    <View style={{ flex: 1 - (stats?.winRate ?? 0) / 100 }} />
+                  </View>
+                </>
+              )}
             </View>
 
             {/* ─── Stat cards ─── */}
             <View style={styles.statsRow}>
               <StatCard
-                label="TỔNG DỰ ĐOÁN"
+                label="TOTAL PREDICTIONS"
                 value={String(stats?.totalPredictions ?? 0)}
-                sub={`${stats?.pending ?? 0} đang chờ`}
+                sub={`${stats?.pending ?? 0} pending`}
               />
               <StatCard
-                label="THƯỞNG NHẬN ĐƯỢC"
+                label="REWARDS EARNED"
                 value={`${formatPoints(stats?.totalRewardsEarned ?? 0)}`}
                 valueColor={Palette.green}
               />
             </View>
             <View style={styles.statsRow}>
               <StatCard
-                label="ĐÃ ĐẶT CƯỢC"
+                label="TOTAL STAKED"
                 value={`${formatPoints(stats?.totalStaked ?? 0)}`}
                 valueColor={Palette.red}
               />
               <StatCard
-                label="LỢI NHUẬN RÒNG"
+                label="NET PROFIT"
                 value={`${(stats?.netProfit ?? 0) >= 0 ? '+' : ''}${formatPoints(stats?.netProfit ?? 0)}`}
                 valueColor={(stats?.netProfit ?? 0) >= 0 ? Palette.green : Palette.red}
               />
@@ -214,7 +224,7 @@ export default function StatisticsScreen() {
             {/* ─── Rewards over time ─── */}
             <View style={styles.sectionTitleRow}>
               <View style={styles.txAccent} />
-              <Text style={styles.sectionTitle}>Thưởng theo thời gian</Text>
+              <Text style={styles.sectionTitle}>Rewards Over Time</Text>
             </View>
             <View style={styles.chartCard}>
               <View style={styles.groupByRow}>
@@ -234,16 +244,16 @@ export default function StatisticsScreen() {
                 <View style={styles.chartLoading}>
                   <ActivityIndicator color={Palette.gold} size="small" />
                 </View>
-              ) : series && series.series.length > 0 ? (
+              ) : series && series.totalRewardsEarned > 0 ? (
                 <>
                   <RewardsBarChart series={series.series} />
                   <Text style={styles.chartTotal}>
-                    Tổng: {series.totalRewardsEarned.toLocaleString()} điểm
+                    Total: {series.totalRewardsEarned.toLocaleString()} points
                   </Text>
                 </>
               ) : (
                 <View style={styles.chartLoading}>
-                  <Text style={styles.statSub}>Chưa có dữ liệu</Text>
+                  <Text style={styles.statSub}>No data yet</Text>
                 </View>
               )}
             </View>
@@ -253,7 +263,7 @@ export default function StatisticsScreen() {
               <>
                 <View style={styles.sectionTitleRow}>
                   <View style={styles.txAccent} />
-                  <Text style={styles.sectionTitle}>Theo phương thức dự đoán</Text>
+                  <Text style={styles.sectionTitle}>By Prediction Method</Text>
                 </View>
                 <View style={styles.methodList}>
                   {methodEntries.map(([type, info]) => (
@@ -318,6 +328,7 @@ const styles = StyleSheet.create({
   },
   winRateLeft: { flex: 1, gap: 4 },
   winRateBig: { fontFamily: Fonts.mono, fontSize: 28, fontWeight: '900' },
+  winRateEmpty: { fontSize: 16, fontWeight: '700', color: Palette.textMuted, letterSpacing: 0.5 },
   miniChart: {
     flexDirection: 'row',
     height: 10,
