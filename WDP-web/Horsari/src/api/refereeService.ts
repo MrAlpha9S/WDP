@@ -3,6 +3,7 @@ import type { RaceRoundData } from './adminService';
 import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
 import type { RaceRoundDetail } from '../providers/useRaceSocket';
 import type { ViolationEntity } from '../shared/types/ViolationTypes';
+import type { SelfProfileResponse, UpdateSelfProfilePayload } from './profileTypes';
 
 export interface RefereeWalletInfo {
     referee: { _id: string; wallet: number };
@@ -178,6 +179,40 @@ export interface RefereeInvitationsPagination {
 // ── Service ───────────────────────────────────────────────────────────────────
 
 export const refereeService = {
+    getMyProfile: async (): Promise<SelfProfileResponse> => {
+        try {
+            const response = await api.get('/referee/my-profile');
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to fetch profile' };
+        }
+    },
+
+    updateMyProfile: async (payload: UpdateSelfProfilePayload): Promise<SelfProfileResponse> => {
+        try {
+            const response = await api.put('/referee/my-profile', payload);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to update profile' };
+        }
+    },
+
+    updateMyLicense: async (file: File): Promise<SelfProfileResponse> => {
+        try {
+            const form = new FormData();
+            form.append('license', file);
+            const response = await api.put('/referee/my-profile/license', form, {
+                transformRequest: [(d, headers) => {
+                    delete headers['Content-Type'];
+                    return d;
+                }],
+            });
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: 'Failed to update license' };
+        }
+    },
+
     /** Returns race rounds assigned to the current referee (paginated). */
     getRefereeRaceRounds: async (
         page = 1,

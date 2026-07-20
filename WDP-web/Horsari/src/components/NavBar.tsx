@@ -91,8 +91,12 @@ export default function NavBar() {
                 aria-label="Account menu"
               >
                 {/* Avatar circle */}
-                <div className="w-8 h-8 rounded-full bg-red-800 text-white flex items-center justify-center text-[13px] font-bold select-none ring-2 ring-white group-hover:ring-gray-200 transition-all">
-                  {getInitials(user)}
+                <div className="w-8 h-8 rounded-full bg-red-800 text-white flex items-center justify-center text-[13px] font-bold select-none ring-2 ring-white group-hover:ring-gray-200 transition-all overflow-hidden">
+                  {user.image ? (
+                    <img src={user.image} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    getInitials(user)
+                  )}
                 </div>
                 {/* Name (hidden on small screens) */}
                 <span className="hidden sm:block text-[13px] font-medium text-gray-700 max-w-27.5 truncate">
@@ -114,8 +118,12 @@ export default function NavBar() {
                   {/* User info header */}
                   <div className="px-4 py-3 border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-red-800 text-white flex items-center justify-center text-[13px] font-bold shrink-0">
-                        {getInitials(user)}
+                      <div className="w-9 h-9 rounded-full bg-red-800 text-white flex items-center justify-center text-[13px] font-bold shrink-0 overflow-hidden">
+                        {user.image ? (
+                          <img src={user.image} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          getInitials(user)
+                        )}
                       </div>
                       <div className="min-w-0">
                         {user.name && (

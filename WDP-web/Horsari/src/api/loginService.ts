@@ -1,4 +1,5 @@
 import api from "./axios";
+import type { AvatarUploadResponse } from "./profileTypes";
 
 export interface LoginRequest {
     email: string;
@@ -11,6 +12,7 @@ export interface AuthUser {
     email: string;
     role: string;
     fullName: string;
+    image?: string | null;
 }
 
 export interface AuthResponse {
@@ -32,6 +34,7 @@ export interface CurrentUserResponse {
         phoneNumber: string;
         role: string;
         status: string;
+        image?: string | null;
     };
     msg: string;
 }
@@ -64,6 +67,18 @@ export const authService = {
     },
     getCurrentUser: async (): Promise<CurrentUserResponse> => {
         const response = await api.get<CurrentUserResponse>("/auth/current-user");
+        return response.data;
+    },
+    // Role-agnostic — every role shares the same User.image avatar field.
+    uploadAvatar: async (file: File): Promise<AvatarUploadResponse> => {
+        const form = new FormData();
+        form.append("image", file);
+        const response = await api.post<AvatarUploadResponse>("/auth/avatar", form, {
+            transformRequest: [(d, headers) => {
+                delete headers['Content-Type'];
+                return d;
+            }],
+        });
         return response.data;
     },
     logout: async (): Promise<LogoutResponse> => {

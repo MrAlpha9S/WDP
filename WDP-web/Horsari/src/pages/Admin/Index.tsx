@@ -12,6 +12,7 @@ import ViolationManagementPage from "./ViolationManagementPage";
 import ViolationTypeManagementPage from "./ViolationTypeManagementPage";
 import AdminInvitationsPage from "./AdminInvitationsPage";
 import AdminPaymentsPage from "./AdminPaymentsPage";
+import AdminProfilePage from "./AdminProfilePage";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { AdminSocketContext } from "../../providers/useAdminSocket";
@@ -60,6 +61,8 @@ function ActiveView({ tab, setActiveTab }: { tab: AdminTab, setActiveTab: (tab: 
             return <AdminInvitationsPage />;
         case "Financial":
             return <AdminPaymentsPage />;
+        case "Profile":
+            return <AdminProfilePage />;
         default:
             return <ComingSoon title={tab} />;
     }
@@ -107,6 +110,7 @@ export default function AdminDashboardPage() {
         "Violations",
         "Violation Types",
         "Statistics",
+        "Profile",
     ] as AdminTab[];
 
     const initialTab = allTabs.find(

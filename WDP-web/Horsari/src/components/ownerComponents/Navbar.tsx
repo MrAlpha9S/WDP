@@ -3,7 +3,7 @@ import { ChevronDown, Trophy, User, LogOut } from "lucide-react";
 import { useAuth } from "../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 
-export type Tab = "Dashboard" | "Management";
+export type Tab = "Dashboard" | "Management" | "Profile";
 
 const TABS: Tab[] = ["Dashboard", "Management"];
 
@@ -95,8 +95,12 @@ export default function NavBar({ activeTab, onTabChange }: NavBarProps) {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-white/5 transition-colors duration-150"
               >
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
-                  {getInitials(user)}
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-[11px] font-bold text-white shrink-0 overflow-hidden">
+                  {user.image ? (
+                    <img src={user.image} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    getInitials(user)
+                  )}
                 </div>
                 <ChevronDown size={13} className="text-gray-500" />
               </button>
@@ -106,8 +110,12 @@ export default function NavBar({ activeTab, onTabChange }: NavBarProps) {
                   {/* User info header */}
                   <div className="px-4 py-3 border-b border-white/5">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-red-700 to-red-900 text-white flex items-center justify-center text-[13px] font-bold shrink-0">
-                        {getInitials(user)}
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-red-700 to-red-900 text-white flex items-center justify-center text-[13px] font-bold shrink-0 overflow-hidden">
+                        {user.image ? (
+                          <img src={user.image} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          getInitials(user)
+                        )}
                       </div>
                       <div className="min-w-0">
                         {user.name && (
@@ -121,7 +129,7 @@ export default function NavBar({ activeTab, onTabChange }: NavBarProps) {
                   {/* Menu items */}
                   <div className="py-1">
                     <button
-                      onClick={() => { setMenuOpen(false); navigate("/profile"); }}
+                      onClick={() => { setMenuOpen(false); onTabChange("Profile"); }}
                       className="w-full flex items-center gap-3 px-4 py-2 text-[13.5px] text-gray-300 hover:text-white hover:bg-white/5 transition-colors duration-100"
                     >
                       <User size={15} className="text-gray-400" />

@@ -2,6 +2,7 @@ import { useState } from "react";
 import NavBar, { type Tab } from "../../components/ownerComponents/Navbar";
 import HomePage from "./HomePage";
 import ManagementPage from "./Management";
+import OwnerProfilePage from "./OwnerProfilePage";
 import { type ManagementTab } from "./Management/SideBar";
 
 // ── Tab → component map ───────────────────────────────────────────────────────
@@ -15,6 +16,8 @@ function ActiveView({ tab, initialMgmtTab, onNavigate }: {
       return <HomePage onNavigate={onNavigate} />;
     case "Management":
       return <ManagementPage initialTab={initialMgmtTab ?? undefined} />;
+    case "Profile":
+      return <OwnerProfilePage />;
   }
 }
 

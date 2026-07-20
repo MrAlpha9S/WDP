@@ -2,6 +2,7 @@ import api from './axios';
 import type { TournamentDetailData, TournamentRankEntry } from '../shared/types/TournamentTypes';
 import type { ViolationEntity, ViolationTypeEntity } from '../shared/types/ViolationTypes';
 import type { PaymentEntity, PaymentStatus, PaymentType, PaymentsResponse, LedgerResponse } from './paymentTypes';
+import type { SelfProfileResponse, UpdateSelfProfilePayload } from './profileTypes';
 
 export interface RaceRegistration {
   _id: string;
@@ -551,6 +552,24 @@ export interface ImportantEventsResponse {
 }
 
 export const adminService = {
+  getMyProfile: async (): Promise<SelfProfileResponse> => {
+    try {
+      const response = await api.get('/admin/my-profile');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch profile' };
+    }
+  },
+
+  updateMyProfile: async (payload: UpdateSelfProfilePayload): Promise<SelfProfileResponse> => {
+    try {
+      const response = await api.put('/admin/my-profile', payload);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to update profile' };
+    }
+  },
+
   getStatistics: async (): Promise<{ code: number; data: AdminStatistics; msg: string }> => {
     try {
       const response = await api.get('/admin/statistics');

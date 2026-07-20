@@ -7,6 +7,7 @@ interface User {
   email: string;
   name?: string;
   role?: string;
+  image?: string | null;
 }
 
 interface AuthContextValue {
@@ -16,6 +17,8 @@ interface AuthContextValue {
   loginWithGoogle: () => Promise<void>;
   signup: (name: string, email: string, password: string, role: string, pdfFile: File) => Promise<void>;
   logout: () => void;
+  /** Merges partial fields (e.g. a freshly-uploaded avatar) into the current session. */
+  updateUser: (partial: Partial<User>) => void;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -110,8 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_KEY);
   };
 
+  const updateUser = (partial: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...partial };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, loginWithGoogle, signup, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, loginWithGoogle, signup, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

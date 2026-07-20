@@ -1,5 +1,6 @@
 import api from './axios';
 import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
+import type { SelfProfileResponse, UpdateSelfProfilePayload } from './profileTypes';
 
 export interface Owner {
   _id: string;
@@ -262,6 +263,40 @@ export interface JockeyInvitationsListResponse {
 }
 
 export const horseOwnerService = {
+  getMyProfile: async (): Promise<SelfProfileResponse> => {
+    try {
+      const response = await api.get('/horseowner/my-profile');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to fetch profile' };
+    }
+  },
+
+  updateMyProfile: async (payload: UpdateSelfProfilePayload): Promise<SelfProfileResponse> => {
+    try {
+      const response = await api.put('/horseowner/my-profile', payload);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to update profile' };
+    }
+  },
+
+  updateMyLicense: async (file: File): Promise<SelfProfileResponse> => {
+    try {
+      const form = new FormData();
+      form.append('license', file);
+      const response = await api.put('/horseowner/my-profile/license', form, {
+        transformRequest: [(d, headers) => {
+          delete headers['Content-Type'];
+          return d;
+        }],
+      });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to update license' };
+    }
+  },
+
   getUserHorse: async (
     page = 1,
     limit = 10,

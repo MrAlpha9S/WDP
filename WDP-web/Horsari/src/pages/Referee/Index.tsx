@@ -7,6 +7,7 @@ import ManagementPage from "./ManagementPage";
 import InboxPage from "./InboxPage";
 import TournamentListPage from "./TournamentListPage";
 import StatisticsPage from "./StatisticsPage";
+import RefereeProfilePage from "./RefereeProfilePage";
 import { useParams } from "react-router-dom";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -20,6 +21,7 @@ function ActiveView({ tab }: { tab: RefereeTab }) {
         case "Inbox":        return <InboxPage />;
         case "Tournaments":  return <TournamentListPage />;
         case "Statistics":   return <StatisticsPage />;
+        case "Profile":      return <RefereeProfilePage />;
         default:             return <RefereeDashboard />;
     }
 }
@@ -29,7 +31,7 @@ function ActiveView({ tab }: { tab: RefereeTab }) {
 export default function RefereeDashboardPage() {
     const { tabs } = useParams<{ tabs: string }>();
 
-    const allTabs = [...REFEREE_TABS, "Inbox"] as RefereeTab[];
+    const allTabs = [...REFEREE_TABS, "Inbox", "Profile"] as RefereeTab[];
 
     const initialTab = allTabs.find(
         t => t.toLowerCase() === tabs?.toLowerCase()
