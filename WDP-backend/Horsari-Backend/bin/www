@@ -69,6 +69,28 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Client joins their own notification room, so NotificationService.notify()
+  // can push 'notification_created' events without a race context.
+  socket.on('join_user', async ({ token } = {}) => {
+    try {
+      const raw = (token ?? '').replace(/^Bearer\s+/i, '');
+      const payload = jwt.verify(raw, process.env.JWT_SECRET);
+
+      const UserRepository = require('../repositories/UserRepository');
+      const user = await UserRepository.findById(payload.userId);
+
+      if (!user || user.status !== 'active') {
+        socket.emit('join_user_error', { msg: 'User not found or inactive' });
+        return;
+      }
+      socket.join(`user:${payload.userId}`);
+      console.log(`[WS] ${socket.id} (uid=${payload.userId}) joined user:${payload.userId}`);
+    } catch (err) {
+      console.error('[WS] join_user error:', err.message);
+      socket.emit('join_user_error', { msg: 'Invalid or expired token' });
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('[WS] client disconnected:', socket.id);
   });
