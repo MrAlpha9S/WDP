@@ -27,10 +27,15 @@ function RootNavigation() {
     }
 
     // Session exists → route by role
-    const { role } = session.user;
+    const { role, needsProfileSetup } = session.user;
     if (role === 'jockey') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      router.replace('/(jockey)' as any);
+      if (needsProfileSetup) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.replace('/complete-jockey-profile' as any);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.replace('/(jockey)' as any);
+      }
     } else if (role === 'spectator') {
       router.replace('/(spectator)');
     } else {
@@ -43,6 +48,7 @@ function RootNavigation() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
       <Stack.Screen name="register" />
+      <Stack.Screen name="complete-jockey-profile" />
       <Stack.Screen name="(jockey)" />
       <Stack.Screen name="(spectator)" />
       <Stack.Screen name="new-prediction" />

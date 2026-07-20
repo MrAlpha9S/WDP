@@ -106,6 +106,7 @@ export async function registerUser(
             email: data.user.email,
             role: data.user.role,
             fullName: data.user.fullName,
+            needsProfileSetup: payload.role === 'jockey',
           },
         },
       };

@@ -7,6 +7,8 @@ export interface StoredUser {
   email: string;
   role: string;
   fullName: string;
+  /** True right after a jockey registers, until they complete the extra profile-detail step. */
+  needsProfileSetup?: boolean;
 }
 
 export interface UserSession {
