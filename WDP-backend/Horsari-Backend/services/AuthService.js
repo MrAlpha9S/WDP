@@ -141,6 +141,7 @@ class AuthService {
                         email: newUser.email,
                         role: newUser.role,
                         fullName: newUser.fullName,
+                        image: newUser.image || null,
                     },
                 },
                 msg: 'User registered successfully',
@@ -214,6 +215,7 @@ class AuthService {
                         email: user.email,
                         role: user.role,
                         fullName: user.fullName,
+                        image: user.image || null,
                     },
                 },
                 msg: 'Login successful',
@@ -247,6 +249,7 @@ class AuthService {
                     phoneNumber: user.phoneNumber,
                     role: user.role,
                     status: user.status,
+                    image: user.image || null,
                 },
                 msg: 'User retrieved successfully',
             };
