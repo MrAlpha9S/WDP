@@ -25,6 +25,7 @@ import {
   PredictionPayoutInfo,
   PredictionStatus,
 } from '../../api/spectatorApi';
+import { useSocket } from '../../socket/SocketContext';
 import { Fonts } from '@/constants/theme';
 
 const Palette = {
@@ -414,6 +415,19 @@ export default function PredictionsScreen() {
   };
 
   useEffect(() => { load(activeFilter); }, [activeFilter]);
+
+  // Live refetch when a tournament's status changes or a champion is decided.
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => load(activeFilter, true);
+    socket.on('tournament:status_changed', handler);
+    socket.on('tournament_champion', handler);
+    return () => {
+      socket.off('tournament:status_changed', handler);
+      socket.off('tournament_champion', handler);
+    };
+  }, [socket, activeFilter]);
 
   const onFilterChange = (f: FilterKey) => {
     setActiveFilter(f);

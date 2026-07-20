@@ -19,6 +19,7 @@ import {
   PaymentEntity,
   PaymentStatus,
 } from '../../api/jockeyApi';
+import { useSocket } from '../../socket/SocketContext';
 import { Fonts } from '@/constants/theme';
 
 const Palette = {
@@ -144,6 +145,17 @@ export default function PaymentsScreen() {
   };
 
   useEffect(() => { load(); }, [activeFilter]);
+
+  // Live refetch when a payment-related notification arrives.
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (payload: { type?: string }) => {
+      if (payload?.type?.startsWith('payment_')) load(true);
+    };
+    socket.on('notification_created', handler);
+    return () => { socket.off('notification_created', handler); };
+  }, [socket]);
 
   const onRefresh = () => {
     setIsRefreshing(true);

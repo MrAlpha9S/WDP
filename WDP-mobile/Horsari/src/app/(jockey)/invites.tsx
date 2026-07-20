@@ -19,6 +19,7 @@ import {
   InvitationItem,
   respondToInvitation,
 } from '../../api/jockeyApi';
+import { useSocket } from '../../socket/SocketContext';
 import { Fonts } from '@/constants/theme';
 
 const Palette = {
@@ -348,6 +349,17 @@ export default function InvitesScreen() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Live refetch when a new invitation notification arrives for this jockey.
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (payload: { type?: string }) => {
+      if (payload?.type === 'jockey_invited') load(true);
+    };
+    socket.on('notification_created', handler);
+    return () => { socket.off('notification_created', handler); };
+  }, [socket]);
 
   const onRefresh = () => {
     setIsRefreshing(true);

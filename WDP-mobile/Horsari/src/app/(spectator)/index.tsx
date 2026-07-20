@@ -24,6 +24,7 @@ import {
   RaceScheduleItem,
   ScheduleFilter,
 } from '../../api/spectatorApi';
+import { useSocket } from '../../socket/SocketContext';
 import { Fonts } from '@/constants/theme';
 
 const Palette = {
@@ -329,6 +330,15 @@ export default function SpectatorHomeScreen() {
 
   useEffect(() => { load(); }, []);
   useEffect(() => { loadBrowseRaces(browseFilter); }, [browseFilter]);
+
+  // Live refetch when a tournament's status changes (global broadcast).
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => load(true);
+    socket.on('tournament:status_changed', handler);
+    return () => { socket.off('tournament:status_changed', handler); };
+  }, [socket]);
 
   const onRefresh = () => {
     setIsRefreshing(true);

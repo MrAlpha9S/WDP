@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider, useAuth } from '../auth/AuthContext';
+import { SocketProvider } from '../socket/SocketContext';
 
 export const unstable_settings = {
   initialRouteName: 'login',
@@ -60,8 +61,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={DarkTheme}>
       <AuthProvider>
-        <AnimatedSplashOverlay />
-        <RootNavigation />
+        <SocketProvider>
+          <AnimatedSplashOverlay />
+          <RootNavigation />
+        </SocketProvider>
       </AuthProvider>
     </ThemeProvider>
   );
