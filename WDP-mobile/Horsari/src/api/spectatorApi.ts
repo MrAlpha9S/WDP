@@ -215,6 +215,35 @@ export async function getSpectatorProfile(): Promise<SpectatorProfile | null> {
   }
 }
 
+export interface UpdateSpectatorProfilePayload {
+  fullName?: string;
+  phoneNumber?: string;
+  address?: string;
+  dateOfBirth?: string;
+}
+
+export async function updateSpectatorProfile(
+  payload: UpdateSpectatorProfilePayload
+): Promise<{ ok: boolean; message: string; data: SpectatorProfile | null }> {
+  try {
+    const res = await apiClient.put<{ code: number; data: SpectatorProfile; msg: string }>(
+      '/api/spectator/profile',
+      payload
+    );
+    return {
+      ok: res.data.code === 200,
+      message: res.data.msg,
+      data: res.data.code === 200 ? res.data.data : null,
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
+      data: null,
+    };
+  }
+}
+
 export async function getHomeFeed(): Promise<HomeFeed | null> {
   try {
     const res = await apiClient.get<{ code: number; data: HomeFeed; msg: string }>(

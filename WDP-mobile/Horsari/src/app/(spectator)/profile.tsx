@@ -166,7 +166,11 @@ export default function SpectatorProfileScreen() {
               <View style={styles.heroContent}>
                 <View style={styles.avatarWrapper}>
                   <View style={styles.avatarCircle}>
-                    <Ionicons name="person" size={44} color={Palette.textMuted} />
+                    {profile?.user.image ? (
+                      <Image source={{ uri: profile.user.image }} style={styles.avatarImage} />
+                    ) : (
+                      <Ionicons name="person" size={44} color={Palette.textMuted} />
+                    )}
                   </View>
                   <View style={styles.avatarBadge}>
                     <Ionicons name="eye" size={10} color={Palette.gold} />
@@ -182,6 +186,11 @@ export default function SpectatorProfileScreen() {
                     {rewardPoints.toLocaleString()} reward points
                   </Text>
                 </View>
+                <Pressable
+                  style={styles.btnEditProfile}
+                  onPress={() => router.push('/(spectator)/edit-profile' as any)}>
+                  <Text style={styles.btnEditProfileText}>EDIT PROFILE</Text>
+                </Pressable>
               </View>
             </View>
 
@@ -295,12 +304,14 @@ export default function SpectatorProfileScreen() {
                       icon="call-outline"
                       label="Phone Number"
                       value={profile.user.phoneNumber}
+                      onPress={() => router.push('/(spectator)/edit-profile' as any)}
                     />
                   )}
                   {profile.user.address && (
                     <SettingsRow
                       icon="location-outline"
                       label="Address"
+                      onPress={() => router.push('/(spectator)/edit-profile' as any)}
                       value={profile.user.address}
                     />
                   )}
@@ -390,7 +401,9 @@ const styles = StyleSheet.create({
     borderColor: '#3A3010',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  avatarImage: { width: '100%', height: '100%' },
   avatarBadge: {
     position: 'absolute',
     bottom: 2,
@@ -422,6 +435,24 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.mono,
     fontSize: 12,
     fontWeight: '700',
+    color: Palette.gold,
+  },
+  btnEditProfile: {
+    height: 40,
+    alignSelf: 'stretch',
+    backgroundColor: Palette.goldDark,
+    borderWidth: 1,
+    borderColor: '#3A3010',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  btnEditProfileText: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
     color: Palette.gold,
   },
   // Stats

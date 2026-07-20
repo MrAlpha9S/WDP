@@ -200,6 +200,7 @@ export interface JockeyProfileData {
     rank: number | null;
     totalJockeys: number;
     licenseStatus: string;
+    licenseLink: string | null;
     status: string;
     weight: number;
     height: number;
@@ -244,6 +245,8 @@ export interface UpdateJockeyProfilePayload {
   fullName?: string;
   phoneNumber?: string;
   address?: string;
+  /** ISO date string, e.g. '1998-04-12'. */
+  dateOfBirth?: string;
 }
 
 export async function updateMyProfile(
@@ -253,6 +256,35 @@ export async function updateMyProfile(
     const res = await apiClient.put<{ code: number; data: JockeyProfileData; msg: string }>(
       '/api/jockey/my-profile',
       payload
+    );
+    return {
+      ok: res.data.code === 200,
+      message: res.data.msg,
+      data: res.data.code === 200 ? res.data.data : null,
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
+      data: null,
+    };
+  }
+}
+
+export async function updateMyLicense(
+  license: { uri: string; name: string; mimeType: string }
+): Promise<{ ok: boolean; message: string; data: JockeyProfileData | null }> {
+  try {
+    const form = new FormData();
+    form.append('license', {
+      uri: license.uri,
+      name: license.name,
+      type: license.mimeType,
+    } as any);
+    const res = await apiClient.put<{ code: number; data: JockeyProfileData; msg: string }>(
+      '/api/jockey/my-profile/license',
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
     );
     return {
       ok: res.data.code === 200,

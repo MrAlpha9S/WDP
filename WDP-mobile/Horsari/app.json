@@ -35,7 +35,13 @@
           }
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Horsari uses your photos to let you set a profile picture."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
