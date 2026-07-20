@@ -161,7 +161,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                 <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
                     <StatCard
                         label="Pool Betting Wallet"
-                        value={loading ? "..." : (stats?.finance?.mainAdminWallet ?? 0).toLocaleString() + " vnd"}
+                        value={loading ? "..." : (stats?.finance?.mainAdminWallet ?? 0).toLocaleString("vi-VN") + " ₫"}
                         sub="Lifetime pool takeout (statistic only)"
                         subColor="text-gray-500"
                         icon={<Wallet size={16} />}
@@ -203,7 +203,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                     <InvitationsSection onViewAll={() => setActiveTab("Inbox")} />
 
                     {/* Active Races */}
-                    <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5">
+                    <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5 min-w-0">
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-[15px] font-semibold text-white">
                                 Active Races
@@ -220,14 +220,14 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                                 activeRaces.map((race) => (
                                     <div
                                         key={race.id}
-                                        className="rounded-lg bg-[#1a1a1a] border border-white/[0.05] px-4 py-3 flex items-center justify-between"
+                                        className="rounded-lg bg-[#1a1a1a] border border-white/[0.05] px-4 py-3 flex items-center justify-between gap-2"
                                     >
-                                        <div>
+                                        <div className="min-w-0">
                                             <RaceStatusBadge status={race.status} />
-                                            <p className="text-[13px] font-semibold text-white mt-1 leading-snug">
+                                            <p className="text-[13px] font-semibold text-white mt-1 leading-snug truncate">
                                                 {race.name}
                                             </p>
-                                            <p className="text-[11px] text-gray-500 mt-0.5">
+                                            <p className="text-[11px] text-gray-500 mt-0.5 truncate">
                                                 {race.detail}
                                             </p>
                                         </div>

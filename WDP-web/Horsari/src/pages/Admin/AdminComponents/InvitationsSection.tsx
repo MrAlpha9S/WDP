@@ -80,7 +80,7 @@ export function InvitationTable({
     onViewAll?: () => void;
 }) {
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-6 mt-4">
+        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-6 mt-4 min-w-0">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-[17px] font-semibold text-white">
                     {title}
@@ -109,7 +109,7 @@ export function InvitationTable({
                 {invites.map((a) => (
                     <div
                         key={a.id}
-                        className="grid grid-cols-[1.3fr_110px_100px_120px_3.5fr_100px] gap-4 items-center py-4"
+                        className="grid grid-cols-[1.3fr_110px_100px_120px_3.5fr_100px] gap-4 items-center py-4 min-w-0"
                     >
                         {/* Invitee */}
                         <div className="flex items-center gap-3.5">
@@ -162,7 +162,7 @@ export function InvitationTable({
                         </div>
 
                         {/* Details */}
-                        <div>
+                        <div className="min-w-0">
                             <div className="flex flex-col gap-2.5 text-[13px] text-gray-400 leading-snug">
                                 {/* Registered Race Info (Shown for everyone if available) */}
                                 {a.registeredRace && (
@@ -193,17 +193,17 @@ export function InvitationTable({
                                             <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">{a.horseSelected || "None"}</span>
                                         </p>
                                         <div className="flex flex-col gap-1.5 mt-1 border-l-2 border-white/5 pl-3">
-                                            <div className="flex items-center gap-3">
-                                                <span className="w-[100px] text-gray-500">Main Jockey:</span>
-                                                <span className="text-gray-200 w-[120px]">{a.mainJockeyName || "-"}</span>
+                                            <div className="flex items-center gap-3 flex-wrap">
+                                                <span className="w-[100px] text-gray-500 shrink-0">Main Jockey:</span>
+                                                <span className="text-gray-200 w-[120px] truncate">{a.mainJockeyName || "-"}</span>
                                                 <JockeyStatusText status={a.mainJockeyStatus} />
                                                 {a.mainJockeyFee != null && a.mainJockeyFee > 0 && (
                                                     <span className="text-white font-medium">{a.mainJockeyFee.toLocaleString()} ₫</span>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-3">
-                                                <span className="w-[100px] text-gray-500">Backup Jockey:</span>
-                                                <span className="text-gray-200 w-[120px]">{a.backupJockeyName || "-"}</span>
+                                            <div className="flex items-center gap-3 flex-wrap">
+                                                <span className="w-[100px] text-gray-500 shrink-0">Backup Jockey:</span>
+                                                <span className="text-gray-200 w-[120px] truncate">{a.backupJockeyName || "-"}</span>
                                                 <JockeyStatusText status={a.backupJockeyStatus} />
                                                 {a.backupJockeyFee != null && a.backupJockeyFee > 0 && (
                                                     <span className="text-white font-medium">{a.backupJockeyFee.toLocaleString()} ₫</span>
@@ -392,7 +392,7 @@ export default function InvitationsSection({ limit = DEFAULT_LIMIT, onViewAll }:
     };
 
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-6 flex flex-col h-full">
+        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-6 flex flex-col h-full min-w-0">
             <div className="flex gap-4 mb-2 border-b border-white/[0.07]">
                 <button
                     onClick={() => { setActiveTab("Horse Owner"); setPage(1); }}
