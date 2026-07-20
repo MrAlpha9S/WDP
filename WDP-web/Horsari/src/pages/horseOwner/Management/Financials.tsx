@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   TrendingUp, TrendingDown, Minus, Trophy,
-  BarChart2, Search, ChevronRight,
+  BarChart2, Search,
   Loader2, AlertTriangle, Medal, Calendar
 } from "lucide-react";
 import { horseOwnerService, type FinancialSummary, type FinancialRaceRow } from "../../../api/horseOwnerService";

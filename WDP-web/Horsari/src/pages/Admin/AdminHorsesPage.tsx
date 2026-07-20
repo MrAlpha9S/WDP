@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     X, Search, CheckCircle, XCircle, Clock, AlertTriangle,
-    Image as ImageIcon, ExternalLink, Calendar,
+    ExternalLink, Calendar,
     ShieldCheck, User, Trophy, Timer, Loader2, Shield,
     ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";

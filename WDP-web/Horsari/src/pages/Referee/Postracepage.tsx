@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { AlertTriangle, Camera, ChevronLeft, ChevronRight, Flag, Medal, Play, Pause, SkipBack, SkipForward, Trophy, Video } from "lucide-react";
+import { AlertTriangle, Camera, Flag, Medal, Trophy, Video } from "lucide-react";
 import { ordinal } from "../../shared/data/RaceData";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationRecord } from "../../api/refereeService";

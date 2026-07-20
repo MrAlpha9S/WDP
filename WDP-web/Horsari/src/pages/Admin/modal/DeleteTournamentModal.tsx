@@ -1,4 +1,4 @@
-import { X, Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { adminService } from "../../../api/adminService";
 import type { Tournament } from "../../../shared/types/TournamentTypes";

@@ -93,6 +93,17 @@ export default function HomePage() {
                         </p>
                     </div>
 
+                    {walletInfo && (
+                        <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 shrink-0">
+                            <Wallet size={15} className="text-emerald-500" />
+                            <div>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Wallet</p>
+                                <p className="text-[14px] font-bold text-white leading-tight">
+                                    {walletInfo.referee.wallet.toLocaleString("vi-VN")} ₫
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Main grid */}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, AlertTriangle, Calendar, Shield, User, Flag, Hash, Loader2 } from "lucide-react";
+import { X, AlertTriangle, Calendar, Shield, Flag, Hash, Loader2 } from "lucide-react";
 import type { ViolationEntity, ViolationStatus, StewardAction } from "../../../shared/types/ViolationTypes";
 import { adminService } from "../../../api/adminService";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-    AlertCircle, CheckCircle2, ChevronRight,
+    ChevronRight,
     Clock, MapPin, Trophy, Users, X,
 } from "lucide-react";
 import type { Tournament, RaceRound, ModalTab } from "../../../shared/types/TournamentTypes";
@@ -99,58 +99,6 @@ export function DayPopup({ iso, tournaments, allRaces, onSelectTournament, onOpe
             {tournamentsOnDay.length === 0 && racesOnDay.length === 0 && (
                 <div className="px-4 py-6 flex items-center justify-center">
                     <p className="text-[11px] text-gray-500 font-medium tracking-wide">No events scheduled for this day</p>
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ── Race Detail Panel ─────────────────────────────────────────────────────────
-
-function RaceDetailPanel({ race, onClose, onOpenRaceMonitor }: { race: RaceRound; onClose: () => void; onOpenRaceMonitor?: (id: string) => void }) {
-    return (
-        <div className="bg-[#141414] rounded-xl border border-white/10 overflow-hidden mt-1">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[13px] font-bold text-white font-serif">{race.label}</span>
-                    <RaceTypeBadge type={race.raceType} />
-                </div>
-                <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
-                    <X size={13} />
-                </button>
-            </div>
-            <div className="px-4 py-3 grid grid-cols-2 gap-2">
-                {[
-                    { label: "Distance", value: race.distance },
-                    { label: "Track Surface", value: race.track },
-                    { label: "Entries", value: `${race.entries} horses` },
-                    { label: "Prize Pool", value: race.prizePool },
-                    { label: "Venue", value: race.venue },
-                    { label: "Address", value: race.trackLocation },
-                ].map(({ label, value }) => (
-                    <div key={label} className="bg-white/[0.03] rounded-lg border border-white/6 px-3 py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-0.5">{label}</p>
-                        <p className="text-[12px] font-semibold text-gray-200">{value}</p>
-                    </div>
-                ))}
-            </div>
-            {race.status === "completed" && (
-                <div className="px-4 pb-3 flex items-center justify-end">
-                    {race.violations > 0 ? (
-                        <span className="flex items-center gap-1 text-[11px] text-red-400 font-semibold"><AlertCircle size={11} />{race.violations} violation{race.violations > 1 ? "s" : ""}</span>
-                    ) : (
-                        <span className="flex items-center gap-1 text-[11px] text-green-500 font-semibold"><CheckCircle2 size={11} />Clean</span>
-                    )}
-                </div>
-            )}
-            {onOpenRaceMonitor && (
-                <div className="px-4 pb-4">
-                    <button
-                        onClick={() => onOpenRaceMonitor(race.id)}
-                        className="w-full flex items-center justify-center gap-2 bg-white/[0.04] hover:bg-white/[0.08] text-white text-[12px] font-bold py-2.5 rounded-lg border border-white/10 transition-all"
-                    >
-                        View in Race Monitor <ChevronRight size={14} />
-                    </button>
                 </div>
             )}
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import ViolationDetailPanel from "./AdminComponents/ViolationDetailPanel";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";

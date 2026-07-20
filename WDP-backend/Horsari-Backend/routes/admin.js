@@ -51,6 +51,7 @@ router.get('/tournaments/:id/ranking', authMiddleware, authAdmin, AdminControlle
 
 // All violations across every race (paginated, filterable by status/severity/raceRoundId)
 router.get('/violations', authMiddleware, authAdmin, AdminController.getAllViolations);
+router.patch('/violations/:id/dismiss', authMiddleware, authAdmin, AdminController.dismissViolation);
 
 // ViolationType CRUD
 router.get('/violation-types',                 authMiddleware, authAdmin, AdminController.getAllViolationTypes);

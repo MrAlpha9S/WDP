@@ -38,8 +38,6 @@ interface Horse {
   dateOfBirth?: string;
 }
 
-type Position = "main" | "substitution";
-
 interface EligibilityRule {
   raceType: string | null;
   minWins?: number | null;
@@ -90,7 +88,6 @@ function mapHorse(raw: any, i: number): Horse {
 
 // ── Select option ─────────────────────────────────────────────────────────────
 function SelectCard<T extends { id: string }>({
-  item,
   selected,
   onSelect,
   children,
@@ -204,7 +201,7 @@ export default function HireJockeyModal({
     let cancelled = false;
     async function loadMetadata() {
       try {
-        const res = await horseOwnerService.getRaceEligibilityMetadata(ruleId);
+        const res = await horseOwnerService.getRaceEligibilityMetadata(ruleId!);
         if (!cancelled && res?.data) setMetadata(res.data as RaceMetadata);
       } catch {
         // Non-critical: eligibility rules simply won't be applied if unavailable

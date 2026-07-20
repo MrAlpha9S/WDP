@@ -848,6 +848,15 @@ export const adminService = {
     }
   },
 
+  dismissViolation: async (id: string): Promise<{ code: number; data: ViolationEntity; msg: string }> => {
+    try {
+      const response = await api.patch(`/admin/violations/${id}/dismiss`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: 'Failed to dismiss violation' };
+    }
+  },
+
   // --- Violation Types ---
 
   getAllViolationTypes: async (

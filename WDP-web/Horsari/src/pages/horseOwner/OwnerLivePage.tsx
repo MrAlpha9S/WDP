@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import MuxPlayer from "@mux/mux-player-react";
-import { Camera, ChevronDown, ChevronRight, Loader2, ShieldAlert, Trophy } from "lucide-react";
+import { Camera, ChevronDown, ChevronRight, ShieldAlert, Trophy } from "lucide-react";
 import { CAMERAS, horseColor } from "../../shared/data/RaceData";
 import { useRaceSocket } from "../../providers/useRaceSocket";
 import type { LiveHorse } from "../../providers/useRaceSocket";
@@ -260,14 +260,12 @@ function MyHorsePanel({
     ownerRegistration,
     ownerResult,
     liveHorses,
-    trackLength,
     collapsed,
     onToggle,
 }: {
     ownerRegistration: any;
     ownerResult: any;
     liveHorses: LiveHorse[] | null;
-    trackLength: number;
     collapsed: boolean;
     onToggle: () => void;
 }) {
@@ -523,7 +521,6 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                     ownerRegistration={ownerRegistration}
                     ownerResult={ownerResult}
                     liveHorses={liveHorses}
-                    trackLength={trackLength}
                     collapsed={myHorseCollapsed}
                     onToggle={() => setMyHorseCollapsed(v => !v)}
                 />

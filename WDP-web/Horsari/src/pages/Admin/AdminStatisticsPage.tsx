@@ -5,7 +5,7 @@ import type {
     DashboardTopPerformers, DashboardTopHorse, DashboardTopJockey, WinRateLeader,
     DashboardPredictions, MostPredictedHorse, SpectatorLeaderboardEntry,
 } from "../../api/adminService";
-import { Users, Trophy, ClipboardList, Wallet, Zap, Radio, Eye, Settings, CheckSquare } from "lucide-react";
+import { Users, Trophy, ClipboardList, Wallet, Zap } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type GroupBy = "day" | "week" | "month" | "year";
@@ -123,6 +123,11 @@ function HouseEarningsChart({ data, groupBy, onGroupByChange, loading }: {
             <div className="flex flex-col xl:flex-row gap-6">
                 {/* Left side: Chart */}
                 <div className="flex-1 min-w-0 relative">
+                    {!enoughData && (
+                        <div className="absolute inset-0 flex items-center justify-center text-[12px] text-gray-500 pointer-events-none">
+                            No data yet
+                        </div>
+                    )}
                     <svg viewBox={`0 0 ${W} ${H}`} className="w-full"
                         onMouseLeave={() => setHoveredIdx(null)}>
                         

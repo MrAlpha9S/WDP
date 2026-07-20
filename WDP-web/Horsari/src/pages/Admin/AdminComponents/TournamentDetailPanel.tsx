@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     X, Loader2, Trophy, Calendar, DollarSign, Users, Flag,
-    AlertCircle, CheckCircle2, Award, MapPin
+    AlertCircle, CheckCircle2, MapPin
 } from "lucide-react";
 import type { TournamentDetailData, TournamentRankEntry, RoundBreakdownEntry } from "../../../shared/types/TournamentTypes";
 import { adminService } from "../../../api/adminService";
@@ -78,7 +78,7 @@ function RoundResultCell({ rd }: { rd: RoundBreakdownEntry }) {
     return <span className="text-gray-600 text-[10px]">—</span>;
 }
 
-export default function TournamentDetailPanel({ selectedTournamentId, onRefresh, onClose }: TournamentDetailPanelProps) {
+export default function TournamentDetailPanel({ selectedTournamentId, onClose }: TournamentDetailPanelProps) {
     const [detail, setDetail] = useState<TournamentDetailData | null>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [detailError, setDetailError] = useState<string | null>(null);

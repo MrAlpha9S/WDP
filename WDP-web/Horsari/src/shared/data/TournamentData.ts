@@ -1,5 +1,3 @@
-import type { Tournament, RaceRound, LeaderEntry } from "../types/TournamentTypes";
-
 // ── Color map ─────────────────────────────────────────────────────────────────
 
 export const T_COLOR: Record<string, { band: string; dot: string; label: string; border: string }> = {

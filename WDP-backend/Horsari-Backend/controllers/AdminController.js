@@ -204,6 +204,12 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // PATCH soft-delete (dismiss) a single violation
+    async dismissViolation(req, res) {
+        const response = await AdminService.dismissViolation(req.params.id);
+        return res.status(response.code).json(response);
+    }
+
     async getAllViolationTypes(req, res) {
         const page  = parseInt(req.query.page)  || 1;
         const limit = parseInt(req.query.limit) || 10;

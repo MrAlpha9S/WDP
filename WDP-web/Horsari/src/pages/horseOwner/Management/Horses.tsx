@@ -484,7 +484,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
         registrationDate: new Date().toISOString(),
       } as Omit<Horse, "_id" | "ownerId" | "createdAt" | "updatedAt" | "__v">);
 
-      const newId: string = res.data?._id ?? res.data?.id;
+      const newId: string = res.data._id;
       if (newId && imageFile) {
         await horseOwnerService.uploadHorseImage(newId, imageFile);
       }

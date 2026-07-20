@@ -11,9 +11,10 @@ function StatusPill({ status }: { status: InviteStatus }) {
         pending: "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
         accepted: "border-green-700/60 text-green-400 bg-green-500/10",
         declined: "border-white/10 text-gray-600 bg-transparent",
+        cancelled: "border-white/10 text-gray-600 bg-transparent",
     }[status];
-    const dot = { pending: "bg-yellow-500", accepted: "bg-green-500", declined: "bg-gray-600" }[status];
-    const label = { pending: "Pending", accepted: "Accepted", declined: "Declined" }[status];
+    const dot = { pending: "bg-yellow-500", accepted: "bg-green-500", declined: "bg-gray-600", cancelled: "bg-gray-600" }[status];
+    const label = { pending: "Pending", accepted: "Accepted", declined: "Declined", cancelled: "Cancelled" }[status];
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${cfg}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />

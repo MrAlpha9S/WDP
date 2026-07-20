@@ -20,7 +20,6 @@ interface TournamentListPageProps {
 
 import { useEffect } from "react";
 import { refereeService } from "../../api/refereeService";
-import type { TournamentWithRounds } from "../../api/refereeService";
 import { mapBackendToTournaments } from "../../utils/tournamentMapper";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
