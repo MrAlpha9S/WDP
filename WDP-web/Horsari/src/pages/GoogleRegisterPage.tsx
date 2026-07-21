@@ -69,7 +69,7 @@ export default function GoogleRegisterPage() {
           Google Sign Up
         </h1>
         <p className="text-[13.5px] text-gray-500 text-center mb-6">
-          Complete your profile to join Velosteed
+          Complete your profile to join Horsari
         </p>
 
         {error && (

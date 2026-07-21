@@ -179,11 +179,9 @@ export default function LoginPage() {
       <div className="relative w-full max-w-[420px] bg-[#141414] border border-white/8 rounded-2xl shadow-2xl shadow-black/60 px-8 pt-8 pb-9">
 
         {/* Logo */}
-        <p
-          className="text-center text-[13px] font-bold tracking-[0.22em] text-red-500 uppercase mb-6 font-serif"
-        >
-          Horsari
-        </p>
+        <div className="flex justify-center mb-6">
+          <img src="/horsari_logo_in_text.svg" alt="Horsari" className="h-8 object-contain" />
+        </div>
 
         {/* Tabs */}
         <div className="flex bg-[#1a1a1a] rounded-xl p-1 mb-7 gap-1">

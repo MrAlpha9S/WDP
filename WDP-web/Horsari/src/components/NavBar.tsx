@@ -57,8 +57,8 @@ export default function NavBar() {
 
         {/* Left: Logo + Links */}
         <div className="flex items-center gap-8">
-          <a href="/" className="font-serif text-[22px] font-semibold text-gray-900 tracking-tight whitespace-nowrap select-none">
-            Velosteed
+          <a href="/" className="flex items-center select-none">
+            <img src="/horsari_logo_in_text.svg" alt="Horsari" className="h-8 object-contain" />
           </a>
           <ul className="hidden md:flex items-center gap-1 list-none m-0 p-0">
             {links.map((label) => (

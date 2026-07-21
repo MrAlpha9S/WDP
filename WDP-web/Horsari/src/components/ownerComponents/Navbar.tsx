@@ -59,12 +59,7 @@ export default function NavBar({ activeTab, onTabChange }: NavBarProps) {
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <span
-            className="text-[15px] font-bold tracking-widest text-red-500 uppercase font-serif"
-            style={{ letterSpacing: "0.18em" }}
-          >
-            Horsari
-          </span>
+          <img src="/horsari_logo_in_text.svg" alt="Horsari" className="h-6 object-contain" />
           <span
             className={`w-1.5 h-1.5 rounded-full ${wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"}`}
             title={wsConnected ? "Connected" : "Disconnected"}
