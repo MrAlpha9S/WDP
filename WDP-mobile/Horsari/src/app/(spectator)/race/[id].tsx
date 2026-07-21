@@ -89,7 +89,7 @@ function computeLocalOutcome(
   const result = results.find(r => r.registrationId === regId);
   if (!result || result.finishPosition == null) return null;
   if (methodType === 'race_winner') return result.finishPosition === 1 ? 'won' : 'lost';
-  if (methodType === 'race_rank')   return result.finishPosition === prediction.predictedRank ? 'won' : 'lost';
+  if (methodType === 'race_rank') return result.finishPosition === prediction.predictedRank ? 'won' : 'lost';
   return null; // tournament_champion — can't determine locally
 }
 
@@ -114,18 +114,18 @@ function TrackView({
   // back when the first horse crosses the line — the right edge stays locked.
   const allPositions = horses.map(h => h.isFinished ? trackLength : h.currentDistance);
   const runningPositions = allPositions.filter(d => d > 0);
-  const leadDist  = Math.max(...allPositions);
+  const leadDist = Math.max(...allPositions);
   const trailDist = Math.min(...(runningPositions.length > 0 ? runningPositions : [leadDist]));
-  const spread    = leadDist - trailDist;
-  const pad       = Math.max(60, spread * 0.15);
+  const spread = leadDist - trailDist;
+  const pad = Math.max(60, spread * 0.15);
   const windowStart = Math.max(0, trailDist - pad);
-  const windowEnd   = Math.min(trackLength, leadDist + pad);
+  const windowEnd = Math.min(trackLength, leadDist + pad);
   const windowRange = Math.max(windowEnd - windowStart, 1);
 
   const toPct = (dist: number) =>
     Math.max(0, Math.min(1, (dist - windowStart) / windowRange));
 
-  const usable     = Math.max(0, width - PADDING_L - PADDING_R - MARKER);
+  const usable = Math.max(0, width - PADDING_L - PADDING_R - MARKER);
   const showFinish = windowEnd >= trackLength * 0.94;
 
   // Compute all 100m checkpoint marks that fall within the visible window.
@@ -176,7 +176,7 @@ function TrackView({
       {width > 0 && horses.map((h, i) => {
         const dist = h.isFinished ? trackLength : h.currentDistance;
         const left = PADDING_L + toPct(dist) * usable;
-        const top  = 20 + i * LANE_H + (LANE_H - MARKER) / 2;
+        const top = 20 + i * LANE_H + (LANE_H - MARKER) / 2;
         const color = horseColor(h.number);
         return (
           <View
@@ -296,11 +296,11 @@ function HorseRow({
 // ─── Prediction chip ──────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: 'PENDING',  color: Palette.gold,  bg: '#1E1A0A' },
-  correct:   { label: 'CORRECT',  color: Palette.green, bg: '#0A1A0F' },
-  incorrect: { label: 'INCORRECT',color: Palette.red,   bg: '#1A0A0D' },
-  cancelled: { label: 'CANCELLED',color: Palette.muted, bg: '#111' },
-  refunded:  { label: 'REFUNDED', color: '#8B5CF6',     bg: '#120A1A' },
+  pending: { label: 'PENDING', color: Palette.gold, bg: '#1E1A0A' },
+  correct: { label: 'CORRECT', color: Palette.green, bg: '#0A1A0F' },
+  incorrect: { label: 'INCORRECT', color: Palette.red, bg: '#1A0A0D' },
+  cancelled: { label: 'CANCELLED', color: Palette.muted, bg: '#111' },
+  refunded: { label: 'REFUNDED', color: '#8B5CF6', bg: '#120A1A' },
 };
 
 function PredictionChip({
@@ -316,7 +316,7 @@ function PredictionChip({
 
   // localOutcome is only ever passed once results are confirmed by the referee.
   let displayStatus = prediction.predictionStatus;
-  if (prediction.predictionStatus === 'pending' && localOutcome === 'won')  displayStatus = 'correct';
+  if (prediction.predictionStatus === 'pending' && localOutcome === 'won') displayStatus = 'correct';
   if (prediction.predictionStatus === 'pending' && localOutcome === 'lost') displayStatus = 'incorrect';
 
   const st = STATUS_CONFIG[displayStatus] ?? STATUS_CONFIG.pending;
@@ -330,8 +330,8 @@ function PredictionChip({
   const methodLabel = methodType === 'race_winner'
     ? 'Winner'
     : methodType === 'race_rank'
-    ? `Rank #${prediction.predictedRank ?? '?'}`
-    : 'Champion';
+      ? `Rank #${prediction.predictedRank ?? '?'}`
+      : 'Champion';
 
   return (
     <View style={styles.predChip}>
@@ -371,7 +371,7 @@ function BetOutcomeBanner({
   // Resolve each prediction's outcome
   const outcomes = predictions.map(p => {
     let outcome: 'won' | 'lost' | 'pending';
-    if (p.predictionStatus === 'correct')   outcome = 'won';
+    if (p.predictionStatus === 'correct') outcome = 'won';
     else if (p.predictionStatus === 'incorrect') outcome = 'lost';
     else {
       const local = computeLocalOutcome(p, results);
@@ -385,28 +385,28 @@ function BetOutcomeBanner({
     const methodLabel = methodType === 'race_winner'
       ? 'Winner'
       : methodType === 'race_rank'
-      ? `Rank #${p.predictedRank ?? '?'}`
-      : 'Champion';
+        ? `Rank #${p.predictedRank ?? '?'}`
+        : 'Champion';
     return { prediction: p, outcome, horseName, methodLabel };
   });
 
-  const wonCount  = outcomes.filter(o => o.outcome === 'won').length;
+  const wonCount = outcomes.filter(o => o.outcome === 'won').length;
   const lostCount = outcomes.filter(o => o.outcome === 'lost').length;
-  const allWon    = wonCount > 0 && wonCount === predictions.length;
-  const allLost   = lostCount === predictions.length;
+  const allWon = wonCount > 0 && wonCount === predictions.length;
+  const allLost = lostCount === predictions.length;
 
   const totalPts = outcomes
     .filter(o => o.outcome === 'won')
     .reduce((sum, o) => sum + (o.prediction.rewardPoints ?? 0), 0);
 
-  const accent   = allWon ? Palette.green : allLost ? Palette.red : Palette.gold;
-  const bg       = allWon ? '#081A0F' : allLost ? '#1A0808' : '#1A1508';
-  const border   = allWon ? '#1D4A2A' : allLost ? '#4A1A1A' : '#3A3010';
+  const accent = allWon ? Palette.green : allLost ? Palette.red : Palette.gold;
+  const bg = allWon ? '#081A0F' : allLost ? '#1A0808' : '#1A1508';
+  const border = allWon ? '#1D4A2A' : allLost ? '#4A1A1A' : '#3A3010';
   const headline = allWon
     ? 'YOU WON! 🎉'
     : allLost
-    ? 'BETTER LUCK NEXT TIME 😔'
-    : `${wonCount}/${predictions.length} CORRECT 🎲`;
+      ? 'BETTER LUCK NEXT TIME 😔'
+      : `${wonCount}/${predictions.length} CORRECT 🎲`;
 
   return (
     <Animated.View
@@ -428,7 +428,7 @@ function BetOutcomeBanner({
       {/* Individual rows */}
       {outcomes.map(({ prediction, outcome, horseName, methodLabel }) => {
         const rowColor = outcome === 'won' ? Palette.green : outcome === 'lost' ? Palette.red : Palette.muted;
-        const icon     = outcome === 'won' ? 'checkmark-circle' : outcome === 'lost' ? 'close-circle' : 'time';
+        const icon = outcome === 'won' ? 'checkmark-circle' : outcome === 'lost' ? 'close-circle' : 'time';
         return (
           <View key={prediction._id} style={styles.betBannerRow}>
             <Ionicons name={icon as any} size={15} color={rowColor} style={{ marginTop: 1 }} />
@@ -463,12 +463,12 @@ function FinishedBanner({
   const fmtLength = (l: number | null | undefined): string | null => {
     if (l == null || l === 0) return null;
     if (distUnit === 'metres') return `+${(l * 2.4).toFixed(1)} m`;
-    if (l <= 0.1)  return 'Nse';
-    if (l <= 0.2)  return 'Hd';
+    if (l <= 0.1) return 'Nse';
+    if (l <= 0.2) return 'Hd';
     if (l <= 0.35) return 'Nk';
     const whole = Math.floor(l);
-    const frac  = Math.round((l - whole) * 4) / 4;
-    const f     = frac === 0 ? '' : frac === 0.25 ? '¼' : frac === 0.5 ? '½' : '¾';
+    const frac = Math.round((l - whole) * 4) / 4;
+    const f = frac === 0 ? '' : frac === 0.25 ? '¼' : frac === 0.5 ? '½' : '¾';
     return whole === 0 ? `${f}L` : `${whole}${f}L`;
   };
   return (
@@ -521,12 +521,15 @@ export default function LiveRaceScreen() {
   const [userPredictions, setUserPredictions] = useState<PredictionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { connected, liveUpdate, finishResults, confirmedResults } = useSpectatorRaceSocket(id ?? null);
+  const { connected, liveUpdate, finishResults, confirmedResults, raceStatus } = useSpectatorRaceSocket(id ?? null);
   const [distUnit, setDistUnit] = useState<'lengths' | 'metres'>('lengths');
+  // Prefer the live socket-pushed status over the one-time REST fetch — it updates
+  // the instant the race starts/finishes/is confirmed instead of staying stale.
+  const currentStatus = raceStatus ?? raceRound?.status;
   // settled = referee has officially confirmed results — via a live 'race_results_confirmed'
   // socket event, or because we loaded the screen after confirmation already happened
   // (raceRound.status only flips to 'completed' once results are official).
-  const settled = confirmedResults != null || raceRound?.status === 'completed';
+  const settled = confirmedResults != null || currentStatus === 'completed';
 
   useEffect(() => {
     if (!id) return;
@@ -542,13 +545,13 @@ export default function LiveRaceScreen() {
 
   const restFinishResults = registrations.some(r => r.raceResult)
     ? registrations.filter(r => r.raceResult).map(r => ({
-        registrationId: r._id,
-        horseName: r.horse?.horseName ?? '',
-        jockeyName: r.jockey?.fullName ?? '',
-        finishPosition: r.raceResult!.finishPosition,
-        finishTime: r.raceResult!.finishTime,
-        distance: r.raceResult!.distance ?? null,
-      })).sort((a,b) => (a.finishPosition || 99) - (b.finishPosition || 99))
+      registrationId: r._id,
+      horseName: r.horse?.horseName ?? '',
+      jockeyName: r.jockey?.fullName ?? '',
+      finishPosition: r.raceResult!.finishPosition,
+      finishTime: r.raceResult!.finishTime,
+      distance: r.raceResult!.distance ?? null,
+    })).sort((a, b) => (a.finishPosition || 99) - (b.finishPosition || 99))
     : null;
 
   const activeFinishResults = finishResults || restFinishResults;
@@ -593,13 +596,13 @@ export default function LiveRaceScreen() {
   // Sort standings: finished horses by finishPosition, then running by distance
   const sortedHorses = revealedFinishResults
     ? (revealedFinishResults
-        .map((r) => displayHorses.find((h) => h.registrationId === r.registrationId))
-        .filter(Boolean) as LiveHorse[])
+      .map((r) => displayHorses.find((h) => h.registrationId === r.registrationId))
+      .filter(Boolean) as LiveHorse[])
     : [...displayHorses].sort((a, b) => {
-        if (a.isFinished !== b.isFinished) return a.isFinished ? -1 : 1;
-        if (a.isFinished && b.isFinished) return (a.finishPosition ?? 99) - (b.finishPosition ?? 99);
-        return b.currentDistance - a.currentDistance;
-      });
+      if (a.isFinished !== b.isFinished) return a.isFinished ? -1 : 1;
+      if (a.isFinished && b.isFinished) return (a.finishPosition ?? 99) - (b.finishPosition ?? 99);
+      return b.currentDistance - a.currentDistance;
+    });
 
   const leader = sortedHorses[0];
   const myPredictions: PredictionItem[] = userPredictions.length > 0
@@ -648,7 +651,7 @@ export default function LiveRaceScreen() {
         </View>
 
         {/* ── Stats strip — only shown while race is live ── */}
-        {!activeFinishResults && (raceRound?.status === 'running' || liveUpdate !== null) && (
+        {!activeFinishResults && (currentStatus === 'running' || liveUpdate !== null) && (
           <View style={styles.statsStrip}>
             <StatChip label="TIME" value={elapsed} color={Palette.gold} />
             <View style={styles.statsDivider} />
@@ -677,7 +680,7 @@ export default function LiveRaceScreen() {
           )}
           {awaitingConfirmation && <AwaitingConfirmationCard />}
           {!activeFinishResults && (
-            (raceRound?.status === 'running' || liveUpdate !== null) ? (
+            (currentStatus === 'running' || liveUpdate !== null) ? (
               <View style={[styles.videoPlaceholder, { overflow: 'hidden' }]}>
                 {raceRound?.livestreamUrl ? (
                   Platform.OS === 'web' ? (
@@ -1109,7 +1112,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 8,
   },
-  horseRowRank: { fontSize: 18, width: 32, textAlign: 'center' },
+  horseRowRank: { fontSize: 18, width: 32, textAlign: 'center', color: 'white' },
   horseRowCircle: {
     width: 34,
     height: 34,

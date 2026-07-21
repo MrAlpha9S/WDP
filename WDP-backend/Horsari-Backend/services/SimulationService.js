@@ -297,7 +297,7 @@ async function finalizeRace(raceRoundId, raceRound, horses, intensity, io) {
         // Transition race to awaitingConfirmation so admin can review & officially confirm
         await RaceRound.findByIdAndUpdate(raceRoundId, { status: 'awaitingConfirmation' });
 
-        io.to(`race:${raceRoundId}`).emit('race_status_changed', {
+        io.emit('race_status_changed', {
             raceRoundId,
             status: 'awaitingConfirmation',
             timestamp: new Date(),

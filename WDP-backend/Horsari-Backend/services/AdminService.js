@@ -1339,7 +1339,7 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
         const updated = await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus }, { new: true }).lean();
 
         if (io) {
-            io.to(`race:${raceRoundId}`).emit('race_status_changed', {
+            io.emit('race_status_changed', {
                 raceRoundId,
                 status: newStatus,
                 timestamp: new Date(),
@@ -1722,14 +1722,46 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
         );
 
         if (io) {
-            io.to(`race:${raceRoundId}`).emit('race_status_changed', {
+            io.emit('race_status_changed', {
                 raceRoundId,
                 status: 'completed',
                 timestamp: new Date(),
             });
+
+            // Reshape the populated `results` into the FinishResult wire format
+            // (registrationId as a plain string, horseName/jockeyName resolved) —
+            // sending the raw populated Registration object as `registrationId`
+            // breaks React keys and identity comparisons on the client.
+            const regIds = results.map(r => r.registrationId?._id).filter(Boolean);
+            const invitations = regIds.length
+                ? await Invitation.find({ registrationId: { $in: regIds }, isBackup: false }).lean()
+                : [];
+            const invByReg = new Map(invitations.map(inv => [String(inv.registrationId), inv]));
+
+            const horseIds = invitations.map(inv => inv.horseId).filter(Boolean);
+            const jockeyIds = invitations.map(inv => inv.jockeyId).filter(Boolean);
+            const [horseDocs, jockeyUserDocs] = await Promise.all([
+                horseIds.length ? Horse.find({ _id: { $in: horseIds } }, 'horseName').lean() : [],
+                jockeyIds.length ? User.find({ _id: { $in: jockeyIds } }, 'fullName').lean() : [],
+            ]);
+            const horseMap = new Map(horseDocs.map(h => [String(h._id), h.horseName]));
+            const jockeyMap = new Map(jockeyUserDocs.map(u => [String(u._id), u.fullName]));
+
+            const socketResults = results.map(r => {
+                const invitation = invByReg.get(String(r.registrationId?._id));
+                return {
+                    registrationId: r.registrationId?._id ? String(r.registrationId._id) : null,
+                    horseName: (invitation && horseMap.get(String(invitation.horseId))) ?? '',
+                    jockeyName: (invitation && jockeyMap.get(String(invitation.jockeyId))) ?? '',
+                    finishPosition: r.finishPosition,
+                    finishTime: r.finishTime,
+                    distance: r.distance ?? 0,
+                };
+            });
+
             io.to(`race:${raceRoundId}`).emit('race_results_confirmed', {
                 raceRoundId,
-                results,
+                results: socketResults,
                 timestamp: new Date(),
             });
         }
