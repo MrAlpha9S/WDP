@@ -102,9 +102,7 @@ export default function PreRacePage() {
                             <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
                                 <ClipboardList size={14} className="text-yellow-500" /> Horse Inspection Checklist
                             </h2>
-                            <span className="text-[11px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-700/50 px-2.5 py-0.5 rounded-full">
-                                {checkedIds.size}/{registrations.length} Checked
-                            </span>
+
                         </div>
                         <div className="p-3 flex flex-col gap-2">
                             {registrations.length === 0 && (
