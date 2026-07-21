@@ -58,7 +58,7 @@ export default function NavBar() {
         {/* Left: Logo + Links */}
         <div className="flex items-center gap-8">
           <a href="/" className="flex items-center select-none">
-            <img src="/horsari_logo_in_text.svg" alt="Horsari" className="h-8 object-contain" />
+            <img src="/horsari_logo_in_image.svg" alt="Horsari" className="h-8 object-contain" />
           </a>
           <ul className="hidden md:flex items-center gap-1 list-none m-0 p-0">
             {links.map((label) => (
