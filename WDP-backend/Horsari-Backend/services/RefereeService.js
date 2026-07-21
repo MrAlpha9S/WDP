@@ -111,8 +111,7 @@ class RefereeService {
                 type: 'referee_accepted',
                 title: 'Referee Accepted Assignment',
                 message: 'A referee has accepted their race assignment.',
-                relatedEntityType: 'RaceReferee',
-                relatedEntityId: updated._id,
+                actionPayload: { entityType: 'RaceReferee', entityId: updated._id },
             }, io).catch(err => console.error('[acceptInvitation] notify admin error:', err.message));
             return {
                 code: 200,
@@ -143,8 +142,7 @@ class RefereeService {
                 type: 'referee_rejected',
                 title: 'Referee Rejected Assignment',
                 message: 'A referee has rejected their race assignment.',
-                relatedEntityType: 'RaceReferee',
-                relatedEntityId: updated._id,
+                actionPayload: { entityType: 'RaceReferee', entityId: updated._id },
             }, io).catch(err => console.error('[rejectInvitation] notify admin error:', err.message));
             return {
                 code: 200,
@@ -449,8 +447,7 @@ class RefereeService {
                     message: status === 'verified'
                         ? 'Your race registration passed pre-race inspection.'
                         : `Your race registration failed pre-race inspection: ${verificationFailReason}`,
-                    relatedEntityType: 'Registration',
-                    relatedEntityId: registrationId,
+                    actionPayload: { entityType: 'Registration', entityId: registrationId },
                 }, io).catch(err => console.error('[verifyRegistration] notify owner error:', err.message));
             }
 
@@ -491,8 +488,7 @@ class RefereeService {
                     type: 'registration_cancelled',
                     title: 'Registration Cancelled',
                     message: 'Your race registration was cancelled as a no-show.',
-                    relatedEntityType: 'Registration',
-                    relatedEntityId: registrationId,
+                    actionPayload: { entityType: 'Registration', entityId: registrationId },
                 }, io).catch(err => console.error('[cancelRegistration] notify owner error:', err.message));
             }
 
@@ -813,8 +809,7 @@ class RefereeService {
                 type: 'jockey_no_show',
                 title: 'Jockey Marked as No-Show',
                 message: 'A jockey was marked as a no-show for race day.',
-                relatedEntityType: 'Invitation',
-                relatedEntityId: invitationId,
+                actionPayload: { entityType: 'Invitation', entityId: invitationId },
             }, io).catch(err => console.error('[markJockeyNoShow] notify error:', err.message));
 
             return { code: 200, data: updated, msg: 'Jockey marked as no-show successfully.' };

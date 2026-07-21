@@ -72,8 +72,7 @@ const authMiddleware = async (req, res, next) => {
                 type: 'new_user',
                 title: 'New User Registered',
                 message: `${fullName || username} joined as spectator.`,
-                relatedEntityType: 'User',
-                relatedEntityId: user._id,
+                actionPayload: { entityType: 'User', entityId: user._id },
             }, io).catch(err => console.error('[authMiddleware] notify admin error:', err.message));
         } else {
             // Link googleId if missing

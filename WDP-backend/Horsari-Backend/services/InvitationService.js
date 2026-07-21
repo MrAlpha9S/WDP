@@ -74,11 +74,11 @@ class InvitationService {
 
         NotificationService.notify({
             recipientIds: [jockeyId],
+            role: 'admin',
             type: 'jockey_invited',
             title: 'New Race Invitation',
             message: 'A horse owner has invited you to race.',
-            relatedEntityType: 'Invitation',
-            relatedEntityId: invitation._id,
+            actionPayload: { entityType: 'Invitation', entityId: invitation._id },
         }, io).catch(err => console.error('[createInvitation] notify jockey error:', err.message));
 
         return {

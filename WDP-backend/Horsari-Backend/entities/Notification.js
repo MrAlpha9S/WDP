@@ -19,14 +19,8 @@ const notificationSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        relatedEntityType: {
-            type: String,
-            default: null,
-        },
-        relatedEntityId: {
-            type: mongoose.Schema.Types.ObjectId,
-            default: null,
-        },
+        // Standard shape: { entityType: string, entityId: ObjectId } — the
+        // entity this notification is about, e.g. { entityType: 'Invitation', entityId: '...' }.
         actionPayload: {
             type: mongoose.Schema.Types.Mixed,
             default: null,

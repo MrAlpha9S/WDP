@@ -1373,8 +1373,7 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
             type: newStatus === 'running' ? 'race_started' : 'race_round_cancelled',
             title: newStatus === 'running' ? 'Race Round Started' : 'Race Round Cancelled',
             message: `Race round "${raceRound.roundName}" is now ${newStatus}.`,
-            relatedEntityType: 'RaceRound',
-            relatedEntityId: raceRoundId,
+            actionPayload: { entityType: 'RaceRound', entityId: raceRoundId },
         }, io).catch(err => console.error('[setRaceRoundStatus] notify error:', err.message));
 
         return { code: 200, data: updated, msg: `Race round status updated to "${newStatus}".` };
@@ -1703,8 +1702,7 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
             type: 'race_completed',
             title: 'Race Results Confirmed',
             message: `Results for "${raceRound.roundName}" have been officially confirmed.`,
-            relatedEntityType: 'RaceRound',
-            relatedEntityId: raceRoundId,
+            actionPayload: { entityType: 'RaceRound', entityId: raceRoundId },
         }, io).catch(err => console.error('[confirmRaceResult] race_completed notify error:', err.message));
 
         for (const payment of createdPayments) {
@@ -1714,8 +1712,7 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
                 type: 'payment_created',
                 title: 'New Payment Awaiting Confirmation',
                 message: `A payment of ${payment.amount} (${payment.paymentType}) has been recorded for you to confirm.`,
-                relatedEntityType: 'Transaction',
-                relatedEntityId: payment._id,
+                actionPayload: { entityType: 'Transaction', entityId: payment._id },
             }, io).catch(err => console.error('[confirmRaceResult] payment_created notify error:', err.message));
         }
 

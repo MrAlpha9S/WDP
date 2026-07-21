@@ -212,8 +212,7 @@ class HorseOwnerService {
                 type: 'registration_approved',
                 title: 'Registration Approved',
                 message: 'A horse owner has approved their race registration.',
-                relatedEntityType: 'Registration',
-                relatedEntityId: reg._id,
+                actionPayload: { entityType: 'Registration', entityId: reg._id },
             }, io).catch(err => console.error('[approveRegistration] notify admin error:', err.message));
 
             return { code: 200, data: reg, msg: 'Registration approved' };

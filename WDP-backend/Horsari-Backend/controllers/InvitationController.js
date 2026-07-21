@@ -13,8 +13,7 @@ class InvitationController {
               type: 'new_invitation',
               title: 'New Jockey Invitation Sent',
               message: 'A horse owner has sent a new jockey invitation.',
-              relatedEntityType: 'Invitation',
-              relatedEntityId: result.data?._id,
+              actionPayload: { entityType: 'Invitation', entityId: result.data?._id },
           }, io).catch(err => console.error('[createInvitation] notify admin error:', err.message));
       }
       return res.status(result.code).json(result);

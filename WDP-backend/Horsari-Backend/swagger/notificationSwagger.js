@@ -10,8 +10,12 @@
  *         type: { type: string }
  *         title: { type: string }
  *         message: { type: string }
- *         relatedEntityType: { type: string, nullable: true }
- *         relatedEntityId: { type: string, nullable: true }
+ *         actionPayload:
+ *           type: object
+ *           nullable: true
+ *           properties:
+ *             entityType: { type: string }
+ *             entityId: { type: string }
  *         read: { type: boolean }
  *         readAt: { type: string, format: date-time, nullable: true }
  *         createdAt: { type: string, format: date-time }

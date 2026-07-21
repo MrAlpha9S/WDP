@@ -129,11 +129,11 @@ class JockeyService {
         if (registration?.horseOwnerId) {
           NotificationService.notify({
             recipientIds: [registration.horseOwnerId],
+            role: 'admin',
             type: jockeyConfirmation === 'accepted' ? 'invitation_accepted' : 'invitation_declined',
             title: jockeyConfirmation === 'accepted' ? 'Jockey Accepted Invitation' : 'Jockey Declined Invitation',
             message: `A jockey has ${invitation.invitationStatus} your race invitation.`,
-            relatedEntityType: 'Invitation',
-            relatedEntityId: invitation._id,
+            actionPayload: { entityType: 'Invitation', entityId: invitation._id },
           }, io).catch(err => console.error('[respondToInvitation] notify owner error:', err.message));
         }
       }

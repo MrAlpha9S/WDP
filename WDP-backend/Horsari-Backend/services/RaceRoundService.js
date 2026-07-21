@@ -99,8 +99,7 @@ class RaceRoundService {
             type: 'race_round_created',
             title: 'Race Round Created',
             message: `Race round "${raceRound.roundName}" has been created.`,
-            relatedEntityType: 'RaceRound',
-            relatedEntityId: raceRound._id,
+            actionPayload: { entityType: 'RaceRound', entityId: raceRound._id },
         }, io).catch(e => console.error('[createRaceRound] notify admin error:', e.message));
 
         for (const raceReferee of raceReferees) {
@@ -109,8 +108,7 @@ class RaceRoundService {
                 type: 'referee_assigned',
                 title: 'New Race Referee Assignment',
                 message: `You have been assigned to referee "${raceRound.roundName}".`,
-                relatedEntityType: 'RaceReferee',
-                relatedEntityId: raceReferee._id,
+                actionPayload: { entityType: 'RaceReferee', entityId: raceReferee._id },
             }, io).catch(e => console.error('[createRaceRound] notify referee error:', e.message));
         }
 
@@ -120,8 +118,7 @@ class RaceRoundService {
                 type: 'race_registration_created',
                 title: 'New Race Registration',
                 message: `You have been registered for "${raceRound.roundName}". Please review and approve.`,
-                relatedEntityType: 'Registration',
-                relatedEntityId: registration._id,
+                actionPayload: { entityType: 'Registration', entityId: registration._id },
             }, io).catch(e => console.error('[createRaceRound] notify owner error:', e.message));
         }
 
@@ -336,8 +333,7 @@ class RaceRoundService {
             type: 'race_round_updated',
             title: 'Race Round Updated',
             message: `Race round "${raceRound.roundName}" has been updated.`,
-            relatedEntityType: 'RaceRound',
-            relatedEntityId: raceRound._id,
+            actionPayload: { entityType: 'RaceRound', entityId: raceRound._id },
         }, io).catch(e => console.error('[updateRaceRound] notify admin error:', e.message));
 
         for (const refereeId of unassignedRefereeIds) {
@@ -346,8 +342,7 @@ class RaceRoundService {
                 type: 'referee_unassigned',
                 title: 'Referee Assignment Removed',
                 message: `You have been unassigned from "${raceRound.roundName}".`,
-                relatedEntityType: 'RaceRound',
-                relatedEntityId: raceRound._id,
+                actionPayload: { entityType: 'RaceRound', entityId: raceRound._id },
             }, io).catch(e => console.error('[updateRaceRound] notify unassigned referee error:', e.message));
         }
 
@@ -411,8 +406,7 @@ class RaceRoundService {
             type: 'race_round_cancelled',
             title: 'Race Round Cancelled',
             message: `Race round "${raceRound.roundName}" has been cancelled.`,
-            relatedEntityType: 'RaceRound',
-            relatedEntityId: id,
+            actionPayload: { entityType: 'RaceRound', entityId: id },
         }, io).catch(err => console.error('[cancelRaceRound] notify error:', err.message));
 
         return { code: 200, message: 'Race round cancelled successfully', data: updatedRaceRound };

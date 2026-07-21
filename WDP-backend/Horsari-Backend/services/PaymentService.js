@@ -49,11 +49,11 @@ class PaymentService {
 
             await NotificationService.notify({
                 recipientIds: [payment.payeeId],
+                role: 'admin',
                 type: 'payment_confirmed_by_payer',
                 title: 'Payment Marked as Sent',
                 message: `A payment of ${payment.amount} has been marked as paid. Please confirm once received.`,
-                relatedEntityType: 'Transaction',
-                relatedEntityId: payment._id,
+                actionPayload: { entityType: 'Transaction', entityId: payment._id },
             }, io);
 
             if (payment.paymentStatus === 'paid') {
@@ -88,11 +88,11 @@ class PaymentService {
 
             await NotificationService.notify({
                 recipientIds: [payment.payerId],
+                role: 'admin',
                 type: 'payment_confirmed_by_payee',
                 title: 'Payment Marked as Received',
                 message: `Your payment of ${payment.amount} has been confirmed as received.`,
-                relatedEntityType: 'Transaction',
-                relatedEntityId: payment._id,
+                actionPayload: { entityType: 'Transaction', entityId: payment._id },
             }, io);
 
             if (payment.paymentStatus === 'paid') {
@@ -117,11 +117,11 @@ class PaymentService {
 
         await NotificationService.notify({
             recipientIds: [payment.payerId, payment.payeeId],
+            role: 'admin',
             type: 'payment_settled',
             title: 'Payment Fully Settled',
             message: `A payment of ${payment.amount} has been confirmed by both parties and settled.`,
-            relatedEntityType: 'Transaction',
-            relatedEntityId: payment._id,
+            actionPayload: { entityType: 'Transaction', entityId: payment._id },
         }, io);
     }
 

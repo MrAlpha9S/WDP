@@ -11,7 +11,7 @@ class NotificationService {
     // target's `user:${id}` room so live clients can refetch instead of
     // waiting for a manual refresh. Safe to omit; delivery still persists to
     // the DB either way.
-    async notify({ recipientIds, role, type, title, message, relatedEntityType = null, relatedEntityId = null, actionPayload = null }, io = null) {
+    async notify({ recipientIds, role, type, title, message, actionPayload = null }, io = null) {
         try {
             let targets = recipientIds ? recipientIds.map(String) : [];
 
@@ -28,15 +28,13 @@ class NotificationService {
                 type,
                 title,
                 message,
-                relatedEntityType,
-                relatedEntityId,
                 actionPayload,
             }));
 
             const created = await NotificationRepository.createMany(docs);
 
             if (io) {
-                const payload = { type, title, message, relatedEntityType, relatedEntityId, actionPayload };
+                const payload = { type, title, message, actionPayload };
                 for (const recipientId of targets) {
                     io.to(`user:${recipientId}`).emit('notification_created', payload);
                 }

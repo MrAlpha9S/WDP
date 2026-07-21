@@ -13,8 +13,7 @@ class HorseController {
                 type: 'new_horse',
                 title: 'New Horse Added',
                 message: `${req.body.horseName ?? 'A horse'} has been registered.`,
-                relatedEntityType: 'Horse',
-                relatedEntityId: response.data?._id,
+                actionPayload: { entityType: 'Horse', entityId: response.data?._id },
             }, io).catch(err => console.error('[createHorse] notify admin error:', err.message));
         }
         return res.status(response.code).json(response);
