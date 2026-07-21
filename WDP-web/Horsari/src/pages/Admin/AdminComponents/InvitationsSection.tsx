@@ -80,6 +80,14 @@ export function InvitationTable({
     handleRevoke: (id: string) => void;
     onViewAll?: () => void;
 }) {
+    const hasJockey = invites.some((a) => a.role === "Jockey");
+    const gridColsClass = hasJockey
+        ? "grid-cols-[1.3fr_110px_100px_120px_3.5fr_100px]"
+        : "grid-cols-[1.3fr_110px_100px_3.5fr_100px]";
+    const headers = hasJockey
+        ? ["Invitee", "Role", "Status", "Type", "Details", "Action"]
+        : ["Invitee", "Role", "Status", "Details", "Action"];
+
     return (
         <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-6 mt-4 min-w-0">
             <div className="flex items-center justify-between mb-6">
@@ -96,163 +104,166 @@ export function InvitationTable({
                 )}
             </div>
 
-            {/* Table header */}
-            <div className="grid grid-cols-[1.3fr_110px_100px_120px_3.5fr_100px] gap-4 pb-3 border-b border-white/[0.07] mb-2">
-                {["Invitee", "Role", "Status", "Type", "Details", "Action"].map((h) => (
-                    <p key={h} className="text-[12px] font-semibold tracking-widest text-gray-500 uppercase">
-                        {h}
-                    </p>
-                ))}
-            </div>
+            <div className="overflow-x-auto pb-2">
+                <div className="min-w-[900px]">
+                    {/* Table header */}
+                    <div className={`grid ${gridColsClass} gap-4 pb-3 border-b border-white/[0.07] mb-2`}>
+                        {headers.map((h) => (
+                            <p key={h} className="text-[12px] font-semibold tracking-widest text-gray-500 uppercase">
+                                {h}
+                            </p>
+                        ))}
+                    </div>
 
-            {/* Rows */}
-            <div className="flex flex-col divide-y divide-white/[0.05]">
-                {invites.map((a) => (
-                    <div
-                        key={a.id}
-                        className="grid grid-cols-[1.3fr_110px_100px_120px_3.5fr_100px] gap-4 items-center py-4 min-w-0"
-                    >
-                        {/* Invitee */}
-                        <div className="flex items-center gap-3.5">
+                    {/* Rows */}
+                    <div className="flex flex-col divide-y divide-white/[0.05]">
+                        {invites.map((a) => (
                             <div
-                                className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white/80 flex-shrink-0"
-                                style={{ background: a.color }}
+                                key={a.id}
+                                className={`grid ${gridColsClass} gap-4 items-center py-4 min-w-0`}
                             >
-                                {a.initials}
-                            </div>
-                            <div className="flex flex-col gap-0.5">
-                                <span className="text-[15px] text-white font-medium">
-                                    {a.name}
-                                </span>
-                                <span className="text-[12px] text-gray-500">
-                                    {a.dateInvited}
-                                </span>
-                            </div>
-                        </div>
+                                {/* Invitee */}
+                                <div className="flex items-center gap-3.5">
+                                    <div
+                                        className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white/80 flex-shrink-0"
+                                        style={{ background: a.color }}
+                                    >
+                                        {a.initials}
+                                    </div>
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="text-[15px] text-white font-medium">
+                                            {a.name}
+                                        </span>
+                                        <span className="text-[12px] text-gray-500">
+                                            {a.dateInvited}
+                                        </span>
+                                    </div>
+                                </div>
 
-                        {/* Role badge */}
-                        <div>
-                            <span
-                                className="text-[12px] text-gray-200 px-3 py-1.5 rounded"
-                                style={{ background: ROLE_COLORS[a.role] }}
-                            >
-                                {a.role}
-                            </span>
-                        </div>
+                                {/* Role badge */}
+                                <div>
+                                    <span
+                                        className="text-[12px] text-gray-200 px-3 py-1.5 rounded"
+                                        style={{ background: ROLE_COLORS[a.role] }}
+                                    >
+                                        {a.role}
+                                    </span>
+                                </div>
 
-                        {/* Status */}
-                        <div>
-                            <StatusBadge status={a.status} />
-                        </div>
+                                {/* Status */}
+                                <div>
+                                    <StatusBadge status={a.status} />
+                                </div>
 
-                        {/* Type */}
-                        <div>
-                            {a.role === "Jockey" ? (
-                                <label className="flex items-center gap-2 cursor-pointer w-fit">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={!a.isBackup} 
-                                        readOnly 
-                                        className="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/20 focus:ring-offset-0 cursor-default" 
-                                    />
-                                    <span className="text-gray-300 font-medium text-[13px]">Main Jockey</span>
-                                </label>
-                            ) : (
-                                <span className="text-gray-500 text-[13px]">-</span>
-                            )}
-                        </div>
-
-                        {/* Details */}
-                        <div className="min-w-0">
-                            <div className="flex flex-col gap-2.5 text-[13px] text-gray-400 leading-snug">
-                                {/* Registered Race Info (Shown for everyone if available) */}
-                                {a.registeredRace && (
-                                    <div className="flex flex-col gap-1 border-b border-white/5 pb-2.5">
-                                        <p className="flex items-center gap-2">
-                                            <span className="text-gray-500 font-medium">Race:</span>
-                                            <span className="text-white font-medium">{a.registeredRace}</span>
-                                        </p>
-                                        {a.raceTotalSlots && (
-                                            <p className="text-[11.5px] flex items-center gap-2 mt-0.5">
-                                                <span className="text-gray-500">Horse Slots:</span>
-                                                <span className={`${a.raceSlotsFilled && a.raceSlotsFilled >= a.raceTotalSlots ? "text-red-400" : "text-emerald-400"} font-medium`}>
-                                                    {a.raceSlotsFilled}/{a.raceTotalSlots} Filled
-                                                </span>
-                                                {a.raceSlotsFilled && a.raceSlotsFilled >= a.raceTotalSlots && (
-                                                    <span className="text-red-500/80 italic ml-1">(Overflow - Prioritizing early acceptances)</span>
-                                                )}
-                                            </p>
+                                {hasJockey && (
+                                    <div>
+                                        {a.role === "Jockey" && (
+                                            <label className="flex items-center gap-2 cursor-pointer w-fit">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!a.isBackup}
+                                                    readOnly
+                                                    className="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/20 focus:ring-offset-0 cursor-default"
+                                                />
+                                                <span className="text-gray-300 font-medium text-[13px]">Main Jockey</span>
+                                            </label>
                                         )}
                                     </div>
                                 )}
 
-                                {/* Additional Role Specific Details */}
-                                {a.role === "Horse Owner" ? (
-                                    <>
-                                        <p className="flex items-center gap-2">
-                                            <span className="text-gray-500 font-medium">Selected Horse:</span>
-                                            <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">{a.horseSelected || "None"}</span>
-                                        </p>
-                                        <div className="flex flex-col gap-1.5 mt-1 border-l-2 border-white/5 pl-3">
-                                            <div className="flex items-center gap-3 flex-wrap">
-                                                <span className="w-[100px] text-gray-500 shrink-0">Main Jockey:</span>
-                                                <span className="text-gray-200 w-[120px] truncate">{a.mainJockeyName || "-"}</span>
-                                                <JockeyStatusText status={a.mainJockeyStatus} />
-                                                {a.mainJockeyFee != null && a.mainJockeyFee > 0 && (
-                                                    <span className="text-white font-medium">{a.mainJockeyFee.toLocaleString()} ₫</span>
+                                {/* Details */}
+                                <div className="min-w-0">
+                                    <div className="flex flex-col gap-2.5 text-[13px] text-gray-400 leading-snug">
+                                        {/* Registered Race Info (Shown for everyone if available) */}
+                                        {a.registeredRace && (
+                                            <div className="flex flex-col gap-1 border-b border-white/5 pb-2.5">
+                                                <p className="flex items-center gap-2">
+                                                    <span className="text-gray-500 font-medium">Race:</span>
+                                                    <span className="text-white font-medium">{a.registeredRace}</span>
+                                                </p>
+                                                {a.raceTotalSlots && (
+                                                    <p className="text-[11.5px] flex items-center gap-2 mt-0.5">
+                                                        <span className="text-gray-500">Horse Slots:</span>
+                                                        <span className={`${a.raceSlotsFilled && a.raceSlotsFilled >= a.raceTotalSlots ? "text-red-400" : "text-emerald-400"} font-medium`}>
+                                                            {a.raceSlotsFilled}/{a.raceTotalSlots} Filled
+                                                        </span>
+                                                        {a.raceSlotsFilled && a.raceSlotsFilled >= a.raceTotalSlots && (
+                                                            <span className="text-red-500/80 italic ml-1">(Overflow - Prioritizing early acceptances)</span>
+                                                        )}
+                                                    </p>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-3 flex-wrap">
-                                                <span className="w-[100px] text-gray-500 shrink-0">Backup Jockey:</span>
-                                                <span className="text-gray-200 w-[120px] truncate">{a.backupJockeyName || "-"}</span>
-                                                <JockeyStatusText status={a.backupJockeyStatus} />
-                                                {a.backupJockeyFee != null && a.backupJockeyFee > 0 && (
-                                                    <span className="text-white font-medium">{a.backupJockeyFee.toLocaleString()} ₫</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : a.role === "Jockey" ? (
-                                    <>
-                                        <p className="flex items-center gap-2 mb-2">
-                                            <span className="text-gray-500 font-medium">Selected Horse:</span>
-                                            <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">{a.horseSelected || "None"}</span>
-                                        </p>
-                                        {a.bookingFees != null && a.bookingFees > 0 && (
-                                            <p className="flex items-center gap-2">
-                                                <span className="text-gray-500 font-medium">Booking Fee:</span>
-                                                <span className="text-white font-medium">{a.bookingFees.toLocaleString()} ₫</span>
-                                            </p>
                                         )}
-                                    </>
-                                ) : (
-                                    !a.registeredRace && <span className="text-[13px] text-gray-600 italic">No additional details</span>
-                                )}
+
+                                        {/* Additional Role Specific Details */}
+                                        {a.role === "Horse Owner" ? (
+                                            <>
+                                                <p className="flex items-center gap-2">
+                                                    <span className="text-gray-500 font-medium">Selected Horse:</span>
+                                                    <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">{a.horseSelected || "None"}</span>
+                                                </p>
+                                                <div className="flex flex-col gap-1.5 mt-1 border-l-2 border-white/5 pl-3">
+                                                    <div className="flex items-center gap-3 flex-wrap">
+                                                        <span className="w-[100px] text-gray-500 shrink-0">Main Jockey:</span>
+                                                        <span className="text-gray-200 w-[120px] truncate">{a.mainJockeyName || "-"}</span>
+                                                        <JockeyStatusText status={a.mainJockeyStatus} />
+                                                        {a.mainJockeyFee != null && a.mainJockeyFee > 0 && (
+                                                            <span className="text-white font-medium">{a.mainJockeyFee.toLocaleString()} ₫</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-3 flex-wrap">
+                                                        <span className="w-[100px] text-gray-500 shrink-0">Backup Jockey:</span>
+                                                        <span className="text-gray-200 w-[120px] truncate">{a.backupJockeyName || "-"}</span>
+                                                        <JockeyStatusText status={a.backupJockeyStatus} />
+                                                        {a.backupJockeyFee != null && a.backupJockeyFee > 0 && (
+                                                            <span className="text-white font-medium">{a.backupJockeyFee.toLocaleString()} ₫</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : a.role === "Jockey" ? (
+                                            <>
+                                                <p className="flex items-center gap-2 mb-2">
+                                                    <span className="text-gray-500 font-medium">Selected Horse:</span>
+                                                    <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">{a.horseSelected || "None"}</span>
+                                                </p>
+                                                {a.bookingFees != null && a.bookingFees > 0 && (
+                                                    <p className="flex items-center gap-2">
+                                                        <span className="text-gray-500 font-medium">Booking Fee:</span>
+                                                        <span className="text-white font-medium">{a.bookingFees.toLocaleString()} ₫</span>
+                                                    </p>
+                                                )}
+                                            </>
+                                        ) : (
+                                            !a.registeredRace && <span className="text-[13px] text-gray-600 italic">No additional details</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div>
+                                    <button
+                                        onClick={() => handleRevoke(a.id)}
+                                        className="text-[13px] font-medium text-gray-400 hover:text-white border border-white/[0.1] hover:border-red-500/50 hover:bg-red-500/10 px-4 py-2 rounded-lg transition-colors"
+                                    >
+                                        Revoke
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        ))}
 
-                        {/* Actions */}
-                        <div>
-                            <button
-                                onClick={() => handleRevoke(a.id)}
-                                className="text-[13px] font-medium text-gray-400 hover:text-white border border-white/[0.1] hover:border-red-500/50 hover:bg-red-500/10 px-4 py-2 rounded-lg transition-colors"
-                            >
-                                Revoke
-                            </button>
-                        </div>
+                        {invites.length === 0 && !loading && (
+                            <p className="text-[14px] text-gray-500 py-8 text-center font-medium">
+                                No pending invitations.
+                            </p>
+                        )}
+                        {loading && (
+                            <p className="text-[14px] text-gray-500 py-8 text-center font-medium animate-pulse">
+                                Loading...
+                            </p>
+                        )}
                     </div>
-                ))}
-
-                {invites.length === 0 && !loading && (
-                    <p className="text-[14px] text-gray-500 py-8 text-center font-medium">
-                        No pending invitations.
-                    </p>
-                )}
-                {loading && (
-                    <p className="text-[14px] text-gray-500 py-8 text-center font-medium animate-pulse">
-                        Loading...
-                    </p>
-                )}
+                </div>
             </div>
 
             <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
