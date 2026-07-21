@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 import type { InviteStatus } from "../../shared/types/InboxTypes";
 import type { RaceInvite } from "../../shared/types/InboxTypes";
@@ -6,6 +6,7 @@ import { InviteCard } from "./RefereeComponents/InboxCard";
 import { refereeService } from "../../api/refereeService";
 import { Loader2 } from "lucide-react";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
+import { useSocket } from "../../providers/SocketProvider";
 
 // ── Tab type ──────────────────────────────────────────────────────────────────
 
@@ -71,8 +72,19 @@ export default function InboxPage() {
         };
     }, [tab]);
 
-    const { data: invites, loading, pagination, page, setPage, mutate } =
+    const { data: invites, loading, pagination, page, setPage, mutate, refresh } =
         usePaginatedFetch<RaceInvite>(fetcher, tab);
+
+    // Live refetch when this referee is assigned/unassigned from a race round.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket) return;
+        const handler = (payload: { type?: string }) => {
+            if (payload?.type === "referee_assigned" || payload?.type === "referee_unassigned") refresh();
+        };
+        socket.on("notification_created", handler);
+        return () => { socket.off("notification_created", handler); };
+    }, [socket, refresh]);
 
     const handleAccept = async (id: string) => {
         try {

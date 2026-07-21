@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "../../providers/AuthProvider";
+import { useSocket } from "../../providers/SocketProvider";
 import { useNavigate } from "react-router-dom";
 
 export type Tab = "Dashboard" | "Management" | "Profile";
@@ -26,6 +27,7 @@ function getInitials(user: any) {
 
 export default function NavBar({ activeTab, onTabChange }: NavBarProps) {
   const { user, logout } = useAuth();
+  const { connected: wsConnected } = useSocket();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -56,12 +58,18 @@ export default function NavBar({ activeTab, onTabChange }: NavBarProps) {
     >
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
         {/* Logo */}
-        <span
-          className="text-[15px] font-bold tracking-widest text-red-500 uppercase font-serif"
-          style={{ letterSpacing: "0.18em" }}
-        >
-          Horsari
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[15px] font-bold tracking-widest text-red-500 uppercase font-serif"
+            style={{ letterSpacing: "0.18em" }}
+          >
+            Horsari
+          </span>
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${wsConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"}`}
+            title={wsConnected ? "Connected" : "Disconnected"}
+          />
+        </div>
 
         {/* Nav tabs */}
         <ul className="flex items-center gap-1">

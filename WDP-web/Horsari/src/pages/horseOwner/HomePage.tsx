@@ -11,6 +11,7 @@ import {
   type BrowsableRace,
 } from "../../api/horseOwnerService";
 import { type ManagementTab } from "./Management/SideBar";
+import { useSocket } from "../../providers/SocketProvider";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(n: number) {
@@ -66,6 +67,16 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [performersLoading, setPerformersLoading] = useState(true);
   const [racesLoading, setRacesLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  // Live refetch on any notification addressed to this horse owner.
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => setRefreshTick((t) => t + 1);
+    socket.on("notification_created", handler);
+    return () => { socket.off("notification_created", handler); };
+  }, [socket]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,7 +106,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
 
     fetchAll();
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshTick]);
 
   async function loadMoreRaces() {
     if (racesLoadingMore || !racesHasMore) return;

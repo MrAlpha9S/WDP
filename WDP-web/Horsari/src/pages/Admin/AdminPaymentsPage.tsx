@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { adminService } from "../../api/adminService";
 import PaymentsPanel, { PAYMENT_TYPE_LABEL } from "../../components/PaymentsPanel";
 import { Pagination } from "../../components/Pagination";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { useAuth } from "../../providers/AuthProvider";
+import { useSocket } from "../../providers/SocketProvider";
 import type { PaymentStatus, PaymentType, LedgerEntry } from "../../api/paymentTypes";
 
 const LIMIT = 20;
@@ -28,10 +29,21 @@ function LedgerPanel() {
     const [sortValue, setSortValue] = useState<"createdAt:desc" | "createdAt:asc" | "amount:desc" | "amount:asc">("createdAt:desc");
     const [sortBy, order] = sortValue.split(":") as [string, "asc" | "desc"];
 
-    const { data, loading, error, pagination, page, setPage } = usePaginatedFetch<LedgerEntry>(
+    const { data, loading, error, pagination, page, setPage, refresh } = usePaginatedFetch<LedgerEntry>(
         (p) => adminService.getAllLedger(p, LIMIT, sortBy, order).then((res) => res.data),
         `admin-ledger-all-${sortValue}`,
     );
+
+    // Live refetch when a payment-related notification arrives.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket) return;
+        const handler = (payload: { type?: string }) => {
+            if (payload?.type?.startsWith("payment_")) refresh();
+        };
+        socket.on("notification_created", handler);
+        return () => { socket.off("notification_created", handler); };
+    }, [socket, refresh]);
 
     return (
         <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5">

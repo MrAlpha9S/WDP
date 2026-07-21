@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import AdminNavBar, { ADMIN_TABS, type AdminTab } from "./AdminComponents/NavBar";
 import AdminSidebar from "./AdminComponents/SideBar";
 import SystemDashboardPage from "./SystemDashBoardPage";
@@ -13,13 +13,8 @@ import ViolationTypeManagementPage from "./ViolationTypeManagementPage";
 import AdminInvitationsPage from "./AdminInvitationsPage";
 import AdminPaymentsPage from "./AdminPaymentsPage";
 import AdminProfilePage from "./AdminProfilePage";
-import { io } from "socket.io-client";
-import type { Socket } from "socket.io-client";
-import { AdminSocketContext } from "../../providers/useAdminSocket";
 import { useParams, useNavigate } from "react-router-dom";
 import { TOKEN_KEY } from "../../utils/constants";
-
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 
 // ── Placeholder pages for non-Dashboard tabs ──────────────────────────────────
@@ -80,24 +75,6 @@ export default function AdminDashboardPage() {
         }
     }, [navigate]);
 
-    // ── Shared WebSocket connection ───────────────────────────────────────────
-    // Kept alive (even with no notification code left) because
-    // TournamentManagementPage listens for the global 'tournament:status_changed'
-    // broadcast via this same socket.
-    const socketRef = useRef<Socket | null>(null);
-    const [wsConnected, setWsConnected] = useState(false);
-
-    useEffect(() => {
-        const socket = io(SOCKET_URL, { withCredentials: true });
-        socketRef.current = socket;
-
-        socket.on('connect', () => setWsConnected(true));
-        socket.on('disconnect', () => setWsConnected(false));
-
-        return () => { socket.disconnect(); };
-    }, []);
-    // ─────────────────────────────────────────────────────────────────
-
     // Support matching both navbar tabs and sidebar tabs from URL
     const allTabs = [
         ...ADMIN_TABS,
@@ -129,10 +106,6 @@ export default function AdminDashboardPage() {
     }, [tabs]);
 
     return (
-        <AdminSocketContext.Provider value={{
-            socket: socketRef.current,
-            wsConnected,
-        }}>
         <div
             className="h-screen bg-[#111111] text-white flex flex-col overflow-hidden font-sans"
         >
@@ -145,6 +118,5 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
         </div>
-        </AdminSocketContext.Provider>
     );
 }

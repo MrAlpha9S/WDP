@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { adminService } from "../../../api/adminService";
 import { Pagination } from "../../../components/Pagination";
 import { usePaginatedFetch } from "../../../hooks/usePaginatedFetch";
+import { useSocket } from "../../../providers/SocketProvider";
 
 export type ApprovalRole = "Horse Owner" | "Jockey" | "Referee" | "Trainer";
 export type InvitationStatus = "Pending" | "Accepted" | "Declined";
@@ -384,8 +385,21 @@ export default function InvitationsSection({ limit = DEFAULT_LIMIT, onViewAll }:
         };
     }, [activeTab, limit]);
 
-    const { data: invites, loading, pagination, page, setPage, mutate } =
+    const { data: invites, loading, pagination, page, setPage, mutate, refresh } =
         usePaginatedFetch<Invitee>(fetcher, activeTab);
+
+    // Live refetch when an invitation is created or a jockey responds.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket) return;
+        const handler = (payload: { type?: string }) => {
+            if (payload?.type && ["jockey_invited", "invitation_accepted", "invitation_declined"].includes(payload.type)) {
+                refresh();
+            }
+        };
+        socket.on("notification_created", handler);
+        return () => { socket.off("notification_created", handler); };
+    }, [socket, refresh]);
 
     const handleRevoke = (id: string) => {
         mutate((prev) => prev.filter((a) => a.id !== id));

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "../../../providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
-import { useAdminSocket } from "../../../providers/useAdminSocket";
+import { useSocket } from "../../../providers/SocketProvider";
 
 export type AdminTab = "Dashboard" | "Home" | "Tournaments" | "Users" | "Financial" | "Races" | "Rules Managment" | "Horses" | "Inbox" | "Violations" | "Violation Types" | "Statistics" | "Profile";
 
@@ -32,7 +32,7 @@ export default function AdminNavBar({ activeTab, onTabChange }: NavBarProps) {
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Connection state from shared context
-    const { wsConnected } = useAdminSocket();
+    const { connected: wsConnected } = useSocket();
 
     useEffect(() => {
         function handleClickOutside(e: MouseEvent) {

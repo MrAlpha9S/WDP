@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "../../../providers/AuthProvider";
+import { useSocket } from "../../../providers/SocketProvider";
 import { useNavigate } from "react-router-dom";
 
 export type RefereeTab = "Dashboard" | "Tournaments" | "Inbox" | "Management" | "Statistics" | "Profile";
@@ -10,7 +11,6 @@ export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Inbox", 
 interface NavBarProps {
     activeTab: RefereeTab;
     onTabChange: (tab: RefereeTab) => void;
-    wsConnected?: boolean;
 }
 
 function getInitials(user: { name?: string; email: string }) {
@@ -25,8 +25,9 @@ function getInitials(user: { name?: string; email: string }) {
     return user.email[0].toUpperCase();
 }
 
-export default function RefereeNavBar({ activeTab, onTabChange, wsConnected }: NavBarProps) {
+export default function RefereeNavBar({ activeTab, onTabChange }: NavBarProps) {
     const { user, logout } = useAuth();
+    const { connected: wsConnected } = useSocket();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);

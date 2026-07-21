@@ -7,7 +7,7 @@ import { CreateTournamentModal } from "./modal/CreateTournamentModal";
 import { DeleteTournamentModal } from "./modal/DeleteTournamentModal";
 import { adminService } from "../../api/adminService";
 import TournamentDetailPanel from "./AdminComponents/TournamentDetailPanel";
-import { useAdminSocket } from "../../providers/useAdminSocket";
+import { useSocket } from "../../providers/SocketProvider";
 
 type AdminViewMode = "table" | "calendar";
 
@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function TournamentManagementPage({ setActiveTab }: Props) {
-    const { socket } = useAdminSocket();
+    const { socket } = useSocket();
     const [viewMode, setViewMode] = useState<AdminViewMode>("table");
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [allTournamentsForCalendar, setAllTournamentsForCalendar] = useState<Tournament[]>([]);

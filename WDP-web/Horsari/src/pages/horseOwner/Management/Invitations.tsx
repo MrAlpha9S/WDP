@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { type Invitation, type InviteJockeyStatus, type InviteStatus } from "../../../types/Racingtypes";
 import { horseOwnerService, type JockeyInvitationEntry } from "../../../api/horseOwnerService";
+import { useSocket } from "../../../providers/SocketProvider";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const INVITE_STATUS_CFG: Record<InviteStatus | InviteJockeyStatus, { text: string; bg: string; border: string }> = {
@@ -446,6 +447,20 @@ const DEBOUNCE_MS = 350;
 
 export default function InvitationsPage({ onPendingChange }: InvitationsPageProps) {
   const [activeTab, setActiveTab] = useState<Tab>("race");
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  // Live refetch when a jockey accepts/declines an invitation.
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (payload: { type?: string }) => {
+      if (payload?.type === "invitation_accepted" || payload?.type === "invitation_declined") {
+        setRefreshTick((t) => t + 1);
+      }
+    };
+    socket.on("notification_created", handler);
+    return () => { socket.off("notification_created", handler); };
+  }, [socket]);
 
   // Race invitations
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -504,7 +519,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     }
     load();
     return () => { cancelled = true; };
-  }, [racePage, raceSearch, onPendingChange]);
+  }, [racePage, raceSearch, onPendingChange, refreshTick]);
 
   // Fetch jockey invitations (re-runs on page or search change)
   useEffect(() => {
@@ -528,7 +543,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     }
     load();
     return () => { cancelled = true; };
-  }, [jockeyPage, jockeySearch]);
+  }, [jockeyPage, jockeySearch, refreshTick]);
 
   // For each distinct jockey on this page, check their history for a no-show —
   // bounded to page size, so this is a handful of parallel calls at most.

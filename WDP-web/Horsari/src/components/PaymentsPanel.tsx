@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Wallet, CheckCircle2, Loader2, Clock } from "lucide-react";
 import { usePaginatedFetch } from "../hooks/usePaginatedFetch";
 import { Pagination } from "./Pagination";
+import { useSocket } from "../providers/SocketProvider";
 import type { PaymentEntity, PaymentStatus, PaymentsResponse } from "../api/paymentTypes";
 
 // Statistical payment-verification list, reused by Admin (payer for
@@ -61,12 +62,23 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
     const [sortValue, setSortValue] = useState("createdAt:desc");
     const sortOption = SORT_OPTIONS.find((o) => o.value === sortValue) ?? SORT_OPTIONS[0];
 
-    const { data, loading, error, pagination, page, setPage, mutate } = usePaginatedFetch<PaymentEntity>(
+    const { data, loading, error, pagination, page, setPage, mutate, refresh } = usePaginatedFetch<PaymentEntity>(
         (p) => fetchPayments(p, sortOption.sortBy, sortOption.order).then((res) => res.data),
         `${cacheKey}:${sortValue}`,
     );
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+
+    // Live refetch when a payment-related notification arrives for this user.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket) return;
+        const handler = (payload: { type?: string }) => {
+            if (payload?.type?.startsWith("payment_")) refresh();
+        };
+        socket.on("notification_created", handler);
+        return () => { socket.off("notification_created", handler); };
+    }, [socket, refresh]);
 
     const handleConfirm = async (paymentId: string) => {
         setConfirmingId(paymentId);

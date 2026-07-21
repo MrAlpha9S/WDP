@@ -4,6 +4,7 @@ import { Users, Trophy, ClipboardList, Eye, Settings, CheckSquare, Radio, Wallet
 import PaymentsPanel from "../../components/PaymentsPanel";
 import InvitationsSection from "./AdminComponents/InvitationsSection";
 import type { AdminTab } from "./AdminComponents/NavBar";
+import { useSocket } from "../../providers/SocketProvider";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,16 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
     const [loading, setLoading] = useState(true);
     const [activeRaces, setActiveRaces] = useState<ActiveRace[]>([]);
     const [racesLoading, setRacesLoading] = useState(true);
+    const [refreshTick, setRefreshTick] = useState(0);
+
+    // Live refetch on any notification addressed to this admin.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket) return;
+        const handler = () => setRefreshTick((t) => t + 1);
+        socket.on("notification_created", handler);
+        return () => { socket.off("notification_created", handler); };
+    }, [socket]);
 
     useEffect(() => {
         async function fetchData() {
@@ -140,7 +151,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
             }
         }
         fetchData();
-    }, []);
+    }, [refreshTick]);
 
     return (
         <div className="min-h-screen font-sans">

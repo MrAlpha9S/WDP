@@ -7,6 +7,7 @@ import { refereeService } from "../../api/refereeService";
 import type { RaceRoundData } from "../../api/adminService";
 import type { RefereeWalletInfo } from "../../api/refereeService";
 import PaymentsPanel from "../../components/PaymentsPanel";
+import { useSocket } from "../../providers/SocketProvider";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,16 @@ export default function HomePage() {
     const [invites, setInvites] = useState<RecentInvite[]>([]);
     const [loading, setLoading] = useState(true);
     const [walletInfo, setWalletInfo] = useState<RefereeWalletInfo | null>(null);
+    const [refreshTick, setRefreshTick] = useState(0);
+
+    // Live refetch on any notification addressed to this referee.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket) return;
+        const handler = () => setRefreshTick((t) => t + 1);
+        socket.on("notification_created", handler);
+        return () => { socket.off("notification_created", handler); };
+    }, [socket]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -74,7 +85,7 @@ export default function HomePage() {
             }
         };
         fetchData();
-    }, []);
+    }, [refreshTick]);
 
     return (
         <div className="min-h-screen font-sans">

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { horseOwnerService, type FinancialSummary, type FinancialRaceRow } from "../../../api/horseOwnerService";
 import PaymentsPanel from "../../../components/PaymentsPanel";
+import { useSocket } from "../../../providers/SocketProvider";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type ChartRange = "day" | "week" | "month" | "year";
@@ -248,6 +249,7 @@ export default function FinancialsPage() {
   const [rows, setRows] = useState<FinancialRaceRow[]>([]);
   const [rowsLoading, setRowsLoading] = useState(true);
   const [rowsError, setRowsError] = useState<string | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -274,6 +276,20 @@ export default function FinancialsPage() {
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
+  // Live refetch when a payment-related notification arrives.
+  const { socket } = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (payload: { type?: string }) => {
+      if (payload?.type?.startsWith("payment_")) {
+        fetchSummary();
+        setRefreshTick((t) => t + 1);
+      }
+    };
+    socket.on("notification_created", handler);
+    return () => { socket.off("notification_created", handler); };
+  }, [socket, fetchSummary]);
+
   // Fetch race results when page or search changes
   useEffect(() => {
     let cancelled = false;
@@ -295,7 +311,7 @@ export default function FinancialsPage() {
     }
     fetchRows();
     return () => { cancelled = true; };
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, refreshTick]);
 
   const s = summary;
 
