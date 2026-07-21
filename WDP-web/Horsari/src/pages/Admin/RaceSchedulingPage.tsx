@@ -21,6 +21,7 @@ export default function RaceSchedulingPage() {
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+
     const TIME_SLOTS = ["14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"];
 
     const fetchData = async () => {
@@ -39,33 +40,8 @@ export default function RaceSchedulingPage() {
     };
 
 
-    const handleCacheUpdate = async (updateInfo?: { type: 'CREATE' | 'UPDATE'; tournament_id?: string; raceRound_id?: string }) => {
-        if (!updateInfo) {
-            fetchData();
-            return;
-        }
-
-        try {
-            if (updateInfo.type === 'CREATE' && updateInfo.tournament_id) {
-                const res = await adminService.getRaceRounds(updateInfo.tournament_id, null);
-                const items: RaceRoundData[] = res.data?.items ?? [];
-                setRaceRoundsData(prev => {
-                    const filtered = prev.filter(rr => rr.tournamentId !== updateInfo.tournament_id);
-                    return [...filtered, ...items];
-                });
-            } else if (updateInfo.type === 'UPDATE' && updateInfo.raceRound_id) {
-                const res = await adminService.getRaceRounds(null, updateInfo.raceRound_id);
-                const items: RaceRoundData[] = res.data?.items ?? [];
-                setRaceRoundsData(prev => {
-                    return prev.map(rr => rr._id === updateInfo.raceRound_id ? (items[0] || rr) : rr);
-                });
-            } else {
-                fetchData();
-            }
-        } catch (err) {
-            console.error("Failed to update cache", err);
-            fetchData(); // fallback
-        }
+    const handleDataRefresh = async (updateInfo?: { type: 'CREATE' | 'UPDATE'; tournament_id?: string; raceRound_id?: string }) => {
+        await fetchData();
     };
 
     useEffect(() => {
@@ -434,7 +410,7 @@ export default function RaceSchedulingPage() {
                     <div className="flex-1 min-w-[380px] min-h-0">
                         <RaceDetailsPanel
                             selectedRace={selectedRace as any}
-                            onRefresh={handleCacheUpdate}
+                            onRefresh={handleDataRefresh}
                             onEdit={() => handleEditRace(selectedRace)}
                             onClose={() => setSelectedRaceId(null)}
                         />
@@ -451,7 +427,7 @@ export default function RaceSchedulingPage() {
                     setIsCreateModalOpen(false);
                     setRaceToEdit(null);
                 }}
-                onSuccess={(updateInfo) => handleCacheUpdate(updateInfo)}
+                onSuccess={() => handleDataRefresh()}
                 raceToEdit={raceToEdit}
             />
         </div>

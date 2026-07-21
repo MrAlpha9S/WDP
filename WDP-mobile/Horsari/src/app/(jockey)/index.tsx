@@ -286,13 +286,13 @@ export default function DashboardScreen() {
     return () => { socket.off('notification_created', handler); };
   }, [socket]);
 
-  // Live refetch when any race round changes status (e.g. goes live) so the
-  // race schedule tabs update without a manual refresh.
+  // Live refetch when any race round changes (status, date, distance, etc.) so
+  // the race schedule tabs update without a manual refresh.
   useEffect(() => {
     if (!socket) return;
     const handler = () => { load(true); loadAllRaces(allRacesFilter, true); };
-    socket.on('race_status_changed', handler);
-    return () => { socket.off('race_status_changed', handler); };
+    socket.on('raceround_updated', handler);
+    return () => { socket.off('raceround_updated', handler); };
   }, [socket, allRacesFilter]);
 
   const onRefresh = () => {

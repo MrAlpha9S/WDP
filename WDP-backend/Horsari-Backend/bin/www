@@ -43,6 +43,11 @@ app.set('io', io);
 const { startTournamentScheduler } = require('../services/TournamentScheduler');
 startTournamentScheduler(io);
 
+// Watch the raceRound collection so any mutation (status, date, distance,
+// livestream URL, etc.) broadcasts live, regardless of which service made it.
+const { startRaceRoundChangeStream } = require('../services/RaceRoundChangeStreamService');
+startRaceRoundChangeStream(io);
+
 
 io.on('connection', (socket) => {
   console.log('[WS] client connected:', socket.id);

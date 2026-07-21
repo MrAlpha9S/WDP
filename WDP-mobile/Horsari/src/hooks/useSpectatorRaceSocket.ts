@@ -48,6 +48,9 @@ export function useSpectatorRaceSocket(raceRoundId: string | null) {
   // Live race-round status pushed the instant it changes (running / awaitingConfirmation
   // / completed / cancelled) — more current than a REST-fetched raceRound.status.
   const [raceStatus, setRaceStatus] = useState<string | null>(null);
+  // Bumped on every 'raceround_updated' change-stream event (any field, not just
+  // status) — screens use this to know when to refetch the full raceRound over REST.
+  const [raceRoundVersion, setRaceRoundVersion] = useState(0);
 
   useEffect(() => {
     if (!raceRoundId || !API_BASE_URL) return;
@@ -92,8 +95,12 @@ export function useSpectatorRaceSocket(raceRoundId: string | null) {
       }
     });
 
-    socket.on('race_status_changed', (data: { status?: string }) => {
-      if (mounted && data?.status) setRaceStatus(data.status);
+    // raceround_updated fires on ANY RaceRound document change (status, date,
+    // distance, livestream URL, etc.) via the backend's change-stream watcher.
+    socket.on('raceround_updated', (data: { status?: string }) => {
+      if (!mounted) return;
+      if (data?.status) setRaceStatus(data.status);
+      setRaceRoundVersion(v => v + 1);
     });
 
     return () => {
@@ -103,5 +110,5 @@ export function useSpectatorRaceSocket(raceRoundId: string | null) {
     };
   }, [raceRoundId]);
 
-  return { connected, liveUpdate, finishResults, confirmedResults, raceStatus };
+  return { connected, liveUpdate, finishResults, confirmedResults, raceStatus, raceRoundVersion };
 }

@@ -521,7 +521,7 @@ export default function LiveRaceScreen() {
   const [userPredictions, setUserPredictions] = useState<PredictionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const { connected, liveUpdate, finishResults, confirmedResults, raceStatus } = useSpectatorRaceSocket(id ?? null);
+  const { connected, liveUpdate, finishResults, confirmedResults, raceStatus, raceRoundVersion } = useSpectatorRaceSocket(id ?? null);
   const [distUnit, setDistUnit] = useState<'lengths' | 'metres'>('lengths');
   // Prefer the live socket-pushed status over the one-time REST fetch — it updates
   // the instant the race starts/finishes/is confirmed instead of staying stale.
@@ -541,7 +541,9 @@ export default function LiveRaceScreen() {
       }
       setLoading(false);
     });
-  }, [id]);
+    // raceRoundVersion bumps on any live raceRound change (date, distance,
+    // livestream URL, etc.), so this refetch keeps those fields current too.
+  }, [id, raceRoundVersion]);
 
   const restFinishResults = registrations.some(r => r.raceResult)
     ? registrations.filter(r => r.raceResult).map(r => ({

@@ -9,7 +9,7 @@ import { adminService } from "../../../api/adminService";
 
 interface RaceDetailsPanelProps {
     selectedRace?: ScheduledRace;
-    onRefresh?: (updateInfo?: { type: 'CREATE' | 'UPDATE'; tournament_id?: string; raceRound_id?: string }) => void;
+    onRefresh?: () => void;
     onEdit?: () => void;
     onClose?: () => void;
 }
@@ -27,26 +27,8 @@ const STATUS_LABEL: Record<string, string> = {
     assigned: "Assigned",
 };
 
-const PAYMENT_STATUS_COLORS: Record<string, string> = {
-    unpaid: "bg-gray-500/10 text-gray-400 border-gray-500/20",
-    processing: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    paid: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-};
 
-function PaymentStatusBadge({ payment }: { payment?: { paymentStatus: string } | null }) {
-    if (!payment) {
-        return (
-            <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border bg-white/[0.03] text-gray-600 border-white/10">
-                No payment yet
-            </span>
-        );
-    }
-    return (
-        <span className={`text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${PAYMENT_STATUS_COLORS[payment.paymentStatus] ?? PAYMENT_STATUS_COLORS.unpaid}`}>
-            {payment.paymentStatus}
-        </span>
-    );
-}
+
 
 function CopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false);
@@ -158,6 +140,8 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
             .finally(() => setLoadingDetails(false));
     }, [selectedRace?.id]);
 
+
+
     const fetchStreamInfo = useCallback(() => {
         if (!selectedRace?.id) return;
         setStreamLoading(true);
@@ -198,7 +182,11 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
             setDetailedPools([]);
             setDetailedTrackEarnings(null);
         }
-    }, [selectedRace?.id]);
+        // updatedAt (a real RaceRound field, set by Mongoose timestamps) changes
+        // whenever this race is actually saved, so this only refetches on an
+        // actual edit — not on every unrelated re-render of the parent.
+    }, [selectedRace?.id, (selectedRace as any)?.updatedAt]);
+
 
     // When stream tab is opened for a running/awaitingConfirmation race, auto-fetch
     useEffect(() => {
@@ -234,7 +222,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         setActionError(null);
         try {
             await adminService.setRaceRoundStatus(selectedRace.id, 'running');
-            if (onRefresh) onRefresh({ type: 'UPDATE', raceRound_id: selectedRace.id });
+            if (onRefresh) onRefresh();
             fetchDetails();
         } catch (error: any) {
             setActionError(error?.msg || 'Failed to start race');
@@ -250,7 +238,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         try {
             await adminService.setRaceRoundStatus(selectedRace.id, 'cancelled');
             setIsCancelModalOpen(false);
-            if (onRefresh) onRefresh({ type: 'UPDATE', raceRound_id: selectedRace.id });
+            if (onRefresh) onRefresh();
             fetchDetails();
         } catch (error: any) {
             setActionError(error?.msg || 'Failed to cancel race');
@@ -313,12 +301,12 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 </h2>
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block ${isCancelled ? 'bg-red-500/15 text-red-400 border-red-500/30' :
-                                            status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
-                                                isRunning ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
-                                                    isAwaitingConfirmation ? 'bg-orange-500/15 text-orange-400 border-orange-500/30' :
-                                                        isCompleted ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
-                                                            isPrepared ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
-                                                                'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                        status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
+                                            isRunning ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
+                                                isAwaitingConfirmation ? 'bg-orange-500/15 text-orange-400 border-orange-500/30' :
+                                                    isCompleted ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
+                                                        isPrepared ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
+                                                            'bg-amber-500/15 text-amber-400 border-amber-500/30'
                                         }`}>
                                         {isRunning ? (
                                             <span className="flex items-center gap-1">
@@ -509,8 +497,8 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                             key={key}
                             onClick={() => setActiveTab(key)}
                             className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === key
-                                    ? "text-[#f3b2a5] border-[#f3b2a5] bg-[#f3b2a5]/5"
-                                    : "text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5"
+                                ? "text-[#f3b2a5] border-[#f3b2a5] bg-[#f3b2a5]/5"
+                                : "text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5"
                                 }`}
                         >
                             {label}
@@ -618,7 +606,6 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                 <span className={`font-semibold ${p.isJockeyInRace ? 'text-emerald-300' : 'text-gray-300'}`}>
                                                     {p.jockeyName || <span className="text-gray-600 italic font-normal">N/A</span>}
                                                 </span>
-                                                {p.isJockeyInRace && <PaymentStatusBadge payment={p.jockeyPayment} />}
                                             </div>
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prediction Pool</span>
@@ -641,7 +628,6 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prize</span>
                                                         <span className="text-[#f3b2a5] font-semibold">{p.raceResult.prizeMoney > 0 ? `${detailedOverview?.currencyType ?? 'VND'} ${p.raceResult.prizeMoney.toLocaleString()}` : '-'}</span>
-                                                        {p.raceResult.prizeMoney > 0 && <PaymentStatusBadge payment={p.prizePayment} />}
                                                     </div>
                                                 </>
                                             )}
@@ -682,7 +668,6 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         <div className="flex items-center gap-2 text-[12px]">
                                             <span className="text-gray-500 font-medium">Fee:</span>
                                             <span className="text-[#f3b2a5] font-semibold">{ref.fee != null ? `$${ref.fee}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
-                                            <PaymentStatusBadge payment={ref.payment} />
                                         </div>
                                     </div>
                                 );

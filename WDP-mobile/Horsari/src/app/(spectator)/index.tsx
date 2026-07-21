@@ -340,13 +340,13 @@ export default function SpectatorHomeScreen() {
     return () => { socket.off('tournament:status_changed', handler); };
   }, [socket]);
 
-  // Live refetch when any race round changes status (e.g. goes live) so the
-  // Live/Preparing/Upcoming/Completed tabs update without a manual refresh.
+  // Live refetch when any race round changes (status, date, distance, etc.) so
+  // the Live/Preparing/Upcoming/Completed tabs update without a manual refresh.
   useEffect(() => {
     if (!socket) return;
     const handler = () => { load(true); loadBrowseRaces(browseFilter, true); };
-    socket.on('race_status_changed', handler);
-    return () => { socket.off('race_status_changed', handler); };
+    socket.on('raceround_updated', handler);
+    return () => { socket.off('raceround_updated', handler); };
   }, [socket, browseFilter]);
 
   const onRefresh = () => {
