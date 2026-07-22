@@ -722,16 +722,25 @@ export default function LiveRaceScreen() {
                       allow="autoplay; encrypted-media"
                     />
                   ) : (
-                    <WebView
-                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                      source={{ uri: 'https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1' }}
-                      mediaPlaybackRequiresUserAction={false}
-                      allowsInlineMediaPlayback
-                      javaScriptEnabled
-                      domStorageEnabled
-                      scrollEnabled={false}
-                      pointerEvents="none"
-                    />
+                    // Wrapped in a flex:1 View rather than relying on the WebView's
+                    // own absolute-positioning style — react-native-webview on
+                    // Android can measure itself at 0x0 on the initial layout pass
+                    // when it's the one doing the absolute positioning, leaving the
+                    // video area blank even though the parent box renders fine.
+                    <View style={{ flex: 1 }}>
+                      <WebView
+                        style={{ flex: 1 }}
+                        source={{
+                          html: `<html><body style="margin:0;background:#000;"><iframe width="100%" height="100%" style="border:0;display:block;" src="https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe></body></html>`,
+                        }}
+                        mediaPlaybackRequiresUserAction={false}
+                        allowsInlineMediaPlayback
+                        javaScriptEnabled
+                        domStorageEnabled
+                        scrollEnabled={false}
+                        pointerEvents="none"
+                      />
+                    </View>
                   )
                 )}
               </View>
