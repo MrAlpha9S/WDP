@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import {
   getRaceDetail,
@@ -224,13 +225,13 @@ function StatChip({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View style={styles.section}>
+    <Reanimated.View style={styles.section} entering={FadeIn.duration(220)} exiting={FadeOut.duration(220)}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionAccent} />
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       {children}
-    </View>
+    </Reanimated.View>
   );
 }
 
@@ -726,6 +727,8 @@ export default function LiveRaceScreen() {
                       source={{ uri: 'https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1' }}
                       mediaPlaybackRequiresUserAction={false}
                       allowsInlineMediaPlayback
+                      javaScriptEnabled
+                      domStorageEnabled
                       scrollEnabled={false}
                       pointerEvents="none"
                     />
@@ -770,10 +773,10 @@ export default function LiveRaceScreen() {
             </Section>
           )}
           {finalStretch && (
-            <View style={styles.finalStretchNotice}>
+            <Reanimated.View style={styles.finalStretchNotice} entering={FadeIn.duration(220)} exiting={FadeOut.duration(220)}>
               <Ionicons name="flag" size={14} color={Palette.gold} />
               <Text style={styles.finalStretchText}>Approaching the finish — follow along on the live video!</Text>
-            </View>
+            </Reanimated.View>
           )}
 
           {/* ── Standings ── */}
