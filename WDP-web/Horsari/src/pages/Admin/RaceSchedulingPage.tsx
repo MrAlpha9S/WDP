@@ -40,7 +40,7 @@ export default function RaceSchedulingPage() {
     };
 
 
-    const handleDataRefresh = async (updateInfo?: { type: 'CREATE' | 'UPDATE'; tournament_id?: string; raceRound_id?: string }) => {
+    const handleDataRefresh = async () => {
         await fetchData();
     };
 
