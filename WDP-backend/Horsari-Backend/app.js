@@ -29,6 +29,9 @@ app.use(cors({
     cb(new Error('Not allowed by CORS'));
   },
 }));
+// Shared with bin/www so the Socket.io server uses the exact same allow-list
+// instead of re-deriving it and risking drift (e.g. an un-split FRONTEND_URL).
+app.set('allowedOrigins', allowedOrigins);
 (
   async () => {
     try {
