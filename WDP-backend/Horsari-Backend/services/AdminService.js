@@ -1436,7 +1436,8 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
         const usedJockeyIds = new Set();
         let jockeyCursor = 0;
 
-        let assigned = 0, alreadyReady = 0, skipped = 0;
+        let assigned = 0, alreadyReady = 0, skipped = 0, overLimit = 0;
+        const maxParticipants = raceRound.maxParticipants;
 
         for (const reg of registrations) {
             const alreadyDone = reg.registrationStatus === 'approved' && acceptedMainByReg.has(String(reg._id));
@@ -1445,6 +1446,12 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
                 if (reg.horseId) usedHorseIds.add(String(reg.horseId));
                 const inv = acceptedMainByReg.get(String(reg._id));
                 if (inv?.jockeyId) usedJockeyIds.add(String(inv.jockeyId));
+                continue;
+            }
+
+            // Never assign past the race round's participant cap.
+            if (alreadyReady + assigned >= maxParticipants) {
+                overLimit++;
                 continue;
             }
 
@@ -1522,8 +1529,9 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
 
         return {
             code: 200,
-            data: { assigned, alreadyReady, skipped, total: registrations.length },
-            msg: `${assigned} registration(s) auto-assigned, ${alreadyReady} already ready, ${skipped} skipped (no eligible horse/jockey).`,
+            data: { assigned, alreadyReady, skipped, overLimit, total: registrations.length },
+            msg: `${assigned} registration(s) auto-assigned, ${alreadyReady} already ready, ${skipped} skipped (no eligible horse/jockey)`
+                + (overLimit ? `, ${overLimit} skipped (race round full)` : '') + '.',
         };
     } catch (error) {
         console.error('Error in quickAssignHorsesAndJockeys:', error);
