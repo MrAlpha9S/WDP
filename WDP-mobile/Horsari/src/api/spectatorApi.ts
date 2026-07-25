@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient, { isNetworkError, NETWORK_ERROR_MESSAGE } from './axios';
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +57,8 @@ export interface HomeFeedHorse {
 }
 
 export interface HomeFeed {
-  liveRace: HomeFeedLiveRace | null;
+  liveRaces: HomeFeedLiveRace[];
+  preparingRaces: HomeFeedLiveRace[];
   upcomingRaces: HomeFeedUpcomingRace[];
   featuredHorses: HomeFeedHorse[];
   spectator: { wallet: number } | null;
@@ -210,7 +211,8 @@ export async function getSpectatorProfile(): Promise<SpectatorProfile | null> {
       '/api/spectator/profile'
     );
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }
@@ -238,7 +240,7 @@ export async function updateSpectatorProfile(
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
+      message: err?.response?.data?.msg ?? (isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Connection error. Please try again.'),
       data: null,
     };
   }
@@ -250,7 +252,8 @@ export async function getHomeFeed(): Promise<HomeFeed | null> {
       '/api/spectator/home-feed'
     );
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }
@@ -271,7 +274,8 @@ export async function getRaceSchedule(
     }>('/api/spectator/race-schedule', { params: { filter, page, limit } });
     if (res.data.code === 200) return res.data.data;
     return { raceRounds: [], meta: { total: 0, hasMore: false } };
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return { raceRounds: [], meta: { total: 0, hasMore: false } };
   }
 }
@@ -292,7 +296,8 @@ export async function getMyPredictions(
     }>('/api/spectator/predictions', { params: { predictionStatus, page, limit } });
     if (res.data.code === 200) return res.data.data;
     return { predictions: [], meta: { total: 0, hasMore: false } };
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return { predictions: [], meta: { total: 0, hasMore: false } };
   }
 }
@@ -303,7 +308,8 @@ export async function getWalletInfo(): Promise<WalletInfo | null> {
       '/api/spectator/wallet'
     );
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }
@@ -314,7 +320,8 @@ export async function getSpectatorStatistics(): Promise<SpectatorStatistics | nu
       '/api/spectator/statistics'
     );
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }
@@ -328,7 +335,8 @@ export async function getRewardsEarningsSeries(
       { params: { groupBy } },
     );
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }
@@ -351,7 +359,8 @@ export async function getTransactionHistory(
     });
     if (res.data.code === 200) return res.data.data;
     return { transactions: [], meta: { total: 0, hasMore: false } };
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return { transactions: [], meta: { total: 0, hasMore: false } };
   }
 }
@@ -367,7 +376,7 @@ export async function depositPoints(
     );
     return { ok: res.data.code === 201, message: res.data.msg };
   } catch (err: any) {
-    return { ok: false, message: err?.response?.data?.msg ?? 'Connection error.' };
+    return { ok: false, message: err?.response?.data?.msg ?? (isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Connection error.') };
   }
 }
 
@@ -382,7 +391,7 @@ export async function withdrawPoints(
     );
     return { ok: res.data.code === 201, message: res.data.msg };
   } catch (err: any) {
-    return { ok: false, message: err?.response?.data?.msg ?? 'Connection error.' };
+    return { ok: false, message: err?.response?.data?.msg ?? (isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Connection error.') };
   }
 }
 
@@ -412,7 +421,8 @@ export async function getTournamentsForPrediction(): Promise<TournamentForPredic
       '/api/spectator/tournaments',
     );
     return res.data.code === 200 ? res.data.data : [];
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return [];
   }
 }
@@ -427,7 +437,8 @@ export async function getRaceDetail(
       msg: string;
     }>(`/api/spectator/race-rounds/${raceRoundId}/live`);
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }
@@ -442,7 +453,8 @@ export async function getAvailablePredictionMethods(
       { params },
     );
     return res.data.code === 200 ? res.data.data : [];
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return [];
   }
 }
@@ -457,7 +469,7 @@ export async function createPrediction(
     );
     return { ok: res.data.code === 201, message: res.data.msg, data: res.data.data };
   } catch (err: any) {
-    return { ok: false, message: err?.response?.data?.msg ?? 'Connection error.' };
+    return { ok: false, message: err?.response?.data?.msg ?? (isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Connection error.') };
   }
 }
 
@@ -467,7 +479,8 @@ export async function getPredictionDetail(predictionId: string): Promise<Predict
       `/api/spectator/predictions/${predictionId}`,
     );
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }

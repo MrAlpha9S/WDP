@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient, { isNetworkError, NETWORK_ERROR_MESSAGE } from './axios';
 
 // ─── Schedule types ──────────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ export interface ScheduleItem {
 
 export interface InvitationItem {
   invitationId: string;
-  invitationStatus: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  invitationStatus: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'didNotAttend';
   ownerConfirmation: boolean;
   jockeyConfirmation: boolean;
   isBackup: boolean;
@@ -78,7 +78,8 @@ export async function getMyRaceSchedule(): Promise<ScheduleItem[]> {
       '/api/jockey/my-race-schedule'
     );
     return res.data.code === 200 ? (res.data.data ?? []) : [];
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return [];
   }
 }
@@ -89,7 +90,8 @@ export async function getMyInvitations(): Promise<InvitationItem[]> {
       '/api/jockey/my-invitations'
     );
     return res.data.code === 200 ? (res.data.data ?? []) : [];
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return [];
   }
 }
@@ -107,7 +109,7 @@ export async function respondToInvitation(
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
+      message: err?.response?.data?.msg ?? (isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Connection error. Please try again.'),
     };
   }
 }
@@ -167,7 +169,8 @@ export async function getMyPayments(
       msg: string;
     }>('/api/jockey/payments', { params });
     return res.data.code === 200 ? res.data.data : empty;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return empty;
   }
 }
@@ -183,7 +186,7 @@ export async function confirmPaymentReceived(
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
+      message: err?.response?.data?.msg ?? (isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Connection error. Please try again.'),
     };
   }
 }
@@ -225,6 +228,16 @@ export interface JockeyProfileData {
     attendance?: 'no_show' | 'main' | 'backup';
     bookingFees: number;
   }[];
+  violations: {
+    _id: string;
+    raceRound: { _id: string; roundName?: string; raceDate?: string } | null;
+    violationType: { violationName: string; category?: string; severity?: string; defaultPenalty?: string } | null;
+    description: string;
+    severity: string;
+    actualPenalty?: string;
+    stewardAction: 'no-action' | 'warning' | 'fine' | 'suspended' | 'disqualified' | 'demoted' | 'investigation' | 'permanent-ban';
+    violationStatus: 'pending' | 'confirmed' | 'dismissed';
+  }[];
 }
 
 export async function getMyProfile(): Promise<JockeyProfileData | null> {
@@ -233,7 +246,8 @@ export async function getMyProfile(): Promise<JockeyProfileData | null> {
       '/api/jockey/my-profile'
     );
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }
@@ -265,7 +279,7 @@ export async function updateMyProfile(
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
+      message: err?.response?.data?.msg ?? (isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Connection error. Please try again.'),
       data: null,
     };
   }
@@ -294,7 +308,7 @@ export async function updateMyLicense(
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
+      message: err?.response?.data?.msg ?? (isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Connection error. Please try again.'),
       data: null,
     };
   }
@@ -326,7 +340,8 @@ export async function getJockeyStatistics(): Promise<JockeyStatistics | null> {
       '/api/jockey/statistics'
     );
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }
@@ -340,7 +355,8 @@ export async function getEarningsSeries(
       { params: { groupBy } },
     );
     return res.data.code === 200 ? res.data.data : null;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return null;
   }
 }
@@ -387,7 +403,8 @@ export async function getAllRaces(
       msg: string;
     }>('/api/jockey/all-races', { params: { filter, page, limit } });
     return res.data.code === 200 ? res.data.data : empty;
-  } catch {
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
     return empty;
   }
 }

@@ -7,6 +7,17 @@ export const API_BASE_URL =
     ? process.env.EXPO_PUBLIC_API_URL_ANDROID
     : process.env.EXPO_PUBLIC_API_URL_WEB;
 
+// No `response` means axios never got one back — connection refused, DNS
+// failure, or an ECONNABORTED timeout — as opposed to the server responding
+// with a 4xx/5xx. Callers use this to show a "can't reach the server" state
+// instead of treating the request as if it legitimately returned nothing.
+export function isNetworkError(err: any): boolean {
+  return !err?.response;
+}
+
+export const NETWORK_ERROR_MESSAGE =
+  'Could not connect to the server. Please check your connection and try again.';
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10_000,

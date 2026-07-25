@@ -1,4 +1,4 @@
-import apiClient from './axios';
+import apiClient, { isNetworkError, NETWORK_ERROR_MESSAGE } from './axios';
 
 export interface PickedImage {
   uri: string;
@@ -37,7 +37,7 @@ export async function uploadAvatar(image: PickedImage): Promise<AvatarUploadResu
   } catch (err: any) {
     return {
       ok: false,
-      message: err?.response?.data?.msg ?? 'Connection error. Please try again.',
+      message: err?.response?.data?.msg ?? (isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Connection error. Please try again.'),
     };
   }
 }
