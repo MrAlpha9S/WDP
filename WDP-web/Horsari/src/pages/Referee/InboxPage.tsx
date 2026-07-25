@@ -7,6 +7,8 @@ import { refereeService } from "../../api/refereeService";
 import { Loader2 } from "lucide-react";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { useSocket } from "../../providers/SocketProvider";
+import { RefetchButton } from "../../components/RefetchButton";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Tab type ──────────────────────────────────────────────────────────────────
 
@@ -72,8 +74,11 @@ export default function InboxPage() {
         };
     }, [tab]);
 
-    const { data: invites, loading, pagination, page, setPage, mutate, refresh } =
+    const { data: invites, loading, error, pagination, page, setPage, mutate, refresh } =
         usePaginatedFetch<RaceInvite>(fetcher, tab);
+
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+    useEffect(() => { setLastUpdated(Date.now()); }, [invites]);
 
     // Live refetch when this referee is assigned/unassigned from a race round.
     const { socket } = useSocket();
@@ -136,6 +141,7 @@ export default function InboxPage() {
                         </h1>
                         <p className="text-[13px] text-gray-500 mt-0.5">Race assignments and referee invitations.</p>
                     </div>
+                    <RefetchButton onRefetch={refresh} lastUpdated={lastUpdated} />
                 </div>
 
                 {/* Tabs */}
@@ -167,6 +173,8 @@ export default function InboxPage() {
                         <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-4" />
                         <span className="text-[13px] font-medium text-gray-400">Loading invitations...</span>
                     </div>
+                ) : error ? (
+                    <ErrorState message={(error as any)?.msg ?? "Failed to load invitations."} onRetry={refresh} />
                 ) : invites.length === 0 ? (
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/8 px-5 py-14 text-center">
                         <p className="text-[13px] text-gray-600">No invitations in this category.</p>

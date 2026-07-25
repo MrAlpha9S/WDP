@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import MuxPlayer from "@mux/mux-player-react";
 import {
     AlertTriangle, Camera, CheckCircle2, ChevronDown, ChevronRight,
@@ -10,6 +10,8 @@ import { useRaceSocket } from "../../providers/useRaceSocket";
 import type { LiveHorse } from "../../providers/useRaceSocket";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationTypeRecord, ViolationRecord } from "../../api/refereeService";
+import { RefetchButton } from "../../components/RefetchButton";
+import { ErrorState } from "../../components/ErrorState";
 
 function severityDot(severity?: number) {
     if (!severity) return "bg-gray-600";
@@ -372,17 +374,26 @@ export default function LivePage() {
     const [pendingVt, setPendingVt] = useState<ViolationTypeRecord | null>(null);
     const [modalLoading, setModalLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [violationsUpdated, setViolationsUpdated] = useState<number | null>(null);
+    const [violationsError, setViolationsError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const fetchViolations = useCallback(() => {
         if (!raceRound?._id) return;
+        setViolationsError(null);
         Promise.all([
             refereeService.getViolationTypes('during-race', 1, 200),
             refereeService.getRaceRoundViolations(raceRound._id),
         ]).then(([vtRes, vRes]) => {
             if (Array.isArray(vtRes.data?.items)) setViolationTypes(vtRes.data.items);
             if (Array.isArray(vRes.data)) setActiveViolations(vRes.data);
-        }).catch(() => { });
+        }).catch((err: any) => {
+            setViolationsError(err?.msg ?? "Failed to load violation data.");
+        }).finally(() => setViolationsUpdated(Date.now()));
     }, [raceRound?._id]);
+
+    useEffect(() => {
+        fetchViolations();
+    }, [fetchViolations]);
 
     // Count per violation type for badge display
     const violationCountByType = activeViolations.reduce<Record<string, number>>((acc, v) => {
@@ -569,16 +580,21 @@ export default function LivePage() {
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0">
                         <h2 className="text-[13px] font-bold text-white font-serif">Incident Log</h2>
-                        {activeViolations.length > 0
-                            ? <span className="text-[11px] font-bold text-red-400 flex items-center gap-1"><AlertTriangle size={11} />{activeViolations.length} flagged</span>
-                            : <span className="text-[11px] text-gray-600 font-medium">0 flagged</span>
-                        }
+                        <div className="flex items-center gap-2">
+                            {activeViolations.length > 0
+                                ? <span className="text-[11px] font-bold text-red-400 flex items-center gap-1"><AlertTriangle size={11} />{activeViolations.length} flagged</span>
+                                : <span className="text-[11px] text-gray-600 font-medium">0 flagged</span>
+                            }
+                            <RefetchButton onRefetch={fetchViolations} lastUpdated={violationsUpdated} />
+                        </div>
                     </div>
 
                     {/* Scrollable violation type grid */}
                     <div className="overflow-y-auto" style={{ maxHeight: 280 }}>
                         <div className="grid grid-cols-2 gap-2 p-3">
-                            {violationTypes.length === 0
+                            {violationsError
+                                ? <div className="col-span-2"><ErrorState message={violationsError} onRetry={fetchViolations} /></div>
+                                : violationTypes.length === 0
                                 ? <p className="col-span-2 text-[12px] text-gray-600 text-center py-4">Loading violation types…</p>
                                 : violationTypes.map(vt => (
                                     <IncidentButton

@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { AlertTriangle, Camera, Flag, Medal, Trophy, Video } from "lucide-react";
 import { ordinal } from "../../shared/data/RaceData";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationRecord } from "../../api/refereeService";
 import MuxPlayer from "@mux/mux-player-react";
+import { RefetchButton } from "../../components/RefetchButton";
+import { ErrorState } from "../../components/ErrorState";
 
 function VideoReviewPanel({ raceRound }: { raceRound: any }) {
     const playbackId = raceRound?.muxVodPlaybackId || raceRound?.muxPlaybackId;
@@ -61,26 +63,32 @@ export default function PostRacePage() {
     const [distUnit, setDistUnit] = useState<DistUnit>('lengths');
     const [violations, setViolations] = useState<ViolationRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+
+    const fetchData = useCallback(async () => {
+        if (!raceRoundId) return;
+        try {
+            setLoading(true);
+            setError(null);
+            const [raceRes, violRes] = await Promise.all([
+                refereeService.getRaceRoundById(raceRoundId),
+                refereeService.getRaceRoundViolations(raceRoundId)
+            ]);
+            setRaceRound(raceRes.data);
+            setViolations(violRes.data ?? []);
+        } catch (err: any) {
+            console.error("Error fetching post-race data:", err);
+            setError(err?.msg ?? "Failed to load race results.");
+        } finally {
+            setLoading(false);
+            setLastUpdated(Date.now());
+        }
+    }, [raceRoundId]);
 
     useEffect(() => {
-        if (!raceRoundId) return;
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const [raceRes, violRes] = await Promise.all([
-                    refereeService.getRaceRoundById(raceRoundId),
-                    refereeService.getRaceRoundViolations(raceRoundId)
-                ]);
-                setRaceRound(raceRes.data);
-                setViolations(violRes.data ?? []);
-            } catch (err) {
-                console.error("Error fetching post-race data:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
-    }, [raceRoundId]);
+    }, [fetchData]);
 
     // Show all horses that were eligible to run (approved or verified),
     // excluding those that were rejected, failed pre-race checks, no-showed, or never processed.
@@ -134,6 +142,10 @@ export default function PostRacePage() {
         return <div className="text-white p-5 flex items-center gap-3"><div className="w-5 h-5 border-2 border-t-blue-500 border-white/20 rounded-full animate-spin"/> Loading race results...</div>;
     }
 
+    if (error) {
+        return <div className="p-5"><ErrorState message={error} onRetry={fetchData} /></div>;
+    }
+
     return (
         <div className="flex flex-col gap-5">
             {/* ─ Status badges ─────────────────────────────────────────────────────────────── */}
@@ -161,6 +173,7 @@ export default function PostRacePage() {
                                     <AlertTriangle size={10} /> Objection Filed
                                 </span>
                             )}
+                            <RefetchButton onRefetch={fetchData} lastUpdated={lastUpdated} />
                             <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
                                 {(['lengths', 'metres'] as DistUnit[]).map(u => (
                                     <button key={u} onClick={() => setDistUnit(u)}
