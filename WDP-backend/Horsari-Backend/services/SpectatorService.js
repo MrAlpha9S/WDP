@@ -11,6 +11,46 @@ const Jockey = require('../entities/Jockey');
 const PredictionMethod = require('../entities/PredictionMethod');
 const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
 
+// Shared by getHomeFeed's 'running' and 'prepared' race lists — enriches a
+// raw RaceRound doc with its registrations (lane number + horse), matching
+// the shape the mobile home-feed carousel renders per card.
+async function enrichRace(raceRaw) {
+    const regs = await Registration.find({
+        raceRoundId: raceRaw._id,
+        registrationStatus: { $in: ['approved', 'verified'] },
+    }).lean();
+
+    const enrichedRegs = await Promise.all(regs.map(async reg => {
+        let horse = null;
+        if (reg.jockeyInRaceId) {
+            const inv = await Invitation.findById(reg.jockeyInRaceId).lean();
+            if (inv?.horseId) {
+                const h = await Horse.findById(inv.horseId).lean();
+                if (h) horse = { _id: h._id, horseName: h.horseName, img: h.img || null };
+            }
+        }
+        return {
+            _id: reg._id,
+            laneNumber: reg.laneNumber || null,
+            horse,
+        };
+    }));
+
+    const t = raceRaw.tournamentId;
+    return {
+        _id: raceRaw._id,
+        roundName: raceRaw.roundName,
+        raceDate: raceRaw.raceDate,
+        location: raceRaw.location || null,
+        status: raceRaw.status,
+        livestreamUrl: raceRaw.muxPlaybackId
+            ? `https://stream.mux.com/${raceRaw.muxPlaybackId}.m3u8`
+            : null,
+        tournament: t ? { _id: t._id, tournamentName: t.tournamentName } : null,
+        registrations: enrichedRegs,
+    };
+}
+
 class SpectatorService {
     // Self-service profile update — spectator has no role-specific editable
     // fields (only `wallet`, which is system-managed via deposit/withdraw),
@@ -345,8 +385,15 @@ class SpectatorService {
             const spectator = await SpectatorRepository.findBySpectatorId(userId);
             if (!spectator) return { code: 404, msg: 'Spectator not found' };
 
-            const [liveRaceRaw, upcomingRacesRaw, featuredHorsesRaw] = await Promise.all([
-                RaceRound.findOne({ status: 'running' })
+            const [liveRacesRaw, preparingRacesRaw, upcomingRacesRaw, featuredHorsesRaw] = await Promise.all([
+                RaceRound.find({ status: 'running' })
+                    .sort({ raceDate: 1 })
+                    .limit(10)
+                    .populate('tournamentId', 'tournamentName prizePool')
+                    .lean(),
+                RaceRound.find({ status: 'prepared' })
+                    .sort({ raceDate: 1 })
+                    .limit(10)
                     .populate('tournamentId', 'tournamentName prizePool')
                     .lean(),
                 RaceRound.find({ status: 'scheduled' })
@@ -387,44 +434,11 @@ class SpectatorService {
                 ]),
             ]);
 
-            // Enrich live race with registrations (lane number + horse)
-            let liveRace = null;
-            if (liveRaceRaw) {
-                const liveRegs = await Registration.find({
-                    raceRoundId: liveRaceRaw._id,
-                    registrationStatus: { $in: ['approved', 'verified'] },
-                }).lean();
-
-                const enrichedRegs = await Promise.all(liveRegs.map(async reg => {
-                    let horse = null;
-                    if (reg.jockeyInRaceId) {
-                        const inv = await Invitation.findById(reg.jockeyInRaceId).lean();
-                        if (inv?.horseId) {
-                            const h = await Horse.findById(inv.horseId).lean();
-                            if (h) horse = { _id: h._id, horseName: h.horseName, img: h.img || null };
-                        }
-                    }
-                    return {
-                        _id: reg._id,
-                        laneNumber: reg.laneNumber || null,
-                        horse,
-                    };
-                }));
-
-                const t = liveRaceRaw.tournamentId;
-                liveRace = {
-                    _id: liveRaceRaw._id,
-                    roundName: liveRaceRaw.roundName,
-                    raceDate: liveRaceRaw.raceDate,
-                    location: liveRaceRaw.location || null,
-                    status: liveRaceRaw.status,
-                    livestreamUrl: liveRaceRaw.muxPlaybackId
-                        ? `https://stream.mux.com/${liveRaceRaw.muxPlaybackId}.m3u8`
-                        : null,
-                    tournament: t ? { _id: t._id, tournamentName: t.tournamentName } : null,
-                    registrations: enrichedRegs,
-                };
-            }
+            // Enrich live + preparing races with registrations (lane number + horse)
+            const [liveRaces, preparingRaces] = await Promise.all([
+                Promise.all(liveRacesRaw.map(enrichRace)),
+                Promise.all(preparingRacesRaw.map(enrichRace)),
+            ]);
 
             const upcomingRaces = upcomingRacesRaw.map(r => {
                 const t = r.tournamentId;
@@ -456,7 +470,8 @@ class SpectatorService {
             return {
                 code: 200,
                 data: {
-                    liveRace,
+                    liveRaces,
+                    preparingRaces,
                     upcomingRaces,
                     featuredHorses,
                     spectator: { wallet: spectator.wallet },
