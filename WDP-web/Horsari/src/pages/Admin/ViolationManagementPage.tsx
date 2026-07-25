@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import ViolationDetailPanel from "./AdminComponents/ViolationDetailPanel";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
+import { ErrorState } from "../../components/ErrorState";
 import type { ViolationEntity, ViolationStatus } from "../../shared/types/ViolationTypes";
 
 const STATUS_BADGE: Record<ViolationStatus, string> = {
@@ -38,6 +39,7 @@ function getRoundDate(v: ViolationEntity): string {
 export default function ViolationManagementPage() {
     const [violations, setViolations] = useState<ViolationEntity[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -68,6 +70,7 @@ export default function ViolationManagementPage() {
     const fetchViolations = useCallback(async () => {
         try {
             setLoading(true);
+            setError(null);
             const res = await adminService.getAllViolations(
                 page, LIMIT,
                 statusFilter !== 'All' ? statusFilter : undefined,
@@ -83,8 +86,9 @@ export default function ViolationManagementPage() {
                 const updated = items.find(v => v._id === selectedViolation._id);
                 setSelectedViolation(updated ?? null);
             }
-        } catch {
+        } catch (err: any) {
             setViolations([]);
+            setError(err?.msg ?? "Failed to load violations.");
         } finally {
             setLoading(false);
         }
@@ -186,7 +190,7 @@ export default function ViolationManagementPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {violations.map(v => {
+                                    {!error && violations.map(v => {
                                         const vt = v.violationTypeId;
                                         const isSelected = selectedViolation?._id === v._id;
                                         return (
@@ -248,6 +252,8 @@ export default function ViolationManagementPage() {
                                     })}
                                     {loading ? (
                                         <tr><td colSpan={6} className="p-8 text-center text-[13px] text-gray-500">Loading violations…</td></tr>
+                                    ) : error ? (
+                                        <tr><td colSpan={6} className="p-4"><ErrorState message={error} onRetry={fetchViolations} /></td></tr>
                                     ) : violations.length === 0 ? (
                                         <tr><td colSpan={6}>
                                             <div className="py-10 text-center">

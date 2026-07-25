@@ -5,6 +5,8 @@ import type { ViewMode } from "../../shared/types/RaceTypes";
 import CreateRaceModal from "./modal/CreateRaceModal";
 import RaceDetailsPanel from "./AdminComponents/RaceDetailsPanel";
 import { adminService, type RaceRoundData } from "../../api/adminService";
+import { useSocket } from "../../providers/SocketProvider";
+import { ErrorState } from "../../components/ErrorState";
 
 export default function RaceSchedulingPage() {
     const [viewMode, setViewMode] = useState<ViewMode>("timeline");
@@ -19,6 +21,7 @@ export default function RaceSchedulingPage() {
     const [tournaments, setTournaments] = useState<any[]>([]);
     const [raceRoundsData, setRaceRoundsData] = useState<RaceRoundData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
 
@@ -26,14 +29,16 @@ export default function RaceSchedulingPage() {
 
     const fetchData = async () => {
         setLoading(true);
+        setError(null);
         try {
             const tournamentsRes = await adminService.getTournamentsWithDetails(1, 100);
             setTournaments(tournamentsRes.data?.items || []);
 
             const raceRoundsRes = await adminService.getRaceRounds();
             setRaceRoundsData(raceRoundsRes.data?.items ?? []);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to fetch scheduling data", err);
+            setError(err?.msg ?? "Failed to fetch scheduling data.");
         } finally {
             setLoading(false);
         }
@@ -47,6 +52,16 @@ export default function RaceSchedulingPage() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    // Any RaceRound mutation, from any source (admin or referee action, the
+    // simulation engine, another admin's tab), broadcasts raceround_updated —
+    // keep this page's schedule live instead of only ever fetching once.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket) return;
+        socket.on("raceround_updated", handleDataRefresh);
+        return () => { socket.off("raceround_updated", handleDataRefresh); };
+    }, [socket]);
 
     useEffect(() => {
         setTablePage(1);
@@ -243,6 +258,11 @@ export default function RaceSchedulingPage() {
                                 <Loader2 className="animate-spin text-red-500" size={32} />
                             </div>
                         )}
+                        {!loading && error ? (
+                            <div className="h-full w-full flex items-center justify-center bg-[#141414] p-6">
+                                <ErrorState message={error} onRetry={fetchData} className="max-w-md" />
+                            </div>
+                        ) : (
                         <div className="h-full w-full overflow-auto bg-[#141414] custom-scrollbar">
                             {viewMode === "timeline" ? (
                                 <div className="min-w-[1600px] border border-white/5 rounded-lg bg-[#161616]">
@@ -402,6 +422,7 @@ export default function RaceSchedulingPage() {
                                 </div>
                             )}
                         </div>
+                        )}
                     </div>
                 </main>
 

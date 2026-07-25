@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -461,6 +462,8 @@ export default function AdminHorsesPage() {
     const [search,       setSearch]       = useState("");
     const [statusFilter, setStatusFilter] = useState<HorseStatus | "">("");
     const [loading,      setLoading]      = useState(true);
+    const [error,        setError]        = useState<string | null>(null);
+    const [refreshSeed,  setRefreshSeed]  = useState(0);
     const [sortBy,       setSortBy]       = useState<string>('createdAt');
     const [order,        setOrder]        = useState<'asc' | 'desc'>('desc');
 
@@ -489,6 +492,7 @@ export default function AdminHorsesPage() {
     // Fetch list
     useEffect(() => {
         setLoading(true);
+        setError(null);
         adminService.getAllHorses(page, LIMIT, search || undefined, statusFilter || undefined, sortBy, order)
             .then((res: any) => {
                 const d = res?.data ?? {};
@@ -496,9 +500,9 @@ export default function AdminHorsesPage() {
                 setTotalItems(d.pagination?.totalItems ?? 0);
                 setTotalPages(d.pagination?.totalPages ?? 1);
             })
-            .catch(() => {})
+            .catch((err: any) => setError(err?.msg ?? "Failed to load horses."))
             .finally(() => setLoading(false));
-    }, [page, search, statusFilter, sortBy, order]);
+    }, [page, search, statusFilter, sortBy, order, refreshSeed]);
 
     // Reset page on filter change
     const handleSearch = useCallback((v: string) => { setSearch(v); setPage(1); }, []);
@@ -626,6 +630,12 @@ export default function AdminHorsesPage() {
                                         <tr>
                                             <td colSpan={6} className="py-12 text-center">
                                                 <Loader2 size={22} className="text-gray-600 animate-spin mx-auto" />
+                                            </td>
+                                        </tr>
+                                    ) : error ? (
+                                        <tr>
+                                            <td colSpan={6} className="p-4">
+                                                <ErrorState message={error} onRetry={() => setRefreshSeed(s => s + 1)} />
                                             </td>
                                         </tr>
                                     ) : horses.length === 0 ? (

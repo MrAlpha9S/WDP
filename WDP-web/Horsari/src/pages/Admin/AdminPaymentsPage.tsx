@@ -5,6 +5,7 @@ import { Pagination } from "../../components/Pagination";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { useAuth } from "../../providers/AuthProvider";
 import { useSocket } from "../../providers/SocketProvider";
+import { ErrorState } from "../../components/ErrorState";
 import type { PaymentStatus, PaymentType, LedgerEntry } from "../../api/paymentTypes";
 
 const LIMIT = 20;
@@ -34,7 +35,10 @@ function LedgerPanel() {
         `admin-ledger-all-${sortValue}`,
     );
 
-    // Live refetch when a payment-related notification arrives.
+    // Live refetch when a payment-related notification arrives, or when any
+    // Transaction document changes (a true broadcast, unlike the targeted
+    // notification below — catches every settlement even if a call site
+    // forgot to notify this specific admin).
     const { socket } = useSocket();
     useEffect(() => {
         if (!socket) return;
@@ -42,7 +46,11 @@ function LedgerPanel() {
             if (payload?.type?.startsWith("payment_")) refresh();
         };
         socket.on("notification_created", handler);
-        return () => { socket.off("notification_created", handler); };
+        socket.on("transaction_updated", refresh);
+        return () => {
+            socket.off("notification_created", handler);
+            socket.off("transaction_updated", refresh);
+        };
     }, [socket, refresh]);
 
     return (
@@ -63,7 +71,10 @@ function LedgerPanel() {
             {loading ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">Loading wallet activity...</p>
             ) : error ? (
-                <p className="text-[13px] text-red-400 text-center py-6">Failed to load wallet activity.</p>
+                <ErrorState
+                    message={(error as any)?.msg ?? "Failed to load wallet activity."}
+                    onRetry={refresh}
+                />
             ) : data.length === 0 ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">No wallet activity yet.</p>
             ) : (
