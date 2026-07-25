@@ -26,7 +26,10 @@ import {
   TransactionItem,
   WalletInfo,
 } from '../../api/spectatorApi';
+import { isNetworkError } from '../../api/axios';
 import { Fonts } from '@/constants/theme';
+import { RefetchButton } from '@/components/RefetchButton';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -73,14 +76,15 @@ function txIcon(type: TransactionItem['transactionType']): React.ComponentProps<
   }
 }
 
-function txSign(type: TransactionItem['transactionType']): '+' | '-' {
-  return type === 'withdrawal' ? '-' : '+';
+function txSign(item: TransactionItem): '+' | '-' {
+  if (item.transactionType === 'withdrawal') return '-';
+  return item.amount < 0 ? '-' : '+';
 }
 
-function txAmountColor(type: TransactionItem['transactionType']): string {
-  if (type === 'withdrawal') return Palette.red;
-  if (type === 'refund')     return Palette.gold;
-  return Palette.green;
+function txAmountColor(item: TransactionItem): string {
+  if (item.transactionType === 'withdrawal') return Palette.red;
+  if (item.transactionType === 'refund')     return Palette.gold;
+  return item.amount < 0 ? Palette.red : Palette.green;
 }
 
 function txStatusColor(status: TransactionItem['status']): string {
@@ -104,8 +108,8 @@ function formatPoints(n: number): string {
 // ─── Transaction Row ──────────────────────────────────────────────────────────
 
 function TxRow({ item }: { item: TransactionItem }) {
-  const sign = txSign(item.transactionType);
-  const amtColor = txAmountColor(item.transactionType);
+  const sign = txSign(item);
+  const amtColor = txAmountColor(item);
 
   return (
     <View style={styles.txRow}>
@@ -121,7 +125,7 @@ function TxRow({ item }: { item: TransactionItem }) {
       </View>
       <View style={styles.txRight}>
         <Text style={[styles.txAmount, { color: amtColor }]}>
-          {sign}{item.amount.toLocaleString()}
+          {sign}{Math.abs(item.amount).toLocaleString()}
         </Text>
         <View style={[styles.txStatusBadge, { borderColor: `${txStatusColor(item.status)}44` }]}>
           <Text style={[styles.txStatusText, { color: txStatusColor(item.status) }]}>
@@ -235,19 +239,27 @@ export default function WalletScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [modal, setModal] = useState<ModalMode | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [error, setError] = useState(false);
 
   const load = async (silent = false) => {
     if (!silent) setIsLoading(true);
-    const [w, txData, profile] = await Promise.all([
-      getWalletInfo(),
-      getTransactionHistory(1, 20),
-      getSpectatorProfile(),
-    ]);
-    setWallet(w);
-    setTransactions(txData.transactions);
-    if (profile) setWinRate(profile.stats.winRate);
+    try {
+      const [w, txData, profile] = await Promise.all([
+        getWalletInfo(),
+        getTransactionHistory(1, 20),
+        getSpectatorProfile(),
+      ]);
+      setWallet(w);
+      setTransactions(txData.transactions);
+      if (profile) setWinRate(profile.stats.winRate);
+      setError(false);
+    } catch (err) {
+      if (isNetworkError(err)) setError(true);
+    }
     setIsLoading(false);
     setIsRefreshing(false);
+    setLastUpdated(Date.now());
   };
 
   useEffect(() => { load(); }, []);
@@ -273,12 +285,19 @@ export default function WalletScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>REWARDS WALLET</Text>
+          <RefetchButton onRefetch={() => load(true)} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.gold} />
         </View>
 
         {isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator color={Palette.gold} size="large" />
           </View>
+        ) : error ? (
+          <NoConnectionState
+            onRetry={() => load()}
+            accentColor={Palette.gold}
+            mutedColor={Palette.textMuted}
+          />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}

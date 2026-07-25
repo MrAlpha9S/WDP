@@ -25,8 +25,11 @@ import {
   PredictionPayoutInfo,
   PredictionStatus,
 } from '../../api/spectatorApi';
+import { isNetworkError } from '../../api/axios';
 import { useSocket } from '../../socket/SocketContext';
 import { Fonts } from '@/constants/theme';
+import { RefetchButton } from '@/components/RefetchButton';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -403,15 +406,21 @@ export default function PredictionsScreen() {
   const [selectedDetail, setSelectedDetail] = useState<PredictionDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   const load = async (filter: FilterKey, silent = false) => {
     if (!silent) setIsLoading(true);
     setError(null);
-    const result = await getMyPredictions(filter);
-    setPredictions(result.predictions);
-    setTotal(result.meta.total);
+    try {
+      const result = await getMyPredictions(filter);
+      setPredictions(result.predictions);
+      setTotal(result.meta.total);
+    } catch (err) {
+      if (isNetworkError(err)) setError('network');
+    }
     setIsLoading(false);
     setIsRefreshing(false);
+    setLastUpdated(Date.now());
   };
 
   useEffect(() => { load(activeFilter); }, [activeFilter]);
@@ -469,6 +478,7 @@ export default function PredictionsScreen() {
               <Text style={styles.totalBadgeText}>{total}</Text>
             </View>
           )}
+          <RefetchButton onRefetch={() => load(activeFilter, true)} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.gold} />
           <Pressable style={styles.addBtn} onPress={() => router.push('/new-prediction' as any)}>
             <Ionicons name="add" size={20} color={Palette.background} />
           </Pressable>
@@ -495,13 +505,11 @@ export default function PredictionsScreen() {
             <ActivityIndicator color={Palette.gold} size="large" />
           </View>
         ) : error ? (
-          <View style={styles.center}>
-            <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
-            <Text style={styles.emptyText}>{error}</Text>
-            <Pressable style={styles.retryBtn} onPress={() => load(activeFilter)}>
-              <Text style={styles.retryText}>RETRY</Text>
-            </Pressable>
-          </View>
+          <NoConnectionState
+            onRetry={() => load(activeFilter)}
+            accentColor={Palette.gold}
+            mutedColor={Palette.textMuted}
+          />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}

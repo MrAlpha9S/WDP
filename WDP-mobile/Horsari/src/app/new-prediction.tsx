@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -26,7 +26,9 @@ import {
   RaceScheduleItem,
   TournamentForPrediction,
 } from '../api/spectatorApi';
+import { isNetworkError } from '../api/axios';
 import { Fonts } from '@/constants/theme';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -139,6 +141,7 @@ export default function NewPredictionScreen() {
   const [races, setRaces] = useState<RaceScheduleItem[]>([]);
   const [tournaments, setTournaments] = useState<TournamentForPrediction[]>([]);
   const [isListLoading, setIsListLoading] = useState(false);
+  const [listError, setListError] = useState(false);
 
   // configure step
   const [methods, setMethods] = useState<PredictionMethod[]>([]);
@@ -149,9 +152,18 @@ export default function NewPredictionScreen() {
   const [predictedRank, setPredictedRank] = useState('');
   const [stakeInput, setStakeInput] = useState('');
   const [isConfigLoading, setIsConfigLoading] = useState(false);
+  const [configError, setConfigError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear the post-success navigation timer if the screen unmounts before it fires.
+  useEffect(() => {
+    return () => {
+      if (backTimerRef.current) clearTimeout(backTimerRef.current);
+    };
+  }, []);
 
   const selectedMethod = methods.find(m => m._id === selectedMethodId) ?? null;
 
@@ -163,15 +175,20 @@ export default function NewPredictionScreen() {
 
   const loadList = async () => {
     setIsListLoading(true);
-    if (activeType === 'race') {
-      const [running, scheduled] = await Promise.all([
-        getRaceSchedule('running', 1, 5),
-        getRaceSchedule('scheduled', 1, 20),
-      ]);
-      setRaces([...running.raceRounds, ...scheduled.raceRounds]);
-    } else {
-      const data = await getTournamentsForPrediction();
-      setTournaments(data);
+    setListError(false);
+    try {
+      if (activeType === 'race') {
+        const [running, scheduled] = await Promise.all([
+          getRaceSchedule('running', 1, 5),
+          getRaceSchedule('scheduled', 1, 20),
+        ]);
+        setRaces([...running.raceRounds, ...scheduled.raceRounds]);
+      } else {
+        const data = await getTournamentsForPrediction();
+        setTournaments(data);
+      }
+    } catch (err) {
+      if (isNetworkError(err)) setListError(true);
     }
     setIsListLoading(false);
   };
@@ -185,13 +202,18 @@ export default function NewPredictionScreen() {
     setStakeInput('');
     setSubmitError(null);
     setIsConfigLoading(true);
+    setConfigError(false);
     setStep('configure');
-    const [methodsRes, raceRes] = await Promise.all([
-      getAvailablePredictionMethods(item._id),
-      getRaceDetail(item._id),
-    ]);
-    setMethods(methodsRes.filter(m => m.methodType === 'race_winner' || m.methodType === 'race_rank'));
-    setRegistrations(raceRes?.registrations ?? []);
+    try {
+      const [methodsRes, raceRes] = await Promise.all([
+        getAvailablePredictionMethods(item._id),
+        getRaceDetail(item._id),
+      ]);
+      setMethods(methodsRes.filter(m => m.methodType === 'race_winner' || m.methodType === 'race_rank'));
+      setRegistrations(raceRes?.registrations ?? []);
+    } catch (err) {
+      if (isNetworkError(err)) setConfigError(true);
+    }
     setIsConfigLoading(false);
   };
 
@@ -201,11 +223,16 @@ export default function NewPredictionScreen() {
     setStakeInput('');
     setSubmitError(null);
     setIsConfigLoading(true);
+    setConfigError(false);
     setStep('configure');
-    const methodsRes = await getAvailablePredictionMethods();
-    const champion = methodsRes.find(m => m.methodType === 'tournament_champion');
-    setMethods(champion ? [champion] : []);
-    if (champion) setSelectedMethodId(champion._id);
+    try {
+      const methodsRes = await getAvailablePredictionMethods();
+      const champion = methodsRes.find(m => m.methodType === 'tournament_champion');
+      setMethods(champion ? [champion] : []);
+      if (champion) setSelectedMethodId(champion._id);
+    } catch (err) {
+      if (isNetworkError(err)) setConfigError(true);
+    }
     setIsConfigLoading(false);
   };
 
@@ -256,7 +283,7 @@ export default function NewPredictionScreen() {
 
     if (result.ok) {
       setSuccess(true);
-      setTimeout(() => router.back(), 1400);
+      backTimerRef.current = setTimeout(() => router.back(), 1400);
     } else {
       setSubmitError(result.message);
     }
@@ -318,6 +345,12 @@ export default function NewPredictionScreen() {
 
             {isListLoading ? (
               <View style={styles.center}><ActivityIndicator color={Palette.gold} size="large" /></View>
+            ) : listError ? (
+              <NoConnectionState
+                onRetry={loadList}
+                accentColor={Palette.gold}
+                mutedColor={Palette.textMuted}
+              />
             ) : (
               <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
                 {activeType === 'race' && (
@@ -396,6 +429,16 @@ export default function NewPredictionScreen() {
         {step === 'configure' && (
           isConfigLoading ? (
             <View style={styles.center}><ActivityIndicator color={Palette.gold} size="large" /></View>
+          ) : configError ? (
+            <NoConnectionState
+              onRetry={() => (target?.type === 'tournament'
+                ? handleSelectTournament(target.item as TournamentForPrediction)
+                : target
+                  ? handleSelectRace(target.item as RaceScheduleItem)
+                  : undefined)}
+              accentColor={Palette.gold}
+              mutedColor={Palette.textMuted}
+            />
           ) : success ? (
             <View style={styles.center}>
               <Ionicons name="checkmark-circle" size={64} color={Palette.green} />
