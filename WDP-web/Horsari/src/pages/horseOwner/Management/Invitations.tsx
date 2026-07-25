@@ -6,6 +6,7 @@ import {
 import { type Invitation, type InviteJockeyStatus, type InviteStatus } from "../../../types/Racingtypes";
 import { horseOwnerService, type JockeyInvitationEntry } from "../../../api/horseOwnerService";
 import { useSocket } from "../../../providers/SocketProvider";
+import { RefetchButton } from "../../../components/RefetchButton";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const INVITE_STATUS_CFG: Record<InviteStatus | InviteJockeyStatus, { text: string; bg: string; border: string }> = {
@@ -448,6 +449,7 @@ const DEBOUNCE_MS = 350;
 export default function InvitationsPage({ onPendingChange }: InvitationsPageProps) {
   const [activeTab, setActiveTab] = useState<Tab>("race");
   const [refreshTick, setRefreshTick] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   // Live refetch when a jockey accepts/declines an invitation.
   const { socket } = useSocket();
@@ -514,7 +516,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
       } catch (err: unknown) {
         if (!cancelled) setErrorRace(err instanceof Error ? err.message : "Failed to load invitations.");
       } finally {
-        if (!cancelled) setLoadingRace(false);
+        if (!cancelled) { setLoadingRace(false); setLastUpdated(Date.now()); }
       }
     }
     load();
@@ -538,7 +540,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
       } catch (err: unknown) {
         if (!cancelled) setErrorJockey(err instanceof Error ? err.message : "Failed to load jockey invitations.");
       } finally {
-        if (!cancelled) setLoadingJockey(false);
+        if (!cancelled) { setLoadingJockey(false); setLastUpdated(Date.now()); }
       }
     }
     load();
@@ -618,6 +620,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
               </span>
             </div>
           </div>
+          <RefetchButton onRefetch={() => setRefreshTick((t) => t + 1)} lastUpdated={lastUpdated} />
         </div>
         <div className="flex items-center gap-1 p-1 bg-[#1a1a1a] border border-white/8 rounded-xl w-fit">
           <TabButton active={activeTab === "race"} label="Race Invitations" count={racePendingCount} onClick={() => { setActiveTab("race"); setRacePage(1); setRaceSearch(""); setRaceSearchInput(""); }} />

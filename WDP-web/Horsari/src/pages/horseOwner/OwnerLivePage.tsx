@@ -4,6 +4,7 @@ import { Camera, ChevronDown, ChevronRight, ShieldAlert, Trophy } from "lucide-r
 import { CAMERAS, horseColor } from "../../shared/data/RaceData";
 import { useRaceSocket } from "../../providers/useRaceSocket";
 import type { LiveHorse } from "../../providers/useRaceSocket";
+import { RefetchButton } from "../../components/RefetchButton";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatElapsed(seconds: number) {
@@ -455,9 +456,11 @@ interface OwnerLivePageProps {
     ownerRegistration: any;
     ownerResult: any;
     violations: any[];
+    onRefetch?: () => void | Promise<void>;
+    lastUpdated?: number | null;
 }
 
-export default function OwnerLivePage({ ownerRegistration, ownerResult, violations }: OwnerLivePageProps) {
+export default function OwnerLivePage({ ownerRegistration, ownerResult, violations, onRefetch, lastUpdated }: OwnerLivePageProps) {
     const { raceRound, liveUpdate, raceFinished } = useRaceSocket();
 
     const [activeCam, setActiveCam] = useState(1);
@@ -502,6 +505,11 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
 
     return (
         <div className="flex flex-col gap-4">
+            {onRefetch && (
+                <div className="flex justify-end">
+                    <RefetchButton onRefetch={onRefetch} lastUpdated={lastUpdated ?? null} />
+                </div>
+            )}
             {isAwaitingConfirmation && (
                 <div className="flex items-center gap-2 self-start px-3 py-1.5 rounded-xl border border-amber-700/60 bg-amber-500/10 text-amber-400 text-[11px] font-bold font-mono">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />

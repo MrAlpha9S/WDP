@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   X, Calendar, MapPin, Flag, Trophy,
   ShieldAlert, Loader2, AlertCircle, ChevronRight, Clock,
@@ -316,25 +316,25 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
 
+  const load = useCallback(async () => {
+    if (!horseId) return;
+    try {
+      setLoading(true);
+      setError(null);
+      setData(null);
+      const res = await horseOwnerService.getHorseProfile(horseId);
+      setData(res.data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load horse profile.");
+    } finally {
+      setLoading(false);
+    }
+  }, [horseId]);
+
   useEffect(() => {
     if (!horseId) { setData(null); return; }
-    let cancelled = false;
-
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        setData(null);
-        const res = await horseOwnerService.getHorseProfile(horseId!);
-        if (!cancelled) setData(res.data);
-      } catch (err: unknown) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load horse profile.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
     load();
-    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [horseId]);
 
   if (!horseId) return null;
@@ -385,9 +385,18 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
 
           {/* Error */}
           {!loading && error && (
-            <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-4 py-4 flex items-center gap-3">
-              <AlertCircle size={15} className="text-red-500 shrink-0" />
-              <p className="text-[13px] text-red-400">{error}</p>
+            <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-4 py-4 flex items-center justify-between gap-3">
+              <span className="flex items-center gap-3 min-w-0">
+                <AlertCircle size={15} className="text-red-500 shrink-0" />
+                <p className="text-[13px] text-red-400">{error}</p>
+              </span>
+              <button
+                type="button"
+                onClick={load}
+                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-red-700/40 text-[11.5px] font-medium text-red-300 hover:text-white hover:bg-red-900/30 transition-colors"
+              >
+                Retry
+              </button>
             </div>
           )}
 

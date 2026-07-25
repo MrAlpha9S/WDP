@@ -12,6 +12,8 @@ import {
 } from "../../api/horseOwnerService";
 import { type ManagementTab } from "./Management/SideBar";
 import { useSocket } from "../../providers/SocketProvider";
+import { RefetchButton } from "../../components/RefetchButton";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(n: number) {
@@ -67,7 +69,11 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [performersLoading, setPerformersLoading] = useState(true);
   const [racesLoading, setRacesLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [performersError, setPerformersError] = useState<string | null>(null);
+  const [racesError, setRacesError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   // Live refetch on any notification addressed to this horse owner.
   const { socket } = useSocket();
@@ -82,6 +88,10 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
     let cancelled = false;
 
     async function fetchAll() {
+      setSummaryError(null);
+      setPerformersError(null);
+      setRacesError(null);
+
       const [sumRes, perfRes, raceRes] = await Promise.allSettled([
         horseOwnerService.getDashboardSummary(),
         horseOwnerService.getTopPerformers(3),
@@ -90,18 +100,29 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
 
       if (cancelled) return;
 
-      if (sumRes.status === "fulfilled") { setSummary(sumRes.value.data); }
-      if (perfRes.status === "fulfilled") { setPerformers(perfRes.value.data); }
+      if (sumRes.status === "fulfilled") {
+        setSummary(sumRes.value.data);
+      } else {
+        setSummaryError((sumRes.reason as any)?.msg ?? "Failed to load dashboard summary.");
+      }
+      if (perfRes.status === "fulfilled") {
+        setPerformers(perfRes.value.data);
+      } else {
+        setPerformersError((perfRes.reason as any)?.msg ?? "Failed to load top performers.");
+      }
       if (raceRes.status === "fulfilled") {
         const { items, pagination } = raceRes.value.data;
         setRaces(items);
         setRacesPage(1);
         setRacesHasMore(pagination.currentPage < pagination.totalPages);
+      } else {
+        setRacesError((raceRes.reason as any)?.msg ?? "Failed to load races.");
       }
 
       setSummaryLoading(false);
       setPerformersLoading(false);
       setRacesLoading(false);
+      setLastUpdated(Date.now());
     }
 
     fetchAll();
@@ -140,6 +161,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <RefetchButton onRefetch={() => setRefreshTick((t) => t + 1)} lastUpdated={lastUpdated} />
             <button
               onClick={() => onNavigate("Jockeys")}
               className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/15 text-[13px] font-medium text-gray-300 hover:border-white/30 hover:text-white transition-colors duration-150"
@@ -154,6 +176,10 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
             </button>
           </div>
         </div>
+
+        {summaryError && (
+          <ErrorState message={summaryError} onRetry={() => setRefreshTick((t) => t + 1)} />
+        )}
 
         {/* ── Stat Cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-4">
@@ -225,13 +251,19 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                   </div>
                 )}
 
-                {!racesLoading && myRaces.length === 0 && (
+                {!racesLoading && racesError && (
+                  <div className="px-6 py-6">
+                    <ErrorState message={racesError} onRetry={() => setRefreshTick((t) => t + 1)} />
+                  </div>
+                )}
+
+                {!racesLoading && !racesError && myRaces.length === 0 && (
                   <div className="px-6 py-8 text-center text-[13px] text-gray-600">
                     You haven't registered for any upcoming races yet.
                   </div>
                 )}
 
-                {!racesLoading && myRaces.map((race, i) => (
+                {!racesLoading && !racesError && myRaces.map((race, i) => (
                   <div
                     key={String(race.id)}
                     className={`grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] px-6 py-4 items-center hover:bg-white/[0.03] transition-colors duration-150 ${i !== myRaces.length - 1 ? "border-b border-white/5" : ""}`}
@@ -316,11 +348,17 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                     </div>
                   ))}
 
-                  {!performersLoading && performers.length === 0 && (
+                  {!performersLoading && performersError && (
+                    <div className="px-5 py-4">
+                      <ErrorState message={performersError} onRetry={() => setRefreshTick((t) => t + 1)} />
+                    </div>
+                  )}
+
+                  {!performersLoading && !performersError && performers.length === 0 && (
                     <p className="px-5 py-6 text-center text-[12.5px] text-gray-600">No race history yet.</p>
                   )}
 
-                  {!performersLoading && performers.map((p, i) => (
+                  {!performersLoading && !performersError && performers.map((p, i) => (
                     <div key={String(p.id)} className="flex items-center gap-3 px-5 py-4">
                       <span
                         className={`text-[18px] font-bold w-6 text-center shrink-0 font-sans ${i === 0 ? "text-red-500" : "text-gray-600"}`}
@@ -377,11 +415,17 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
               </div>
             ))}
 
-            {!racesLoading && races.length === 0 && (
+            {!racesLoading && racesError && (
+              <div className="w-full py-4">
+                <ErrorState message={racesError} onRetry={() => setRefreshTick((t) => t + 1)} />
+              </div>
+            )}
+
+            {!racesLoading && !racesError && races.length === 0 && (
               <p className="text-[13px] text-gray-600 py-4">No active races at the moment.</p>
             )}
 
-            {!racesLoading && races.map((race) => {
+            {!racesLoading && !racesError && races.map((race) => {
               const statusCfg = RACE_STATUS_CFG[race.status] ?? { label: race.status, cls: "text-gray-400 bg-white/5 border-white/10" };
               return (
                 <div
@@ -468,7 +512,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
             })}
 
             {/* Load more card */}
-            {!racesLoading && racesHasMore && (
+            {!racesLoading && !racesError && racesHasMore && (
               <div className="shrink-0 w-44 self-stretch flex items-center justify-center">
                 <button
                   onClick={loadMoreRaces}
