@@ -23,7 +23,10 @@ import {
 } from '../../api/jockeyApi';
 import { useAuth } from '../../auth/AuthContext';
 import { useSocket } from '../../socket/SocketContext';
+import { isNetworkError } from '../../api/axios';
 import { Fonts } from '@/constants/theme';
+import { RefetchButton } from '@/components/RefetchButton';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -255,20 +258,34 @@ export default function DashboardScreen() {
   const [allRaces, setAllRaces] = useState<RaceScheduleItem[]>([]);
   const [allRacesTotal, setAllRacesTotal] = useState(0);
   const [isLoadingAllRaces, setIsLoadingAllRaces] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [error, setError] = useState(false);
+  const [allRacesError, setAllRacesError] = useState(false);
 
   const load = async (silent = false) => {
     if (!silent) setIsLoading(true);
-    const data = await getMyRaceSchedule();
-    setSchedule(data);
+    try {
+      const data = await getMyRaceSchedule();
+      setSchedule(data);
+      setError(false);
+    } catch (err) {
+      if (isNetworkError(err)) setError(true);
+    }
     setIsLoading(false);
     setIsRefreshing(false);
+    setLastUpdated(Date.now());
   };
 
   const loadAllRaces = async (filter: ScheduleFilter, silent = false) => {
     if (!silent) setIsLoadingAllRaces(true);
-    const result = await getAllRaces(filter);
-    setAllRaces(result.raceRounds);
-    setAllRacesTotal(result.meta.total);
+    try {
+      const result = await getAllRaces(filter);
+      setAllRaces(result.raceRounds);
+      setAllRacesTotal(result.meta.total);
+      setAllRacesError(false);
+    } catch (err) {
+      if (isNetworkError(err)) setAllRacesError(true);
+    }
     setIsLoadingAllRaces(false);
   };
 
@@ -342,6 +359,7 @@ export default function DashboardScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>HOME</Text>
+          <RefetchButton onRefetch={onRefresh} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.red} />
         </View>
 
         <ScrollView
@@ -401,6 +419,14 @@ export default function DashboardScreen() {
           {isLoading ? (
             <View style={styles.loadingCard}>
               <ActivityIndicator color={Palette.red} />
+            </View>
+          ) : error ? (
+            <View style={styles.noRaceCard}>
+              <NoConnectionState
+                onRetry={() => load()}
+                accentColor={Palette.red}
+                mutedColor={Palette.textMuted}
+              />
             </View>
           ) : nextRace ? (
             <NextRaceCard item={nextRace} />
@@ -469,6 +495,12 @@ export default function DashboardScreen() {
             <View style={styles.loadingCard}>
               <ActivityIndicator color={Palette.red} />
             </View>
+          ) : allRacesError ? (
+            <NoConnectionState
+              onRetry={() => loadAllRaces(allRacesFilter)}
+              accentColor={Palette.red}
+              mutedColor={Palette.textMuted}
+            />
           ) : allRaces.length === 0 ? (
             <View style={styles.allRacesEmpty}>
               <Ionicons name="calendar-outline" size={32} color={Palette.textMuted} />

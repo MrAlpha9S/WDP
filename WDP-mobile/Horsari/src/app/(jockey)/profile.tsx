@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -18,7 +19,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getMyProfile, JockeyProfileData } from '../../api/jockeyApi';
+import { isNetworkError, NETWORK_ERROR_MESSAGE } from '../../api/axios';
 import { Fonts } from '@/constants/theme';
+import { RefetchButton } from '@/components/RefetchButton';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -45,24 +49,55 @@ function attendanceLabel(attendance: JockeyProfileData['recentRaces'][number]['a
   return null;
 }
 
+// Escalating severity color scale for a violation's steward action.
+function stewardActionColor(action: string): string {
+  switch (action) {
+    case 'disqualified':
+    case 'permanent-ban':
+      return Palette.red;
+    case 'fine':
+    case 'suspended':
+    case 'demoted':
+      return '#E07B3A';
+    case 'investigation':
+      return Palette.gold;
+    default: // no-action, warning
+      return Palette.textMuted;
+  }
+}
+
+function violationStatusStyle(v: JockeyProfileData['violations'][number]): { color: string; label: string } {
+  if (v.violationStatus === 'dismissed') return { color: Palette.textMuted, label: 'Dismissed' };
+  if (v.violationStatus === 'pending') return { color: Palette.gold, label: 'Pending Review' };
+  return { color: stewardActionColor(v.stewardAction), label: 'Confirmed' };
+}
+
 export default function ProfileScreen() {
   const router = useRouter();
   const [biometricOn, setBiometricOn] = useState(false);
   const [profile, setProfile] = useState<JockeyProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const { logout, session } = useAuth();
 
-  const load = async () => {
-    setIsLoading(true);
-    setError(null);
-    const data = await getMyProfile();
-    if (data) {
-      setProfile(data);
-    } else {
-      setError('Could not load profile. Please try again.');
+  const load = async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    if (!silent) setError(null);
+    try {
+      const data = await getMyProfile();
+      if (data) {
+        setProfile(data);
+      } else {
+        setError('Could not load profile. Please try again.');
+      }
+    } catch (err: any) {
+      setError(isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Could not load profile. Please try again.');
     }
     setIsLoading(false);
+    setIsRefreshing(false);
+    setLastUpdated(Date.now());
   };
 
   // Fetches on mount and whenever this screen regains focus (e.g. returning
@@ -72,6 +107,11 @@ export default function ProfileScreen() {
       load();
     }, [])
   );
+
+  const onRefresh = () => {
+    setIsRefreshing(true);
+    load(true);
+  };
 
   const numericPositions = (profile?.recentRaces ?? [])
     .map((r) => parsePosition(r.position))
@@ -97,11 +137,12 @@ export default function ProfileScreen() {
       <View style={styles.root}>
         <StatusBar style="light" />
         <SafeAreaView style={[styles.safeArea, styles.center]} edges={['top']}>
-          <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
-          <Text style={styles.emptyText}>{error}</Text>
-          <Pressable style={styles.retryBtn} onPress={load}>
-            <Text style={styles.retryText}>RETRY</Text>
-          </Pressable>
+          <NoConnectionState
+            onRetry={() => load()}
+            message={error ?? undefined}
+            accentColor={Palette.red}
+            mutedColor={Palette.textMuted}
+          />
         </SafeAreaView>
       </View>
     );
@@ -122,11 +163,15 @@ export default function ProfileScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>MY PROFILE</Text>
+          <RefetchButton onRefetch={() => load(true)} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.red} />
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scroll}>
+          contentContainerStyle={styles.scroll}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={Palette.red} />
+          }>
 
           {/* ─── Hero card ─── */}
           <View style={styles.heroCard}>
@@ -242,6 +287,48 @@ export default function ProfileScreen() {
               ))
             )}
           </View>
+
+          {/* ─── Violations ─── */}
+          {profile.violations.length > 0 && (
+            <>
+              <Text style={styles.cardSectionTitle}>Violations</Text>
+              <View style={styles.raceList}>
+                {[...profile.violations]
+                  .sort((a, b) => (a.violationStatus === 'dismissed' ? 1 : 0) - (b.violationStatus === 'dismissed' ? 1 : 0))
+                  .map((v, i, arr) => {
+                    const status = violationStatusStyle(v);
+                    return (
+                      <View key={v._id}>
+                        <View style={[styles.raceRow, v.violationStatus === 'dismissed' && styles.violationDismissed]}>
+                          <View style={styles.raceBody}>
+                            <Text style={styles.raceName} numberOfLines={1}>
+                              {v.violationType?.violationName ?? 'Violation'}
+                            </Text>
+                            <Text style={styles.raceMeta} numberOfLines={2}>{v.description}</Text>
+                            {v.raceRound?.roundName && (
+                              <Text style={styles.raceMeta} numberOfLines={1}>{v.raceRound.roundName}</Text>
+                            )}
+                          </View>
+                          <View style={styles.violationBadges}>
+                            <View style={[styles.violationBadge, { borderColor: stewardActionColor(v.stewardAction) }]}>
+                              <Text style={[styles.violationBadgeText, { color: stewardActionColor(v.stewardAction) }]}>
+                                {v.stewardAction.replace('-', ' ').toUpperCase()}
+                              </Text>
+                            </View>
+                            <View style={[styles.violationBadge, { borderColor: status.color }]}>
+                              <Text style={[styles.violationBadgeText, { color: status.color }]}>
+                                {status.label.toUpperCase()}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                        {i < arr.length - 1 && <View style={styles.raceDivider} />}
+                      </View>
+                    );
+                  })}
+              </View>
+            </>
+          )}
 
           {/* ─── Account Settings ─── */}
           <View style={styles.settingsCard}>
@@ -525,6 +612,22 @@ const styles = StyleSheet.create({
     color: Palette.textMuted,
   },
   raceDivider: { height: 1, backgroundColor: Palette.cardBorder, marginHorizontal: 14 },
+
+  // Violations
+  violationDismissed: { opacity: 0.5 },
+  violationBadges: { alignItems: 'flex-end', gap: 4 },
+  violationBadge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  violationBadgeText: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
 
   // Settings
   settingsCard: {

@@ -21,6 +21,8 @@ import {
 } from '../../api/jockeyApi';
 import { useSocket } from '../../socket/SocketContext';
 import { Fonts } from '@/constants/theme';
+import { RefetchButton } from '@/components/RefetchButton';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -62,6 +64,7 @@ function formatFee(bookingFees: number | undefined, pct: number | undefined): st
 // ─── Status colour helper (shared by card + sheet) ───────────────────────────
 
 function getStatusStyle(inv: InvitationItem): { color: string; label: string } {
+  if (inv.invitationStatus === 'didNotAttend') return { color: Palette.textMuted, label: 'No-Show' };
   if (inv.invitationStatus === 'declined')  return { color: Palette.red,     label: 'Declined'   };
   if (inv.invitationStatus === 'accepted')  return { color: '#22C55E',        label: 'Accepted' };
   if (inv.invitationStatus === 'cancelled') return { color: Palette.textMuted, label: 'Cancelled'      };
@@ -300,12 +303,13 @@ function InviteDetailSheet({
 
 // ─── Filter ───────────────────────────────────────────────────────────────────
 
-type FilterKey = 'pending' | 'confirmed' | 'declined';
+type FilterKey = 'pending' | 'confirmed' | 'declined' | 'noShow';
 
 const FILTERS: { key: FilterKey; label: string; color: string }[] = [
   { key: 'pending',   label: 'Awaiting Response', color: Palette.gold },
   { key: 'confirmed', label: 'Confirmed',         color: Palette.green },
   { key: 'declined',  label: 'Declined',          color: Palette.red  },
+  { key: 'noShow',    label: 'No-Show',           color: Palette.textMuted },
 ];
 
 function applyFilter(all: InvitationItem[], filter: FilterKey): InvitationItem[] {
@@ -316,6 +320,8 @@ function applyFilter(all: InvitationItem[], filter: FilterKey): InvitationItem[]
       return all.filter((i) => i.jockeyConfirmation === true);
     case 'declined':
       return all.filter((i) => i.invitationStatus === 'declined');
+    case 'noShow':
+      return all.filter((i) => i.invitationStatus === 'didNotAttend');
   }
 }
 
@@ -329,6 +335,7 @@ export default function InvitesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [selectedInvite, setSelectedInvite] = useState<InvitationItem | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   const invites = applyFilter(allInvites, activeFilter);
 
@@ -345,6 +352,7 @@ export default function InvitesScreen() {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setLastUpdated(Date.now());
     }
   };
 
@@ -407,6 +415,7 @@ export default function InvitesScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>INVITES</Text>
+          <RefetchButton onRefetch={() => load(true)} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.red} />
         </View>
 
         {/* ─── Filter bar ─── */}
@@ -443,13 +452,12 @@ export default function InvitesScreen() {
             <ActivityIndicator color={Palette.red} size="large" />
           </View>
         ) : error && invites.length === 0 ? (
-          <View style={styles.center}>
-            <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
-            <Text style={styles.emptyText}>{error}</Text>
-            <Pressable style={styles.retryBtn} onPress={() => load()}>
-              <Text style={styles.retryText}>RETRY</Text>
-            </Pressable>
-          </View>
+          <NoConnectionState
+            onRetry={() => load()}
+            message={error}
+            accentColor={Palette.red}
+            mutedColor={Palette.textMuted}
+          />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}

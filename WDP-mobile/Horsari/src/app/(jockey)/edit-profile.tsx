@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getMyProfile, updateMyProfile, updateMyLicense } from '../../api/jockeyApi';
 import { uploadAvatar } from '../../api/profileApi';
+import { isNetworkError, NETWORK_ERROR_MESSAGE } from '../../api/axios';
 import { Fonts } from '@/constants/theme';
 
 const LICENSE_BADGE_COLOR: Record<string, string> = {
@@ -50,6 +51,7 @@ export default function EditProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const [bookingFee, setBookingFee] = useState('');
   const [weight, setWeight] = useState('');
@@ -65,8 +67,10 @@ export default function EditProfileScreen() {
   const [licenseLink, setLicenseLink] = useState<string | null>(null);
   const [isUploadingLicense, setIsUploadingLicense] = useState(false);
 
-  useEffect(() => {
-    (async () => {
+  const load = async () => {
+    setIsLoading(true);
+    setLoadFailed(false);
+    try {
       const profile = await getMyProfile();
       if (profile) {
         setBookingFee(profile.jockey.bookingFee ? String(profile.jockey.bookingFee) : '');
@@ -81,10 +85,16 @@ export default function EditProfileScreen() {
         setLicenseLink(profile.jockey.licenseLink ?? null);
       } else {
         setErrorMsg('Could not load profile. Please try again.');
+        setLoadFailed(true);
       }
-      setIsLoading(false);
-    })();
-  }, []);
+    } catch (err: any) {
+      setErrorMsg(isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Could not load profile. Please try again.');
+      setLoadFailed(true);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const handlePickAvatar = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -223,6 +233,11 @@ export default function EditProfileScreen() {
               <View style={styles.errorBanner}>
                 <Ionicons name="alert-circle-outline" size={16} color="#FF6B6B" />
                 <Text style={styles.errorText}>{errorMsg}</Text>
+                {loadFailed && (
+                  <Pressable onPress={load} hitSlop={8}>
+                    <Text style={styles.errorRetryText}>RETRY</Text>
+                  </Pressable>
+                )}
               </View>
             )}
 
@@ -443,6 +458,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: { flex: 1, fontSize: 13, color: '#FF6B6B', lineHeight: 18 },
+  errorRetryText: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: Palette.red,
+  },
 
   fieldLabel: {
     fontFamily: Fonts.mono,

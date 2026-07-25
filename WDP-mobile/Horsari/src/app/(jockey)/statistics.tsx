@@ -19,7 +19,10 @@ import {
   JockeyStatistics,
   EarningsSeries,
 } from '../../api/jockeyApi';
+import { isNetworkError } from '../../api/axios';
 import { Fonts } from '@/constants/theme';
+import { RefetchButton } from '@/components/RefetchButton';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -105,28 +108,41 @@ export default function JockeyStatisticsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSeriesLoading, setIsSeriesLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [error, setError] = useState(false);
 
   const load = async (silent = false) => {
     if (!silent) setIsLoading(true);
-    const [s, es] = await Promise.all([
-      getJockeyStatistics(),
-      getEarningsSeries(groupBy),
-    ]);
-    setStats(s);
-    setSeries(es);
+    try {
+      const [s, es] = await Promise.all([
+        getJockeyStatistics(),
+        getEarningsSeries(groupBy),
+      ]);
+      setStats(s);
+      setSeries(es);
+      setError(false);
+    } catch (err) {
+      if (isNetworkError(err)) setError(true);
+    }
     setIsLoading(false);
     setIsSeriesLoading(false);
     setIsRefreshing(false);
+    setLastUpdated(Date.now());
   };
 
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
     setIsSeriesLoading(true);
-    getEarningsSeries(groupBy).then((es) => {
-      setSeries(es);
-      setIsSeriesLoading(false);
-    });
+    getEarningsSeries(groupBy)
+      .then((es) => {
+        setSeries(es);
+        setIsSeriesLoading(false);
+      })
+      .catch((err) => {
+        if (isNetworkError(err)) setError(true);
+        setIsSeriesLoading(false);
+      });
   }, [groupBy]);
 
   const onRefresh = () => { setIsRefreshing(true); load(true); };
@@ -146,13 +162,19 @@ export default function JockeyStatisticsScreen() {
             <Ionicons name="chevron-back" size={22} color={Palette.text} />
           </Pressable>
           <Text style={styles.headerTitle}>STATISTICS</Text>
-          <View style={{ width: 22 }} />
+          <RefetchButton onRefetch={() => load(true)} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.red} />
         </View>
 
         {isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator color={Palette.red} size="large" />
           </View>
+        ) : error ? (
+          <NoConnectionState
+            onRetry={() => load()}
+            accentColor={Palette.red}
+            mutedColor={Palette.textMuted}
+          />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
