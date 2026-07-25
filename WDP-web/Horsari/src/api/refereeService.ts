@@ -1,4 +1,4 @@
-import api from './axios';
+import api, { NETWORK_ERROR_MESSAGE } from './axios';
 import type { RaceRoundData } from './adminService';
 import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
 import type { RaceRoundDetail } from '../providers/useRaceSocket';
@@ -184,7 +184,7 @@ export const refereeService = {
             const response = await api.get('/referee/my-profile');
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to fetch profile' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -193,7 +193,7 @@ export const refereeService = {
             const response = await api.put('/referee/my-profile', payload);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to update profile' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -209,7 +209,7 @@ export const refereeService = {
             });
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to update license' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -230,7 +230,7 @@ export const refereeService = {
             console.log('getRefereeRaceRounds:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -251,7 +251,7 @@ export const refereeService = {
             console.log('getRefereeTournaments:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -261,7 +261,7 @@ export const refereeService = {
             console.log('getActiveRules:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -276,7 +276,7 @@ export const refereeService = {
             console.log('getRefereeInvitations:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -286,7 +286,7 @@ export const refereeService = {
             console.log('acceptInvitation:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -296,7 +296,7 @@ export const refereeService = {
             console.log('rejectInvitation:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -306,7 +306,7 @@ export const refereeService = {
             console.log('getRaceRoundById:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -328,7 +328,7 @@ export const refereeService = {
             );
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -342,7 +342,7 @@ export const refereeService = {
             );
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -352,7 +352,7 @@ export const refereeService = {
             const response = await api.put(`/referee/invitations/${invitationId}/no-show`);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -363,7 +363,7 @@ export const refereeService = {
             const response = await api.post(`/referee/race-rounds/${raceRoundId}/finalize`);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -383,7 +383,7 @@ export const refereeService = {
             console.log('getViolationTypes:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -405,7 +405,7 @@ export const refereeService = {
             const response = await api.get('/referee/violations', { params });
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to fetch violations' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -424,7 +424,7 @@ export const refereeService = {
             console.log('getRaceRoundViolations:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -439,7 +439,7 @@ export const refereeService = {
             console.log('createViolation:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -449,7 +449,7 @@ export const refereeService = {
             console.log('confirmViolation:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -459,7 +459,7 @@ export const refereeService = {
             console.log('deleteViolation:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -471,7 +471,7 @@ export const refereeService = {
             console.log('confirmRaceResult:', response.data);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || error;
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -484,7 +484,7 @@ export const refereeService = {
             const response = await api.get('/referee/wallet');
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to fetch wallet info' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -493,7 +493,7 @@ export const refereeService = {
             const response = await api.get('/referee/statistics');
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to fetch statistics' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -505,7 +505,7 @@ export const refereeService = {
             const response = await api.get('/referee/statistics/earnings-series', { params: { groupBy } });
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to fetch fees earnings series' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -521,7 +521,7 @@ export const refereeService = {
             const response = await api.get('/referee/work-history', { params });
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to fetch work history' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -539,7 +539,7 @@ export const refereeService = {
             const response = await api.get('/referee/payments', { params });
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to fetch payments' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 
@@ -548,7 +548,7 @@ export const refereeService = {
             const response = await api.put(`/referee/payments/${paymentId}/confirm-received`);
             return response.data;
         } catch (error: any) {
-            throw error.response?.data || { msg: 'Failed to confirm payment' };
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
         }
     },
 };
