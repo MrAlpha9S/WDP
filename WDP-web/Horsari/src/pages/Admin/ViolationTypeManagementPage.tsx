@@ -3,6 +3,7 @@ import { Search, ShieldAlert, CheckCircle, XCircle, ArrowUpDown, ArrowUp, ArrowD
 import ViolationTypeModal from "./AdminComponents/ViolationTypeModal";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
+import { ErrorState } from "../../components/ErrorState";
 import type { ViolationTypeEntity, ViolationRacePhase, ViolationCategory } from "../../shared/types/ViolationTypes";
 
 const PHASE_BADGE: Record<ViolationRacePhase, string> = {
@@ -24,6 +25,7 @@ const SEVERITY_COLOR = ['', 'text-green-400', 'text-yellow-400', 'text-orange-40
 export default function ViolationTypeManagementPage() {
     const [items, setItems] = useState<ViolationTypeEntity[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState<string>('All');
     const [categoryFilter, setCategoryFilter] = useState<string>('All');
@@ -56,6 +58,7 @@ export default function ViolationTypeManagementPage() {
     const fetchTypes = useCallback(async () => {
         try {
             setLoading(true);
+            setError(null);
             const res = await adminService.getAllViolationTypes(
                 page, LIMIT,
                 search || undefined,
@@ -67,8 +70,9 @@ export default function ViolationTypeManagementPage() {
             const list: ViolationTypeEntity[] = res.data?.items ?? [];
             setItems(list);
             setTotalItems(res.data?.pagination?.totalItems ?? list.length);
-        } catch {
+        } catch (err: any) {
             setItems([]);
+            setError(err?.msg ?? "Failed to load violation types.");
         } finally {
             setLoading(false);
         }
@@ -207,7 +211,7 @@ export default function ViolationTypeManagementPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {items.map(item => (
+                                    {!error && items.map(item => (
                                         <tr
                                             key={item._id}
                                             onClick={() => openEdit(item)}
@@ -270,6 +274,8 @@ export default function ViolationTypeManagementPage() {
                                     ))}
                                     {loading ? (
                                         <tr><td colSpan={7} className="p-8 text-center text-[13px] text-gray-500">Loading…</td></tr>
+                                    ) : error ? (
+                                        <tr><td colSpan={7} className="p-4"><ErrorState message={error} onRetry={fetchTypes} /></td></tr>
                                     ) : items.length === 0 ? (
                                         <tr><td colSpan={7}>
                                             <div className="py-10 text-center">

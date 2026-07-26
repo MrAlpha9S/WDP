@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getMyRaceSchedule, ScheduleItem } from '../../api/jockeyApi';
 import { Fonts } from '@/constants/theme';
+import { RefetchButton } from '@/components/RefetchButton';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -93,6 +95,7 @@ export default function ScheduleScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   const load = async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -105,6 +108,7 @@ export default function ScheduleScreen() {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setLastUpdated(Date.now());
     }
   };
 
@@ -130,6 +134,7 @@ export default function ScheduleScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>RACE SCHEDULE</Text>
+          <RefetchButton onRefetch={() => load(true)} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.red} />
         </View>
 
         {/* ─── Body ─── */}
@@ -138,13 +143,12 @@ export default function ScheduleScreen() {
             <ActivityIndicator color={Palette.red} size="large" />
           </View>
         ) : error ? (
-          <View style={styles.center}>
-            <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
-            <Text style={styles.emptyText}>{error}</Text>
-            <Pressable style={styles.retryBtn} onPress={() => load()}>
-              <Text style={styles.retryText}>RETRY</Text>
-            </Pressable>
-          </View>
+          <NoConnectionState
+            onRetry={() => load()}
+            message={error}
+            accentColor={Palette.red}
+            mutedColor={Palette.textMuted}
+          />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}

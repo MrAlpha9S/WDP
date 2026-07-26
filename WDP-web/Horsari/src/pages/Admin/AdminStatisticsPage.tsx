@@ -6,6 +6,8 @@ import type {
     DashboardPredictions, MostPredictedHorse, SpectatorLeaderboardEntry,
 } from "../../api/adminService";
 import { Users, Trophy, ClipboardList, Wallet, Zap } from "lucide-react";
+import { useSocket } from "../../providers/SocketProvider";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type GroupBy = "day" | "week" | "month" | "year";
@@ -311,35 +313,60 @@ export default function AdminStatisticsPage() {
     const [leaderboard, setLeaderboard] = useState<SpectatorLeaderboardEntry[]>([]);
     const [leaderboardLoading, setLeaderboardLoading] = useState(true);
 
+    // Aggregate error surfaced when ANY of the 5 independent panels fails to
+    // load — individual panels still degrade gracefully to null/empty so one
+    // failure doesn't blank the whole dashboard, but the user gets told.
+    const [error, setError] = useState<string | null>(null);
+
     const fetchHouseEarnings = useCallback(async (g: GroupBy) => {
         setEarningsLoading(true);
         try {
             const r = await adminService.getDashboardHouseEarnings(g);
             setHouseEarnings(r.data);
-        } catch { setHouseEarnings(null); }
+        } catch (err: any) { setHouseEarnings(null); setError(err?.msg ?? "Failed to load statistics."); }
         finally { setEarningsLoading(false); }
     }, []);
 
-    useEffect(() => {
+    const refetchAll = useCallback(() => {
+        setError(null);
+
         // All 5 fetches fire simultaneously — no panel blocks another
         adminService.getDashboardKpi()
-            .then(r => setKpi(r.data)).catch(() => setKpi(null))
+            .then(r => setKpi(r.data))
+            .catch((err: any) => { setKpi(null); setError(err?.msg ?? "Failed to load statistics."); })
             .finally(() => setKpiLoading(false));
 
         fetchHouseEarnings(groupBy);
 
         adminService.getDashboardTopPerformers()
-            .then(r => setTopPerformers(r.data)).catch(() => setTopPerformers(null))
+            .then(r => setTopPerformers(r.data))
+            .catch((err: any) => { setTopPerformers(null); setError(err?.msg ?? "Failed to load statistics."); })
             .finally(() => setPerformersLoading(false));
 
         adminService.getDashboardPredictions()
-            .then(r => setPredictions(r.data)).catch(() => setPredictions(null))
+            .then(r => setPredictions(r.data))
+            .catch((err: any) => { setPredictions(null); setError(err?.msg ?? "Failed to load statistics."); })
             .finally(() => setPredictionsLoading(false));
 
         adminService.getDashboardSpectatorLeaderboard()
-            .then(r => setLeaderboard(r.data.spectatorLeaderboard)).catch(() => setLeaderboard([]))
+            .then(r => setLeaderboard(r.data.spectatorLeaderboard))
+            .catch((err: any) => { setLeaderboard([]); setError(err?.msg ?? "Failed to load statistics."); })
             .finally(() => setLeaderboardLoading(false));
+    }, [fetchHouseEarnings, groupBy]);
+
+    useEffect(() => {
+        refetchAll();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Prize payouts, house-take, and jockey/referee fees all flow through
+    // Transaction docs — refetch the whole dashboard live when any settle.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket) return;
+        socket.on("transaction_updated", refetchAll);
+        return () => { socket.off("transaction_updated", refetchAll); };
+    }, [socket, refetchAll]);
 
     const handleGroupByChange = (g: GroupBy) => {
         setGroupBy(g);
@@ -359,6 +386,12 @@ export default function AdminStatisticsPage() {
                         Meaningful KPIs, rankings, and financial trends across the platform.
                     </p>
                 </div>
+
+                {error && (
+                    <div className="mb-6">
+                        <ErrorState message={error} onRetry={refetchAll} />
+                    </div>
+                )}
 
                 {/* Row 1 — 6 KPI stat cards (fastest to load) */}
                 <div className="grid grid-cols-2 xl:grid-cols-6 gap-4 mb-6">

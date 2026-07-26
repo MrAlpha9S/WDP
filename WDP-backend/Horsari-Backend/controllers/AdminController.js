@@ -115,8 +115,16 @@ class AdminController {
         const raceRound_id = req.query.raceRound_id || null;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const { status, search, sortBy = 'raceDate', order = 'desc' } = req.query;
-        const response = await AdminService.getRaceRounds(tournament_id, raceRound_id, page, limit, status, search, sortBy, order);
+        const { status, search, sortBy = 'raceDate', order = 'desc', raceType } = req.query;
+        const response = await AdminService.getRaceRounds(tournament_id, raceRound_id, page, limit, status, search, sortBy, order, raceType || null);
+        return res.status(response.code).json(response);
+    }
+
+    // Get distinct race types (for the race-type filter dropdown)
+    async getRaceTypes(req, res) {
+        const { isActive } = req.query;
+        const isActiveBool = isActive === 'true' ? true : isActive === 'false' ? false : null;
+        const response = await AdminService.getDistinctRaceTypes(isActiveBool);
         return res.status(response.code).json(response);
     }
 

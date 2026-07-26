@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Search, User, CheckCircle, XCircle, Clock, Loader2,
     ArrowUpDown, ArrowUp, ArrowDown,
@@ -6,6 +6,8 @@ import {
 import UserDetailPanel from "./AdminComponents/UserDetailPanel";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
+import { useSocket } from "../../providers/SocketProvider";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -304,6 +306,7 @@ export default function AdminUsersPage() {
     const [selectedUser, setSelectedUser] = useState<FullUser | null>(null);
     const [users, setUsers] = useState<FullUser[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [detailLoading, setDetailLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -331,44 +334,61 @@ export default function AdminUsersPage() {
     // Reset to page 1 when filters change
     useEffect(() => { setPage(1); }, [roleFilter, search, limit]);
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                setLoading(true);
-                const skip = (page - 1) * limit;
-                const res = await adminService.getAllUsers(roleFilter, search, limit, skip, sortBy, order);
-                const mapped = (res?.data?.items || []).map(mapUser);
-                setUsers(mapped);
-                setTotalItems(res?.data?.pagination?.totalItems ?? mapped.length);
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        const timer = setTimeout(fetchUsers, 300);
-        return () => clearTimeout(timer);
+    const fetchUsers = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const skip = (page - 1) * limit;
+            const res = await adminService.getAllUsers(roleFilter, search, limit, skip, sortBy, order);
+            const mapped = (res?.data?.items || []).map(mapUser);
+            setUsers(mapped);
+            setTotalItems(res?.data?.pagination?.totalItems ?? mapped.length);
+        } catch (err: any) {
+            console.error(err);
+            setError(err?.msg ?? "Failed to load users.");
+        } finally {
+            setLoading(false);
+        }
     }, [roleFilter, search, limit, page, sortBy, order]);
 
     useEffect(() => {
+        const timer = setTimeout(fetchUsers, 300);
+        return () => clearTimeout(timer);
+    }, [fetchUsers]);
+
+    const fetchDetail = useCallback(async () => {
         if (!selectedUser) return;
-        let cancelled = false;
-        const fetchDetail = async () => {
-            setDetailLoading(true);
-            try {
-                const res = await adminService.getUsersDetail(selectedUser.userId);
-                if (!cancelled && res?.data) {
-                    setSelectedUser(prev => prev ? mergeRoleDetail(prev, res.data) : prev);
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                if (!cancelled) setDetailLoading(false);
+        setDetailLoading(true);
+        try {
+            const res = await adminService.getUsersDetail(selectedUser.userId);
+            if (res?.data) {
+                setSelectedUser(prev => prev ? mergeRoleDetail(prev, res.data) : prev);
             }
-        };
-        fetchDetail();
-        return () => { cancelled = true; };
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setDetailLoading(false);
+        }
     }, [selectedUser?.userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        fetchDetail();
+    }, [fetchDetail]);
+
+    // Any change to the User collection or a role-extension collection
+    // (license verification, status suspend/activate, delete, profile edit)
+    // broadcasts user_updated from any of the 6 backend watchers — refetch
+    // both the list and the open detail panel live.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket) return;
+        const handler = () => {
+            fetchUsers();
+            if (selectedUser) fetchDetail();
+        };
+        socket.on("user_updated", handler);
+        return () => { socket.off("user_updated", handler); };
+    }, [socket, fetchUsers, fetchDetail, selectedUser]);
 
     const filtered = users;
 
@@ -487,6 +507,12 @@ export default function AdminUsersPage() {
                                                     <Loader2 size={22} className="text-gray-500 animate-spin mb-2" />
                                                     <p className="text-[12px] text-gray-600">Loading users...</p>
                                                 </div>
+                                            </td>
+                                        </tr>
+                                    ) : error ? (
+                                        <tr>
+                                            <td colSpan={6} className="p-4">
+                                                <ErrorState message={error} onRetry={fetchUsers} />
                                             </td>
                                         </tr>
                                     ) : filtered.length === 0 ? (

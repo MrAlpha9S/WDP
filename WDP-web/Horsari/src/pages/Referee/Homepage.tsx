@@ -8,6 +8,8 @@ import type { RaceRoundData } from "../../api/adminService";
 import type { RefereeWalletInfo } from "../../api/refereeService";
 import PaymentsPanel from "../../components/PaymentsPanel";
 import { useSocket } from "../../providers/SocketProvider";
+import { RefetchButton } from "../../components/RefetchButton";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -16,8 +18,10 @@ export default function HomePage() {
     const [activeRules, setActiveRules] = useState<any[]>([]);
     const [invites, setInvites] = useState<RecentInvite[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [walletInfo, setWalletInfo] = useState<RefereeWalletInfo | null>(null);
     const [refreshTick, setRefreshTick] = useState(0);
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
     // Live refetch on any notification addressed to this referee.
     const { socket } = useSocket();
@@ -31,6 +35,7 @@ export default function HomePage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
+                setError(null);
                 const [res, rulesRes, invitesRes, walletRes] = await Promise.all([
                     refereeService.getRefereeRaceRounds(),
                     refereeService.getActiveRules(),
@@ -78,10 +83,12 @@ export default function HomePage() {
                     });
                     setInvites(mappedInvites);
                 }
-            } catch (error) {
-                console.error("Failed to fetch referee dashboard data", error);
+            } catch (err: any) {
+                console.error("Failed to fetch referee dashboard data", err);
+                setError(err?.msg ?? "Failed to fetch dashboard data.");
             } finally {
                 setLoading(false);
+                setLastUpdated(Date.now());
             }
         };
         fetchData();
@@ -104,18 +111,16 @@ export default function HomePage() {
                         </p>
                     </div>
 
-                    {walletInfo && (
-                        <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 shrink-0">
-                            <Wallet size={15} className="text-emerald-500" />
-                            <div>
-                                <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Wallet</p>
-                                <p className="text-[14px] font-bold text-white leading-tight">
-                                    {walletInfo.referee.wallet.toLocaleString("vi-VN")} ₫
-                                </p>
-                            </div>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <RefetchButton onRefetch={() => setRefreshTick((t) => t + 1)} lastUpdated={lastUpdated} />
+                    </div>
                 </div>
+
+                {error && !loading && (
+                    <div className="mb-6">
+                        <ErrorState message={error} onRetry={() => setRefreshTick((t) => t + 1)} />
+                    </div>
+                )}
 
                 {/* Main grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
@@ -132,6 +137,17 @@ export default function HomePage() {
 
                 {/* Payments awaiting referee confirmation (referee fee) */}
                 <div className="mt-6">
+                    {walletInfo && (
+                        <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 mb-4 w-fit">
+                            <Wallet size={15} className="text-emerald-500" />
+                            <div>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Wallet</p>
+                                <p className="text-[14px] font-bold text-white leading-tight">
+                                    {walletInfo.referee.wallet.toLocaleString("vi-VN")} ₫
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     <PaymentsPanel
                         title="Payments Awaiting Your Confirmation"
                         fetchPayments={(page, sortBy, order) => refereeService.getPayments(page, 10, undefined, 'payee', sortBy, order)}

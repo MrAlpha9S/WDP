@@ -7,6 +7,8 @@ import {
 import { horseOwnerService, type FinancialSummary, type FinancialRaceRow } from "../../../api/horseOwnerService";
 import PaymentsPanel from "../../../components/PaymentsPanel";
 import { useSocket } from "../../../providers/SocketProvider";
+import { RefetchButton } from "../../../components/RefetchButton";
+import { ErrorState } from "../../../components/ErrorState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type ChartRange = "day" | "week" | "month" | "year";
@@ -245,11 +247,13 @@ export default function FinancialsPage() {
 
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const [rows, setRows] = useState<FinancialRaceRow[]>([]);
   const [rowsLoading, setRowsLoading] = useState(true);
   const [rowsError, setRowsError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -265,14 +269,22 @@ export default function FinancialsPage() {
   const fetchSummary = useCallback(async () => {
     try {
       setSummaryLoading(true);
+      setSummaryError(null);
       const res = await horseOwnerService.getFinancialSummary();
       setSummary(res.data);
-    } catch {
-      // leave summary as-is
+    } catch (err: any) {
+      // leave summary as-is, but surface the failure
+      setSummaryError(err?.msg ?? "Failed to load financial summary.");
     } finally {
       setSummaryLoading(false);
+      setLastUpdated(Date.now());
     }
   }, []);
+
+  const refetchAll = useCallback(() => {
+    fetchSummary();
+    setRefreshTick((t) => t + 1);
+  }, [fetchSummary]);
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
@@ -328,6 +340,7 @@ export default function FinancialsPage() {
           <p className="text-[13px] text-gray-500 mt-1">Track your horse's performance, race earnings, and payments.</p>
         </div>
         <div className="flex items-center gap-3 mt-1">
+          <RefetchButton onRefetch={refetchAll} lastUpdated={lastUpdated} />
           <div className="bg-[#1a1a1a] border border-white/10 rounded-xl px-5 py-3 text-center">
             <p className="text-[9.5px] font-bold tracking-widest text-gray-500 uppercase mb-1">Net Profit</p>
             <p className="text-[18px] font-black text-white font-sans">
@@ -344,6 +357,12 @@ export default function FinancialsPage() {
           </div>
         </div>
       </div>
+
+      {summaryError && !summaryLoading && (
+        <div className="mb-6">
+          <ErrorState message={summaryError} onRetry={fetchSummary} />
+        </div>
+      )}
 
       {/* ── Stat cards ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4 mb-6">

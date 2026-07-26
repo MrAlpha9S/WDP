@@ -4,6 +4,7 @@ import { usePaginatedFetch } from "../hooks/usePaginatedFetch";
 import { Pagination } from "./Pagination";
 import { useSocket } from "../providers/SocketProvider";
 import type { PaymentEntity, PaymentStatus, PaymentsResponse } from "../api/paymentTypes";
+import { ErrorState } from "./ErrorState";
 
 // Statistical payment-verification list, reused by Admin (payer for
 // race_prize/referee_fee) and Referee (payee for referee_fee) dashboards.
@@ -69,7 +70,9 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
 
-    // Live refetch when a payment-related notification arrives for this user.
+    // Live refetch when a payment-related notification arrives for this user,
+    // or when any Transaction document changes (a true broadcast — catches
+    // settlements even if a call site forgot to notify this specific user).
     const { socket } = useSocket();
     useEffect(() => {
         if (!socket) return;
@@ -77,7 +80,11 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
             if (payload?.type?.startsWith("payment_")) refresh();
         };
         socket.on("notification_created", handler);
-        return () => { socket.off("notification_created", handler); };
+        socket.on("transaction_updated", refresh);
+        return () => {
+            socket.off("notification_created", handler);
+            socket.off("transaction_updated", refresh);
+        };
     }, [socket, refresh]);
 
     const handleConfirm = async (paymentId: string) => {
@@ -124,7 +131,10 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
             {loading ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">Loading payments...</p>
             ) : error ? (
-                <p className="text-[13px] text-red-400 text-center py-6">Failed to load payments.</p>
+                <ErrorState
+                    message={(error as any)?.msg ?? "Failed to load payments."}
+                    onRetry={refresh}
+                />
             ) : data.length === 0 ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">No payments to review.</p>
             ) : (

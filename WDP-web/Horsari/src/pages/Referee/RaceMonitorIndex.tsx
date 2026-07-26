@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { RefetchButton } from "../../components/RefetchButton";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { PHASE_CONFIG, derivePhase } from "../../shared/data/RaceData";
@@ -63,11 +64,13 @@ function mapHorses(registrations: RegistrationDetail[] = []): HorseEntry[] {
 
 // ── Page header ───────────────────────────────────────────────────────────────
 
-function PageHeader({ phase, raceRound, onBack, wsConnected }: {
+function PageHeader({ phase, raceRound, onBack, wsConnected, onRefetch, lastUpdated }: {
     phase: RacePhase;
     raceRound: RaceRoundDetail | null;
     onBack: () => void;
     wsConnected: boolean;
+    onRefetch: () => void | Promise<void>;
+    lastUpdated: number | null;
 }) {
     const cfg = PHASE_CONFIG[phase];
     const title = raceRound?.roundName ?? "Race Monitor";
@@ -79,10 +82,13 @@ function PageHeader({ phase, raceRound, onBack, wsConnected }: {
 
     return (
         <div className="mb-6">
-            <button onClick={onBack} className="flex items-center gap-2 text-[13px] text-gray-500 font-medium hover:text-gray-200 transition-colors mb-5 group">
-                <ArrowLeft size={14} className="transition-transform duration-150 group-hover:-translate-x-0.5" />
-                Back to Tournaments
-            </button>
+            <div className="flex items-center justify-between mb-5">
+                <button onClick={onBack} className="flex items-center gap-2 text-[13px] text-gray-500 font-medium hover:text-gray-200 transition-colors group">
+                    <ArrowLeft size={14} className="transition-transform duration-150 group-hover:-translate-x-0.5" />
+                    Back to Tournaments
+                </button>
+                <RefetchButton onRefetch={onRefetch} lastUpdated={lastUpdated} />
+            </div>
             <div className="flex items-center gap-2 mb-2">
                 <span className={`w-2 h-2 rounded-full ${cfg.dot} ${"pulse" in cfg && wsConnected ? "animate-pulse" : ""}`} />
                 <span className={`text-[11px] font-bold uppercase tracking-widest ${cfg.color}`}>{cfg.label}</span>
@@ -101,32 +107,6 @@ function PageHeader({ phase, raceRound, onBack, wsConnected }: {
     );
 }
 
-// ── Dev switcher (only rendered in dev builds) ────────────────────────────────
-
-function DevSwitcher({ phase, onChange }: { phase: RacePhase; onChange: (p: RacePhase) => void }) {
-    return (
-        <div className="fixed bottom-5 right-5 z-50 bg-[#111] border border-white/15 rounded-2xl px-4 py-3 shadow-2xl shadow-black/60 flex flex-col gap-2">
-            <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Dev · Phase</p>
-            <div className="flex gap-2">
-                {(["pre", "live", "post"] as RacePhase[]).map(p => (
-                    <button key={p} onClick={() => onChange(p)}
-                        className={[
-                            "px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all",
-                            phase === p
-                                ? p === "pre" ? "bg-yellow-600 text-white"
-                                    : p === "live" ? "bg-red-700 text-white"
-                                        : "bg-green-700 text-white"
-                                : "bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300",
-                        ].join(" ")}
-                    >
-                        {p === "pre" ? "Pre" : p === "live" ? "Live" : "Post"}
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 export default function RaceMonitorIndex() {
@@ -138,36 +118,41 @@ export default function RaceMonitorIndex() {
     const [phase, setPhase] = useState<RacePhase>("pre");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
     // Live simulation state from socket
     const [liveUpdate, setLiveUpdate] = useState<RaceUpdate | null>(null);
     const [raceFinished, setRaceFinished] = useState<RaceFinishedPayload | null>(null);
 
-    // Fetch race round on mount
-    useEffect(() => {
+    const refetchRaceRound = useCallback(async () => {
         if (!raceRoundId) {
             setError("No race round specified.");
             setLoading(false);
             return;
         }
-        const fetchRound = async () => {
-            try {
-                const res = await refereeService.getRaceRoundById(raceRoundId);
-                if (res.code === 200 && res.data) {
-                    setRaceRound(res.data);
-                    setHorses(mapHorses(res.data.Registration ?? []));
-                    setPhase(derivePhase(res.data.status));
-                } else {
-                    setError(res.msg ?? "Failed to load race round.");
-                }
-            } catch {
-                setError("Failed to load race round.");
-            } finally {
-                setLoading(false);
+        try {
+            setLoading(true);
+            setError(null);
+            const res = await refereeService.getRaceRoundById(raceRoundId);
+            if (res.code === 200 && res.data) {
+                setRaceRound(res.data);
+                setHorses(mapHorses(res.data.Registration ?? []));
+                setPhase(derivePhase(res.data.status));
+            } else {
+                setError(res.msg ?? "Failed to load race round.");
             }
-        };
-        fetchRound();
+        } catch {
+            setError("Failed to load race round.");
+        } finally {
+            setLoading(false);
+            setLastUpdated(Date.now());
+        }
     }, [raceRoundId]);
+
+    // Fetch race round on mount
+    useEffect(() => {
+        refetchRaceRound();
+    }, [refetchRaceRound]);
 
     // Shared WebSocket connection
     const socketRef = useRef<Socket | null>(null);
@@ -202,15 +187,11 @@ export default function RaceMonitorIndex() {
         // Admin started / cancelled the race — refetch round so muxPlaybackId is current
         socket.on('race_status_changed', ({ status }: { status: string }) => {
             setPhase(derivePhase(status));
-            if (status === 'running' && raceRoundId) {
-                refereeService.getRaceRoundById(raceRoundId)
-                    .then(res => { if (res.code === 200 && res.data) setRaceRound(res.data); })
-                    .catch(() => { });
-            }
+            if (status === 'running') refetchRaceRound();
         });
 
         return () => { socket.disconnect(); };
-    }, [raceRoundId]);
+    }, [raceRoundId, refetchRaceRound]);
 
     if (loading) {
         return (
@@ -224,12 +205,20 @@ export default function RaceMonitorIndex() {
         return (
             <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center gap-4">
                 <p className="text-[14px] text-red-400 font-medium">{error}</p>
-                <button
-                    onClick={() => navigate("/referee/tournaments")}
-                    className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors"
-                >
-                    <ArrowLeft size={13} /> Back to Tournaments
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => refetchRaceRound()}
+                        className="flex items-center gap-1.5 text-[13px] font-semibold text-white bg-red-700 hover:bg-red-600 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                        Retry
+                    </button>
+                    <button
+                        onClick={() => navigate("/referee/tournaments")}
+                        className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors"
+                    >
+                        <ArrowLeft size={13} /> Back to Tournaments
+                    </button>
+                </div>
             </div>
         );
     }
@@ -262,7 +251,7 @@ export default function RaceMonitorIndex() {
         }}>
             <div className="min-h-screen bg-[#0f0f0f] font-sans">
                 <div className="max-w-5xl mx-auto px-5 py-8">
-                    <PageHeader phase={phase} raceRound={raceRound} onBack={() => navigate("/referee/tournaments")} wsConnected={wsConnected} />
+                    <PageHeader phase={phase} raceRound={raceRound} onBack={() => navigate("/referee/tournaments")} wsConnected={wsConnected} onRefetch={refetchRaceRound} lastUpdated={lastUpdated} />
                     {phase === "pre" && <PreRacePage />}
                     {phase === "live" && <LivePage />}
                     {phase === "post" && <PostRacePage />}
@@ -281,8 +270,6 @@ export default function RaceMonitorIndex() {
                         </span>
                     </div>
                 </footer>
-
-                {import.meta.env.DEV && <DevSwitcher phase={phase} onChange={setPhase} />}
             </div>
         </RaceSocketContext.Provider>
     );

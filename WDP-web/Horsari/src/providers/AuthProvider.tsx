@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { authService } from "../api/loginService";
+import { isNetworkError } from "../api/axios";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface User {
@@ -19,6 +20,10 @@ interface AuthContextValue {
   logout: () => void;
   /** Merges partial fields (e.g. a freshly-uploaded avatar) into the current session. */
   updateUser: (partial: Partial<User>) => void;
+  /** True when the last session-rehydration attempt failed to reach the server (not a real auth failure). */
+  serverUnreachable: boolean;
+  /** Dismiss the "can't reach the server" banner. */
+  dismissServerUnreachable: () => void;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -30,6 +35,7 @@ import { STORAGE_KEY, TOKEN_KEY } from "../utils/constants";
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true); // true while reading storage
+  const [serverUnreachable, setServerUnreachable] = useState(false);
 
   // Rehydrate session on mount
   useEffect(() => {
@@ -43,9 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(res.data));
           }
         }
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(TOKEN_KEY);
+      } catch (err) {
+        if (isNetworkError(err)) {
+          // Server unreachable — keep the local session intact, this is not
+          // a real auth failure. Surface a banner instead of ejecting the user.
+          setServerUnreachable(true);
+        } else {
+          // Genuine auth failure (e.g. 401 from an expired/invalid token).
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(TOKEN_KEY);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -53,6 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     loadUser();
   }, []);
+
+  const dismissServerUnreachable = () => setServerUnreachable(false);
 
   const persist = (u: User, token: string) => {
     setUser(u);
@@ -95,6 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const res = await authService.register(formData);
+    if (typeof res === "string") {
+      throw new Error(res);
+    }
     if (res.code === 201 && res.data?.accessToken) {
       persist(res.data.user || { email, name, role }, res.data.accessToken);
     } else {
@@ -123,7 +141,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, loginWithGoogle, signup, logout, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        loginWithGoogle,
+        signup,
+        logout,
+        updateUser,
+        serverUnreachable,
+        dismissServerUnreachable,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

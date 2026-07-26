@@ -18,10 +18,27 @@ const swaggerSpec = require('./config/swaggerConfig');
 const raceRound = require('./routes/raceround');
 dotenv.config();
 var app = express();
+// React Native's WebSocket implementation always sends an `Origin` header
+// equal to the server's OWN address (the host it's connecting to), not a
+// real frontend origin the way a browser would. That's not a spoofable
+// browser security signal (CORS's actual threat model doesn't apply to
+// native clients), so it's safe to explicitly allow — otherwise every
+// native app socket connection is silently rejected. This covers both the
+// Android emulator's host-loopback alias and the deployed backend calling
+// itself; RENDER_EXTERNAL_URL is auto-injected by Render with this
+// service's own public URL, so production needs no hardcoded value.
+const port = process.env.PORT || '3000';
+const selfOrigins = [
+  `http://10.0.2.2:${port}`,
+  `http://localhost:${port}`,
+  process.env.RENDER_EXTERNAL_URL,
+].filter(Boolean);
+
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
   .split(',')
   .map(o => o.trim())
-  .concat(['http://localhost:8081', 'http://localhost:19006']);
+  .concat(['http://localhost:8081', 'http://localhost:19006'])
+  .concat(selfOrigins);
 app.use(cors({
   credentials: true,
   origin: (origin, cb) => {

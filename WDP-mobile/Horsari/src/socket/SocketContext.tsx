@@ -49,6 +49,16 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       if (mounted) setConnected(false);
     });
 
+    // Handshake failures (CORS rejection, unreachable host, etc.) were
+    // previously silent — connected just stayed false forever with no
+    // signal anywhere. Log them so a real cause is diagnosable.
+    s.on('connect_error', (err) => {
+      console.error('[SocketContext] connect_error:', err.message);
+    });
+    s.on('error', (err) => {
+      console.error('[SocketContext] error:', err);
+    });
+
     setSocket(s);
 
     return () => {

@@ -77,6 +77,16 @@ export function useSpectatorRaceSocket(raceRoundId: string | null) {
       if (mounted) setConnected(false);
     });
 
+    // Handshake failures were previously silent — connected just stayed
+    // false forever with no signal anywhere. Log them so a real cause is
+    // diagnosable (e.g. a CORS-rejected Origin header).
+    socket.on('connect_error', (err) => {
+      console.error('[useSpectatorRaceSocket] connect_error:', err.message);
+    });
+    socket.on('error', (err) => {
+      console.error('[useSpectatorRaceSocket] error:', err);
+    });
+
     socket.on('race_update', (data: RaceUpdate) => {
       if (mounted) setLiveUpdate(data);
     });

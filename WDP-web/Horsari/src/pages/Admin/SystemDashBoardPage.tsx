@@ -5,6 +5,7 @@ import PaymentsPanel from "../../components/PaymentsPanel";
 import InvitationsSection from "./AdminComponents/InvitationsSection";
 import type { AdminTab } from "./AdminComponents/NavBar";
 import { useSocket } from "../../providers/SocketProvider";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -96,6 +97,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
     const [activeRaces, setActiveRaces] = useState<ActiveRace[]>([]);
     const [racesLoading, setRacesLoading] = useState(true);
     const [refreshTick, setRefreshTick] = useState(0);
+    const [error, setError] = useState<string | null>(null);
 
     // Live refetch on any notification addressed to this admin.
     const { socket } = useSocket();
@@ -110,6 +112,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
         async function fetchData() {
             setLoading(true);
             setRacesLoading(true);
+            setError(null);
             try {
                 // Fetch stats and race rounds concurrently
                 const [statsRes, racesRes] = await Promise.all([
@@ -143,8 +146,9 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
 
                 // Show top 3 recent/upcoming
                 setActiveRaces(mappedRaces.slice(0, 3));
-            } catch (error) {
-                console.error("Failed to load dashboard data", error);
+            } catch (err: any) {
+                console.error("Failed to load dashboard data", err);
+                setError(err?.msg ?? "Failed to load dashboard data.");
             } finally {
                 setLoading(false);
                 setRacesLoading(false);
@@ -167,6 +171,12 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                         High-level overview and administrative controls.
                     </p>
                 </div>
+
+                {error && (
+                    <div className="mb-6">
+                        <ErrorState message={error} onRetry={() => setRefreshTick((t) => t + 1)} />
+                    </div>
+                )}
 
                 {/* Stat cards */}
                 <div className="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">

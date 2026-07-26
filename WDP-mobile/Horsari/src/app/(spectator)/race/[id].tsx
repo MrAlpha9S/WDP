@@ -5,14 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
@@ -22,12 +20,15 @@ import {
   PredictionMethodType,
   RaceDetailRegistration,
 } from '../../../api/spectatorApi';
+import { isNetworkError } from '../../../api/axios';
 import {
   FinishResult,
   LiveHorse,
   useSpectatorRaceSocket,
 } from '../../../hooks/useSpectatorRaceSocket';
 import { Fonts } from '@/constants/theme';
+import { RaceVideoPlayer } from '@/components/RaceVideoPlayer';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -521,6 +522,7 @@ export default function LiveRaceScreen() {
   const [registrations, setRegistrations] = useState<RaceDetailRegistration[]>([]);
   const [userPredictions, setUserPredictions] = useState<PredictionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const { connected, liveUpdate, finishResults, confirmedResults, raceStatus, raceRoundVersion } = useSpectatorRaceSocket(id ?? null);
   const [distUnit, setDistUnit] = useState<'lengths' | 'metres'>('lengths');
@@ -532,18 +534,29 @@ export default function LiveRaceScreen() {
   // (raceRound.status only flips to 'completed' once results are official).
   const settled = confirmedResults != null || currentStatus === 'completed';
 
-  useEffect(() => {
+  const loadRaceDetail = () => {
     if (!id) return;
-    getRaceDetail(id).then((data) => {
-      if (data) {
-        setRaceRound(data.raceRound);
-        setRegistrations(data.registrations);
-        setUserPredictions(data.userPredictions ?? []);
-      }
-      setLoading(false);
-    });
+    setLoading(true);
+    setError(false);
+    getRaceDetail(id)
+      .then((data) => {
+        if (data) {
+          setRaceRound(data.raceRound);
+          setRegistrations(data.registrations);
+          setUserPredictions(data.userPredictions ?? []);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (isNetworkError(err)) setError(true);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
     // raceRoundVersion bumps on any live raceRound change (date, distance,
     // livestream URL, etc.), so this refetch keeps those fields current too.
+    loadRaceDetail();
   }, [id, raceRoundVersion]);
 
   const restFinishResults = registrations.some(r => r.raceResult)
@@ -620,6 +633,18 @@ export default function LiveRaceScreen() {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.loadingContainer}>
+        <NoConnectionState
+          onRetry={loadRaceDetail}
+          accentColor={Palette.gold}
+          mutedColor={Palette.muted}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
@@ -684,66 +709,7 @@ export default function LiveRaceScreen() {
           {awaitingConfirmation && <AwaitingConfirmationCard />}
           {!activeFinishResults && (
             (currentStatus === 'running' || liveUpdate !== null) ? (
-              <View style={[styles.videoPlaceholder, { overflow: 'hidden' }]}>
-                {raceRound?.livestreamUrl ? (
-                  Platform.OS === 'web' ? (
-                    // @ts-ignore — video is valid in react-native-web
-                    <video
-                      src={raceRound.livestreamUrl}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    // Best-effort HLS playback via a plain <video> tag inside the
-                    // WebView — reliable on iOS (native HLS support), degrades on
-                    // Android (no HLS.js loaded). No dedicated video library is
-                    // installed for a guaranteed cross-platform player.
-                    <WebView
-                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                      source={{
-                        html: `<html><body style="margin:0;background:#000;"><video src="${raceRound.livestreamUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video></body></html>`,
-                      }}
-                      mediaPlaybackRequiresUserAction={false}
-                      allowsInlineMediaPlayback
-                      scrollEnabled={false}
-                      pointerEvents="none"
-                    />
-                  )
-                ) : (
-                  // No stream configured for this race — placeholder video.
-                  Platform.OS === 'web' ? (
-                    // @ts-ignore — iframe is valid in react-native-web
-                    <iframe
-                      src="https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1"
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none', pointerEvents: 'none' }}
-                      allow="autoplay; encrypted-media"
-                    />
-                  ) : (
-                    // Wrapped in a flex:1 View rather than relying on the WebView's
-                    // own absolute-positioning style — react-native-webview on
-                    // Android can measure itself at 0x0 on the initial layout pass
-                    // when it's the one doing the absolute positioning, leaving the
-                    // video area blank even though the parent box renders fine.
-                    <View style={{ flex: 1 }}>
-                      <WebView
-                        style={{ flex: 1 }}
-                        source={{
-                          html: `<html><body style="margin:0;background:#000;"><iframe width="100%" height="100%" style="border:0;display:block;" src="https://www.youtube.com/embed/2rKE4YIrDRk?autoplay=1&mute=1&loop=1&playlist=2rKE4YIrDRk&controls=0&showinfo=0&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe></body></html>`,
-                        }}
-                        mediaPlaybackRequiresUserAction={false}
-                        allowsInlineMediaPlayback
-                        javaScriptEnabled
-                        domStorageEnabled
-                        scrollEnabled={false}
-                        pointerEvents="none"
-                      />
-                    </View>
-                  )
-                )}
-              </View>
+              <RaceVideoPlayer style={{ marginTop: 16 }} />
             ) : (
               <View style={styles.awaitingCard}>
                 <View style={styles.awaitingIconRing}>
@@ -954,41 +920,6 @@ const styles = StyleSheet.create({
     color: Palette.gold,
     letterSpacing: 0.5,
     textAlign: 'center' as const,
-  },
-
-  // Video placeholder
-  videoPlaceholder: {
-    aspectRatio: 16 / 9,
-    backgroundColor: '#0d0d0e',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-    marginTop: 16,
-  },
-  videoText: { fontSize: 13, color: '#333' },
-  liveTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#1a0a0d',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#5c1a1f',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  liveDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: Palette.red,
-  },
-  liveTagText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '800',
-    color: Palette.red,
-    letterSpacing: 0.5,
   },
 
   // Stats strip

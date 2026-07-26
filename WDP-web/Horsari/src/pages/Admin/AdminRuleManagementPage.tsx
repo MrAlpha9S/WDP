@@ -4,6 +4,7 @@ import RuleDetailPanel from "./AdminComponents/RuleDetailPanel";
 import RuleModal from "./AdminComponents/RuleModal";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ export default function AdminRuleManagementPage() {
     const [selectedRule, setSelectedRule] = useState<RaceEligibilityRule | null>(null);
     const [rules, setRules] = useState<RaceEligibilityRule[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalRule, setModalRule] = useState<RaceEligibilityRule | null>(null);
     const [page, setPage] = useState(1);
@@ -70,6 +72,7 @@ export default function AdminRuleManagementPage() {
     const fetchRules = async () => {
         try {
             setLoading(true);
+            setError(null);
             const res = await adminService.getRules(page, LIMIT, search || undefined, sortBy, order);
             const items: RaceEligibilityRule[] = res.data?.items ?? [];
             setRules(items);
@@ -78,8 +81,9 @@ export default function AdminRuleManagementPage() {
                 const updatedSelected = items.find((r: any) => r._id === selectedRule._id);
                 setSelectedRule(updatedSelected || null);
             }
-        } catch (error) {
-            console.error("Failed to load rules", error);
+        } catch (err: any) {
+            console.error("Failed to load rules", err);
+            setError(err?.msg ?? "Failed to load rules.");
         } finally {
             setLoading(false);
         }
@@ -213,7 +217,7 @@ export default function AdminRuleManagementPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {filtered.map(rule => {
+                                    {!error && filtered.map(rule => {
                                         const isSelected = selectedRule?._id === rule._id;
                                         const statusStyle = STATUS_STYLES[rule.isActive ? "active" : "inactive"];
 
@@ -279,6 +283,10 @@ export default function AdminRuleManagementPage() {
                                     {loading ? (
                                         <tr>
                                             <td colSpan={6} className="p-8 text-center text-[13px] text-gray-500">Loading rules...</td>
+                                        </tr>
+                                    ) : error ? (
+                                        <tr>
+                                            <td colSpan={6} className="p-4"><ErrorState message={error} onRetry={fetchRules} /></td>
                                         </tr>
                                     ) : filtered.length === 0 ? (
                                         <tr>

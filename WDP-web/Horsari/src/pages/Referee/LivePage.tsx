@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import MuxPlayer from "@mux/mux-player-react";
 import {
     AlertTriangle, Camera, CheckCircle2, ChevronDown, ChevronRight,
@@ -10,6 +10,8 @@ import { useRaceSocket } from "../../providers/useRaceSocket";
 import type { LiveHorse } from "../../providers/useRaceSocket";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationTypeRecord, ViolationRecord } from "../../api/refereeService";
+import { RefetchButton } from "../../components/RefetchButton";
+import { ErrorState } from "../../components/ErrorState";
 
 function severityDot(severity?: number) {
     if (!severity) return "bg-gray-600";
@@ -213,7 +215,7 @@ function PositionTrack({
     return (
         <div className="bg-[#0f0f0f] rounded-xl border border-white/8 p-4">
             <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[11px] font-black uppercase tracking-widest text-gray-500">Track Position</h2>
+                <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">Track Position</h2>
                 <div className="flex items-center gap-2">
                     {showOnStream && (
                         <span className="flex items-center gap-1 text-[9px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
@@ -372,17 +374,26 @@ export default function LivePage() {
     const [pendingVt, setPendingVt] = useState<ViolationTypeRecord | null>(null);
     const [modalLoading, setModalLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [violationsUpdated, setViolationsUpdated] = useState<number | null>(null);
+    const [violationsError, setViolationsError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const fetchViolations = useCallback(() => {
         if (!raceRound?._id) return;
+        setViolationsError(null);
         Promise.all([
             refereeService.getViolationTypes('during-race', 1, 200),
             refereeService.getRaceRoundViolations(raceRound._id),
         ]).then(([vtRes, vRes]) => {
             if (Array.isArray(vtRes.data?.items)) setViolationTypes(vtRes.data.items);
             if (Array.isArray(vRes.data)) setActiveViolations(vRes.data);
-        }).catch(() => { });
+        }).catch((err: any) => {
+            setViolationsError(err?.msg ?? "Failed to load violation data.");
+        }).finally(() => setViolationsUpdated(Date.now()));
     }, [raceRound?._id]);
+
+    useEffect(() => {
+        fetchViolations();
+    }, [fetchViolations]);
 
     // Count per violation type for badge display
     const violationCountByType = activeViolations.reduce<Record<string, number>>((acc, v) => {
@@ -569,16 +580,21 @@ export default function LivePage() {
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0">
                         <h2 className="text-[13px] font-bold text-white font-serif">Incident Log</h2>
-                        {activeViolations.length > 0
-                            ? <span className="text-[11px] font-bold text-red-400 flex items-center gap-1"><AlertTriangle size={11} />{activeViolations.length} flagged</span>
-                            : <span className="text-[11px] text-gray-600 font-medium">0 flagged</span>
-                        }
+                        <div className="flex items-center gap-2">
+                            {activeViolations.length > 0
+                                ? <span className="text-[11px] font-bold text-red-400 flex items-center gap-1"><AlertTriangle size={11} />{activeViolations.length} flagged</span>
+                                : <span className="text-[11px] text-gray-600 font-medium">0 flagged</span>
+                            }
+                            <RefetchButton onRefetch={fetchViolations} lastUpdated={violationsUpdated} />
+                        </div>
                     </div>
 
                     {/* Scrollable violation type grid */}
                     <div className="overflow-y-auto" style={{ maxHeight: 280 }}>
                         <div className="grid grid-cols-2 gap-2 p-3">
-                            {violationTypes.length === 0
+                            {violationsError
+                                ? <div className="col-span-2"><ErrorState message={violationsError} onRetry={fetchViolations} /></div>
+                                : violationTypes.length === 0
                                 ? <p className="col-span-2 text-[12px] text-gray-600 text-center py-4">Loading violation types…</p>
                                 : violationTypes.map(vt => (
                                     <IncidentButton
@@ -673,10 +689,10 @@ export default function LivePage() {
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
                     <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Actions</h2>
                     <div className="flex flex-col gap-2.5">
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-gray-400 text-[12px] font-semibold hover:border-white/20 hover:text-gray-200 transition-all">
+                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-gray-400 text-[13px] font-semibold hover:border-white/20 hover:text-gray-200 transition-all">
                             <Camera size={13} /> Review Finish Photo
                         </button>
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 shadow-lg shadow-red-900/40 transition-all">
+                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-700 text-white text-[13px] font-bold uppercase tracking-widest hover:bg-red-600 shadow-lg shadow-red-900/40 transition-all">
                             <Trophy size={13} /> Publish Results
                         </button>
                     </div>
@@ -686,7 +702,7 @@ export default function LivePage() {
                     <button onClick={() => setVerificationOpen(o => !o)}
                         className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
                     >
-                        <h2 className="text-[12px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 flex items-center gap-2">
                             <Shield size={13} className="text-red-500" /> Horses List
                         </h2>
                         <ChevronDown size={13} className={`text-gray-600 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
@@ -711,8 +727,8 @@ export default function LivePage() {
                                                 {horse.number}
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <p className={["text-[12.5px] font-semibold truncate", isReview ? "text-red-400" : "text-white"].join(" ")}>{horse.name}</p>
-                                                <p className={["text-[11px]", isReview ? "text-red-600" : "text-gray-500"].join(" ")}>{horse.jockey}</p>
+                                                <p className={["text-[13.5px] font-bold truncate", isReview ? "text-red-400" : "text-white"].join(" ")}>{horse.name}</p>
+                                                <p className={["text-[11.5px]", isReview ? "text-red-600" : "text-gray-500"].join(" ")}>{horse.jockey}</p>
                                             </div>
                                             <div className="flex items-center gap-1.5 shrink-0">
                                                 {isReview

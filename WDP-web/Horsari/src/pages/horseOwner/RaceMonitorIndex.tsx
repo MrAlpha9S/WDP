@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { RefetchButton } from "../../components/RefetchButton";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { PHASE_CONFIG, derivePhase } from "../../shared/data/RaceData";
@@ -45,6 +46,7 @@ export default function OwnerRaceMonitorIndex() {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
     // Live socket state
     const [liveUpdate, setLiveUpdate] = useState<RaceUpdate | null>(null);
@@ -53,30 +55,34 @@ export default function OwnerRaceMonitorIndex() {
     const [wsConnected, setWsConnected] = useState(false);
     const [wsCount, setWsCount] = useState<number | null>(null);
 
+    // Full refetch — raceRound plus owner-scoped registration/result/violations
+    const load = useCallback(async () => {
+        if (!raceRoundId) { setError("No race round specified."); setLoading(false); return; }
+        try {
+            setLoading(true);
+            setError(null);
+            const ownerRes = await horseOwnerService.getRaceDetail(raceRoundId);
+            if (ownerRes?.data) {
+                const ownerData = ownerRes.data;
+                if (ownerData.raceRound) {
+                    setRaceRound(ownerData.raceRound as unknown as RaceRoundDetail);
+                }
+                setOwnerRegistration(ownerData.registration ?? null);
+                setOwnerResult(ownerData.registration?.raceResult ?? null);
+                setViolations(ownerData.registration?.violations ?? []);
+            }
+        } catch {
+            setError("Failed to load race data.");
+        } finally {
+            setLoading(false);
+            setLastUpdated(Date.now());
+        }
+    }, [raceRoundId]);
+
     // Fetch on mount
     useEffect(() => {
-        if (!raceRoundId) { setError("No race round specified."); setLoading(false); return; }
-
-        const load = async () => {
-            try {
-                const ownerRes = await horseOwnerService.getRaceDetail(raceRoundId);
-                if (ownerRes?.data) {
-                    const ownerData = ownerRes.data;
-                    if (ownerData.raceRound) {
-                        setRaceRound(ownerData.raceRound as unknown as RaceRoundDetail);
-                    }
-                    setOwnerRegistration(ownerData.registration ?? null);
-                    setOwnerResult(ownerData.registration?.raceResult ?? null);
-                    setViolations(ownerData.registration?.violations ?? []);
-                }
-            } catch {
-                setError("Failed to load race data.");
-            } finally {
-                setLoading(false);
-            }
-        };
         load();
-    }, [raceRoundId]);
+    }, [load]);
 
     // Refresh owner detail (called when results are confirmed)
     const refreshOwnerDetail = async () => {
@@ -88,7 +94,9 @@ export default function OwnerRaceMonitorIndex() {
                 setOwnerResult(res.data.registration.raceResult ?? null);
                 setViolations(res.data.registration.violations ?? []);
             }
-        } catch { /* silent */ }
+        } catch { /* silent */ } finally {
+            setLastUpdated(Date.now());
+        }
     };
 
     // WebSocket
@@ -140,9 +148,17 @@ export default function OwnerRaceMonitorIndex() {
         return (
             <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center gap-4">
                 <p className="text-[14px] text-red-400 font-medium">{error}</p>
-                <button onClick={() => navigate("/owner")} className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors">
-                    <ArrowLeft size={13} /> Back to Dashboard
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => load()}
+                        className="flex items-center gap-1.5 text-[13px] font-semibold text-white bg-red-700 hover:bg-red-600 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                        Retry
+                    </button>
+                    <button onClick={() => navigate("/owner")} className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors">
+                        <ArrowLeft size={13} /> Back to Dashboard
+                    </button>
+                </div>
             </div>
         );
     }
@@ -177,10 +193,13 @@ export default function OwnerRaceMonitorIndex() {
                 <div className="max-w-5xl mx-auto px-5 py-8">
                     {/* Header */}
                     <div className="mb-6">
-                        <button onClick={() => navigate("/owner")} className="flex items-center gap-2 text-[13px] text-gray-500 font-medium hover:text-gray-200 transition-colors mb-5 group">
-                            <ArrowLeft size={14} className="transition-transform duration-150 group-hover:-translate-x-0.5" />
-                            Back to Dashboard
-                        </button>
+                        <div className="flex items-center justify-between mb-5">
+                            <button onClick={() => navigate("/owner")} className="flex items-center gap-2 text-[13px] text-gray-500 font-medium hover:text-gray-200 transition-colors group">
+                                <ArrowLeft size={14} className="transition-transform duration-150 group-hover:-translate-x-0.5" />
+                                Back to Dashboard
+                            </button>
+                            <RefetchButton onRefetch={load} lastUpdated={lastUpdated} />
+                        </div>
                         <div className="flex items-center gap-2 mb-2">
                             <span className={`w-2 h-2 rounded-full ${phaseCfg.dot} ${"pulse" in phaseCfg && wsConnected ? "animate-pulse" : ""}`} />
                             <span className={`text-[11px] font-bold uppercase tracking-widest ${phaseCfg.color}`}>{ownerStatusLabel(raceRound?.status)}</span>
@@ -197,6 +216,8 @@ export default function OwnerRaceMonitorIndex() {
                         ownerRegistration={ownerRegistration}
                         ownerResult={ownerResult}
                         violations={violations}
+                        onRefetch={refreshOwnerDetail}
+                        lastUpdated={lastUpdated}
                     />
                 </div>
 

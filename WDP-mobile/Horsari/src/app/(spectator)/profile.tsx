@@ -22,7 +22,10 @@ import {
   SpectatorProfile,
   WalletInfo,
 } from '../../api/spectatorApi';
+import { isNetworkError } from '../../api/axios';
 import { Fonts } from '@/constants/theme';
+import { RefetchButton } from '@/components/RefetchButton';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -95,14 +98,22 @@ export default function SpectatorProfileScreen() {
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [error, setError] = useState(false);
 
   const load = async (silent = false) => {
     if (!silent) setIsLoading(true);
-    const [p, w] = await Promise.all([getSpectatorProfile(), getWalletInfo()]);
-    setProfile(p);
-    setWallet(w);
+    try {
+      const [p, w] = await Promise.all([getSpectatorProfile(), getWalletInfo()]);
+      setProfile(p);
+      setWallet(w);
+      setError(false);
+    } catch (err) {
+      if (isNetworkError(err)) setError(true);
+    }
     setIsLoading(false);
     setIsRefreshing(false);
+    setLastUpdated(Date.now());
   };
 
   useEffect(() => { load(); }, []);
@@ -137,12 +148,19 @@ export default function SpectatorProfileScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>MY PROFILE</Text>
+          <RefetchButton onRefetch={() => load(true)} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.gold} />
         </View>
 
         {isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator color={Palette.gold} size="large" />
           </View>
+        ) : error ? (
+          <NoConnectionState
+            onRetry={() => load()}
+            accentColor={Palette.gold}
+            mutedColor={Palette.textMuted}
+          />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}

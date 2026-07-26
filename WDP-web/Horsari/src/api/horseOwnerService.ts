@@ -1,4 +1,4 @@
-import api from './axios';
+import api, { NETWORK_ERROR_MESSAGE } from './axios';
 import type { PaymentEntity, PaymentStatus, PaymentsResponse } from './paymentTypes';
 import type { SelfProfileResponse, UpdateSelfProfilePayload } from './profileTypes';
 
@@ -268,7 +268,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/my-profile');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch profile' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -277,7 +277,7 @@ export const horseOwnerService = {
       const response = await api.put('/horseowner/my-profile', payload);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to update profile' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -293,7 +293,7 @@ export const horseOwnerService = {
       });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to update license' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -310,7 +310,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/my-horses', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getHorseOwnerInvitations: async (
@@ -329,7 +329,7 @@ export const horseOwnerService = {
       console.log('DATA: ', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getAllJockey: async (
@@ -344,7 +344,7 @@ export const horseOwnerService = {
       console.log('DATA: ', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   approveRegistration: async (registrationId: string): Promise<void> => {
@@ -352,7 +352,7 @@ export const horseOwnerService = {
     try {
       await api.post(`/horseowner/registration/${registrationId}/approve`);
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   HireJockey: async (data: hireJockey): Promise<void> => {
@@ -360,7 +360,7 @@ export const horseOwnerService = {
     try {
       await api.post(`/invitations`, data);
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   allJockeyInvitations: async (page = 1, limit = 10, search?: string): Promise<JockeyInvitationsListResponse> => {
@@ -370,7 +370,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/invitations', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getRaceDetail: async (raceRoundId: string): Promise<RaceDetailResponse> => {
@@ -378,7 +378,7 @@ export const horseOwnerService = {
       const response = await api.get(`/horseowner/race-rounds/${raceRoundId}/detail`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getRaceRoundStatus: async (raceRoundId: string): Promise<{ code: number; data: RaceRoundStatus; msg: string }> => {
@@ -386,7 +386,7 @@ export const horseOwnerService = {
       const response = await api.get(`/horseowner/race-rounds/${raceRoundId}/status`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   createHorse: async (data: Omit<Horse, '_id' | 'ownerId' | 'createdAt' | 'updatedAt' | '__v'>): Promise<{ code: number; data: Horse; msg: string }> => {
@@ -394,7 +394,7 @@ export const horseOwnerService = {
       const response = await api.post('/horse', data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   updateHorse: async (horseId: string, data: Partial<Horse>): Promise<{ code: number; data: Horse; msg: string }> => {
@@ -402,7 +402,7 @@ export const horseOwnerService = {
       const response = await api.put(`/horse/${horseId}`, data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   deleteHorse: async (horseId: string): Promise<{ code: number; msg: string }> => {
@@ -410,7 +410,7 @@ export const horseOwnerService = {
       const response = await api.delete(`/horse/${horseId}`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   uploadHorseImage: async (horseId: string, file: File): Promise<{ code: number; data: Horse; msg: string }> => {
@@ -422,7 +422,7 @@ export const horseOwnerService = {
       });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   updateHorseStatus: async (horseId: string, status: 'active' | 'inactive' | 'retired'): Promise<{ code: number; msg: string }> => {
@@ -430,7 +430,7 @@ export const horseOwnerService = {
       const response = await api.put(`/horseowner/horses/${horseId}/status`, { status });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   updateHorseHealthStatus: async (horseId: string, healthStatus: 'healthy' | 'injured' | 'sick'): Promise<{ code: number; msg: string }> => {
@@ -438,7 +438,7 @@ export const horseOwnerService = {
       const response = await api.put(`/horseowner/horses/${horseId}/health-status`, { healthStatus });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getHorseProfile: async (horseId: string): Promise<{ code: number; data: HorseProfileData; msg: string }> => {
@@ -446,7 +446,7 @@ export const horseOwnerService = {
       const response = await api.get(`/horseowner/horses/${horseId}/profile`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getDashboardSummary: async (): Promise<{ code: number; data: DashboardSummary; msg: string }> => {
@@ -454,7 +454,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/dashboard/summary');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getTopPerformers: async (limit = 5): Promise<{ code: number; data: TopPerformer[]; msg: string }> => {
@@ -462,7 +462,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/dashboard/top-performers', { params: { limit } });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   browseRaces: async (
@@ -478,7 +478,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/races/browse', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getJockeyProfile: async (jockeyId: string): Promise<{ code: number; data: JockeyProfileData; msg: string }> => {
@@ -486,7 +486,7 @@ export const horseOwnerService = {
       const response = await api.get(`/horseowner/jockeys/${jockeyId}/profile`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getFinancialSummary: async (): Promise<{ code: number; data: FinancialSummary; msg: string }> => {
@@ -494,7 +494,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/financials/summary');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
   getFinancialRaceResults: async (
@@ -508,7 +508,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/financials/race-results', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -533,7 +533,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/race-eligibility-metadata', { params: { ruleId } });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -542,7 +542,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/financials/earnings-series', { params: { groupBy } });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -565,7 +565,7 @@ export const horseOwnerService = {
       const response = await api.get('/horseowner/payments', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch payments' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -574,7 +574,7 @@ export const horseOwnerService = {
       const response = await api.put(`/horseowner/payments/${paymentId}/confirm-received`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to confirm payment' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -583,7 +583,7 @@ export const horseOwnerService = {
       const response = await api.put(`/horseowner/payments/${paymentId}/confirm-paid`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to confirm payment' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 };

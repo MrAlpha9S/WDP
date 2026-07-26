@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, MapPin, Plus, Loader2, AlertCircle, X, Trophy, ShieldAlert, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
 import { horseOwnerService, type RaceInvitationEntry } from "../../../api/horseOwnerService";
+import { RefetchButton } from "../../../components/RefetchButton";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
@@ -574,37 +575,32 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
   const [selectedRaceRoundId, setSelectedRaceRoundId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterTab>("ALL");
   const [page, setPage] = useState(1);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+
+  const fetchRaces = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await horseOwnerService.getHorseOwnerInvitations();
+      const list: RaceInvitationEntry[] = data?.data?.items ?? [];
+      setRaces(list.map((r, i) => mapToMyRace(r, i)));
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Failed to load races.";
+      setError(message);
+    } finally {
+      setLoading(false);
+      setLastUpdated(Date.now());
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function fetchRaces() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await horseOwnerService.getHorseOwnerInvitations();
-        if (cancelled) return;
-
-        const list: RaceInvitationEntry[] = data?.data?.items ?? [];
-        setRaces(list.map((r, i) => mapToMyRace(r, i)));
-      } catch (err: unknown) {
-        if (!cancelled) {
-          const message =
-            err instanceof Error
-              ? err.message
-              : typeof err === "object" && err !== null && "message" in err
-                ? String((err as { message: unknown }).message)
-                : "Failed to load races.";
-          setError(message);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
     fetchRaces();
-    return () => { cancelled = true; };
-  }, []);
+  }, [fetchRaces]);
 
   // Reset page when filter changes
   useEffect(() => { setPage(1); }, [activeFilter]);
@@ -643,6 +639,7 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
               </span>
             </div>
           </div>
+          <RefetchButton onRefetch={fetchRaces} lastUpdated={lastUpdated} />
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           {FILTER_TABS.map((tab) => {

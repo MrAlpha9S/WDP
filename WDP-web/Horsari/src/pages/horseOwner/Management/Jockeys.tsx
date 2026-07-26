@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, SlidersHorizontal, User, Diamond, Loader2 } from "lucide-react";
 import JockeyDetailModal, { type Jockey, STATUS_CFG } from "../../../components/ownerComponents/JockeyModal/Jockeydetailmodal";
 import HireJockeyModal from "../../../components/ownerComponents/JockeyModal/Hirejockey";
 import { horseOwnerService } from "../../../api/horseOwnerService";
+import { RefetchButton } from "../../../components/RefetchButton";
 
 const WEIGHTS = ["Weight: All", "Under 54kg", "54–56kg", "Over 56kg"];
 const REGIONS = ["Region: Global", "Europe", "Asia", "Americas", "Oceania"];
@@ -187,6 +188,7 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
 export default function JockeysPage() {
   const [jockeys, setJockeys] = useState<Jockey[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [weightFilter, setWeightFilter] = useState("Weight: All");
   const [regionFilter, setRegionFilter] = useState("Region: Global");
@@ -220,37 +222,30 @@ export default function JockeysPage() {
     }
   }
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchJockeys() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await horseOwnerService.getAllJockey();
-
-        if (cancelled) return;
-
-        const raw: unknown[] = data?.data?.items ?? [];
-        setJockeys(raw.map((item, i) => mapApiToJockey(item, i)));
-      } catch (err: unknown) {
-        if (!cancelled) {
-          const message =
-            err instanceof Error
-              ? err.message
-              : typeof err === "object" && err !== null && "message" in err
-                ? String((err as { message: unknown }).message)
-                : "Failed to load jockeys.";
-          setError(message);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const fetchJockeys = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await horseOwnerService.getAllJockey();
+      const raw: unknown[] = data?.data?.items ?? [];
+      setJockeys(raw.map((item, i) => mapApiToJockey(item, i)));
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Failed to load jockeys.";
+      setError(message);
+    } finally {
+      setLoading(false);
+      setLastUpdated(Date.now());
     }
-
-    fetchJockeys();
-    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    fetchJockeys();
+  }, [fetchJockeys]);
 
   const filtered = jockeys;
   const visible = filtered.slice(0, visibleCount);
@@ -284,6 +279,7 @@ export default function JockeysPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 mt-2">
+          <RefetchButton onRefetch={fetchJockeys} lastUpdated={lastUpdated} />
           <SlidersHorizontal size={14} className="text-gray-500" />
           <FilterSelect options={WEIGHTS} value={weightFilter} onChange={setWeightFilter} />
           <FilterSelect options={REGIONS} value={regionFilter} onChange={setRegionFilter} />

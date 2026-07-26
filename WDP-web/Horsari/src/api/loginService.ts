@@ -1,4 +1,4 @@
-import api from "./axios";
+import api, { isNetworkError, NETWORK_ERROR_MESSAGE } from "./axios";
 import type { AvatarUploadResponse } from "./profileTypes";
 
 export interface LoginRequest {
@@ -51,19 +51,29 @@ export const authService = {
         } catch (error: any) {
             if (error.response?.status === 401) {
                 return "Login credentials are incorrect. Please try again.";
+            } else if (isNetworkError(error)) {
+                return NETWORK_ERROR_MESSAGE;
             } else {
                 return "An error occurred. Please try again later.";
             }
         }
     },
-    register: async (data: FormData): Promise<AuthResponse> => {
-        const response = await api.post<AuthResponse>("/auth/register", data, {
-            transformRequest: [(d, headers) => {
-                delete headers['Content-Type'];
-                return d;
-            }],
-        });
-        return response.data;
+    register: async (data: FormData): Promise<AuthResponse | string> => {
+        try {
+            const response = await api.post<AuthResponse>("/auth/register", data, {
+                transformRequest: [(d, headers) => {
+                    delete headers['Content-Type'];
+                    return d;
+                }],
+            });
+            return response.data;
+        } catch (error: any) {
+            if (isNetworkError(error)) {
+                return NETWORK_ERROR_MESSAGE;
+            } else {
+                return error.response?.data?.msg || "Registration failed. Please try again.";
+            }
+        }
     },
     getCurrentUser: async (): Promise<CurrentUserResponse> => {
         const response = await api.get<CurrentUserResponse>("/auth/current-user");

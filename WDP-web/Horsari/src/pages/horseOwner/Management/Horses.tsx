@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { Search, ChevronDown, Plus, MoreVertical, ChevronLeft, ChevronRight, X, Loader2, ImagePlus } from "lucide-react";
 import { horseOwnerService, type Horse } from "../../../api/horseOwnerService";
 import HorseProfile from "./HorseProfile";
+import { RefetchButton } from "../../../components/RefetchButton";
+import { ErrorState } from "../../../components/ErrorState";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type HorseStatus = "Racing" | "Training" | "Resting" | "Injured";
@@ -666,12 +668,14 @@ export default function HorsesPage() {
   const [classFilter, setClassFilter] = useState("All Classes");
   const [userHorse, setUserHorse] = useState<Horse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [profileHorseId, setProfileHorseId] = useState<string | null>(null);
   const [showRegister, setShowRegister] = useState(false);
   const [editTarget, setEditTarget] = useState<Horse | null>(null);
   const [refreshSeed, setRefreshSeed] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounce search → reset to page 1
@@ -689,12 +693,17 @@ export default function HorsesPage() {
     async function fetchHorses() {
       try {
         setLoading(true);
+        setError(null);
         const data = await horseOwnerService.getUserHorse(page, PAGE_LIMIT, debouncedSearch || undefined);
         if (cancelled) return;
         setUserHorse(data.data?.items ?? []);
         setTotalPages(data.data?.pagination?.totalPages ?? 1);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        const msg = (err as { msg?: string })?.msg ?? (err instanceof Error ? err.message : "Failed to load horses.");
+        setError(msg);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) { setLoading(false); setLastUpdated(Date.now()); }
       }
     }
     fetchHorses();
@@ -745,12 +754,15 @@ export default function HorsesPage() {
               <span className="text-[12px] text-gray-500 truncate">· {filtered.length} horse{filtered.length !== 1 ? "s" : ""}</span>
             </div>
           </div>
-          <button
-            onClick={() => setShowRegister(true)}
-            className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
-          >
-            <Plus size={13} /> Register New Horse
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <RefetchButton onRefetch={() => setRefreshSeed((s) => s + 1)} lastUpdated={lastUpdated} />
+            <button
+              onClick={() => setShowRegister(true)}
+              className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
+            >
+              <Plus size={13} /> Register New Horse
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 max-w-xs">
@@ -795,6 +807,8 @@ export default function HorsesPage() {
         <div className="flex flex-col items-center justify-center py-24 text-gray-600">
           <p className="text-[15px] font-medium">Loading horses...</p>
         </div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => setRefreshSeed((s) => s + 1)} />
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-gray-600">
           <p className="text-[15px] font-medium">No horses match your filters.</p>

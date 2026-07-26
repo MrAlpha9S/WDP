@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { AlertTriangle, Camera, Flag, Medal, Trophy, Video } from "lucide-react";
+import { AlertTriangle, Camera, Flag, Loader2, Medal, Trophy, Video } from "lucide-react";
 import { ordinal } from "../../shared/data/RaceData";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationRecord } from "../../api/refereeService";
 import MuxPlayer from "@mux/mux-player-react";
+import { RefetchButton } from "../../components/RefetchButton";
+import { ErrorState } from "../../components/ErrorState";
 
 function VideoReviewPanel({ raceRound }: { raceRound: any }) {
     const playbackId = raceRound?.muxVodPlaybackId || raceRound?.muxPlaybackId;
@@ -61,26 +63,32 @@ export default function PostRacePage() {
     const [distUnit, setDistUnit] = useState<DistUnit>('lengths');
     const [violations, setViolations] = useState<ViolationRecord[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+
+    const fetchData = useCallback(async () => {
+        if (!raceRoundId) return;
+        try {
+            setLoading(true);
+            setError(null);
+            const [raceRes, violRes] = await Promise.all([
+                refereeService.getRaceRoundById(raceRoundId),
+                refereeService.getRaceRoundViolations(raceRoundId)
+            ]);
+            setRaceRound(raceRes.data);
+            setViolations(violRes.data ?? []);
+        } catch (err: any) {
+            console.error("Error fetching post-race data:", err);
+            setError(err?.msg ?? "Failed to load race results.");
+        } finally {
+            setLoading(false);
+            setLastUpdated(Date.now());
+        }
+    }, [raceRoundId]);
 
     useEffect(() => {
-        if (!raceRoundId) return;
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const [raceRes, violRes] = await Promise.all([
-                    refereeService.getRaceRoundById(raceRoundId),
-                    refereeService.getRaceRoundViolations(raceRoundId)
-                ]);
-                setRaceRound(raceRes.data);
-                setViolations(violRes.data ?? []);
-            } catch (err) {
-                console.error("Error fetching post-race data:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
-    }, [raceRoundId]);
+    }, [fetchData]);
 
     // Show all horses that were eligible to run (approved or verified),
     // excluding those that were rejected, failed pre-race checks, no-showed, or never processed.
@@ -131,7 +139,16 @@ export default function PostRacePage() {
     };
 
     if (loading) {
-        return <div className="text-white p-5 flex items-center gap-3"><div className="w-5 h-5 border-2 border-t-blue-500 border-white/20 rounded-full animate-spin"/> Loading race results...</div>;
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] bg-[#1a1a1a] rounded-xl border border-white/8">
+                <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-4" />
+                <span className="text-[13px] font-medium text-gray-400">Loading race results...</span>
+            </div>
+        );
+    }
+
+    if (error) {
+        return <ErrorState message={error} onRetry={fetchData} />;
     }
 
     return (
@@ -161,6 +178,7 @@ export default function PostRacePage() {
                                     <AlertTriangle size={10} /> Objection Filed
                                 </span>
                             )}
+                            <RefetchButton onRefetch={fetchData} lastUpdated={lastUpdated} />
                             <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
                                 {(['lengths', 'metres'] as DistUnit[]).map(u => (
                                     <button key={u} onClick={() => setDistUnit(u)}
@@ -195,7 +213,7 @@ export default function PostRacePage() {
                                         : pos > 0 && pos <= 3 ? "border-white/10 bg-white/[0.03]"
                                             : "border-white/6 bg-white/[0.02]"].join(" ")}
                                 >
-                                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-black shrink-0 text-white ${posBg}`}>{pos || "-"}</span>
+                                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 text-white ${posBg}`}>{pos || "-"}</span>
                                     <span className="w-6 h-6 rounded-full bg-white/8 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">{horse.horseNumber || "?"}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className={["text-[13.5px] font-bold",
@@ -257,7 +275,7 @@ export default function PostRacePage() {
                             );
                         })}
                         {violations.length === 0 && (
-                            <p className="text-[12.5px] text-gray-600 text-center py-4">No incidents recorded</p>
+                            <p className="text-[12px] text-gray-600 text-center py-4">No incidents recorded</p>
                         )}
                     </div>
                 </div>
@@ -269,12 +287,12 @@ export default function PostRacePage() {
                 {/* Finish photo */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
                     <div className="px-4 py-3 border-b border-white/8">
-                        <h2 className="text-[12px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 flex items-center gap-2">
                             <Camera size={13} className="text-green-500" /> Finish Photo
                         </h2>
                     </div>
-                    <div className="relative m-3 rounded-xl overflow-hidden aspect-video bg-black">
-                        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80" alt="Finish" className="w-full h-full object-cover opacity-60" />
+                    <div className="relative m-3 rounded-xl overflow-hidden aspect-video bg-black flex items-center justify-center">
+                        <img src="/jumping-horse-silhouette-facing-left-side-view.png" alt="Finish" className="h-16 w-16 object-contain opacity-25" />
                         <div className="absolute inset-0 flex items-center justify-center">
                             <span className="text-[11px] font-bold text-white uppercase tracking-wider bg-black/60 px-3 py-1 rounded-lg">Photo Finish</span>
                         </div>

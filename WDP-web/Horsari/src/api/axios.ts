@@ -38,4 +38,11 @@ api.interceptors.response.use(
   }
 );
 
+export function isNetworkError(err: any): boolean {
+  return !err?.response; // covers connection-refused, DNS failure, and ECONNABORTED timeouts
+}
+
+export const NETWORK_ERROR_MESSAGE =
+  'Could not connect to the server. Please check your connection and try again.';
+
 export default api;

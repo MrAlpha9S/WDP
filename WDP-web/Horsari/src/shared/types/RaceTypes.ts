@@ -54,7 +54,7 @@ export interface MockHorseOwner {
 
 export type RacePhase = "pre" | "live" | "post";
 export type VerificationStatus = "cleared" | "review" | "pending";
-export type PassFail = "pass" | "fail" | null;
+export type FailFlag = "fail" | null;
 
 export interface Jockey {
     id: string;

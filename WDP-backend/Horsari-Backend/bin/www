@@ -53,6 +53,24 @@ startTournamentScheduler(io);
 const { startRaceRoundChangeStream } = require('../services/RaceRoundChangeStreamService');
 startRaceRoundChangeStream(io);
 
+// Same pattern, generalized: watch the base User collection plus every
+// per-role extension collection (they share _id with User but live in their
+// own collections, not Mongoose discriminators) so any admin-relevant user
+// change — status, license verification, profile edits — broadcasts live.
+const { startCollectionChangeStream } = require('../services/ChangeStreamService');
+const User = require('../entities/User');
+const HorseOwner = require('../entities/HorseOwner');
+const Jockey = require('../entities/Jockey');
+const Referee = require('../entities/Referee');
+const Admin = require('../entities/Admin');
+const Spectator = require('../entities/Spectator');
+const Transaction = require('../entities/Transaction');
+
+[User, HorseOwner, Jockey, Referee, Admin, Spectator].forEach((Model) =>
+  startCollectionChangeStream(io, Model, 'user_updated')
+);
+startCollectionChangeStream(io, Transaction, 'transaction_updated');
+
 
 io.on('connection', (socket) => {
   console.log('[WS] client connected:', socket.id);

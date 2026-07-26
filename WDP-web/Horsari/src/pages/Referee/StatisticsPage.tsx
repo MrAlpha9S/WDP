@@ -5,6 +5,8 @@ import type { RefereeStatistics, WorkHistoryEntry, ViolationTypeRecord } from ".
 import type { ViolationEntity } from "../../shared/types/ViolationTypes";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { Pagination } from "../../components/Pagination";
+import { RefetchButton } from "../../components/RefetchButton";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Chart helpers ─────────────────────────────────────────────────────────────
 type ChartRange = "day" | "week" | "month" | "year";
@@ -73,10 +75,12 @@ function WorkHistorySection() {
     const [sortValue, setSortValue] = useState<"raceDate:desc" | "raceDate:asc">("raceDate:desc");
     const [sortBy, order] = sortValue.split(":") as [string, "asc" | "desc"];
 
-    const { data, loading, error, pagination, page, setPage } = usePaginatedFetch<WorkHistoryEntry>(
+    const { data, loading, error, pagination, page, setPage, refresh } = usePaginatedFetch<WorkHistoryEntry>(
         (p) => refereeService.getWorkHistory(p, 10, sortBy, order).then((res) => res.data),
         `referee-work-history-${sortValue}`,
     );
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+    useEffect(() => { setLastUpdated(Date.now()); }, [data]);
 
     return (
         <div className="mt-6 rounded-xl border border-white/[0.07] bg-[#141414] p-5">
@@ -85,20 +89,23 @@ function WorkHistorySection() {
                     <Shield size={15} className="text-red-500" />
                     Work History
                 </h2>
-                <select
-                    value={sortValue}
-                    onChange={(e) => { setSortValue(e.target.value as typeof sortValue); setPage(1); }}
-                    className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
-                >
-                    <option value="raceDate:desc">Newest First</option>
-                    <option value="raceDate:asc">Oldest First</option>
-                </select>
+                <div className="flex items-center gap-2">
+                    <RefetchButton onRefetch={refresh} lastUpdated={lastUpdated} />
+                    <select
+                        value={sortValue}
+                        onChange={(e) => { setSortValue(e.target.value as typeof sortValue); setPage(1); }}
+                        className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                    >
+                        <option value="raceDate:desc">Newest First</option>
+                        <option value="raceDate:asc">Oldest First</option>
+                    </select>
+                </div>
             </div>
 
             {loading ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">Loading work history...</p>
             ) : error ? (
-                <p className="text-[13px] text-red-400 text-center py-6">Failed to load work history.</p>
+                <ErrorState message={(error as any)?.msg ?? "Failed to load work history."} onRetry={refresh} />
             ) : data.length === 0 ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">No completed races yet.</p>
             ) : (
@@ -267,11 +274,13 @@ function AllViolationsSection() {
     const [sortValue, setSortValue] = useState<"created_at:desc" | "created_at:asc">("created_at:desc");
     const [sortBy, order] = sortValue.split(":") as [string, "asc" | "desc"];
 
-    const { data, loading, error, pagination, page, setPage } = usePaginatedFetch<ViolationEntity>(
+    const { data, loading, error, pagination, page, setPage, refresh } = usePaginatedFetch<ViolationEntity>(
         (p) => refereeService.getAllViolations(p, 10, statusFilter || undefined, undefined, undefined, sortBy, order)
             .then((res) => ({ items: res.data.items, pagination: res.data.pagination })),
         `referee-all-violations-${statusFilter}-${sortValue}`,
     );
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+    useEffect(() => { setLastUpdated(Date.now()); }, [data]);
 
     return (
         <div className="mt-6 rounded-xl border border-white/[0.07] bg-[#141414] p-5">
@@ -281,6 +290,7 @@ function AllViolationsSection() {
                     All Violations
                 </h2>
                 <div className="flex items-center gap-2">
+                    <RefetchButton onRefetch={refresh} lastUpdated={lastUpdated} />
                     <select
                         value={statusFilter}
                         onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1); }}
@@ -305,7 +315,7 @@ function AllViolationsSection() {
             {loading ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">Loading violations...</p>
             ) : error ? (
-                <p className="text-[13px] text-red-400 text-center py-6">Failed to load violations.</p>
+                <ErrorState message={(error as any)?.msg ?? "Failed to load violations."} onRetry={refresh} />
             ) : data.length === 0 ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">No violations found.</p>
             ) : (
@@ -355,11 +365,13 @@ function ViolationTypesSection() {
     const [phaseFilter, setPhaseFilter] = useState<'' | 'pre-race' | 'during-race' | 'after-race'>('');
     const [search, setSearch] = useState('');
 
-    const { data, loading, error, pagination, page, setPage } = usePaginatedFetch<ViolationTypeRecord>(
+    const { data, loading, error, pagination, page, setPage, refresh } = usePaginatedFetch<ViolationTypeRecord>(
         (p) => refereeService.getViolationTypes(phaseFilter || undefined, p, 10, search || undefined, 'severity', 'asc')
             .then((res) => ({ items: res.data.items, pagination: res.data.pagination })),
         `referee-violation-types-${phaseFilter}-${search}`,
     );
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+    useEffect(() => { setLastUpdated(Date.now()); }, [data]);
 
     return (
         <div className="mt-6 rounded-xl border border-white/[0.07] bg-[#141414] p-5">
@@ -369,6 +381,7 @@ function ViolationTypesSection() {
                     Violation Types Reference
                 </h2>
                 <div className="flex items-center gap-2">
+                    <RefetchButton onRefetch={refresh} lastUpdated={lastUpdated} />
                     <input
                         type="text"
                         placeholder="Search..."
@@ -392,7 +405,7 @@ function ViolationTypesSection() {
             {loading ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">Loading violation types...</p>
             ) : error ? (
-                <p className="text-[13px] text-red-400 text-center py-6">Failed to load violation types.</p>
+                <ErrorState message={(error as any)?.msg ?? "Failed to load violation types."} onRetry={refresh} />
             ) : data.length === 0 ? (
                 <p className="text-[13px] text-gray-500 text-center py-6">No violation types found.</p>
             ) : (
@@ -432,15 +445,22 @@ function ViolationTypesSection() {
 export default function StatisticsPage() {
     const [stats, setStats] = useState<RefereeStatistics | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [statsRefreshTick, setStatsRefreshTick] = useState(0);
 
     useEffect(() => {
+        setLoading(true);
+        setError(null);
         refereeService.getStatistics()
             .then((res) => {
                 if (res.code === 200 && res.data) setStats(res.data);
             })
-            .catch((err) => console.error("Failed to fetch referee statistics", err))
+            .catch((err: any) => {
+                console.error("Failed to fetch referee statistics", err);
+                setError(err?.msg ?? "Failed to fetch statistics.");
+            })
             .finally(() => setLoading(false));
-    }, []);
+    }, [statsRefreshTick]);
 
     const acceptanceRate = stats && stats.totalInvitations > 0
         ? Math.round((stats.acceptedCount / stats.totalInvitations) * 100)
@@ -459,6 +479,12 @@ export default function StatisticsPage() {
                         Your wallet, earnings, and officiating history.
                     </p>
                 </div>
+
+                {error && (
+                    <div className="mb-6">
+                        <ErrorState message={error} onRetry={() => setStatsRefreshTick((t) => t + 1)} />
+                    </div>
+                )}
 
                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
                     <StatCard

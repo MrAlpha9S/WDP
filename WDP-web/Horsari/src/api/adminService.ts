@@ -1,4 +1,4 @@
-import api from './axios';
+import api, { NETWORK_ERROR_MESSAGE } from './axios';
 import type { TournamentDetailData, TournamentRankEntry } from '../shared/types/TournamentTypes';
 import type { ViolationEntity, ViolationTypeEntity } from '../shared/types/ViolationTypes';
 import type { PaymentEntity, PaymentStatus, PaymentType, PaymentsResponse, LedgerResponse } from './paymentTypes';
@@ -557,7 +557,7 @@ export const adminService = {
       const response = await api.get('/admin/my-profile');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch profile' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -566,7 +566,7 @@ export const adminService = {
       const response = await api.put('/admin/my-profile', payload);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to update profile' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -576,7 +576,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -585,7 +585,7 @@ export const adminService = {
       const response = await api.get('/admin/statistics/overview');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch system statistics' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -596,7 +596,7 @@ export const adminService = {
       const response = await api.get('/admin/statistics/dashboard/kpi');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch dashboard KPI' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -605,7 +605,7 @@ export const adminService = {
       const response = await api.get('/admin/statistics/dashboard/house-earnings', { params: { groupBy } });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch house earnings' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -614,7 +614,7 @@ export const adminService = {
       const response = await api.get('/admin/statistics/dashboard/top-performers');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch top performers' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -623,7 +623,7 @@ export const adminService = {
       const response = await api.get('/admin/statistics/dashboard/predictions');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch prediction statistics' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -632,7 +632,7 @@ export const adminService = {
       const response = await api.get('/admin/statistics/dashboard/spectator-leaderboard');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch spectator leaderboard' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -652,7 +652,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch users' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -661,7 +661,7 @@ export const adminService = {
       const response = await api.get(`/admin/users/${userId}`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch user detail' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -673,7 +673,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -685,7 +685,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -697,7 +697,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -709,7 +709,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch tournaments' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -722,6 +722,7 @@ export const adminService = {
     search?: string,
     sortBy = 'raceDate',
     order: 'asc' | 'desc' = 'desc',
+    raceType?: string,
   ): Promise<RaceRoundsResponse> => {
     try {
       const params: any = { page, limit, sortBy, order };
@@ -729,11 +730,23 @@ export const adminService = {
       if (raceRound_id) params.raceRound_id = raceRound_id;
       if (status) params.status = status;
       if (search) params.search = search;
+      if (raceType) params.raceType = raceType;
       const response = await api.get('/admin/race-rounds', { params });
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch race rounds' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+
+  getRaceTypes: async (isActive?: boolean): Promise<{ code: number; data: string[]; msg: string }> => {
+    try {
+      const params: any = {};
+      if (isActive !== undefined) params.isActive = isActive;
+      const response = await api.get('/admin/race-rounds/race-types', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -743,7 +756,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch race round detail' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -753,7 +766,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch create race metadata' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -763,7 +776,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -773,7 +786,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -783,7 +796,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -793,7 +806,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -802,7 +815,7 @@ export const adminService = {
       const response = await api.get(`/admin/tournaments/${id}/detail`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch tournament detail' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -811,7 +824,7 @@ export const adminService = {
       const response = await api.get(`/admin/tournaments/${id}/ranking`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch tournament ranking' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -821,7 +834,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -844,7 +857,7 @@ export const adminService = {
       const response = await api.get('/admin/violations', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch violations' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -853,7 +866,7 @@ export const adminService = {
       const response = await api.patch(`/admin/violations/${id}/dismiss`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to dismiss violation' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -876,7 +889,7 @@ export const adminService = {
       const response = await api.get('/admin/violation-types', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch violation types' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -885,7 +898,7 @@ export const adminService = {
       const response = await api.post('/admin/violation-types', data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to create violation type' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -894,7 +907,7 @@ export const adminService = {
       const response = await api.put(`/admin/violation-types/${id}`, data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to update violation type' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -903,7 +916,7 @@ export const adminService = {
       const response = await api.patch(`/admin/violation-types/${id}/active`, { isActive });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to toggle violation type status' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -913,7 +926,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || error;
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -932,7 +945,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch rules' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -942,7 +955,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to create rule' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -952,7 +965,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to update rule' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -962,7 +975,7 @@ export const adminService = {
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to delete rule' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -973,7 +986,7 @@ export const adminService = {
       const response = await api.patch(`/admin/users/${userId}/certification`, { action });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to update certification status' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -984,7 +997,7 @@ export const adminService = {
       const response = await api.put(`/admin/race-rounds/${id}/status`, { status });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to update race status' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -999,7 +1012,7 @@ export const adminService = {
       const response = await api.post(`/admin/race-rounds/${id}/quick-assign`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to quick-assign horses and jockeys' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1010,7 +1023,7 @@ export const adminService = {
       const response = await api.post(`/admin/race-rounds/${id}/stream`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to create stream' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1019,7 +1032,7 @@ export const adminService = {
       const response = await api.get(`/admin/race-rounds/${id}/stream`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch stream info' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1028,7 +1041,7 @@ export const adminService = {
       const response = await api.get(`/admin/race-rounds/${id}/vod`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch VOD info' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1049,7 +1062,7 @@ export const adminService = {
       const response = await api.get('/admin/horses', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch horses' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1058,7 +1071,7 @@ export const adminService = {
       const response = await api.get(`/admin/horses/${horseId}`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch horse detail' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1067,7 +1080,7 @@ export const adminService = {
       const response = await api.patch(`/admin/horses/${horseId}/status`, { status });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to update horse status' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1078,7 +1091,7 @@ export const adminService = {
       const response = await api.get('/admin/important-events');
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch important events' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1101,7 +1114,7 @@ export const adminService = {
       const response = await api.get('/admin/payments', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch payments' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1123,7 +1136,7 @@ export const adminService = {
       const response = await api.get('/admin/payments/all', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch payments' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1132,7 +1145,7 @@ export const adminService = {
       const response = await api.put(`/admin/payments/${paymentId}/confirm-paid`);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to confirm payment' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1147,7 +1160,7 @@ export const adminService = {
       const response = await api.get('/admin/ledger', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch ledger' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 
@@ -1165,7 +1178,7 @@ export const adminService = {
       const response = await api.get('/admin/ledger/all', { params });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { msg: 'Failed to fetch ledger' };
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
 };

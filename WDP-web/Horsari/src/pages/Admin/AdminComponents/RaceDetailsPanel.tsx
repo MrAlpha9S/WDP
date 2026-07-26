@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import type { ScheduledRace } from "../../../shared/types/RaceTypes";
 import { adminService } from "../../../api/adminService";
+import { useSocket } from "../../../providers/SocketProvider";
 
 interface RaceDetailsPanelProps {
     selectedRace?: ScheduledRace;
@@ -187,6 +188,16 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         // actual edit — not on every unrelated re-render of the parent.
     }, [selectedRace?.id, (selectedRace as any)?.updatedAt]);
 
+    // Any RaceRound mutation from any source broadcasts raceround_updated —
+    // refetch this panel's detail live instead of relying solely on the
+    // parent re-passing an updated selectedRace.
+    const { socket } = useSocket();
+    useEffect(() => {
+        if (!socket || !selectedRace?.id) return;
+        const handler = () => fetchDetails();
+        socket.on("raceround_updated", handler);
+        return () => { socket.off("raceround_updated", handler); };
+    }, [socket, selectedRace?.id, fetchDetails]);
 
     // When stream tab is opened for a running/awaitingConfirmation race, auto-fetch
     useEffect(() => {

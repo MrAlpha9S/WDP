@@ -154,10 +154,14 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     liveRace:
- *                       type: object
- *                       nullable: true
- *                       description: Currently running race (null if none)
+ *                     liveRaces:
+ *                       type: array
+ *                       description: All currently running races (up to 10, sorted by raceDate ASC)
+ *                       items: { type: object }
+ *                     preparingRaces:
+ *                       type: array
+ *                       description: All races in the 'prepared' status (up to 10, sorted by raceDate ASC)
+ *                       items: { type: object }
  *                     upcomingRaces:
  *                       type: array
  *                       description: Up to 5 scheduled races sorted by raceDate ASC

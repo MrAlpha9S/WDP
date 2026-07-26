@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   Image,
   Pressable,
   RefreshControl,
@@ -20,12 +21,16 @@ import {
   getRaceSchedule,
   HomeFeed,
   HomeFeedHorse,
+  HomeFeedLiveRace,
   HomeFeedUpcomingRace,
   RaceScheduleItem,
   ScheduleFilter,
 } from '../../api/spectatorApi';
+import { isNetworkError, NETWORK_ERROR_MESSAGE } from '../../api/axios';
 import { useSocket } from '../../socket/SocketContext';
 import { Fonts } from '@/constants/theme';
+import { RefetchButton } from '@/components/RefetchButton';
+import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
   background: '#0A0A0B',
@@ -45,6 +50,13 @@ const Palette = {
 const isRealTournament = (t: { tournamentName: string } | null | undefined): boolean =>
   !!t && t.tournamentName !== 'Non-tournament';
 
+// Carousel card width — full content width (screen width minus the scroll
+// container's horizontal padding on both sides) so one card fills the
+// screen at a time, matching the single-card layout this replaces.
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const CAROUSEL_CARD_WIDTH = SCREEN_WIDTH - 40;
+const CAROUSEL_GAP = 12;
+
 function formatViDate(dateStr: string): string {
   const d = new Date(dateStr);
   const hh = String(d.getHours()).padStart(2, '0');
@@ -62,23 +74,29 @@ function formatShortDate(dateStr: string): string {
 function LiveRaceCard({
   liveRace,
   onWatch,
+  width,
 }: {
-  liveRace: NonNullable<HomeFeed['liveRace']>;
+  liveRace: HomeFeedLiveRace;
   onWatch: () => void;
+  width?: number;
 }) {
+  const isPreparing = liveRace.status === 'prepared';
+  const badgeColor = isPreparing ? Palette.green : Palette.red;
+  const badgeLabel = isPreparing ? 'PREPARING' : 'LIVE';
+
   return (
-    <View style={styles.liveCard}>
+    <View style={[styles.liveCard, width != null && { width }]}>
       <LinearGradient
-        colors={['#3A0A10', '#1C1015', '#0E0A12']}
+        colors={isPreparing ? ['#0A2A18', '#101C1A', '#0A0A12'] : ['#3A0A10', '#1C1015', '#0E0A12']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.liveGradient}>
 
-        {/* Live badge */}
+        {/* Status badge */}
         <View style={styles.liveBadgeRow}>
-          <View style={styles.liveBadge}>
+          <View style={[styles.liveBadge, { backgroundColor: badgeColor }]}>
             <View style={styles.liveDot} />
-            <Text style={styles.liveBadgeText}>LIVE</Text>
+            <Text style={styles.liveBadgeText}>{badgeLabel}</Text>
           </View>
           {isRealTournament(liveRace.tournament) && (
             <Text style={styles.liveTournament} numberOfLines={1}>
@@ -114,19 +132,76 @@ function LiveRaceCard({
           </View>
         )}
 
-        {/* Watch button */}
-        {liveRace.livestreamUrl ? (
+        {/* Watch button — the race detail screen always has something to
+            watch once a race is running (see RaceVideoPlayer), so this no
+            longer depends on livestreamUrl. A merely "preparing" race isn't
+            running yet, so there's nothing to watch until it goes live. */}
+        {isPreparing ? (
+          <View style={styles.liveNoStream}>
+            <Ionicons name="time-outline" size={14} color={Palette.textMuted} />
+            <Text style={styles.liveNoStreamText}>Race hasn't started yet</Text>
+          </View>
+        ) : (
           <Pressable style={styles.liveWatchBtn} onPress={onWatch}>
             <Ionicons name="play-circle-outline" size={16} color={Palette.text} />
             <Text style={styles.liveWatchText}>WATCH LIVE</Text>
           </Pressable>
-        ) : (
-          <View style={styles.liveNoStream}>
-            <Ionicons name="eye-outline" size={14} color={Palette.textMuted} />
-            <Text style={styles.liveNoStreamText}>No livestream available</Text>
-          </View>
         )}
       </LinearGradient>
+    </View>
+  );
+}
+
+// ─── Race Carousel (live + preparing races) ──────────────────────────────────
+// Manual swipeable carousel — no carousel library dependency. A horizontal
+// ScrollView (not FlatList) is used deliberately: this screen's outer content
+// is already a scrollable RefreshControl-wrapped ScrollView, and a nested
+// horizontal FlatList inside a plain ScrollView triggers RN's "VirtualizedLists
+// should never be nested inside plain ScrollViews" warning.
+function RaceCarousel({
+  races,
+  onWatch,
+}: {
+  races: HomeFeedLiveRace[];
+  onWatch: (raceId: string) => void;
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  if (races.length === 0) return null;
+
+  return (
+    <View>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={CAROUSEL_CARD_WIDTH + CAROUSEL_GAP}
+        snapToAlignment="start"
+        contentContainerStyle={{ gap: CAROUSEL_GAP }}
+        onMomentumScrollEnd={(e) => {
+          const idx = Math.round(e.nativeEvent.contentOffset.x / (CAROUSEL_CARD_WIDTH + CAROUSEL_GAP));
+          setCurrentIndex(Math.max(0, Math.min(idx, races.length - 1)));
+        }}>
+        {races.map((race) => (
+          <LiveRaceCard
+            key={race._id}
+            liveRace={race}
+            width={CAROUSEL_CARD_WIDTH}
+            onWatch={() => onWatch(race._id)}
+          />
+        ))}
+      </ScrollView>
+      {races.length > 1 && (
+        <View style={styles.carouselDots}>
+          {races.map((race, i) => (
+            <View
+              key={race._id}
+              style={[styles.carouselDot, i === currentIndex && styles.carouselDotActive]}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -205,10 +280,10 @@ function HorseCard({ horse }: { horse: HomeFeedHorse }) {
 
 function browseStatusLabel(s: string): { label: string; color: string } {
   if (s === 'running')              return { label: 'Running',              color: Palette.red };
-  if (s === 'prepared')             return { label: 'Preparing',            color: '#E07B3A' };
+  if (s === 'prepared')             return { label: 'Preparing',            color: Palette.green };
   if (s === 'scheduled')            return { label: 'Upcoming',             color: Palette.gold };
   if (s === 'completed')            return { label: 'Completed',            color: Palette.textMuted };
-  if (s === 'awaitingConfirmation') return { label: 'Awaiting Confirmation', color: '#E07B3A' };
+  if (s === 'awaitingConfirmation') return { label: 'Awaiting Confirmation', color: '#E0C93A' };
   return { label: s, color: Palette.textMuted };
 }
 
@@ -288,7 +363,7 @@ function BrowseRaceCard({ item, onPress }: { item: RaceScheduleItem; onPress: ()
 
 const BROWSE_FILTERS: { key: ScheduleFilter; label: string; color: string }[] = [
   { key: 'running',   label: 'Live',      color: Palette.red },
-  { key: 'prepared',  label: 'Preparing', color: '#E07B3A' },
+  { key: 'prepared',  label: 'Preparing', color: Palette.green },
   { key: 'scheduled', label: 'Upcoming',  color: Palette.gold },
   { key: 'completed', label: 'Completed', color: Palette.textMuted },
 ];
@@ -306,25 +381,37 @@ export default function SpectatorHomeScreen() {
   const [browseRaces, setBrowseRaces] = useState<RaceScheduleItem[]>([]);
   const [browseTotal, setBrowseTotal] = useState(0);
   const [isLoadingBrowse, setIsLoadingBrowse] = useState(true);
+  const [browseError, setBrowseError] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   const load = async (silent = false) => {
     if (!silent) setIsLoading(true);
     setError(null);
-    const data = await getHomeFeed();
-    if (!data) {
-      setError('Could not load data. Please try again.');
-    } else {
-      setFeed(data);
+    try {
+      const data = await getHomeFeed();
+      if (!data) {
+        setError('Could not load data. Please try again.');
+      } else {
+        setFeed(data);
+      }
+    } catch (err) {
+      if (isNetworkError(err)) setError(NETWORK_ERROR_MESSAGE);
     }
     setIsLoading(false);
     setIsRefreshing(false);
+    setLastUpdated(Date.now());
   };
 
   const loadBrowseRaces = async (filter: ScheduleFilter, silent = false) => {
     if (!silent) setIsLoadingBrowse(true);
-    const result = await getRaceSchedule(filter);
-    setBrowseRaces(result.raceRounds);
-    setBrowseTotal(result.meta.total);
+    try {
+      const result = await getRaceSchedule(filter);
+      setBrowseRaces(result.raceRounds);
+      setBrowseTotal(result.meta.total);
+      setBrowseError(false);
+    } catch (err) {
+      if (isNetworkError(err)) setBrowseError(true);
+    }
     setIsLoadingBrowse(false);
   };
 
@@ -359,6 +446,11 @@ export default function SpectatorHomeScreen() {
     setBrowseRaces([]);
   };
 
+  // Live races first, then preparing — a single carousel covers both so the
+  // spectator doesn't need two separate sections for what's effectively the
+  // same "about to watch" moment.
+  const combinedRaces = [...(feed?.liveRaces ?? []), ...(feed?.preparingRaces ?? [])];
+
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
@@ -374,14 +466,17 @@ export default function SpectatorHomeScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>HOME</Text>
-          {feed?.spectator != null && (
-            <View style={styles.pointsBadge}>
-              <Ionicons name="star-outline" size={12} color={Palette.gold} />
-              <Text style={styles.pointsBadgeText}>
-                {feed.spectator.wallet.toLocaleString()} points
-              </Text>
-            </View>
-          )}
+          <View style={styles.headerRight}>
+            {feed?.spectator != null && (
+              <View style={styles.pointsBadge}>
+                <Ionicons name="star-outline" size={12} color={Palette.gold} />
+                <Text style={styles.pointsBadgeText}>
+                  {feed.spectator.wallet.toLocaleString()} points
+                </Text>
+              </View>
+            )}
+            <RefetchButton onRefetch={onRefresh} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.gold} />
+          </View>
         </View>
 
         {/* ─── Body ─── */}
@@ -390,13 +485,12 @@ export default function SpectatorHomeScreen() {
             <ActivityIndicator color={Palette.gold} size="large" />
           </View>
         ) : error ? (
-          <View style={styles.center}>
-            <Ionicons name="cloud-offline-outline" size={40} color={Palette.textMuted} />
-            <Text style={styles.emptyText}>{error}</Text>
-            <Pressable style={styles.retryBtn} onPress={() => load()}>
-              <Text style={styles.retryText}>RETRY</Text>
-            </Pressable>
-          </View>
+          <NoConnectionState
+            onRetry={() => load()}
+            message={error}
+            accentColor={Palette.gold}
+            mutedColor={Palette.textMuted}
+          />
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -413,16 +507,23 @@ export default function SpectatorHomeScreen() {
             <Text style={styles.welcomeSub}>WELCOME BACK,</Text>
             <Text style={styles.welcomeTitle}>Today's Races</Text>
 
-            {/* ─── Live Race ─── */}
-            {feed?.liveRace ? (
+            {/* ─── Live / Preparing Races ─── */}
+            {combinedRaces.length > 0 ? (
               <>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionAccentRed} />
-                  <Text style={styles.sectionTitle}>Live Now</Text>
+                  <Text style={styles.sectionTitle}>
+                    {(feed?.liveRaces.length ?? 0) > 0 ? 'Live Now' : 'Preparing'}
+                  </Text>
+                  {combinedRaces.length > 1 && (
+                    <View style={styles.countBadge}>
+                      <Text style={styles.countBadgeText}>{combinedRaces.length}</Text>
+                    </View>
+                  )}
                 </View>
-                <LiveRaceCard
-                  liveRace={feed.liveRace}
-                  onWatch={() => router.push(`/(spectator)/race/${feed.liveRace!._id}` as any)}
+                <RaceCarousel
+                  races={combinedRaces}
+                  onWatch={(raceId) => router.push(`/(spectator)/race/${raceId}` as any)}
                 />
               </>
             ) : (
@@ -467,7 +568,7 @@ export default function SpectatorHomeScreen() {
             )}
 
             {/* Empty state when no content */}
-            {!feed?.liveRace &&
+            {combinedRaces.length === 0 &&
               (feed?.upcomingRaces ?? []).length === 0 &&
               (feed?.featuredHorses ?? []).length === 0 && (
                 <View style={styles.emptyState}>
@@ -508,6 +609,12 @@ export default function SpectatorHomeScreen() {
               <View style={styles.loadingBrowse}>
                 <ActivityIndicator color={Palette.gold} />
               </View>
+            ) : browseError ? (
+              <NoConnectionState
+                onRetry={() => loadBrowseRaces(browseFilter)}
+                accentColor={Palette.gold}
+                mutedColor={Palette.textMuted}
+              />
             ) : browseRaces.length === 0 ? (
               <View style={styles.browseEmpty}>
                 <Ionicons name="calendar-outline" size={32} color={Palette.textMuted} />
@@ -557,12 +664,20 @@ const styles = StyleSheet.create({
   },
   headerLogoImg: { width: 22, height: 22 },
   headerTitle: {
-    flex: 1,
     fontFamily: Fonts.mono,
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 2,
     color: Palette.gold,
+  },
+  headerRight: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+    rowGap: 6,
   },
   pointsBadge: {
     flexDirection: 'row',
@@ -593,6 +708,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   welcomeTitle: {
+    fontFamily: Fonts.serif,
     fontSize: 26,
     fontWeight: '800',
     color: Palette.text,
@@ -664,6 +780,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   liveRaceName: {
+    fontFamily: Fonts.serif,
     fontSize: 22,
     fontWeight: '900',
     color: Palette.text,
@@ -714,6 +831,26 @@ const styles = StyleSheet.create({
   },
   liveNoStreamText: { fontSize: 12, color: Palette.textMuted },
 
+  // Carousel dot indicators
+  carouselDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  carouselDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Palette.cardBorder,
+  },
+  carouselDotActive: {
+    width: 16,
+    backgroundColor: Palette.gold,
+  },
+
   // No live state
   noLiveCard: {
     flexDirection: 'row',
@@ -752,6 +889,7 @@ const styles = StyleSheet.create({
   },
   upcomingName: {
     flex: 1,
+    fontFamily: Fonts.serif,
     fontSize: 15,
     fontWeight: '700',
     color: Palette.text,
@@ -915,6 +1053,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   browseRaceName: {
+    fontFamily: Fonts.serif,
     fontSize: 16,
     fontWeight: '700',
     color: Palette.text,

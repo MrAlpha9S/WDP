@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./providers/AuthProvider";
 import { SocketProvider } from "./providers/SocketProvider";
+import { ServerUnreachableBanner } from "./components/ServerUnreachableBanner";
 import ProtectedRoute from "./ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import GoogleRegisterPage from "./pages/GoogleRegisterPage";
@@ -28,6 +29,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <SocketProvider>
+        <ServerUnreachableBanner />
         <Routes>
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />

@@ -8,6 +8,7 @@ import { DeleteTournamentModal } from "./modal/DeleteTournamentModal";
 import { adminService } from "../../api/adminService";
 import TournamentDetailPanel from "./AdminComponents/TournamentDetailPanel";
 import { useSocket } from "../../providers/SocketProvider";
+import { ErrorState } from "../../components/ErrorState";
 
 type AdminViewMode = "table" | "calendar";
 
@@ -22,6 +23,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
     const [allTournamentsForCalendar, setAllTournamentsForCalendar] = useState<Tournament[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const LIMIT = 10;
@@ -31,6 +33,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
     const fetchTournaments = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
             const res = await adminService.getTournamentsWithDetails(page, LIMIT);
             if (res?.data?.items) {
@@ -49,8 +52,9 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                 setTournaments(mapped);
                 setTotalItems(res.data.pagination?.totalItems ?? mapped.length);
             }
-        } catch (error) {
-            console.error("Failed to load tournaments:", error);
+        } catch (err: any) {
+            console.error("Failed to load tournaments:", err);
+            setError(err?.msg ?? "Failed to load tournaments.");
         } finally {
             setLoading(false);
         }
@@ -265,7 +269,14 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {filteredTournaments.map(t => (
+                                        {error && !loading && (
+                                            <tr>
+                                                <td colSpan={5} className="p-4">
+                                                    <ErrorState message={error} onRetry={fetchTournaments} />
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {!error && filteredTournaments.map(t => (
                                             <tr
                                                 key={t.id}
                                                 className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${selectedTournamentId === t.id ? 'bg-[#f3b2a5]/5 border-l-2 border-[#f3b2a5]' : ''}`}
@@ -314,7 +325,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {filteredTournaments.length === 0 && !loading && (
+                                        {filteredTournaments.length === 0 && !loading && !error && (
                                             <tr>
                                                 <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500">
                                                     No tournaments found.

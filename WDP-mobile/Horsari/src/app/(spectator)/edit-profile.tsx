@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getSpectatorProfile, updateSpectatorProfile } from '../../api/spectatorApi';
 import { uploadAvatar } from '../../api/profileApi';
+import { isNetworkError, NETWORK_ERROR_MESSAGE } from '../../api/axios';
 import { Fonts } from '@/constants/theme';
 
 const Palette = {
@@ -41,6 +42,7 @@ export default function SpectatorEditProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -50,8 +52,10 @@ export default function SpectatorEditProfileScreen() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  useEffect(() => {
-    (async () => {
+  const load = async () => {
+    setIsLoading(true);
+    setLoadFailed(false);
+    try {
       const profile = await getSpectatorProfile();
       if (profile) {
         setFullName(profile.user.fullName ?? '');
@@ -61,10 +65,16 @@ export default function SpectatorEditProfileScreen() {
         setAvatarUri(profile.user.image ?? null);
       } else {
         setErrorMsg('Could not load profile. Please try again.');
+        setLoadFailed(true);
       }
-      setIsLoading(false);
-    })();
-  }, []);
+    } catch (err: any) {
+      setErrorMsg(isNetworkError(err) ? NETWORK_ERROR_MESSAGE : 'Could not load profile. Please try again.');
+      setLoadFailed(true);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const handlePickAvatar = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -162,6 +172,11 @@ export default function SpectatorEditProfileScreen() {
               <View style={styles.errorBanner}>
                 <Ionicons name="alert-circle-outline" size={16} color="#FF6B6B" />
                 <Text style={styles.errorText}>{errorMsg}</Text>
+                {loadFailed && (
+                  <Pressable onPress={load} hitSlop={8}>
+                    <Text style={styles.errorRetryText}>RETRY</Text>
+                  </Pressable>
+                )}
               </View>
             )}
 
@@ -298,6 +313,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: { flex: 1, fontSize: 13, color: '#FF6B6B', lineHeight: 18 },
+  errorRetryText: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: Palette.gold,
+  },
 
   avatarRow: {
     flexDirection: 'row',

@@ -3,6 +3,7 @@ import { adminService } from "../../../api/adminService";
 import { Pagination } from "../../../components/Pagination";
 import { usePaginatedFetch } from "../../../hooks/usePaginatedFetch";
 import { useSocket } from "../../../providers/SocketProvider";
+import { ErrorState } from "../../../components/ErrorState";
 
 export type ApprovalRole = "Horse Owner" | "Jockey" | "Referee" | "Trainer";
 export type InvitationStatus = "Pending" | "Accepted" | "Declined";
@@ -65,6 +66,8 @@ export function InvitationTable({
     title,
     invites,
     loading,
+    error,
+    onRetry,
     page,
     totalPages,
     setPage,
@@ -74,6 +77,8 @@ export function InvitationTable({
     title: string;
     invites: Invitee[];
     loading: boolean;
+    error?: string | null;
+    onRetry?: () => void;
     page: number;
     totalPages: number;
     setPage: (p: number) => void;
@@ -252,7 +257,12 @@ export function InvitationTable({
                             </div>
                         ))}
 
-                        {invites.length === 0 && !loading && (
+                        {error && !loading && (
+                            <div className="py-4">
+                                <ErrorState message={error} onRetry={onRetry} />
+                            </div>
+                        )}
+                        {!error && invites.length === 0 && !loading && (
                             <p className="text-[14px] text-gray-500 py-8 text-center font-medium">
                                 No pending invitations.
                             </p>
@@ -396,8 +406,9 @@ export default function InvitationsSection({ limit = DEFAULT_LIMIT, onViewAll }:
         };
     }, [activeTab, limit]);
 
-    const { data: invites, loading, pagination, page, setPage, mutate, refresh } =
+    const { data: invites, loading, error, pagination, page, setPage, mutate, refresh } =
         usePaginatedFetch<Invitee>(fetcher, activeTab);
+    const errorMessage = error ? ((error as any)?.msg ?? "Failed to load invitations.") : null;
 
     // Live refetch when an invitation is created or a jockey responds.
     const { socket } = useSocket();
@@ -443,6 +454,8 @@ export default function InvitationsSection({ limit = DEFAULT_LIMIT, onViewAll }:
                 title={`${activeTab} Invitations`}
                 invites={invites}
                 loading={loading}
+                error={errorMessage}
+                onRetry={refresh}
                 page={page}
                 totalPages={pagination.totalPages}
                 setPage={setPage}

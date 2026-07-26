@@ -239,7 +239,7 @@ class JockeyService {
       const jockey = await JockeyRepository.findByJockeyId(jockeyId);
       if (!jockey) return { code: 404, msg: 'Jockey not found' };
 
-      const statusFilter = status ? { $in: [status] } : { $in: ['pending', 'accepted', 'declined', 'cancelled'] };
+      const statusFilter = status ? { $in: [status] } : { $in: ['pending', 'accepted', 'declined', 'cancelled', 'didNotAttend'] };
       const invitations = await Invitation.find({
         jockeyId: jockey._id,
         invitationStatus: statusFilter,

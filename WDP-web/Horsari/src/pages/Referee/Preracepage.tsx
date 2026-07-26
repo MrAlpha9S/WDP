@@ -4,6 +4,8 @@ import PreRaceInspectionModal from "./modal/PreRaceCheckup";
 import type { RegistrationDetail } from "../../providers/useRaceSocket";
 import { useRaceSocket } from "../../providers/useRaceSocket";
 import { refereeService } from "../../api/refereeService";
+import { RefetchButton } from "../../components/RefetchButton";
+import { ErrorState } from "../../components/ErrorState";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -33,6 +35,8 @@ export default function PreRacePage() {
     const [inspecting, setInspecting] = useState<{ registration: RegistrationDetail; index: number } | null>(null);
     const [localRegistrations, setLocalRegistrations] = useState<RegistrationDetail[] | null>(null);
     const [localStatus, setLocalStatus] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+    const [registrationsError, setRegistrationsError] = useState<string | null>(null);
 
     const toggle = (registrationId: string) => setCheckedIds(prev => {
         const s = new Set(prev);
@@ -43,6 +47,7 @@ export default function PreRacePage() {
     const refetchRegistrations = async () => {
         if (!raceRound?._id) return;
         try {
+            setRegistrationsError(null);
             const res = await refereeService.getRaceRoundById(raceRound._id);
             if (res.code === 200 && res.data) {
                 if (res.data.Registration) {
@@ -52,7 +57,11 @@ export default function PreRacePage() {
                     setLocalStatus(res.data.status);
                 }
             }
-        } catch { }
+        } catch (err: any) {
+            setRegistrationsError(err?.msg ?? "Failed to load registrations.");
+        } finally {
+            setLastUpdated(Date.now());
+        }
     };
 
     const registrations = localRegistrations ?? raceRound?.Registration ?? [];
@@ -102,13 +111,16 @@ export default function PreRacePage() {
                             <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
                                 <ClipboardList size={14} className="text-yellow-500" /> Horse Inspection Checklist
                             </h2>
-
+                            <RefetchButton onRefetch={refetchRegistrations} lastUpdated={lastUpdated} />
                         </div>
                         <div className="p-3 flex flex-col gap-2">
-                            {registrations.length === 0 && (
+                            {registrationsError && (
+                                <ErrorState message={registrationsError} onRetry={refetchRegistrations} />
+                            )}
+                            {!registrationsError && registrations.length === 0 && (
                                 <p className="text-[12px] text-gray-600 text-center py-6">No horses registered for this race.</p>
                             )}
-                            {registrations.map((reg, index) => {
+                            {!registrationsError && registrations.map((reg, index) => {
                                 const registrationId = reg._id;
                                 const isChecked = checkedIds.has(registrationId);
                                 const regStatus = reg.registrationStatus;
