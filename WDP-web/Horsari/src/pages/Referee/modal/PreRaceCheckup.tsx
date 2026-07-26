@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     AlertTriangle, CheckCircle2,
     ClipboardList, Dna, HeartPulse, Scale, Shield,
     UserCheck, UserX, X,
 } from "lucide-react";
-import type { PassFail } from "../../../shared/types/RaceTypes";
+import type { FailFlag } from "../../../shared/types/RaceTypes";
 import type { RegistrationDetail } from "../../../providers/useRaceSocket";
 import { refereeService } from "../../../api/refereeService";
 import type { ViolationTypeRecord } from "../../../api/refereeService";
@@ -22,7 +22,7 @@ const CATEGORY_ORDER = ['horse-safety', 'medication', 'administrative', 'riding'
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
-function PassFailToggle({ value, onChange }: { value: PassFail; onChange: (v: PassFail) => void }) {
+function FailToggle({ value, onChange }: { value: FailFlag; onChange: (v: FailFlag) => void }) {
     return (
         <div className="flex items-center gap-1.5 shrink-0">
             <button
@@ -33,41 +33,31 @@ function PassFailToggle({ value, onChange }: { value: PassFail; onChange: (v: Pa
                         : "bg-white/5 text-gray-600 border border-white/8 hover:border-red-800/50 hover:text-red-500",
                 ].join(" ")}
             >Fail</button>
-            <button
-                onClick={() => onChange(value === "pass" ? null : "pass")}
-                className={["px-3 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all duration-150",
-                    value === "pass"
-                        ? "bg-green-700 text-white shadow-sm"
-                        : "bg-white/5 text-gray-600 border border-white/8 hover:border-green-800/50 hover:text-green-500",
-                ].join(" ")}
-            >Pass</button>
         </div>
     );
 }
 
 function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }) {
     return (
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
             <span className="text-gray-500">{icon}</span>
-            <span className="text-[11px] font-black uppercase tracking-widest text-gray-500">{label}</span>
+            <span className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">{label}</span>
         </div>
     );
 }
 
 function CheckRow({ label, sub, value, onChange, failNote }: {
-    label: string; sub?: string; value: PassFail;
-    onChange: (v: PassFail) => void; failNote?: string;
+    label: string; sub?: string; value: FailFlag;
+    onChange: (v: FailFlag) => void; failNote?: string;
 }) {
     return (
-        <div className={["rounded-xl border px-4 py-3 transition-all duration-200",
-            value === "fail" ? "border-red-800/60 bg-red-500/5" :
-                value === "pass" ? "border-green-800/40 bg-green-500/5" :
-                    "border-white/8 bg-white/[0.02]",
+        <div className={["rounded-xl border px-3.5 py-2.5 transition-all duration-200",
+            value === "fail" ? "border-red-800/60 bg-red-500/5" : "border-white/8 bg-white/[0.02]",
         ].join(" ")}>
             <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                     <p className={["text-[13px] font-semibold",
-                        value === "fail" ? "text-red-400" : value === "pass" ? "text-green-400" : "text-white",
+                        value === "fail" ? "text-red-400" : "text-white",
                     ].join(" ")}>{label}</p>
                     {sub && (
                         <p className={["text-[11.5px] mt-0.5", value === "fail" ? "text-red-600" : "text-gray-500"].join(" ")}>
@@ -77,7 +67,7 @@ function CheckRow({ label, sub, value, onChange, failNote }: {
                         </p>
                     )}
                 </div>
-                <PassFailToggle value={value} onChange={onChange} />
+                <FailToggle value={value} onChange={onChange} />
             </div>
         </div>
     );
@@ -98,8 +88,8 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
     const [loadingFresh, setLoadingFresh] = useState(true);
     const [violationTypes, setViolationTypes] = useState<ViolationTypeRecord[]>([]);
 
-    // checks: violationTypeId → PassFail  (absent = not yet reviewed)
-    const [checks, setChecks] = useState<Map<string, PassFail>>(new Map());
+    // checks: violationTypeId → FailFlag  (absent = not yet reviewed)
+    const [checks, setChecks] = useState<Map<string, FailFlag>>(new Map());
 
     const isPending = registration.registrationStatus === 'pending';
 
@@ -115,10 +105,14 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
         ?? (registration.Invitations ?? []).find(i => i.jockeyConfirmation)?._id
         ?? null;
     const [selectedInvitationId, setSelectedInvitationId] = useState<string | null>(seedInvId);
+    // Tracks whether the referee has manually picked a jockey/no-jockey option,
+    // so the "fresh data arrived" sync effect below never clobbers their choice.
+    const userPickedJockeyRef = useRef(false);
     const [noJockeyFail, setNoJockeyFail] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [noShowSubmittingId, setNoShowSubmittingId] = useState<string | null>(null);
+    const [isHorsePhotoPlaceholder, setIsHorsePhotoPlaceholder] = useState(!horse?.photo);
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
@@ -136,13 +130,19 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
         }).catch(() => {}).finally(() => setLoadingFresh(false));
     }, []);
 
-    // Sync jockey selection once fresh data arrives
+    // Sync jockey selection once fresh data arrives — but never once the referee
+    // has made their own choice, otherwise a fetch resolving after a click would
+    // silently discard it.
     useEffect(() => {
-        if (!freshRegistration) return;
+        if (!freshRegistration || userPickedJockeyRef.current) return;
         const invId = freshRegistration.jockeyInRaceId
             ?? freshRegistration.Invitations?.find(i => i.jockeyConfirmation)?._id;
         if (invId) setSelectedInvitationId(invId);
     }, [freshRegistration]);
+
+    useEffect(() => {
+        setIsHorsePhotoPlaceholder(!horse?.photo);
+    }, [horse?.photo]);
 
     // Group violation types by category for section rendering
     const grouped = violationTypes.reduce<Record<string, ViolationTypeRecord[]>>((acc, vt) => {
@@ -208,6 +208,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                     ),
                 };
             });
+            userPickedJockeyRef.current = true;
             if (selectedInvitationId === invitationId) setSelectedInvitationId(null);
 
             // If that was the only confirmed, available rider, there's nobody left to
@@ -237,7 +238,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
         }
     };
 
-    const toggleCheck = (id: string, v: PassFail) =>
+    const toggleCheck = (id: string, v: FailFlag) =>
         setChecks(prev => { const m = new Map(prev); if (v === null) m.delete(id); else m.set(id, v); return m; });
 
     return (
@@ -247,8 +248,8 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
             onClick={e => { if (e.target === e.currentTarget) onClose(); }}
         >
             <div
-                className="w-full sm:max-w-2xl bg-[#141414] rounded-t-2xl sm:rounded-2xl border border-white/10 flex flex-col overflow-hidden"
-                style={{ maxHeight: "94vh" }}
+                className="w-full sm:max-w-4xl bg-[#141414] rounded-t-2xl sm:rounded-2xl border border-white/10 flex flex-col overflow-hidden"
+                style={{ maxHeight: "92vh" }}
                 onClick={e => e.stopPropagation()}
             >
                 <div className="h-0.5 w-full bg-yellow-600" />
@@ -270,7 +271,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5 min-h-0">
+                <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4 min-h-0">
 
                     {isPending ? (
                         <div className="flex flex-col gap-4">
@@ -314,11 +315,19 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
 
                     {/* Horse profile */}
                     <div className="rounded-xl border border-white/8 overflow-hidden">
-                        <div className="relative h-36 w-full overflow-hidden">
+                        <div className="relative h-28 w-full overflow-hidden flex items-center justify-center">
                             <img
-                                src={horse?.photo ?? "https://s3.amazonaws.com/wp-s3-mynewhorse.equusmagazine.com/wp-content/uploads/2023/08/29160611/Horseracing_Churchill_Downs.jpg"}
+                                src={horse?.photo || "/jumping-horse-silhouette-facing-left-side-view.png"}
                                 alt={horse?.horseName ?? "Horse"}
-                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    e.currentTarget.src = "/jumping-horse-silhouette-facing-left-side-view.png";
+                                    setIsHorsePhotoPlaceholder(true);
+                                }}
+                                className={
+                                    isHorsePhotoPlaceholder
+                                        ? "h-20 w-20 object-contain opacity-25"
+                                        : "w-full h-full object-cover"
+                                }
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                             <span className="absolute top-2.5 left-3 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-black/60 border border-white/15 text-gray-300">
@@ -368,7 +377,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                     {/* Jockey Verification */}
                     <div>
                         <SectionHeader icon={<UserCheck size={13} />} label="Jockey Verification — Select Rider" />
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1.5">
                             {invitations.length === 0 ? (
                                 <div className="bg-white/[0.02] rounded-xl border border-white/8">
                                     <p className="px-4 py-3 text-[12px] text-gray-600">No jockey assigned to this registration.</p>
@@ -385,7 +394,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                         key={inv._id}
                                         role="button"
                                         tabIndex={canSelect ? 0 : -1}
-                                        onClick={() => { if (canSelect) { setSelectedInvitationId(inv._id); setNoJockeyFail(false); } }}
+                                        onClick={() => { if (canSelect) { userPickedJockeyRef.current = true; setSelectedInvitationId(inv._id); setNoJockeyFail(false); } }}
                                         className={["w-full text-left rounded-xl border overflow-hidden transition-all duration-150",
                                             isSelected ? "border-green-700/60 bg-green-500/8" :
                                             isNoShow ? "border-red-900/50 bg-red-500/[0.03] opacity-75" :
@@ -393,7 +402,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                             "border-white/8 bg-white/[0.02] cursor-not-allowed opacity-60",
                                         ].join(" ")}
                                     >
-                                        <div className="flex items-center gap-3 px-4 py-3">
+                                        <div className="flex items-center gap-3 px-4 py-2.5">
                                             <div className={["w-7 h-7 rounded-full flex items-center justify-center shrink-0",
                                                 isSelected ? "bg-green-700" : isNoShow ? "bg-red-800" : confirmed ? "bg-green-700" : "bg-amber-700",
                                             ].join(" ")}>
@@ -443,12 +452,12 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
 
                             {/* No-jockey fail option */}
                             <button
-                                onClick={() => { setNoJockeyFail(p => !p); setSelectedInvitationId(null); }}
+                                onClick={() => { userPickedJockeyRef.current = true; setNoJockeyFail(p => !p); setSelectedInvitationId(null); }}
                                 className={["w-full text-left rounded-xl border overflow-hidden transition-all duration-150",
                                     noJockeyFail ? "border-red-700/60 bg-red-500/8" : "border-white/8 bg-white/[0.02] hover:border-red-800/40",
                                 ].join(" ")}
                             >
-                                <div className="flex items-center gap-3 px-4 py-3">
+                                <div className="flex items-center gap-3 px-4 py-2.5">
                                     <div className={["w-7 h-7 rounded-full flex items-center justify-center shrink-0",
                                         noJockeyFail ? "bg-red-700" : "bg-white/8",
                                     ].join(" ")}>
@@ -479,7 +488,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                         icon={CATEGORY_META[cat]?.icon}
                                         label={CATEGORY_META[cat]?.label ?? cat}
                                     />
-                                    <div className="flex flex-col gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         {grouped[cat].map(vt => (
                                             <CheckRow
                                                 key={vt._id}
@@ -512,7 +521,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                         <button
                             onClick={handleCancelNoShow}
                             disabled={submitting}
-                            className={["flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-wider transition-all duration-150",
+                            className={["flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
                                 submitting
                                     ? "bg-white/5 text-gray-600 border border-white/8 cursor-not-allowed"
                                     : "bg-amber-700 text-white hover:bg-amber-600 shadow-lg shadow-amber-900/40",
@@ -538,7 +547,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                     <button
                         onClick={handleSubmit}
                         disabled={!canSubmit}
-                        className={["flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-wider transition-all duration-150",
+                        className={["flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
                             !canSubmit
                                 ? "bg-white/5 text-gray-600 border border-white/8 cursor-not-allowed"
                                 : hasFails

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { AlertTriangle, Camera, Flag, Medal, Trophy, Video } from "lucide-react";
+import { AlertTriangle, Camera, Flag, Loader2, Medal, Trophy, Video } from "lucide-react";
 import { ordinal } from "../../shared/data/RaceData";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationRecord } from "../../api/refereeService";
@@ -139,11 +139,16 @@ export default function PostRacePage() {
     };
 
     if (loading) {
-        return <div className="text-white p-5 flex items-center gap-3"><div className="w-5 h-5 border-2 border-t-blue-500 border-white/20 rounded-full animate-spin"/> Loading race results...</div>;
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] bg-[#1a1a1a] rounded-xl border border-white/8">
+                <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-4" />
+                <span className="text-[13px] font-medium text-gray-400">Loading race results...</span>
+            </div>
+        );
     }
 
     if (error) {
-        return <div className="p-5"><ErrorState message={error} onRetry={fetchData} /></div>;
+        return <ErrorState message={error} onRetry={fetchData} />;
     }
 
     return (
@@ -208,7 +213,7 @@ export default function PostRacePage() {
                                         : pos > 0 && pos <= 3 ? "border-white/10 bg-white/[0.03]"
                                             : "border-white/6 bg-white/[0.02]"].join(" ")}
                                 >
-                                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-black shrink-0 text-white ${posBg}`}>{pos || "-"}</span>
+                                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 text-white ${posBg}`}>{pos || "-"}</span>
                                     <span className="w-6 h-6 rounded-full bg-white/8 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">{horse.horseNumber || "?"}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className={["text-[13.5px] font-bold",
@@ -270,7 +275,7 @@ export default function PostRacePage() {
                             );
                         })}
                         {violations.length === 0 && (
-                            <p className="text-[12.5px] text-gray-600 text-center py-4">No incidents recorded</p>
+                            <p className="text-[12px] text-gray-600 text-center py-4">No incidents recorded</p>
                         )}
                     </div>
                 </div>
@@ -282,12 +287,12 @@ export default function PostRacePage() {
                 {/* Finish photo */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
                     <div className="px-4 py-3 border-b border-white/8">
-                        <h2 className="text-[12px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 flex items-center gap-2">
                             <Camera size={13} className="text-green-500" /> Finish Photo
                         </h2>
                     </div>
-                    <div className="relative m-3 rounded-xl overflow-hidden aspect-video bg-black">
-                        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80" alt="Finish" className="w-full h-full object-cover opacity-60" />
+                    <div className="relative m-3 rounded-xl overflow-hidden aspect-video bg-black flex items-center justify-center">
+                        <img src="/jumping-horse-silhouette-facing-left-side-view.png" alt="Finish" className="h-16 w-16 object-contain opacity-25" />
                         <div className="absolute inset-0 flex items-center justify-center">
                             <span className="text-[11px] font-bold text-white uppercase tracking-wider bg-black/60 px-3 py-1 rounded-lg">Photo Finish</span>
                         </div>

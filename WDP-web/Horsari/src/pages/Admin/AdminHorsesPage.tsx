@@ -75,10 +75,7 @@ const HEALTH_CFG: Record<HorseHealth, { color: string; label: string }> = {
     sick:    { color: "text-red-400",     label: "Sick"    },
 };
 
-const GENDER_COLORS: Record<string, string> = {
-    male:   "#3b4a6b",
-    female: "#6b3b5a",
-};
+const HORSE_PLACEHOLDER = "/jumping-horse-silhouette-facing-left-side-view.png";
 
 const POSITION_LABEL: Record<number, string> = { 1: "1st", 2: "2nd", 3: "3rd" };
 const POSITION_COLOR: Record<number, string> = {
@@ -100,9 +97,6 @@ const LIMIT = 10;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function horseInitials(name: string) {
-    return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-}
 function fmtDate(d: string | null) {
     if (!d) return "—";
     return new Date(d).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" });
@@ -131,17 +125,15 @@ function SeverityDots({ n }: { n: number | null }) {
 
 // ── Horse image banner ────────────────────────────────────────────────────────
 
-function HorseImageBanner({ href, name, gender }: { href: string | null; name: string; gender: string | null }) {
+function HorseImageBanner({ href, name }: { href: string | null; name: string }) {
     const [errored, setErrored] = useState(false);
     const [expanded, setExpanded] = useState(false);
-    const bg = GENDER_COLORS[gender ?? ""] ?? "#3b4a6b";
+    const isPlaceholder = !href || errored;
 
-    if (!href || errored) {
+    if (isPlaceholder) {
         return (
-            <div className="w-full h-28 flex items-center justify-center border-b border-white/[0.05]" style={{ background: bg + "22" }}>
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-[16px] font-bold text-white/60" style={{ background: bg }}>
-                    {horseInitials(name)}
-                </div>
+            <div className="w-full h-28 flex items-center justify-center border-b border-white/[0.05] bg-[#111]">
+                <img src={HORSE_PLACEHOLDER} alt={name} className="h-16 w-16 object-contain opacity-25" />
             </div>
         );
     }
@@ -168,6 +160,23 @@ function HorseImageBanner({ href, name, gender }: { href: string | null; name: s
                 </div>
             )}
         </>
+    );
+}
+
+// ── Horse row avatar (list) ───────────────────────────────────────────────────
+
+function HorseAvatar({ src, name }: { src: string | null; name: string }) {
+    const [errored, setErrored] = useState(false);
+    const isPlaceholder = !src || errored;
+    return (
+        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-white/5 flex-shrink-0">
+            <img
+                src={isPlaceholder ? HORSE_PLACEHOLDER : src!}
+                alt={name}
+                onError={() => setErrored(true)}
+                className={isPlaceholder ? "h-4 w-4 object-contain opacity-40" : "w-full h-full object-cover"}
+            />
+        </div>
     );
 }
 
@@ -233,7 +242,7 @@ function HorseDetailPanel({
             </div>
 
             {/* Image banner */}
-            <HorseImageBanner href={horse.img} name={horse.horseName} gender={horse.gender} />
+            <HorseImageBanner href={horse.img} name={horse.horseName} />
 
             {/* Identity */}
             <div className="flex items-center gap-3 px-5 py-3 border-b border-white/[0.05] flex-shrink-0">
@@ -648,19 +657,13 @@ export default function AdminHorsesPage() {
                                         const s = STATUS_CFG[horse.status];
                                         const h = HEALTH_CFG[horse.healthStatus];
                                         const isSelected = selectedHorse?.horseId === horse.horseId;
-                                        const bg = GENDER_COLORS[horse.gender ?? ""] ?? "#3b4a6b";
 
                                         return (
                                             <tr key={horse.horseId} onClick={() => handleSelectHorse(horse)}
                                                 className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}>
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-2.5 min-w-0">
-                                                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white/80 flex-shrink-0" style={{ background: bg }}>
-                                                            {horse.img
-                                                                ? <img src={horse.img} alt="" className="w-full h-full rounded-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                                                                : horseInitials(horse.horseName)
-                                                            }
-                                                        </div>
+                                                        <HorseAvatar src={horse.img} name={horse.horseName} />
                                                         <div className="min-w-0">
                                                             <p className="text-[13px] text-white font-medium truncate">{horse.horseName}</p>
                                                             {!panelOpen && <p className="text-[11px] text-gray-600 truncate">{fmtDate(horse.dateOfBirth)}</p>}

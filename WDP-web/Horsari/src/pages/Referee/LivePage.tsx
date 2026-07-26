@@ -215,7 +215,7 @@ function PositionTrack({
     return (
         <div className="bg-[#0f0f0f] rounded-xl border border-white/8 p-4">
             <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[11px] font-black uppercase tracking-widest text-gray-500">Track Position</h2>
+                <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">Track Position</h2>
                 <div className="flex items-center gap-2">
                     {showOnStream && (
                         <span className="flex items-center gap-1 text-[9px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
@@ -689,10 +689,10 @@ export default function LivePage() {
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
                     <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Actions</h2>
                     <div className="flex flex-col gap-2.5">
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-gray-400 text-[12px] font-semibold hover:border-white/20 hover:text-gray-200 transition-all">
+                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-gray-400 text-[13px] font-semibold hover:border-white/20 hover:text-gray-200 transition-all">
                             <Camera size={13} /> Review Finish Photo
                         </button>
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 shadow-lg shadow-red-900/40 transition-all">
+                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-700 text-white text-[13px] font-bold uppercase tracking-widest hover:bg-red-600 shadow-lg shadow-red-900/40 transition-all">
                             <Trophy size={13} /> Publish Results
                         </button>
                     </div>
@@ -702,7 +702,7 @@ export default function LivePage() {
                     <button onClick={() => setVerificationOpen(o => !o)}
                         className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
                     >
-                        <h2 className="text-[12px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 flex items-center gap-2">
                             <Shield size={13} className="text-red-500" /> Horses List
                         </h2>
                         <ChevronDown size={13} className={`text-gray-600 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
@@ -727,8 +727,8 @@ export default function LivePage() {
                                                 {horse.number}
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <p className={["text-[12.5px] font-semibold truncate", isReview ? "text-red-400" : "text-white"].join(" ")}>{horse.name}</p>
-                                                <p className={["text-[11px]", isReview ? "text-red-600" : "text-gray-500"].join(" ")}>{horse.jockey}</p>
+                                                <p className={["text-[13.5px] font-bold truncate", isReview ? "text-red-400" : "text-white"].join(" ")}>{horse.name}</p>
+                                                <p className={["text-[11.5px]", isReview ? "text-red-600" : "text-gray-500"].join(" ")}>{horse.jockey}</p>
                                             </div>
                                             <div className="flex items-center gap-1.5 shrink-0">
                                                 {isReview

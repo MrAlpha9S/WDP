@@ -233,7 +233,7 @@ export default function ViolationManagementPage() {
                                                 {!panelOpen && (
                                                     <td className="p-4">
                                                         <span className="text-[12px] text-gray-400 capitalize">
-                                                            {v.stewardAction.replace(/-/g, ' ')}
+                                                            {v.stewardAction ? v.stewardAction.replace(/-/g, ' ') : '—'}
                                                         </span>
                                                     </td>
                                                 )}
