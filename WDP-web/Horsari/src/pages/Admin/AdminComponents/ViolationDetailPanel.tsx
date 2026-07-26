@@ -133,7 +133,7 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
                     <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-4 flex flex-col gap-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Steward Action</span>
                         <span className={`text-[13px] font-semibold mt-0.5 capitalize ${STEWARD_STYLES[violation.stewardAction] ?? 'text-gray-300'}`}>
-                            {violation.stewardAction.replace(/-/g, ' ')}
+                            {violation.stewardAction ? violation.stewardAction.replace(/-/g, ' ') : '—'}
                         </span>
                     </div>
                 </div>
