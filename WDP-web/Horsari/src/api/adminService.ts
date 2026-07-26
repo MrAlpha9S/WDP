@@ -722,6 +722,7 @@ export const adminService = {
     search?: string,
     sortBy = 'raceDate',
     order: 'asc' | 'desc' = 'desc',
+    raceType?: string,
   ): Promise<RaceRoundsResponse> => {
     try {
       const params: any = { page, limit, sortBy, order };
@@ -729,8 +730,20 @@ export const adminService = {
       if (raceRound_id) params.raceRound_id = raceRound_id;
       if (status) params.status = status;
       if (search) params.search = search;
+      if (raceType) params.raceType = raceType;
       const response = await api.get('/admin/race-rounds', { params });
       console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+
+  getRaceTypes: async (isActive?: boolean): Promise<{ code: number; data: string[]; msg: string }> => {
+    try {
+      const params: any = {};
+      if (isActive !== undefined) params.isActive = isActive;
+      const response = await api.get('/admin/race-rounds/race-types', { params });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };

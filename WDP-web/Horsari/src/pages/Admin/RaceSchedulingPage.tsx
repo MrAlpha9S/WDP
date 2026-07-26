@@ -8,6 +8,12 @@ import { adminService, type RaceRoundData } from "../../api/adminService";
 import { useSocket } from "../../providers/SocketProvider";
 import { ErrorState } from "../../components/ErrorState";
 
+// RaceRound.status is a fixed schema enum (entities/RaceRound.js) — hardcoded here
+// rather than derived from fetched data, since fetched data is now itself
+// status-filtered server-side and would otherwise collapse the option list.
+const RACE_STATUSES = ["draft", "scheduled", "running", "completed", "cancelled", "awaitingConfirmation", "prepared"];
+const RACE_ROUNDS_LIMIT_OPTIONS = [10, 25, 50, 100, 200];
+
 export default function RaceSchedulingPage() {
     const [viewMode, setViewMode] = useState<ViewMode>("timeline");
     const [selectedRaceId, setSelectedRaceId] = useState<string | null>(null);
@@ -15,10 +21,14 @@ export default function RaceSchedulingPage() {
     const [raceToEdit, setRaceToEdit] = useState<any>(null);
     const [selectedTournament, setSelectedTournament] = useState<string>("All");
     const [selectedStatus, setSelectedStatus] = useState<string>("All");
+    const [selectedRaceType, setSelectedRaceType] = useState<string>("All");
+    const [raceRoundsLimit, setRaceRoundsLimit] = useState<number>(50);
     const [tablePage, setTablePage] = useState(1);
     const TABLE_ITEMS_PER_PAGE = 5;
 
     const [tournaments, setTournaments] = useState<any[]>([]);
+    const [raceTypes, setRaceTypes] = useState<string[]>([]);
+    const [raceTypesActiveOnly, setRaceTypesActiveOnly] = useState(true);
     const [raceRoundsData, setRaceRoundsData] = useState<RaceRoundData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -34,7 +44,12 @@ export default function RaceSchedulingPage() {
             const tournamentsRes = await adminService.getTournamentsWithDetails(1, 100);
             setTournaments(tournamentsRes.data?.items || []);
 
-            const raceRoundsRes = await adminService.getRaceRounds();
+            const raceRoundsRes = await adminService.getRaceRounds(
+                undefined, undefined, 1, raceRoundsLimit,
+                selectedStatus !== "All" ? selectedStatus : undefined,
+                undefined, undefined, undefined,
+                selectedRaceType !== "All" ? selectedRaceType : undefined,
+            );
             setRaceRoundsData(raceRoundsRes.data?.items ?? []);
         } catch (err: any) {
             console.error("Failed to fetch scheduling data", err);
@@ -51,7 +66,18 @@ export default function RaceSchedulingPage() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [selectedStatus, selectedRaceType, raceRoundsLimit]);
+
+    // Race-type dropdown options — independent of the race-rounds fetch above,
+    // only re-runs when the active/inactive-rules toggle changes.
+    useEffect(() => {
+        // Toggle ON → only active rules; toggle OFF → all rules (both active and
+        // inactive), i.e. no isActive filter at all — NOT isActive:false, which
+        // would incorrectly show only inactive rules.
+        adminService.getRaceTypes(raceTypesActiveOnly ? true : undefined)
+            .then(res => setRaceTypes(res.data ?? []))
+            .catch(() => {});
+    }, [raceTypesActiveOnly]);
 
     // Any RaceRound mutation, from any source (admin or referee action, the
     // simulation engine, another admin's tab), broadcasts raceround_updated —
@@ -65,7 +91,7 @@ export default function RaceSchedulingPage() {
 
     useEffect(() => {
         setTablePage(1);
-    }, [selectedTournament, selectedStatus, selectedDate, viewMode]);
+    }, [selectedTournament, selectedStatus, selectedRaceType, selectedDate, viewMode]);
 
     const handleEditRace = async (race: any) => {
         if (!race) return;
@@ -138,14 +164,13 @@ export default function RaceSchedulingPage() {
         }
     }, [uniqueDates, selectedDate]);
 
-    const uniqueStatuses = Array.from(new Set(ALL_RACES.map(r => r.status))).filter(Boolean);
-
-    // Apply tournament filter and conditionally apply date filter (only for timeline view)
+    // Status and race type are now filtered server-side (see fetchData), so
+    // ALL_RACES already only contains matching rounds — no client-side
+    // matchStatus/matchRaceType needed here.
     const filteredRaces = ALL_RACES.filter(r => {
         const matchTournament = selectedTournament === "All" || r.tournament === selectedTournament;
-        const matchStatus = selectedStatus === "All" || r.status === selectedStatus;
         const matchDate = viewMode === "timeline" && selectedDate ? r.date === selectedDate : true;
-        return matchTournament && matchStatus && matchDate;
+        return matchTournament && matchDate;
     }).sort((a, b) => {
         if (a.status === 'cancelled' && b.status !== 'cancelled') return 1;
         if (a.status !== 'cancelled' && b.status === 'cancelled') return -1;
@@ -241,11 +266,40 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={selectedStatus}
                                 onChange={(e) => setSelectedStatus(e.target.value)}
-                                className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer capitalize"
+                                className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer capitalize"
                             >
                                 <option value="All">All Statuses</option>
-                                {uniqueStatuses.map(status => (
+                                {RACE_STATUSES.map(status => (
                                     <option key={status} value={status}>{status}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={selectedRaceType}
+                                onChange={(e) => setSelectedRaceType(e.target.value)}
+                                className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            >
+                                <option value="All">All Race Types</option>
+                                {raceTypes.map(type => (
+                                    <option key={type} value={type}>{type}</option>
+                                ))}
+                            </select>
+
+                            <button
+                                onClick={() => setRaceTypesActiveOnly(v => !v)}
+                                title="Toggle whether the race-type list includes retired (inactive) eligibility rules"
+                                className={`shrink-0 px-3 h-[32px] rounded-md text-[11px] font-medium border transition-colors ${raceTypesActiveOnly ? "bg-white/10 border-white/10 text-white" : "bg-[#1a1a1a] border-white/10 text-gray-500 hover:text-gray-300"}`}
+                            >
+                                Active rules only
+                            </button>
+
+                            <select
+                                value={raceRoundsLimit}
+                                onChange={(e) => setRaceRoundsLimit(Number(e.target.value))}
+                                className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            >
+                                {RACE_ROUNDS_LIMIT_OPTIONS.map(n => (
+                                    <option key={n} value={n}>{n} rows</option>
                                 ))}
                             </select>
                         </div>

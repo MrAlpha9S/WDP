@@ -62,6 +62,9 @@ router.patch('/violation-types/:id/active',    authMiddleware, authAdmin, AdminC
 // Get race rounds grouped by tournament with deep nested entities
 router.get('/race-rounds', authMiddleware, authAdmin, AdminController.getRaceRounds);
 
+// Distinct race types (for the race-type filter dropdown) — ?isActive=true|false to narrow, omitted = all
+router.get('/race-rounds/race-types', authMiddleware, authAdmin, AdminController.getRaceTypes);
+
 // Get race round details
 router.get('/race-rounds/:id/detail', authMiddleware, authAdmin, AdminController.getRaceRoundDetail);
 // Admin starts or cancels a prepared race round

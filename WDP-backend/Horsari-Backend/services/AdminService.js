@@ -836,7 +836,7 @@ class AdminService {
     }
 
     // Get Race Rounds
-    async getRaceRounds(tournament_id = null, raceRound_id = null, page = 1, limit = 10, status = null, search = null, sortBy = 'raceDate', order = 'desc') {
+    async getRaceRounds(tournament_id = null, raceRound_id = null, page = 1, limit = 10, status = null, search = null, sortBy = 'raceDate', order = 'desc', raceType = null) {
         try {
             const skip = (page - 1) * limit;
             let query = {};
@@ -844,6 +844,10 @@ class AdminService {
             if (raceRound_id) query._id = raceRound_id;
             if (status) query.status = status;
             if (search) query.roundName = { $regex: search, $options: 'i' };
+            if (raceType) {
+                const ruleIds = await RaceEligibilityRule.find({ raceType }).distinct('_id');
+                query.eligibilityRuleId = { $in: ruleIds };
+            }
 
             const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
 
@@ -871,6 +875,20 @@ class AdminService {
             };
         } catch (error) {
             console.error('Error fetching race rounds:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Get distinct race types (sourced from RaceEligibilityRule — RaceRound has no
+    // raceType field of its own, see getRaceRounds above), for filter dropdowns.
+    // isActive: true/false narrows to active/inactive rules only; omitted (null) returns both.
+    async getDistinctRaceTypes(isActive = null) {
+        try {
+            const query = { raceType: { $ne: null } };
+            if (isActive !== null) query.isActive = isActive;
+            const raceTypes = await RaceEligibilityRule.distinct('raceType', query);
+            return { code: 200, data: raceTypes.sort(), msg: 'Race types retrieved successfully' };
+        } catch (error) {
             return { code: 500, msg: error.message };
         }
     }
