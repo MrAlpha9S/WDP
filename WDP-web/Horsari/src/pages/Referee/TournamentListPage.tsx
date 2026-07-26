@@ -76,8 +76,8 @@ export default function TournamentListPage({ onSelect, onOpenRaceMonitor }: Tour
 
     return (
         <div className="min-h-screen font-sans">
-            <div className="max-w-5xl mx-auto px-5 py-8">
-                <div className="flex items-start justify-between mb-7">
+            <div className="max-w-5xl mx-auto px-6 py-8">
+                <div className="mb-7 flex items-start justify-between gap-4">
                     <div>
                         <h1 className="text-[26px] font-bold text-white tracking-tight font-serif">
                             Tournaments

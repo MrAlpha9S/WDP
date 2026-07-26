@@ -113,17 +113,6 @@ export default function HomePage() {
 
                     <div className="flex items-center gap-2 shrink-0">
                         <RefetchButton onRefetch={() => setRefreshTick((t) => t + 1)} lastUpdated={lastUpdated} />
-                        {walletInfo && (
-                            <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 shrink-0">
-                                <Wallet size={15} className="text-emerald-500" />
-                                <div>
-                                    <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Wallet</p>
-                                    <p className="text-[14px] font-bold text-white leading-tight">
-                                        {walletInfo.referee.wallet.toLocaleString("vi-VN")} ₫
-                                    </p>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
 
@@ -148,6 +137,17 @@ export default function HomePage() {
 
                 {/* Payments awaiting referee confirmation (referee fee) */}
                 <div className="mt-6">
+                    {walletInfo && (
+                        <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 mb-4 w-fit">
+                            <Wallet size={15} className="text-emerald-500" />
+                            <div>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Wallet</p>
+                                <p className="text-[14px] font-bold text-white leading-tight">
+                                    {walletInfo.referee.wallet.toLocaleString("vi-VN")} ₫
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     <PaymentsPanel
                         title="Payments Awaiting Your Confirmation"
                         fetchPayments={(page, sortBy, order) => refereeService.getPayments(page, 10, undefined, 'payee', sortBy, order)}
