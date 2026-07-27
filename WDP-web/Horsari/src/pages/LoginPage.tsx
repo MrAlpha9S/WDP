@@ -156,7 +156,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src="/horsari_logo_in_image.svg" alt="Horsari" className="h-8 object-contain" />
+          <img src="/horsari_logo_full.png" alt="Horsari" className="h-16 object-contain" />
         </div>
 
         {/* Tabs */}
