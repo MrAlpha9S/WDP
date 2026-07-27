@@ -10,9 +10,8 @@ const activeRaces = new Map();
 
 // ── Intensity levels: assigned once per race, set the stat floor/ceiling ───────
 const INTENSITY_LEVELS = [
-    { name: 'low', statMin: 30, statMax: 48 }, // maiden / entry-level
     { name: 'medium', statMin: 50, statMax: 60 }, // claiming / allowance
-    { name: 'high', statMin: 60, statMax: 70 }, // stakes
+    { name: 'high', statMin: 70, statMax: 80 }, // stakes
 ];
 
 function pickIntensity() {
