@@ -18,6 +18,29 @@ function pickIntensity() {
     return INTENSITY_LEVELS[Math.floor(Math.random() * INTENSITY_LEVELS.length)];
 }
 
+// ── W'-balance-style stamina recovery ───────────────────────────────────────────
+// Below this fraction of maxSpeed, stamina reconstitutes instead of draining
+// (real-world analog: Skiba's critical-power/W'-balance fatigue model).
+const CS_FRACTION = 0.70;
+const RECOVERY_MAX_FACTOR = 0.5; // recovery ceiling relative to baseDrain
+
+// ── Horse-to-horse interaction (blocking/drafting) ──────────────────────────────
+// No lane/lateral dimension exists, so "traffic" is abstracted via distance bands
+// + probability rather than a deterministic single blocker — a boxed horse is only
+// probabilistically delayed tick-by-tick, never permanently trapped.
+const BLOCK_WINDOW = 1.2;      // m — "immediately boxed in" band
+const DRAFT_WINDOW = 3.0;      // m — "tucked in behind" band
+const PASS_MARGIN = 1.05;      // only block if trying to run meaningfully faster than the blocker
+const BASE_PASS_CHANCE = 0.15; // per-tick chance to find a gap even when congested
+const ACCEL_PASS_BONUS = 0.25; // better accel stat finds racing room more easily
+const DRAFT_DISCOUNT = 0.90;   // stamina drain multiplier while tucked in behind a faster horse
+
+// ── Pace-shape-aware kick payoff ────────────────────────────────────────────────
+// A Closer/LateSurger's kick strength scales with how depleted the rest of the
+// field already is when it crosses its kick point — "pace makes the race".
+const PACE_SIGNAL_CLAMP = 0.6;
+const PACE_KICK_GAIN = 0.5; // up to +30% kick multiplier at full clamp
+
 function randomStat(min, max) {
     return Math.round(min + Math.random() * (max - min));
 }
@@ -66,7 +89,7 @@ const TICK_MS = 100; // 10 updates per second; race real-time duration unchanged
 //   LateSurger  0.38 early / 1.35 during surge — huge reserve funds the burst
 //   Closer      0.65 → 1.10 ramping across the race
 //
-function simulateTick(horse, trackLength) {
+function simulateTick(horse, trackLength, fieldSnapshot = []) {
     const maxSpeed = statToMaxSpeed(horse.speed);
     const accelRange = statToAccelRange(horse.accel);
     const minSpeed = maxSpeed * 0.35;           // lower floor = stamina failure hurts
@@ -74,6 +97,7 @@ function simulateTick(horse, trackLength) {
 
     let intended;   // what the horse wants to run this tick
     let drainRate;
+    let kickPoint = null;
 
     if (horse.raceStyle === 'Runner') {
         // Capped at 93 % so variance can push both directions; drain rate 1.30
@@ -85,33 +109,71 @@ function simulateTick(horse, trackLength) {
         drainRate = 1.00;
 
     } else if (horse.raceStyle === 'Late') {
-        const kickPoint = trackLength * 0.58;
+        kickPoint = trackLength * 0.58;
+        const kickBoost = pickUpKickBoost(horse, kickPoint, fieldSnapshot);
         if (horse.currentDistance < kickPoint) {
             intended = maxSpeed * 0.65 + (Math.random() - 0.5) * accelRange * 0.7;
             drainRate = 0.75;
         } else {
-            intended = maxSpeed * 0.97 + (Math.random() - 0.5) * accelRange * 0.55;
+            intended = maxSpeed * 0.97 * kickBoost + (Math.random() - 0.5) * accelRange * 0.55;
             drainRate = 1.10;
         }
 
     } else if (horse.raceStyle === 'LateSurger') {
         // Conservative until 65 % of track; the saved pool then funds the surge.
-        const kickPoint = trackLength * 0.65;
+        kickPoint = trackLength * 0.65;
+        const kickBoost = pickUpKickBoost(horse, kickPoint, fieldSnapshot);
         if (horse.currentDistance < kickPoint) {
             intended = maxSpeed * 0.60 + (Math.random() - 0.5) * accelRange * 0.45;
             drainRate = 0.38;
         } else {
             // Surge escalates: 102 % → 112 % of maxSpeed as horse approaches wire
             const surgeFraction = (horse.currentDistance - kickPoint) / (trackLength - kickPoint);
-            intended = maxSpeed * (1.02 + surgeFraction * 0.10) + (Math.random() - 0.5) * accelRange * 0.5;
+            intended = maxSpeed * (1.02 + surgeFraction * 0.10) * kickBoost + (Math.random() - 0.5) * accelRange * 0.5;
             drainRate = 1.35;
         }
 
     } else {
         // Closer — smooth progressive ramp 60 % → 95 % of maxSpeed
+        kickPoint = trackLength * 0.30; // pace-signal is sampled once here, near the recovery→drain crossover
+        const kickBoost = pickUpKickBoost(horse, kickPoint, fieldSnapshot);
         const progress = Math.min(1, horse.currentDistance / trackLength);
-        intended = maxSpeed * (0.60 + progress * 0.35) + (Math.random() - 0.5) * accelRange * 0.8;
+        intended = maxSpeed * (0.60 + progress * 0.35 * kickBoost) + (Math.random() - 0.5) * accelRange * 0.8;
         drainRate = 0.65 + progress * 0.45; // 0.65 early → 1.10 at wire
+    }
+
+    // ── Horse-to-horse interaction: blocking ──────────────────────────────────
+    const others = fieldSnapshot.filter(f => f.number !== horse.number);
+    const aheadClose = others.filter(f =>
+        !f.isFinished &&
+        f.currentDistance - horse.currentDistance > 0 &&
+        f.currentDistance - horse.currentDistance <= BLOCK_WINDOW);
+
+    let isBlocked = false;
+    if (aheadClose.length > 0) {
+        const blockerSpeed = Math.min(...aheadClose.map(f => f.lastTargetMPerTick));
+        if (intended > blockerSpeed * PASS_MARGIN) {
+            const passChance = BASE_PASS_CHANCE + (horse.accel / 100) * ACCEL_PASS_BONUS;
+            if (Math.random() >= passChance) {
+                intended = Math.min(intended, blockerSpeed * 1.02);
+                isBlocked = true;
+            }
+        }
+    }
+
+    // ── Horse-to-horse interaction: drafting ──────────────────────────────────
+    let isDrafting = false;
+    let draftMultiplier = 1.0;
+    if (!isBlocked) {
+        const drafter = others.find(f =>
+            !f.isFinished &&
+            f.currentDistance - horse.currentDistance > BLOCK_WINDOW &&
+            f.currentDistance - horse.currentDistance <= DRAFT_WINDOW &&
+            f.lastTargetMPerTick >= intended);
+        if (drafter) {
+            isDrafting = true;
+            draftMultiplier = DRAFT_DISCOUNT;
+        }
     }
 
     // ── Stamina speed cap ─────────────────────────────────────────────────────
@@ -125,10 +187,21 @@ function simulateTick(horse, trackLength) {
     const hardCap = horse.raceStyle === 'LateSurger' ? maxSpeed + 1.5 : maxSpeed + 0.5;
     const target = Math.max(minSpeed, Math.min(hardCap, intended));
 
-    // ── Drain on actual speed (not intended) so forced-slow horse drains less ─
-    const speedFraction = Math.min(1.0, target / maxSpeed);
-    const drain = baseDrain * drainRate * Math.pow(speedFraction, 1.8);
-    horse.staminaPool = Math.max(0, horse.staminaPool - drain);
+    // ── W'-balance: drain above critical speed, recover below it ──────────────
+    const criticalSpeed = maxSpeed * CS_FRACTION;
+    let recovering = false;
+    if (target >= criticalSpeed) {
+        const speedFraction = Math.min(1.0, target / maxSpeed);
+        const drain = baseDrain * drainRate * draftMultiplier * Math.pow(speedFraction, 1.8);
+        horse.staminaPool = Math.max(0, horse.staminaPool - drain);
+    } else {
+        // Deeper below critical speed → faster recovery (linear stand-in for
+        // the real exponential W'-balance recovery curve).
+        const deficitFraction = (criticalSpeed - target) / criticalSpeed;
+        const recoveryMax = baseDrain * RECOVERY_MAX_FACTOR * (0.7 + (horse.stamina / 100) * 0.3);
+        horse.staminaPool = Math.min(horse.initialStaminaPool, horse.staminaPool + recoveryMax * deficitFraction);
+        recovering = true;
+    }
 
     // ── Distance & finish — target is m/tick, no dt scaling needed ───────────
     const newDist = horse.currentDistance + target;
@@ -144,7 +217,27 @@ function simulateTick(horse, trackLength) {
         currentDistance: isFinished ? trackLength : newDist,
         isFinished,
         finishFraction,
+        targetMPerTick: target,
+        isBlocked,
+        isDrafting,
+        recovering,
     };
+}
+
+// Freezes a Late/LateSurger/Closer's pace-shape kick multiplier the first tick
+// it reaches its kick point, sampling the rest of the field's stamina
+// depletion as a "how hot was the pace" proxy — never resampled afterward.
+function pickUpKickBoost(horse, kickPoint, fieldSnapshot) {
+    if (!horse.hasKicked && horse.currentDistance >= kickPoint) {
+        horse.hasKicked = true;
+        const others = fieldSnapshot.filter(f => f.number !== horse.number);
+        const avgStaminaRatio = others.length
+            ? others.reduce((s, f) => s + f.staminaRatio, 0) / others.length
+            : 1;
+        const paceSignal = Math.min(PACE_SIGNAL_CLAMP, Math.max(0, 1 - avgStaminaRatio));
+        horse.paceMultiplier = 1 + paceSignal * PACE_KICK_GAIN;
+    }
+    return horse.hasKicked ? horse.paceMultiplier : 1.0;
 }
 
 // ── Format elapsed ms → "m:ss.xx" ─────────────────────────────────────────────
@@ -212,6 +305,10 @@ async function buildHorses(raceRoundId, intensity) {
             isFinished: false,
             finishPosition: null,
             finishTime: null,
+            // Internal-only state for pacing/interaction mechanics — never broadcast.
+            _lastTargetMPerTick: 0,
+            hasKicked: false,
+            paceMultiplier: 1.0,
         };
     }));
 }
@@ -401,15 +498,28 @@ async function initializeSimulation(raceRoundId, io) {
 
         const finishedThisTick = [];
 
+        // Snapshot the field's PREVIOUS-tick state before anyone moves this tick,
+        // so every horse's blocking/drafting/pace-signal checks see the same
+        // globally-consistent world-state rather than an order-dependent mix of
+        // already-updated and stale sibling positions.
+        const fieldSnapshot = state.horses.map(h => ({
+            number: h.number,
+            currentDistance: h.currentDistance,
+            lastTargetMPerTick: h._lastTargetMPerTick,
+            staminaRatio: h.staminaPool / h.initialStaminaPool,
+            isFinished: h.isFinished,
+        }));
+
         for (const horse of state.horses) {
             if (horse.isFinished) {
                 if (horse.currentDistance > highest) highest = horse.currentDistance;
                 continue;
             }
 
-            const tick = simulateTick(horse, trackLength);
+            const tick = simulateTick(horse, trackLength, fieldSnapshot);
             horse.currentDistance = tick.currentDistance;
             horse.currentSpeed = tick.currentSpeed;
+            horse._lastTargetMPerTick = tick.targetMPerTick;
 
             if (tick.isFinished) {
                 horse.isFinished = true;
@@ -496,4 +606,4 @@ function getSimulationState(raceRoundId) {
     };
 }
 
-module.exports = { initializeSimulation, stopSimulation, getSimulationState };
+module.exports = { initializeSimulation, stopSimulation, getSimulationState, simulateTick };
