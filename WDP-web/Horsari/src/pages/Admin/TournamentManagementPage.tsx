@@ -44,7 +44,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     startDate: item.tournament.startDate ? new Date(item.tournament.startDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
                     endDate: item.tournament.endDate ? new Date(item.tournament.endDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
                     status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
-                    prizePool: `${item.priceTotalPool || 0} Pts`,
+                    prizePool: `${(item.priceTotalPool || 0).toLocaleString()} VND`,
                     startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
                     endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
                 } as Tournament);
@@ -90,7 +90,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                         startDate: "",
                         endDate: "",
                         status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
-                        prizePool: `${item.priceTotalPool || 0} Pts`,
+                        prizePool: `${(item.priceTotalPool || 0).toLocaleString()} VND`,
                         startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
                         endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
                     } as Tournament));
@@ -442,7 +442,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                     startDate: item.tournament.startDate ? new Date(item.tournament.startDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
                                     endDate: item.tournament.endDate ? new Date(item.tournament.endDate).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' }) : "TBD",
                                     status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
-                                    prizePool: `${item.priceTotalPool || 0} Pts`,
+                                    prizePool: `${(item.priceTotalPool || 0).toLocaleString()} VND`,
                                     startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
                                     endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
                                 }));
