@@ -1,10 +1,6 @@
 import { formatWithDots, parseDottedNumber } from "../../../utils/numberFormat";
 
 interface PrizesProps {
-    requireEntranceFees: boolean;
-    setRequireEntranceFees: (v: boolean) => void;
-    minimalRidingFees: number | "";
-    setMinimalRidingFees: (v: number | "") => void;
     currencyType: string;
     setCurrencyType: (v: string) => void;
     firstPlacePrize: number | "";
@@ -18,42 +14,6 @@ interface PrizesProps {
 export default function CreateRacePrizes(props: PrizesProps) {
     return (
         <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Minimal Riding Fees</label>
-                    <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="e.g. 500.000"
-                        disabled={!props.requireEntranceFees}
-                        value={formatWithDots(props.minimalRidingFees)}
-                        onChange={(e) => props.setMinimalRidingFees(parseDottedNumber(e.target.value))}
-                        onBlur={() => {
-                            if (typeof props.minimalRidingFees === 'number' && props.minimalRidingFees < 0) {
-                                props.setMinimalRidingFees(0);
-                            }
-                        }}
-                        className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                </div>
-                <div className="flex flex-col justify-end">
-                    <label className="flex items-center gap-3 p-2.5 cursor-pointer group hover:bg-white/5 rounded border border-transparent hover:border-white/10 transition-colors h-[42px]">
-                        <input
-                            type="checkbox"
-                            checked={props.requireEntranceFees}
-                            onChange={(e) => {
-                                props.setRequireEntranceFees(e.target.checked);
-                                if (!e.target.checked) {
-                                    props.setMinimalRidingFees(0);
-                                }
-                            }}
-                            className="w-4 h-4 accent-red-600 rounded bg-black border-white/20 cursor-pointer"
-                        />
-                        <span className="text-[13px] font-semibold text-white group-hover:text-red-400 transition-colors">Require Entrance Fees</span>
-                    </label>
-                </div>
-            </div>
-
             <div className="p-4 bg-[#111] border border-white/10 rounded flex flex-col gap-4">
                 <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest">Prize Pool Distribution</label>
                 

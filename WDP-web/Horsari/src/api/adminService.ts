@@ -1007,7 +1007,19 @@ export const adminService = {
   // referee's normal prepare/cancel review has something to act on.
   quickAssignHorsesAndJockeys: async (
     id: string,
-  ): Promise<{ code: number; data: { assigned: number; alreadyReady: number; skipped: number; total: number }; msg: string }> => {
+  ): Promise<{
+    code: number;
+    data: {
+      assigned: number;
+      alreadyReady: number;
+      completed: number;
+      excluded: number;
+      skipped: number;
+      overLimit: number;
+      total: number;
+    };
+    msg: string;
+  }> => {
     try {
       const response = await api.post(`/admin/race-rounds/${id}/quick-assign`);
       return response.data;

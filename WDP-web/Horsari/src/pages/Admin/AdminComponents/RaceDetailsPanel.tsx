@@ -276,6 +276,13 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
     if (!selectedRace) return null;
 
+    // Registrations holding a real race slot right now — approved (pre-race)
+    // or verified (post-referee-review) — vs. the round's participant cap.
+    const acceptedRegistrationCount = detailedParticipants.filter(
+        (p: any) => p.status === 'approved' || p.status === 'verified'
+    ).length;
+    const maxSlots = detailedOverview?.maxParticipants || selectedRace.maxSlots;
+
     const status = selectedRace.status;
     const isScheduled = status === 'scheduled';
     const isPrepared = status === 'prepared';
@@ -550,7 +557,11 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                     <span className="text-gray-500 font-medium">Track Length</span>
                                     <span className="text-white">{detailedOverview?.trackLength ? `${detailedOverview.trackLength}m` : <span className="text-gray-600 italic">N/A</span>}</span>
                                     <span className="text-gray-500 font-medium">Max Slots</span>
-                                    <span className="text-white">{detailedOverview?.maxParticipants || selectedRace.maxSlots || <span className="text-gray-600 italic">N/A</span>}</span>
+                                    <span className="text-white">{maxSlots || <span className="text-gray-600 italic">N/A</span>}</span>
+                                    <span className="text-gray-500 font-medium">Accepted</span>
+                                    <span className={`font-semibold ${maxSlots && acceptedRegistrationCount >= maxSlots ? 'text-amber-400' : 'text-white'}`}>
+                                        {maxSlots ? `${acceptedRegistrationCount} / ${maxSlots}` : acceptedRegistrationCount}
+                                    </span>
                                     <span className="text-gray-500 font-medium">Race Type</span>
                                     <span className="text-white">{detailedOverview?.raceType || selectedRace.raceType || <span className="text-gray-600 italic">N/A</span>}</span>
                                 </div>
