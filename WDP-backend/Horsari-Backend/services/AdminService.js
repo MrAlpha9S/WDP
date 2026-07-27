@@ -1448,16 +1448,34 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
                 .filter(inv => !inv.isBackup && inv.invitationStatus === 'accepted')
                 .map(inv => [String(inv.registrationId), inv])
         );
+        const pendingMainByReg = new Map(
+            existingInvitations
+                .filter(inv => !inv.isBackup && inv.invitationStatus === 'pending')
+                .map(inv => [String(inv.registrationId), inv])
+        );
 
         const jockeys = await Jockey.find().lean();
         const usedHorseIds = new Set();
         const usedJockeyIds = new Set();
         let jockeyCursor = 0;
 
-        let assigned = 0, alreadyReady = 0, skipped = 0, overLimit = 0;
+        let assigned = 0, alreadyReady = 0, completed = 0, excluded = 0, skipped = 0, overLimit = 0;
         const maxParticipants = raceRound.maxParticipants;
 
-        for (const reg of registrations) {
+        // Registrations that are rejected/cancelled are never touched, and
+        // registrations with a pending real invitation (owner already hired a
+        // specific jockey for a specific horse — just awaiting their
+        // response) get fast-forwarded ahead of fresh-pick candidates so a
+        // real, already-committed pairing isn't bumped out of a scarce slot
+        // by a speculative auto-pick.
+        const actionable = registrations.filter(
+            reg => reg.registrationStatus !== 'rejected' && reg.registrationStatus !== 'cancelled'
+        );
+        excluded = registrations.length - actionable.length;
+
+        const fastForwardRegs = [];
+        const freshPickRegs = [];
+        for (const reg of actionable) {
             const alreadyDone = reg.registrationStatus === 'approved' && acceptedMainByReg.has(String(reg._id));
             if (alreadyDone) {
                 alreadyReady++;
@@ -1466,9 +1484,37 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
                 if (inv?.jockeyId) usedJockeyIds.add(String(inv.jockeyId));
                 continue;
             }
+            const canFastForward = reg.registrationStatus === 'approved' && pendingMainByReg.has(String(reg._id));
+            if (canFastForward) {
+                fastForwardRegs.push(reg);
+            } else {
+                freshPickRegs.push(reg);
+            }
+        }
 
+        for (const reg of fastForwardRegs) {
             // Never assign past the race round's participant cap.
-            if (alreadyReady + assigned >= maxParticipants) {
+            if (alreadyReady + completed + assigned >= maxParticipants) {
+                overLimit++;
+                continue;
+            }
+
+            const pendingInv = pendingMainByReg.get(String(reg._id));
+            await Invitation.findByIdAndUpdate(pendingInv._id, {
+                ownerConfirmation: true,
+                jockeyConfirmation: true,
+                invitationStatus: 'accepted',
+            });
+            // Trust the owner's/jockey's real prior choice — never replace
+            // the horse/jockey already on this invitation.
+            if (pendingInv.horseId) usedHorseIds.add(String(pendingInv.horseId));
+            if (pendingInv.jockeyId) usedJockeyIds.add(String(pendingInv.jockeyId));
+            completed++;
+        }
+
+        for (const reg of freshPickRegs) {
+            // Never assign past the race round's participant cap.
+            if (alreadyReady + completed + assigned >= maxParticipants) {
                 overLimit++;
                 continue;
             }
@@ -1517,6 +1563,9 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
                 registrationStatus: 'approved',
             });
 
+            // Any pending-and-approved main invitation was already siphoned
+            // off into fastForwardRegs above, so anything found here is a
+            // dead (declined/cancelled) leftover row, safe to reuse/overwrite.
             const existingNonAccepted = existingInvitations.find(
                 inv => !inv.isBackup && String(inv.registrationId) === String(reg._id)
             );
@@ -1547,8 +1596,10 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
 
         return {
             code: 200,
-            data: { assigned, alreadyReady, skipped, overLimit, total: registrations.length },
-            msg: `${assigned} registration(s) auto-assigned, ${alreadyReady} already ready, ${skipped} skipped (no eligible horse/jockey)`
+            data: { assigned, alreadyReady, completed, excluded, skipped, overLimit, total: registrations.length },
+            msg: `${assigned} registration(s) auto-assigned, ${completed} completed (pending invitation fast-forwarded), `
+                + `${alreadyReady} already ready, ${skipped} skipped (no eligible horse/jockey)`
+                + (excluded ? `, ${excluded} excluded (rejected/cancelled)` : '')
                 + (overLimit ? `, ${overLimit} skipped (race round full)` : '') + '.',
         };
     } catch (error) {
