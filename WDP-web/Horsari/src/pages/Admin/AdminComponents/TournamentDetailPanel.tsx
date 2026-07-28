@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { TournamentDetailData, TournamentRankEntry, RoundBreakdownEntry } from "../../../shared/types/TournamentTypes";
 import { adminService } from "../../../api/adminService";
+import { CancelTournamentModal } from "../modal/CancelTournamentModal";
 
 interface TournamentDetailPanelProps {
     selectedTournamentId: string;
@@ -92,7 +93,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
 
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [statusError, setStatusError] = useState<string | null>(null);
-    const [pendingCancelConfirm, setPendingCancelConfirm] = useState(false);
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
     const fetchDetail = useCallback(() => {
         if (!selectedTournamentId) return;
@@ -111,7 +112,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
         setRankingError(null);
         setShowRanking(false);
         setStatusError(null);
-        setPendingCancelConfirm(false);
+        setIsCancelModalOpen(false);
         fetchDetail();
     }, [selectedTournamentId]);
 
@@ -134,11 +135,10 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
     const handleStatusChange = async (newStatus: string) => {
         if (!detail?.tournament || newStatus === detail.tournament.status) return;
 
-        if (newStatus === 'cancelled' && !pendingCancelConfirm) {
-            setPendingCancelConfirm(true);
+        if (newStatus === 'cancelled') {
+            setIsCancelModalOpen(true);
             return;
         }
-        setPendingCancelConfirm(false);
         setStatusUpdating(true);
         setStatusError(null);
         try {
@@ -195,13 +195,6 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                         </select>
                                         {statusUpdating && <Loader2 size={12} className="animate-spin text-gray-400" />}
                                     </div>
-                                    {pendingCancelConfirm && (
-                                        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded px-2 py-1.5">
-                                            <span className="text-[11px] text-red-300">Cancel this tournament and all unfinished races?</span>
-                                            <button onClick={() => handleStatusChange('cancelled')} className="text-[11px] font-bold text-red-400 hover:text-red-300">Confirm</button>
-                                            <button onClick={() => setPendingCancelConfirm(false)} className="text-[11px] text-gray-400 hover:text-white">Dismiss</button>
-                                        </div>
-                                    )}
                                     {statusError && (
                                         <span className="text-[11px] text-red-400">{statusError}</span>
                                     )}
@@ -449,6 +442,14 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                         </div>
                 </div>
             </div>
+
+            <CancelTournamentModal
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
+                onSuccess={() => { fetchDetail(); onRefresh?.(); }}
+                tournamentId={selectedTournamentId}
+                tournamentName={t?.tournamentName ?? ''}
+            />
         </aside>
     );
 }
