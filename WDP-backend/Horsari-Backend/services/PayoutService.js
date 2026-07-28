@@ -9,10 +9,10 @@ const AdminRepository = require('../repositories/AdminRepository');
 
 // Takeout rates by bet type (PDF reference: Win/Place/Show 17%, multi-race 22%)
 const TAKEOUT = {
-    race_winner:         0.17,  // "Exacta"  — Win bet
-    race_rank:           0.17,  // "Ranking" — Place / Show
+    race_winner: 0.17,  // "Exacta"  — Win bet
+    race_rank: 0.17,  // "Ranking" — Place / Show
     tournament_champion: 0.22,  // "Champion" — multi-race wager
-    default:             0.17,
+    default: 0.17,
 };
 
 class PayoutService {
@@ -68,6 +68,35 @@ class PayoutService {
         return TAKEOUT[methodType] ?? TAKEOUT.default;
     }
 
+    // Credits a spectator's reward balance and logs the matching transaction.
+    // Shared by every reward/refund path below so the transaction shape stays consistent.
+    async _creditSpectator(pred, amount, transactionType, description) {
+        await SpectatorRepository.addRewardPoints(pred.spectatorId, amount);
+        await TransactionRepository.create({
+            userId: pred.spectatorId,
+            transactionType,
+            amount,
+            status: 'completed',
+            description,
+            referenceId: pred._id.toString(),
+            referenceType: 'prediction',
+        });
+    }
+
+    // Credits the platform's house take into the main admin wallet and logs the transaction.
+    async _creditHouseTake(amount, description, referenceId) {
+        const updatedAdmin = await AdminRepository.incrementMainAdminWallet(amount);
+        await TransactionRepository.create({
+            userId: updatedAdmin._id,
+            transactionType: 'deposit',
+            amount,
+            status: 'completed',
+            description,
+            referenceId: String(referenceId),
+            referenceType: 'payment',
+        });
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // SETTLE RACE PREDICTIONS — called from SimulationService after race_finished
     //
@@ -95,16 +124,16 @@ class PayoutService {
 
             const [winnerMethod, rankMethod] = await Promise.all([
                 PredictionMethod.findOne({ methodType: 'race_winner', isActive: true }).lean(),
-                PredictionMethod.findOne({ methodType: 'race_rank',   isActive: true }).lean(),
+                PredictionMethod.findOne({ methodType: 'race_rank', isActive: true }).lean(),
             ]);
 
             const methodIds = [winnerMethod?._id, rankMethod?._id].filter(Boolean);
-            const regIds    = results.map(r => r.registrationId);
+            const regIds = results.map(r => r.registrationId);
 
             const predictions = await Prediction.find({
-                registrationId:    { $in: regIds },
+                registrationId: { $in: regIds },
                 predictionMethodId: { $in: methodIds },
-                predictionStatus:  'pending',
+                predictionStatus: 'pending',
             }).lean();
 
             if (!predictions.length) {
@@ -151,16 +180,8 @@ class PayoutService {
                         });
 
                         if (refundAmount > 0) {
-                            await SpectatorRepository.addRewardPoints(pred.spectatorId, refundAmount);
-                            await TransactionRepository.create({
-                                userId:          pred.spectatorId,
-                                transactionType: 'refund',
-                                amount:          refundAmount,
-                                status:          'completed',
-                                description:     `No winning prediction — refund minus ${(T * 100).toFixed(0)}% house fee`,
-                                referenceId:     pred._id.toString(),
-                                referenceType:   'prediction',
-                            });
+                            await this._creditSpectator(pred, refundAmount, 'refund',
+                                `No winning prediction — refund minus ${(T * 100).toFixed(0)}% house fee`);
                         }
 
                         settled.push({ predictionId: pred._id, isCorrect: false, earn: refundAmount });
@@ -169,15 +190,15 @@ class PayoutService {
                 }
 
                 for (const pred of preds) {
-                    const rid       = pred.registrationId.toString();
+                    const rid = pred.registrationId.toString();
                     const actualPos = posMap[rid];
-                    const S         = pred.rewardPoints || 0; // stake
+                    const S = pred.rewardPoints || 0; // stake
 
                     const isCorrect = isWin
                         ? actualPos === 1
                         : (pred.predictedRank != null && actualPos === pred.predictedRank);
 
-                    const Bi   = stakes[rid] || 0;
+                    const Bi = stakes[rid] || 0;
                     const earn = isCorrect && Bi > 0 && S > 0
                         ? parseFloat(this.totalCollect(S, N, Bi).toFixed(2))
                         : 0;
@@ -188,16 +209,7 @@ class PayoutService {
                     });
 
                     if (isCorrect && earn > 0) {
-                        await SpectatorRepository.addRewardPoints(pred.spectatorId, earn);
-                        await TransactionRepository.create({
-                            userId:          pred.spectatorId,
-                            transactionType: 'reward',
-                            amount:          earn,
-                            status:          'completed',
-                            description:     `Parimutuel payout — race ${raceRoundId}`,
-                            referenceId:     pred._id.toString(),
-                            referenceType:   'prediction',
-                        });
+                        await this._creditSpectator(pred, earn, 'reward', `Parimutuel payout — race ${raceRoundId}`);
                     }
 
                     settled.push({ predictionId: pred._id, isCorrect, earn });
@@ -206,16 +218,7 @@ class PayoutService {
 
             if (houseTake > 0) {
                 const roundedTake = parseFloat(houseTake.toFixed(2));
-                const updatedAdmin = await AdminRepository.incrementMainAdminWallet(roundedTake);
-                await TransactionRepository.create({
-                    userId:          updatedAdmin._id,
-                    transactionType: 'deposit',
-                    amount:          roundedTake,
-                    status:          'completed',
-                    description:     `Parimutuel house take — race ${raceRoundId}`,
-                    referenceId:     String(raceRoundId),
-                    referenceType:   'payment',
-                });
+                await this._creditHouseTake(roundedTake, `Parimutuel house take — race ${raceRoundId}`, raceRoundId);
             }
 
             return {
@@ -247,7 +250,7 @@ class PayoutService {
             const predictions = await Prediction.find({
                 tournamentId,
                 predictionMethodId: method._id,
-                predictionStatus:   'pending',
+                predictionStatus: 'pending',
             }).lean();
 
             if (!predictions.length) {
@@ -262,8 +265,8 @@ class PayoutService {
                 stakeByHorse[hid] = (stakeByHorse[hid] || 0) + (p.rewardPoints || 0);
             }
 
-            const P  = this.grossPool(Object.values(stakeByHorse));
-            const N  = this.netPool(P, T);
+            const P = this.grossPool(Object.values(stakeByHorse));
+            const N = this.netPool(P, T);
             const Bi = stakeByHorse[championHorseId.toString()] || 0;
             const houseTake = P - N;
 
@@ -282,16 +285,8 @@ class PayoutService {
                     });
 
                     if (refundAmount > 0) {
-                        await SpectatorRepository.addRewardPoints(pred.spectatorId, refundAmount);
-                        await TransactionRepository.create({
-                            userId:          pred.spectatorId,
-                            transactionType: 'refund',
-                            amount:          refundAmount,
-                            status:          'completed',
-                            description:     `No correct champion prediction — refund minus ${(T * 100).toFixed(0)}% house fee`,
-                            referenceId:     pred._id.toString(),
-                            referenceType:   'prediction',
-                        });
+                        await this._creditSpectator(pred, refundAmount, 'refund',
+                            `No correct champion prediction — refund minus ${(T * 100).toFixed(0)}% house fee`);
                     }
 
                     settled.push({ predictionId: pred._id, isCorrect: false, earn: refundAmount });
@@ -299,8 +294,8 @@ class PayoutService {
             } else {
                 for (const pred of predictions) {
                     const isCorrect = pred.predictedHorseId?.toString() === championHorseId.toString();
-                    const S         = pred.rewardPoints || 0;
-                    const earn      = isCorrect && S > 0
+                    const S = pred.rewardPoints || 0;
+                    const earn = isCorrect && S > 0
                         ? parseFloat(this.totalCollect(S, N, Bi).toFixed(2))
                         : 0;
 
@@ -310,16 +305,7 @@ class PayoutService {
                     });
 
                     if (isCorrect && earn > 0) {
-                        await SpectatorRepository.addRewardPoints(pred.spectatorId, earn);
-                        await TransactionRepository.create({
-                            userId:          pred.spectatorId,
-                            transactionType: 'reward',
-                            amount:          earn,
-                            status:          'completed',
-                            description:     `Parimutuel payout — tournament champion ${tournamentId}`,
-                            referenceId:     pred._id.toString(),
-                            referenceType:   'prediction',
-                        });
+                        await this._creditSpectator(pred, earn, 'reward', `Parimutuel payout — tournament champion ${tournamentId}`);
                     }
 
                     settled.push({ predictionId: pred._id, isCorrect, earn });
@@ -328,16 +314,7 @@ class PayoutService {
 
             if (houseTake > 0) {
                 const roundedTake = parseFloat(houseTake.toFixed(2));
-                const updatedAdmin = await AdminRepository.incrementMainAdminWallet(roundedTake);
-                await TransactionRepository.create({
-                    userId:          updatedAdmin._id,
-                    transactionType: 'deposit',
-                    amount:          roundedTake,
-                    status:          'completed',
-                    description:     `Parimutuel house take — tournament champion ${tournamentId}`,
-                    referenceId:     String(tournamentId),
-                    referenceType:   'payment',
-                });
+                await this._creditHouseTake(roundedTake, `Parimutuel house take — tournament champion ${tournamentId}`, tournamentId);
             }
 
             return {
@@ -373,16 +350,7 @@ class PayoutService {
                     rewardPoints: 0,
                 });
                 if (stake > 0) {
-                    await SpectatorRepository.addRewardPoints(pred.spectatorId, stake);
-                    await TransactionRepository.create({
-                        userId:          pred.spectatorId,
-                        transactionType: 'refund',
-                        amount:          stake,
-                        status:          'completed',
-                        description:     `Race cancelled — refund`,
-                        referenceId:     pred._id.toString(),
-                        referenceType:   'prediction',
-                    });
+                    await this._creditSpectator(pred, stake, 'refund', `Race cancelled — refund`);
                 }
             }
         } catch (err) {
@@ -409,16 +377,7 @@ class PayoutService {
                     rewardPoints: 0,
                 });
                 if (stake > 0) {
-                    await SpectatorRepository.addRewardPoints(pred.spectatorId, stake);
-                    await TransactionRepository.create({
-                        userId:          pred.spectatorId,
-                        transactionType: 'refund',
-                        amount:          stake,
-                        status:          'completed',
-                        description:     `Horse failed verification — refund`,
-                        referenceId:     pred._id.toString(),
-                        referenceType:   'prediction',
-                    });
+                    await this._creditSpectator(pred, stake, 'refund', `Horse failed verification — refund`);
                 }
             }
         } catch (err) {
