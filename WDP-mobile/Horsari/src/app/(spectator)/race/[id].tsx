@@ -709,7 +709,7 @@ export default function LiveRaceScreen() {
           {awaitingConfirmation && <AwaitingConfirmationCard />}
           {!activeFinishResults && (
             (currentStatus === 'running' || liveUpdate !== null) ? (
-              <RaceVideoPlayer style={{ marginTop: 16 }} />
+              <RaceVideoPlayer style={{ marginTop: 16 }} muxPlaybackId={raceRound?.muxPlaybackId ?? null} />
             ) : (
               <View style={styles.awaitingCard}>
                 <View style={styles.awaitingIconRing}>

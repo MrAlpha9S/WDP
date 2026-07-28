@@ -61,9 +61,9 @@ function formatDate(iso: string): string {
 function mapRace(raw: any, i: number): Race {
   return {
     id: raw.registration._id ?? String(i),
-    name: raw.raceRound.roundName ?? raw.name ?? "Unnamed Race",
-    date: raw.raceRound.raceDate ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
-    venue: raw.raceRound.location ?? raw.location ?? "TBA",
+    name: raw.raceRound?.roundName ?? raw.name ?? "Unnamed Race",
+    date: raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
+    venue: raw.raceRound?.location ?? raw.location ?? "TBA",
     grade: raw.grade ?? "TBA",
     ruleId: raw.raceRound?.eligibilityRuleId?._id ?? raw.eligibilityRuleId?._id ?? raw.raceRound?.eligibilityRuleId ?? raw.eligibilityRuleId ?? "",
     raceType: raw.raceRound?.eligibilityRuleId?.raceType ?? raw.eligibilityRuleId?.raceType ?? "",
