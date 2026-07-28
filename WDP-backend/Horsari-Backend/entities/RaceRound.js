@@ -32,9 +32,16 @@ const raceRoundSchema = new mongoose.Schema(
             enum: ['draft', 'scheduled', 'running', 'completed', 'cancelled', 'awaitingConfirmation', 'prepared'],
             default: 'draft',
         },
-        minimalRidingFees: {
+        baseFee: {
             type: Number,
-            required: [true, 'Minimal riding fees is required'],
+            required: [true, 'Base fee is required'],
+        },
+        housingFeePercentage: {
+            type: Number,
+            min: 0,
+            max: 1,
+            // Optional — undefined means "use the platform default takeout rate".
+            // Stored as a 0-1 fraction, matching PayoutService.TAKEOUT's representation.
         },
         raceGround: {
             type: String,

@@ -59,7 +59,7 @@ export interface RaceRoundEntry {
     status?: string;
     raceGround?: string;
     trackLength?: number;
-    minimalRidingFees?: number;
+    baseFee?: number;
     firstPlacePrize?: number;
     secondPlacePrize?: number;
     thirdPlacePrize?: number;
@@ -149,7 +149,7 @@ export interface RefereeInvitationItem {
         raceDate?: string;
         location?: string;
         address?: string;
-        minimalRidingFees?: number;
+        baseFee?: number;
         currencyType?: string;
         eligibilityRuleId?: { raceType?: string } | null;
         tournamentId?: { tournamentName?: string } | null;

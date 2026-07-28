@@ -53,7 +53,7 @@ class RaceRoundService {
         for (const refereeItem of RefereeInvitation) {
             try {
                 const refereeId = refereeItem?.refereeId || refereeItem;
-                const fee = refereeItem?.fee ?? raceRoundData.minimalRidingFees ?? 0;
+                const fee = refereeItem?.fee ?? raceRoundData.baseFee ?? 0;
                 
                 const raceReferee = await RaceRefereeRepository.create({
                     raceRoundId: raceRound._id,
@@ -292,7 +292,7 @@ class RaceRoundService {
                 try {
                     const extractedId = refereeItem?.refereeId || refereeItem;
                     const resolvedId = toId(extractedId);
-                    const fee = refereeItem?.fee ?? updateData?.minimalRidingFees ?? existingRaceRound.minimalRidingFees ?? 0;
+                    const fee = refereeItem?.fee ?? updateData?.baseFee ?? existingRaceRound.baseFee ?? 0;
                     const existingRef = existingRefMap.get(resolvedId);
 
                     if (existingRef) {

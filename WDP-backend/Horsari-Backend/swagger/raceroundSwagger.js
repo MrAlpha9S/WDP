@@ -21,13 +21,14 @@
  *               TournamentId: { type: string }
  *               RaceRound:
  *                 type: object
- *                 required: [roundName, raceDate, trackLength, maxParticipants, minimalRidingFees, raceGround]
+ *                 required: [roundName, raceDate, trackLength, maxParticipants, baseFee, raceGround]
  *                 properties:
  *                   roundName: { type: string }
  *                   raceDate: { type: string, format: date-time }
  *                   trackLength: { type: number }
  *                   maxParticipants: { type: integer }
- *                   minimalRidingFees: { type: number }
+ *                   baseFee: { type: number }
+ *                   housingFeePercentage: { type: number, description: "Fraction 0-1 house-take override for race_winner/race_rank predictions on this race round; falls back to the platform default (17%) when omitted." }
  *                   raceGround: { type: string }
  *                   requireEntranceFees: { type: boolean, default: false }
  *                   firstPlacePrize: { type: number, default: 0 }
@@ -47,7 +48,7 @@
  *                   type: object
  *                   properties:
  *                     refereeId: { type: string }
- *                     fee: { type: number, description: "Defaults to minimalRidingFees if omitted" }
+ *                     fee: { type: number, description: "Defaults to baseFee if omitted" }
  *     responses:
  *       201:
  *         description: "{ tournament, raceRound, registrations, raceReferees }"
@@ -83,7 +84,8 @@
  *                   raceDate: { type: string, format: date-time }
  *                   trackLength: { type: number }
  *                   maxParticipants: { type: integer }
- *                   minimalRidingFees: { type: number }
+ *                   baseFee: { type: number }
+ *                   housingFeePercentage: { type: number, description: "Fraction 0-1 house-take override for race_winner/race_rank predictions on this race round; falls back to the platform default (17%) when omitted." }
  *                   raceGround: { type: string }
  *                   location: { type: string }
  *                   firstPlacePrize: { type: number }

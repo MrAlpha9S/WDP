@@ -76,7 +76,7 @@ export default function RaceSchedulingPage() {
         // would incorrectly show only inactive rules.
         adminService.getRaceTypes(raceTypesActiveOnly ? true : undefined)
             .then(res => setRaceTypes(res.data ?? []))
-            .catch(() => {});
+            .catch(() => { });
     }, [raceTypesActiveOnly]);
 
     // Any RaceRound mutation, from any source (admin or referee action, the
@@ -317,165 +317,164 @@ export default function RaceSchedulingPage() {
                                 <ErrorState message={error} onRetry={fetchData} className="max-w-md" />
                             </div>
                         ) : (
-                        <div className="h-full w-full overflow-auto bg-[#141414] custom-scrollbar">
-                            {viewMode === "timeline" ? (
-                                <div className="min-w-[1600px] border border-white/5 rounded-lg bg-[#161616]">
-                                    {/* Time Headers */}
-                                    <div className="sticky top-0 z-40 flex border-b border-white/5 bg-[#1a1a1a]">
-                                        <div className="sticky left-0 z-50 w-[200px] shrink-0 border-r border-white/5 px-2 py-3 flex items-center justify-between bg-[#151515] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
-                                            <button
-                                                onClick={handlePrevDate}
-                                                disabled={!uniqueDates.length || selectedDate === uniqueDates[0]}
-                                                className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
-                                            >
-                                                &larr;
-                                            </button>
-                                            <div className="text-[11px] font-bold tracking-widest text-white uppercase text-center flex-1">
-                                                {selectedDate || "N/A"}
+                            <div className="h-full w-full overflow-auto bg-[#141414] custom-scrollbar">
+                                {viewMode === "timeline" ? (
+                                    <div className="min-w-[1600px] border border-white/5 rounded-lg bg-[#161616]">
+                                        {/* Time Headers */}
+                                        <div className="sticky top-0 z-40 flex border-b border-white/5 bg-[#1a1a1a]">
+                                            <div className="sticky left-0 z-50 w-[200px] shrink-0 border-r border-white/5 px-2 py-3 flex items-center justify-between bg-[#151515] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                                                <button
+                                                    onClick={handlePrevDate}
+                                                    disabled={!uniqueDates.length || selectedDate === uniqueDates[0]}
+                                                    className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
+                                                >
+                                                    &larr;
+                                                </button>
+                                                <div className="text-[11px] font-bold tracking-widest text-white uppercase text-center flex-1">
+                                                    {selectedDate || "N/A"}
+                                                </div>
+                                                <button
+                                                    onClick={handleNextDate}
+                                                    disabled={!uniqueDates.length || selectedDate === uniqueDates[uniqueDates.length - 1]}
+                                                    className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
+                                                >
+                                                    &rarr;
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={handleNextDate}
-                                                disabled={!uniqueDates.length || selectedDate === uniqueDates[uniqueDates.length - 1]}
-                                                className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
-                                            >
-                                                &rarr;
-                                            </button>
+                                            <div className="flex-1 flex">
+                                                {TIME_SLOTS.map((time, idx) => (
+                                                    <div key={idx} className="flex-1 border-r border-white/5 last:border-r-0 py-4 flex justify-center">
+                                                        <span className="text-[11px] font-medium text-gray-400 font-mono">{time}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="flex-1 flex">
-                                            {TIME_SLOTS.map((time, idx) => (
-                                                <div key={idx} className="flex-1 border-r border-white/5 last:border-r-0 py-4 flex justify-center">
-                                                    <span className="text-[11px] font-medium text-gray-400 font-mono">{time}</span>
+
+                                        {/* Tracks and Race Rows */}
+                                        <div className="flex flex-col">
+                                            {TRACKS_DYNAMIC.length === 0 && !loading && (
+                                                <div className="p-8 text-center text-gray-500 text-[13px]">No races scheduled for this date.</div>
+                                            )}
+                                            {TRACKS_DYNAMIC.map(track => (
+                                                <div key={track.id} className="flex border-b border-white/5 last:border-b-0 min-h-[120px]">
+
+                                                    {/* Track Info (Y-axis label) */}
+                                                    <div className="sticky left-0 z-30 w-[200px] shrink-0 border-r border-white/5 p-5 bg-[#181818] flex flex-col justify-center gap-1 shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                                                        <span className="text-[14px] font-semibold text-white truncate">{track.name}</span>
+                                                        <span className="text-[12px] text-gray-500">{track.surface}</span>
+                                                    </div>
+
+                                                    {/* Timeline area for this track */}
+                                                    <div className="flex-1 relative flex">
+                                                        {/* Background Grid Lines (1 line per time slot) */}
+                                                        {TIME_SLOTS.map((_, idx) => (
+                                                            <div key={idx} className="flex-1 border-r border-white/5 last:border-r-0" />
+                                                        ))}
+
+                                                        {/* Placed Races */}
+                                                        {filteredRaces.filter(r => r.trackId === track.id).map(race => {
+                                                            const isSelected = selectedRaceId === race.id;
+                                                            return (
+                                                                <div
+                                                                    key={race.id}
+                                                                    onClick={() => setSelectedRaceId(isSelected ? null : race.id)}
+                                                                    className={`absolute top-1/2 -translate-y-1/2 h-[70px] border rounded-md p-3 shadow-lg shadow-black/40 transition-all cursor-pointer flex flex-col justify-between ${race.status === 'cancelled' ? 'bg-[#161111] border-red-900/30 opacity-60 z-0' : 'bg-[#1f1a1a] z-10'
+                                                                        } ${isSelected ? "border-red-500 ring-1 ring-red-500/50 !z-20" : "border-[#f3b2a5]/30 hover:border-[#f3b2a5]/60"}`}
+                                                                    style={{ left: race.leftPercent, width: race.widthPercent }}
+                                                                >
+                                                                    <div className="flex justify-between items-start">
+                                                                        <span className={`text-[13px] font-semibold truncate pr-2 ${race.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-white'}`}>{race.title}</span>
+                                                                        <span className="text-[12px] font-medium text-[#f3b2a5] shrink-0">{race.time}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between mt-auto">
+                                                                        <div className="flex gap-1 items-center">
+                                                                            {race.status === 'cancelled' && <span className="text-[10px] text-red-500 font-bold uppercase mr-1">Cancelled</span>}
+                                                                            <span className={`w-1.5 h-1.5 rounded-full ${race.status === 'cancelled' ? 'bg-red-500' :
+                                                                                race.status === 'running' ? 'bg-blue-500' :
+                                                                                    race.status === 'completed' ? 'bg-gray-500' :
+                                                                                        race.status === 'scheduled' ? 'bg-emerald-500' :
+                                                                                            race.status === 'prepared' ? 'bg-violet-500' :
+                                                                                                'bg-amber-500'
+                                                                                }`}></span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-
-                                    {/* Tracks and Race Rows */}
-                                    <div className="flex flex-col">
-                                        {TRACKS_DYNAMIC.length === 0 && !loading && (
-                                            <div className="p-8 text-center text-gray-500 text-[13px]">No races scheduled for this date.</div>
-                                        )}
-                                        {TRACKS_DYNAMIC.map(track => (
-                                            <div key={track.id} className="flex border-b border-white/5 last:border-b-0 min-h-[120px]">
-
-                                                {/* Track Info (Y-axis label) */}
-                                                <div className="sticky left-0 z-30 w-[200px] shrink-0 border-r border-white/5 p-5 bg-[#181818] flex flex-col justify-center gap-1 shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
-                                                    <span className="text-[14px] font-semibold text-white truncate">{track.name}</span>
-                                                    <span className="text-[12px] text-gray-500">{track.surface}</span>
-                                                </div>
-
-                                                {/* Timeline area for this track */}
-                                                <div className="flex-1 relative flex">
-                                                    {/* Background Grid Lines (1 line per time slot) */}
-                                                    {TIME_SLOTS.map((_, idx) => (
-                                                        <div key={idx} className="flex-1 border-r border-white/5 last:border-r-0" />
-                                                    ))}
-
-                                                    {/* Placed Races */}
-                                                    {filteredRaces.filter(r => r.trackId === track.id).map(race => {
-                                                        const isSelected = selectedRaceId === race.id;
-                                                        return (
-                                                            <div
-                                                                key={race.id}
-                                                                onClick={() => setSelectedRaceId(isSelected ? null : race.id)}
-                                                                className={`absolute top-1/2 -translate-y-1/2 h-[70px] border rounded-md p-3 shadow-lg shadow-black/40 transition-all cursor-pointer flex flex-col justify-between ${race.status === 'cancelled' ? 'bg-[#161111] border-red-900/30 opacity-60 z-0' : 'bg-[#1f1a1a] z-10'
-                                                                    } ${isSelected ? "border-red-500 ring-1 ring-red-500/50 !z-20" : "border-[#f3b2a5]/30 hover:border-[#f3b2a5]/60"}`}
-                                                                style={{ left: race.leftPercent, width: race.widthPercent }}
-                                                            >
-                                                                <div className="flex justify-between items-start">
-                                                                    <span className={`text-[13px] font-semibold truncate pr-2 ${race.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-white'}`}>{race.title}</span>
-                                                                    <span className="text-[12px] font-medium text-[#f3b2a5] shrink-0">{race.time}</span>
-                                                                </div>
-                                                                <div className="flex items-center justify-between mt-auto">
-                                                                    <span className="text-[11px] text-gray-400">{race.participants.filter((p: any) => p.status === 'approved').length}/{race.maxSlots} Slots</span>
-                                                                    <div className="flex gap-1 items-center">
-                                                                        {race.status === 'cancelled' && <span className="text-[10px] text-red-500 font-bold uppercase mr-1">Cancelled</span>}
-                                                                        <span className={`w-1.5 h-1.5 rounded-full ${race.status === 'cancelled' ? 'bg-red-500' :
-                                                                            race.status === 'running' ? 'bg-blue-500' :
-                                                                                race.status === 'completed' ? 'bg-gray-500' :
-                                                                                    race.status === 'scheduled' ? 'bg-emerald-500' :
-                                                                                        race.status === 'prepared' ? 'bg-violet-500' :
-                                                                                            'bg-amber-500'
-                                                                            }`}></span>
+                                ) : (
+                                    <div className="w-full">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-[#1a1a1a] border-b border-white/5">
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Race Name</th>
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Track</th>
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Tournament</th>
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Date & Time</th>
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Capacity</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {filteredRaces.slice((tablePage - 1) * TABLE_ITEMS_PER_PAGE, tablePage * TABLE_ITEMS_PER_PAGE).map(race => {
+                                                    const isSelected = selectedRaceId === race.id;
+                                                    return (
+                                                        <tr
+                                                            key={race.id}
+                                                            onClick={() => setSelectedRaceId(isSelected ? null : race.id)}
+                                                            className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}
+                                                        >
+                                                            <td className="p-4">
+                                                                <div className={`text-[13px] font-semibold ${race.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-white'}`}>{race.title}</div>
+                                                                <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block mt-1 ${race.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/30' :
+                                                                    race.status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
+                                                                        race.status === 'running' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
+                                                                            race.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
+                                                                                race.status === 'prepared' ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
+                                                                                    'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                                                    }`}>{race.status}</div>
+                                                            </td>
+                                                            <td className="p-4">
+                                                                <div className="text-[13px] text-gray-300">{race.trackId}</div>
+                                                            </td>
+                                                            <td className="p-4">
+                                                                <div className="text-[13px] text-gray-300">{race.tournament}</div>
+                                                            </td>
+                                                            <td className="p-4">
+                                                                <div className="text-[13px] text-gray-300">{race.date}</div>
+                                                                <div className="text-[11px] text-gray-500 mt-0.5 font-mono">{race.time}</div>
+                                                            </td>
+                                                            <td className="p-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden w-24">
+                                                                        <div
+                                                                            className="h-full bg-emerald-500 rounded-full"
+                                                                            style={{ width: `${(race.participants.filter((p: any) => p.status === 'approved').length / Math.max(race.maxSlots, 1)) * 100}%` }}
+                                                                        />
                                                                     </div>
+                                                                    <span className="text-[12px] font-medium text-gray-400 min-w-[32px]">
+                                                                        {race.participants.filter((p: any) => p.status === 'approved').length}/{race.maxSlots}
+                                                                    </span>
                                                                 </div>
-                                                            </div>
-                                                        )
-                                                    })}
-                                                </div>
-                                            </div>
-                                        ))}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                        <Pagination
+                                            page={tablePage}
+                                            totalPages={Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE) || 1}
+                                            totalItems={filteredRaces.length}
+                                            limit={TABLE_ITEMS_PER_PAGE}
+                                            onPageChange={setTablePage}
+                                        />
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="w-full">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-[#1a1a1a] border-b border-white/5">
-                                                <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Race Name</th>
-                                                <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Track</th>
-                                                <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Tournament</th>
-                                                <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Date & Time</th>
-                                                <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Capacity</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/5">
-                                            {filteredRaces.slice((tablePage - 1) * TABLE_ITEMS_PER_PAGE, tablePage * TABLE_ITEMS_PER_PAGE).map(race => {
-                                                const isSelected = selectedRaceId === race.id;
-                                                return (
-                                                    <tr
-                                                        key={race.id}
-                                                        onClick={() => setSelectedRaceId(isSelected ? null : race.id)}
-                                                        className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}
-                                                    >
-                                                        <td className="p-4">
-                                                            <div className={`text-[13px] font-semibold ${race.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-white'}`}>{race.title}</div>
-                                                            <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block mt-1 ${race.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/30' :
-                                                                race.status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
-                                                                    race.status === 'running' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
-                                                                        race.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
-                                                                            race.status === 'prepared' ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
-                                                                                'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                                                                }`}>{race.status}</div>
-                                                        </td>
-                                                        <td className="p-4">
-                                                            <div className="text-[13px] text-gray-300">{race.trackId}</div>
-                                                        </td>
-                                                        <td className="p-4">
-                                                            <div className="text-[13px] text-gray-300">{race.tournament}</div>
-                                                        </td>
-                                                        <td className="p-4">
-                                                            <div className="text-[13px] text-gray-300">{race.date}</div>
-                                                            <div className="text-[11px] text-gray-500 mt-0.5 font-mono">{race.time}</div>
-                                                        </td>
-                                                        <td className="p-4">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden w-24">
-                                                                    <div
-                                                                        className="h-full bg-emerald-500 rounded-full"
-                                                                        style={{ width: `${(race.participants.filter((p: any) => p.status === 'approved').length / Math.max(race.maxSlots, 1)) * 100}%` }}
-                                                                    />
-                                                                </div>
-                                                                <span className="text-[12px] font-medium text-gray-400 min-w-[32px]">
-                                                                    {race.participants.filter((p: any) => p.status === 'approved').length}/{race.maxSlots}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                    <Pagination
-                                        page={tablePage}
-                                        totalPages={Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE) || 1}
-                                        totalItems={filteredRaces.length}
-                                        limit={TABLE_ITEMS_PER_PAGE}
-                                        onPageChange={setTablePage}
-                                    />
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </main>

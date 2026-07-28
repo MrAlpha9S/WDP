@@ -25,6 +25,8 @@ interface BasicInfoProps {
     setTrackLength: (v: number | "") => void;
     maxParticipants: number;
     setMaxParticipants: (v: number) => void;
+    housingFeePercentage: number | "";
+    setHousingFeePercentage: (v: number | "") => void;
 }
 
 export default function CreateRaceBasicInfo(props: BasicInfoProps) {
@@ -188,6 +190,19 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                         className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
                     />
                 </div>
+            </div>
+
+            <div>
+                <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Housing Fee %</label>
+                <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="Defaults to platform rate (17%)"
+                    value={props.housingFeePercentage}
+                    onChange={(e) => props.setHousingFeePercentage(e.target.value ? Number(e.target.value) : "")}
+                    className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
+                />
             </div>
         </div>
     );

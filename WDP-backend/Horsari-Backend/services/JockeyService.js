@@ -299,7 +299,7 @@ class JockeyService {
               location: raceRound.location,
               raceGround: raceRound.raceGround,
               status: raceRound.status,
-              minimalRidingFees: raceRound.minimalRidingFees,
+              baseFee: raceRound.baseFee,
               raceType: eligibilityRule?.raceType ?? null,
             } : null,
             tournament: tournament ? {

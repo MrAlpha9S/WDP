@@ -467,8 +467,8 @@ class HorseOwnerService {
                     },
                     maxParticipants: rr.maxParticipants ?? null,
                     currentParticipants: countMap.get(String(rr._id)) ?? 0,
-                    entryFee: rr.requireEntranceFees ? rr.minimalRidingFees ?? 0 : 0,
-                    minimalRidingFees: rr.minimalRidingFees ?? 0,
+                    entryFee: rr.requireEntranceFees ? rr.baseFee ?? 0 : 0,
+                    baseFee: rr.baseFee ?? 0,
                     raceType: rule?.raceType ?? null,
                     eligibility: rule
                         ? { requiredBreed: rule.requiredBreed ?? null, requiredGender: rule.requiredGender ?? null, minAge: rule.minAge ?? null, maxAge: rule.maxAge ?? null }

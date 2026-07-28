@@ -77,7 +77,7 @@ export interface RaceScheduleItem {
   status: string;
   maxParticipants: number | null;
   requireEntranceFees: number | null;
-  minimalRidingFees: number | null;
+  baseFee: number | null;
   currentParticipants: number;
   tournament: {
     _id: string;

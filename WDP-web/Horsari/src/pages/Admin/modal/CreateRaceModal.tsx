@@ -20,6 +20,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     // Form States
     const [trackLength, setTrackLength] = useState<number | "">("");
     const [maxParticipants, setMaxParticipants] = useState<number>(18);
+    const [housingFeePercentage, setHousingFeePercentage] = useState<number | "">("");
     const [firstPlacePrize, setFirstPlacePrize] = useState<number | "">("");
     const [secondPlacePrize, setSecondPlacePrize] = useState<number | "">("");
     const [thirdPlacePrize, setThirdPlacePrize] = useState<number | "">("");
@@ -63,6 +64,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                         }
                         setTrackLength(raceToEdit.trackLength || "");
                         setMaxParticipants(raceToEdit.maxParticipants || 18);
+                        setHousingFeePercentage(raceToEdit.housingFeePercentage != null ? raceToEdit.housingFeePercentage * 100 : "");
                         setFirstPlacePrize(raceToEdit.firstPlacePrize ?? "");
                         setSecondPlacePrize(raceToEdit.secondPlacePrize ?? "");
                         setThirdPlacePrize(raceToEdit.thirdPlacePrize ?? "");
@@ -111,6 +113,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             setRefereeFees({});
             setShowConfirm(false);
             setMaxParticipants(18);
+            setHousingFeePercentage("");
             setFirstPlacePrize("");
             setSecondPlacePrize("");
             setThirdPlacePrize("");
@@ -241,7 +244,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                 raceDate: combinedDateTime,
                 trackLength: Number(trackLength),
                 maxParticipants: Number(maxParticipants),
-                minimalRidingFees: 0,
+                baseFee: 0,
+                housingFeePercentage: housingFeePercentage ? Number(housingFeePercentage) / 100 : undefined,
                 requireEntranceFees: false,
                 firstPlacePrize: firstPlacePrize ? Number(firstPlacePrize) : 0,
                 secondPlacePrize: secondPlacePrize ? Number(secondPlacePrize) : 0,
@@ -351,6 +355,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                                 setTrackLength={setTrackLength}
                                 maxParticipants={maxParticipants}
                                 setMaxParticipants={setMaxParticipants}
+                                housingFeePercentage={housingFeePercentage}
+                                setHousingFeePercentage={setHousingFeePercentage}
                             />
 
                             <CreateRacePrizes
