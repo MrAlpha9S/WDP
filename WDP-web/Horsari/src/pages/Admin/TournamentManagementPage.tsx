@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
 import { type AdminTab } from "./AdminComponents/NavBar";
 import type { Tournament } from "../../shared/types/TournamentTypes";
@@ -116,6 +116,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
     // Calendar State & Logic
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [calendarLoading, setCalendarLoading] = useState(false);
 
     // Load tournaments overlapping the currently visible month for the calendar view
     const fetchCalendarTournaments = useCallback(() => {
@@ -125,6 +126,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
         const monthStart = toISO(new Date(year, month, 1));
         const monthEnd = toISO(new Date(year, month + 1, 0));
 
+        setCalendarLoading(true);
         // No page/limit — a date-range fetch always returns every matching
         // tournament unpaginated (see AdminService.getTournamentsWithDetails).
         adminService.getTournamentsWithDetails(undefined, undefined, monthStart, monthEnd).then(res => {
@@ -144,7 +146,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     } as Tournament));
                 setAllTournamentsForCalendar(mapped);
             }
-        }).catch(() => { });
+        }).catch(() => { }).finally(() => setCalendarLoading(false));
     }, [currentDate]);
 
     useEffect(() => { fetchCalendarTournaments(); }, [fetchCalendarTournaments]);
@@ -286,7 +288,18 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     </header>
 
                     {/* ── Main Content Area ── */}
-                    <div className="flex-1 overflow-auto bg-[#141414] mt-6 rounded-xl border border-white/5">
+                    <div className="flex-1 relative mt-6 rounded-xl border border-white/5 overflow-hidden min-h-0">
+                        {(viewMode === "table" ? loading : calendarLoading) && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#141414]/80 backdrop-blur-sm">
+                                <Loader2 className="animate-spin text-red-500" size={32} />
+                            </div>
+                        )}
+                        {viewMode === "table" && !loading && error ? (
+                            <div className="h-full w-full flex items-center justify-center bg-[#141414] p-6">
+                                <ErrorState message={error} onRetry={fetchTournaments} className="max-w-md" />
+                            </div>
+                        ) : (
+                        <div className="h-full w-full overflow-auto bg-[#141414] custom-scrollbar">
                         {viewMode === "table" ? (
                             <div className="bg-[#161616] border border-white/5 rounded-lg overflow-hidden">
                                 <table className="w-full text-left border-collapse">
@@ -300,14 +313,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {error && !loading && (
-                                            <tr>
-                                                <td colSpan={5} className="p-4">
-                                                    <ErrorState message={error} onRetry={fetchTournaments} />
-                                                </td>
-                                            </tr>
-                                        )}
-                                        {!error && tournaments.map(t => (
+                                        {tournaments.map(t => (
                                             <tr
                                                 key={t.id}
                                                 className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${selectedTournamentId === t.id ? 'bg-[#f3b2a5]/5 border-l-2 border-[#f3b2a5]' : ''}`}
@@ -360,13 +366,6 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                             <tr>
                                                 <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500">
                                                     No tournaments found.
-                                                </td>
-                                            </tr>
-                                        )}
-                                        {loading && (
-                                            <tr>
-                                                <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500 animate-pulse">
-                                                    Loading tournaments...
                                                 </td>
                                             </tr>
                                         )}
@@ -442,6 +441,8 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                     })}
                                 </div>
                             </div>
+                        )}
+                        </div>
                         )}
                     </div>
                 </main>
