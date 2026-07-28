@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
 import { type AdminTab } from "./AdminComponents/NavBar";
@@ -12,6 +12,8 @@ import { ErrorState } from "../../components/ErrorState";
 
 type AdminViewMode = "table" | "calendar";
 
+const TOURNAMENT_LIMIT_OPTIONS = [10, 25, 50, 100];
+
 interface Props {
     setActiveTab: (tab: AdminTab) => void;
 }
@@ -22,20 +24,30 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [allTournamentsForCalendar, setAllTournamentsForCalendar] = useState<Tournament[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const LIMIT = 10;
-    const totalPages = Math.ceil(totalItems / LIMIT) || 1;
+    const [limit, setLimit] = useState(10);
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    useEffect(() => { setPage(1); }, [searchQuery]);
+    // Debounce search input before it hits the server, mirroring the same
+    // pattern used in HorsesPage (src/pages/horseOwner/Management/Horses.tsx)
+    useEffect(() => {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+        return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+    }, [searchQuery]);
+
+    useEffect(() => { setPage(1); }, [debouncedSearch, limit]);
 
     const fetchTournaments = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await adminService.getTournamentsWithDetails(page, LIMIT);
+            const res = await adminService.getTournamentsWithDetails(page, limit, undefined, undefined, debouncedSearch || undefined);
             if (res?.data?.items) {
                 const map = (item: any) => ({
                     id: item.tournament._id,
@@ -58,7 +70,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
         } finally {
             setLoading(false);
         }
-    }, [page]);
+    }, [page, limit, debouncedSearch]);
 
     useEffect(() => { fetchTournaments(); }, [fetchTournaments]);
 
@@ -77,28 +89,6 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
         return () => { socket.off('tournament:status_changed', onStatusChanged); };
     }, [socket]);
 
-    // Load all tournaments once for the calendar view
-    useEffect(() => {
-        adminService.getTournamentsWithDetails(1, 100).then(res => {
-            if (res?.data?.items) {
-                const mapped = res.data.items
-                    .filter((item: any) => item.tournament.tournamentName !== "Non-tournament")
-                    .map((item: any) => ({
-                        id: item.tournament._id,
-                        name: item.tournament.tournamentName,
-                        description: item.tournament.description || "",
-                        startDate: "",
-                        endDate: "",
-                        status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
-                        prizePool: `${(item.priceTotalPool || 0).toLocaleString()} VND`,
-                        startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
-                        endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
-                    } as Tournament));
-                setAllTournamentsForCalendar(mapped);
-            }
-        }).catch(() => {});
-    }, []);
-
     const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
     // Modal State
@@ -107,11 +97,6 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingTournament, setDeletingTournament] = useState<Tournament | null>(null);
-
-    // Filtered Data
-    const filteredTournaments = tournaments.filter(t =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     // Delete Handlers
     const openDeleteModal = (tournament: Tournament) => {
@@ -131,6 +116,38 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
     // Calendar State & Logic
     const [currentDate, setCurrentDate] = useState(new Date());
+
+    // Load tournaments overlapping the currently visible month for the calendar view
+    const fetchCalendarTournaments = useCallback(() => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const toISO = (d: Date) => d.toISOString().split("T")[0];
+        const monthStart = toISO(new Date(year, month, 1));
+        const monthEnd = toISO(new Date(year, month + 1, 0));
+
+        // No page/limit — a date-range fetch always returns every matching
+        // tournament unpaginated (see AdminService.getTournamentsWithDetails).
+        adminService.getTournamentsWithDetails(undefined, undefined, monthStart, monthEnd).then(res => {
+            if (res?.data?.items) {
+                const mapped = res.data.items
+                    .filter((item: any) => item.tournament.tournamentName !== "Non-tournament")
+                    .map((item: any) => ({
+                        id: item.tournament._id,
+                        name: item.tournament.tournamentName,
+                        description: item.tournament.description || "",
+                        startDate: "",
+                        endDate: "",
+                        status: item.tournament.status === 'scheduled' ? 'upcoming' : item.tournament.status === 'ongoing' ? 'live' : item.tournament.status,
+                        prizePool: `${(item.priceTotalPool || 0).toLocaleString()} VND`,
+                        startISO: item.tournament.startDate ? new Date(item.tournament.startDate).toISOString().split("T")[0] : "",
+                        endISO: item.tournament.endDate ? new Date(item.tournament.endDate).toISOString().split("T")[0] : ""
+                    } as Tournament));
+                setAllTournamentsForCalendar(mapped);
+            }
+        }).catch(() => { });
+    }, [currentDate]);
+
+    useEffect(() => { fetchCalendarTournaments(); }, [fetchCalendarTournaments]);
 
     const nextMonth = () => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -169,20 +186,22 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     </div>
 
                     <div className="p-5 flex flex-col gap-6 overflow-y-auto">
-                        <div>
-                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Search</label>
-                            <div className="relative w-full">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                                <input
-                                    type="text"
-                                    placeholder="Search name..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-[#111] border border-white/10 rounded-md py-2.5 pl-9 pr-3 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                                />
-                            </div>
-                        </div>
 
+                        {viewMode === "table" && (
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Search</label>
+                                <div className="relative w-full">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search name..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full bg-[#111] border border-white/10 rounded-md py-2.5 pl-9 pr-3 text-[13px] text-white focus:outline-none focus:border-red-500/50"
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <div>
                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Quick Stats</label>
                             <div className="flex flex-col gap-3">
@@ -251,6 +270,18 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                     <CalendarIcon size={13} /> Calendar
                                 </button>
                             </div>
+
+                            {viewMode === "table" && (
+                                <select
+                                    value={limit}
+                                    onChange={(e) => setLimit(Number(e.target.value))}
+                                    className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                >
+                                    {TOURNAMENT_LIMIT_OPTIONS.map(n => (
+                                        <option key={n} value={n}>{n} rows</option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
                     </header>
 
@@ -276,7 +307,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                                 </td>
                                             </tr>
                                         )}
-                                        {!error && filteredTournaments.map(t => (
+                                        {!error && tournaments.map(t => (
                                             <tr
                                                 key={t.id}
                                                 className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${selectedTournamentId === t.id ? 'bg-[#f3b2a5]/5 border-l-2 border-[#f3b2a5]' : ''}`}
@@ -325,7 +356,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {filteredTournaments.length === 0 && !loading && !error && (
+                                        {tournaments.length === 0 && !loading && !error && (
                                             <tr>
                                                 <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500">
                                                     No tournaments found.
@@ -345,7 +376,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                     page={page}
                                     totalPages={totalPages}
                                     totalItems={totalItems}
-                                    limit={LIMIT}
+                                    limit={limit}
                                     onPageChange={setPage}
                                 />
                             </div>
@@ -449,6 +480,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                             setTournaments(mappedData);
                         }
                     });
+                    fetchCalendarTournaments();
                 }}
                 editingTournament={editingTournament}
             />

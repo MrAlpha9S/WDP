@@ -105,7 +105,13 @@ class AdminController {
     async getTournamentsWithDetails(req, res) {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const response = await AdminService.getTournamentsWithDetails(page, limit);
+        const { startDate, endDate, search } = req.query;
+        // A date-range fetch (calendar view) requires both bounds — a single
+        // bound alone can't be paired with the unpaginated behavior it implies.
+        if (Boolean(startDate) !== Boolean(endDate)) {
+            return res.status(400).json({ code: 400, msg: 'startDate and endDate must both be provided together.' });
+        }
+        const response = await AdminService.getTournamentsWithDetails(page, limit, startDate, endDate, search);
         return res.status(response.code).json(response);
     }
 

@@ -701,11 +701,23 @@ export const adminService = {
     }
   },
 
-  getTournamentsWithDetails: async (page: number = 1, limit: number = 10): Promise<AdminTournamentsResponse> => {
+  // page/limit only apply when no date range is given — a date-range fetch
+  // (calendar view) always returns every matching tournament unpaginated.
+  getTournamentsWithDetails: async (
+    page?: number,
+    limit?: number,
+    startDate?: string,
+    endDate?: string,
+    search?: string
+  ): Promise<AdminTournamentsResponse> => {
     try {
-      const response = await api.get('/admin/tournaments', {
-        params: { page, limit }
-      });
+      const params: any = {};
+      if (page !== undefined) params.page = page;
+      if (limit !== undefined) params.limit = limit;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (search) params.search = search;
+      const response = await api.get('/admin/tournaments', { params });
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
