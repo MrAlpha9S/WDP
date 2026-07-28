@@ -46,6 +46,10 @@ router.get('/tournaments', authMiddleware, authAdmin, AdminController.getTournam
 // Tournament counts by status (live/upcoming/completed), unaffected by pagination/search
 router.get('/tournaments/stats', authMiddleware, authAdmin, AdminController.getTournamentStats);
 
+// Update a tournament's status — blocks completion while rounds are unfinished,
+// cascade-cancels rounds on cancellation
+router.patch('/tournaments/:id/status', authMiddleware, authAdmin, AdminController.updateTournamentStatus);
+
 // Tournament detail: basic info + race rounds + auto-complete if end date passed
 router.get('/tournaments/:id/detail', authMiddleware, authAdmin, AdminController.getTournamentDetail);
 

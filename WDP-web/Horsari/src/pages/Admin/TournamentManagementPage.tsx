@@ -466,7 +466,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     <div className="flex-1 min-w-[360px] min-h-0">
                         <TournamentDetailPanel
                             selectedTournamentId={selectedTournamentId}
-                            onRefresh={fetchTournaments}
+                            onRefresh={() => { fetchTournaments(); fetchStats(); fetchCalendarTournaments(); }}
                             onClose={() => setSelectedTournamentId(null)}
                         />
                     </div>

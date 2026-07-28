@@ -121,6 +121,16 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // Update a tournament's status, with race-round guards (block completion
+    // while rounds are unfinished; cascade-cancel rounds on cancellation)
+    async updateTournamentStatus(req, res) {
+        const { id } = req.params;
+        const { status } = req.body;
+        const io = req.app.get('io');
+        const response = await AdminService.updateTournamentStats(id, status, io);
+        return res.status(response.code).json(response);
+    }
+
     // Get race rounds
     async getRaceRounds(req, res) {
         const tournament_id = req.query.tournament_id || null;

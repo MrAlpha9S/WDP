@@ -12,6 +12,8 @@ interface TournamentDetailPanelProps {
     onClose?: () => void;
 }
 
+const TOURNAMENT_STATUS_OPTIONS = ['draft', 'scheduled', 'ongoing', 'completed', 'cancelled'] as const;
+
 const TOURNAMENT_STATUS_COLORS: Record<string, string> = {
     draft:     'bg-amber-500/15 text-amber-400 border-amber-500/30',
     scheduled: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
@@ -78,7 +80,7 @@ function RoundResultCell({ rd }: { rd: RoundBreakdownEntry }) {
     return <span className="text-gray-600 text-[10px]">—</span>;
 }
 
-export default function TournamentDetailPanel({ selectedTournamentId, onClose }: TournamentDetailPanelProps) {
+export default function TournamentDetailPanel({ selectedTournamentId, onRefresh, onClose }: TournamentDetailPanelProps) {
     const [detail, setDetail] = useState<TournamentDetailData | null>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [detailError, setDetailError] = useState<string | null>(null);
@@ -87,6 +89,10 @@ export default function TournamentDetailPanel({ selectedTournamentId, onClose }:
     const [loadingRanking, setLoadingRanking] = useState(false);
     const [rankingError, setRankingError] = useState<string | null>(null);
     const [showRanking, setShowRanking] = useState(false);
+
+    const [statusUpdating, setStatusUpdating] = useState(false);
+    const [statusError, setStatusError] = useState<string | null>(null);
+    const [pendingCancelConfirm, setPendingCancelConfirm] = useState(false);
 
     const fetchDetail = useCallback(() => {
         if (!selectedTournamentId) return;
@@ -104,6 +110,8 @@ export default function TournamentDetailPanel({ selectedTournamentId, onClose }:
         setRanking([]);
         setRankingError(null);
         setShowRanking(false);
+        setStatusError(null);
+        setPendingCancelConfirm(false);
         fetchDetail();
     }, [selectedTournamentId]);
 
@@ -120,6 +128,27 @@ export default function TournamentDetailPanel({ selectedTournamentId, onClose }:
             setRankingError(err?.msg || 'Failed to load ranking');
         } finally {
             setLoadingRanking(false);
+        }
+    };
+
+    const handleStatusChange = async (newStatus: string) => {
+        if (!detail?.tournament || newStatus === detail.tournament.status) return;
+
+        if (newStatus === 'cancelled' && !pendingCancelConfirm) {
+            setPendingCancelConfirm(true);
+            return;
+        }
+        setPendingCancelConfirm(false);
+        setStatusUpdating(true);
+        setStatusError(null);
+        try {
+            await adminService.updateTournamentStatus(selectedTournamentId, newStatus);
+            fetchDetail();
+            onRefresh?.();
+        } catch (err: any) {
+            setStatusError(err?.msg || 'Failed to update status');
+        } finally {
+            setStatusUpdating(false);
         }
     };
 
@@ -153,9 +182,29 @@ export default function TournamentDetailPanel({ selectedTournamentId, onClose }:
                                     <h2 className="text-[20px] font-bold tracking-tight leading-tight text-white truncate">
                                         {t.tournamentName}
                                     </h2>
-                                    <span className={`self-start text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusColor}`}>
-                                        {t.status}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={t.status}
+                                            onChange={e => handleStatusChange(e.target.value)}
+                                            disabled={statusUpdating}
+                                            className={`self-start text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-transparent appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${statusColor}`}
+                                        >
+                                            {TOURNAMENT_STATUS_OPTIONS.map(s => (
+                                                <option key={s} value={s} className="bg-[#161616] text-white normal-case">{s}</option>
+                                            ))}
+                                        </select>
+                                        {statusUpdating && <Loader2 size={12} className="animate-spin text-gray-400" />}
+                                    </div>
+                                    {pendingCancelConfirm && (
+                                        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded px-2 py-1.5">
+                                            <span className="text-[11px] text-red-300">Cancel this tournament and all unfinished races?</span>
+                                            <button onClick={() => handleStatusChange('cancelled')} className="text-[11px] font-bold text-red-400 hover:text-red-300">Confirm</button>
+                                            <button onClick={() => setPendingCancelConfirm(false)} className="text-[11px] text-gray-400 hover:text-white">Dismiss</button>
+                                        </div>
+                                    )}
+                                    {statusError && (
+                                        <span className="text-[11px] text-red-400">{statusError}</span>
+                                    )}
                                 </div>
                                 <button
                                     onClick={onClose}

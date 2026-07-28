@@ -4,6 +4,7 @@ const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const JockeyRepository = require('../repositories/JockeyRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
+const RaceRoundRepository = require('../repositories/RaceRoundRepository');
 const RegistrationRepository = require('../repositories/RegistrationRepository');
 const Invitation = require('../entities/Invitation');
 const Horse = require('../entities/Horse');
@@ -794,7 +795,7 @@ class AdminService {
             // Overlap filter: include tournaments whose date span overlaps the
             // requested range, so a tournament spanning across a month
             // boundary still shows up on that month's calendar.
-            const filter = {};
+            const filter = { tournamentName: { $ne: 'Non-tournament' } };
             if (isDateRangeQuery) {
                 filter.endDate = { $gte: new Date(startDate) };
                 filter.startDate = { $lte: new Date(endDate) };
@@ -874,6 +875,66 @@ class AdminService {
                 data: { live, upcoming, completed },
                 msg: 'Tournament stats retrieved successfully',
             };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async updateTournamentStats(tournament_id, status, io) {
+        try {
+            const tournament = await TournamentRepository.getTournamentById(tournament_id);
+            if (!tournament) return { code: 404, msg: 'Tournament not found' };
+            const raceRounds = await RaceRoundRepository.findByTournamentId(tournament_id);
+
+            switch (status) {
+                case 'completed': {
+                    // A cancelled round is closed out, not "still ongoing" — only
+                    // block completion on rounds that are neither completed nor cancelled.
+                    const stillActive = raceRounds.some(rr => rr.status !== 'completed' && rr.status !== 'cancelled');
+                    if (stillActive) {
+                        return { code: 400, msg: 'All race rounds must be completed or cancelled before the tournament can be marked completed.' };
+                    }
+                    tournament.status = 'completed';
+                    await tournament.save();
+                    break;
+                }
+                case 'cancelled': {
+                    // Cascade-cancel every round that isn't already finished, reusing
+                    // the single-round cancel flow (referees/registrations/invitations
+                    // cancelled, pending predictions refunded, notifications sent).
+                    // Rounds that are 'running' or 'awaitingConfirmation' are left as-is —
+                    // cancelRaceRound refuses those by design, and that's intentional here too.
+                    const RaceRoundService = require('./RaceRoundService');
+                    for (const rr of raceRounds) {
+                        if (rr.status === 'completed' || rr.status === 'cancelled') continue;
+                        const result = await RaceRoundService.cancelRaceRound(rr._id, io);
+                        if (result.code !== 200) {
+                            console.error(`[updateTournamentStats] could not cancel race round ${rr._id} (${rr.status}): ${result.message}`);
+                        }
+                    }
+                    tournament.status = 'cancelled';
+                    await tournament.save();
+                    break;
+                }
+                case 'ongoing':
+                    tournament.status = 'ongoing';
+                    await tournament.save();
+                    break;
+                case 'scheduled':
+                    if (tournament.status !== 'draft') {
+                        return { code: 400, msg: `Tournament has already been ${tournament.status}` };
+                    }
+                    tournament.status = 'scheduled';
+                    await tournament.save();
+                    break;
+                default:
+                    return { code: 400, msg: 'Invalid status' };
+            }
+
+            if (io) {
+                io.emit('tournament:status_changed', { tournamentId: String(tournament_id), status: tournament.status });
+            }
+            return { code: 200, msg: `Tournament ${status} successfully` };
         } catch (error) {
             return { code: 500, msg: error.message };
         }

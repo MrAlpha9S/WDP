@@ -741,6 +741,17 @@ export const adminService = {
     }
   },
 
+  // Guarded status transition: blocks "completed" while rounds are unfinished,
+  // cascade-cancels rounds when the tournament is cancelled.
+  updateTournamentStatus: async (id: string, status: string): Promise<{ code: number; msg: string }> => {
+    try {
+      const response = await api.patch(`/admin/tournaments/${id}/status`, { status });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+
   getRaceRounds: async (
     tournament_id?: string | null,
     raceRound_id?: string | null,
