@@ -385,6 +385,12 @@ export interface AdminTournamentsResponse {
   msg: string;
 }
 
+export interface AdminTournamentStatsResponse {
+  code: number;
+  data: { live: number; upcoming: number; completed: number };
+  msg: string;
+}
+
 export type CreateRaceTournamentOption = { _id: string; tournamentName?: string } & Record<string, unknown>;
 export type CreateRaceEligibilityRuleOption = { _id: string; raceType?: string | null } & Record<string, unknown>;
 export type CreateRaceRefereeOption = { _id: string } & Record<string, unknown>;
@@ -719,6 +725,16 @@ export const adminService = {
       if (search) params.search = search;
       const response = await api.get('/admin/tournaments', { params });
       console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+
+  // True counts across every tournament, unaffected by pagination/search.
+  getTournamentStats: async (): Promise<AdminTournamentStatsResponse> => {
+    try {
+      const response = await api.get('/admin/tournaments/stats');
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };

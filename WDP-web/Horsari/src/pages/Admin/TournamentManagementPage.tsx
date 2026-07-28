@@ -74,6 +74,18 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
     useEffect(() => { fetchTournaments(); }, [fetchTournaments]);
 
+    // Quick Stats — true counts across every tournament, independent of the
+    // paginated/searched `tournaments` list above.
+    const [stats, setStats] = useState({ live: 0, upcoming: 0, completed: 0 });
+
+    const fetchStats = useCallback(() => {
+        adminService.getTournamentStats().then(res => {
+            if (res?.data) setStats(res.data);
+        }).catch(() => { });
+    }, []);
+
+    useEffect(() => { fetchStats(); }, [fetchStats]);
+
     // Real-time: auto-update status when the scheduler (or admin) changes it
     useEffect(() => {
         if (!socket) return;
@@ -84,10 +96,11 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                 prev.map(t => t.id === tournamentId ? { ...t, status: displayStatus } : t);
             setTournaments(updater);
             setAllTournamentsForCalendar(updater);
+            fetchStats();
         };
         socket.on('tournament:status_changed', onStatusChanged);
         return () => { socket.off('tournament:status_changed', onStatusChanged); };
-    }, [socket]);
+    }, [socket, fetchStats]);
 
     const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
@@ -106,6 +119,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
     const handleDeleteSuccess = (id: string) => {
         setTournaments(tournaments.filter(t => t.id !== id));
+        fetchStats();
     };
 
     // Open Modal for Create or Edit
@@ -210,19 +224,19 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                 <div className="bg-[#1f1a1a] border border-white/5 p-3 rounded flex items-center justify-between">
                                     <span className="text-[13px] text-gray-400 font-medium">Total Live</span>
                                     <span className="text-[14px] font-bold text-emerald-400">
-                                        {tournaments.filter(t => t.status === "live").length}
+                                        {stats.live}
                                     </span>
                                 </div>
                                 <div className="bg-[#1f1a1a] border border-white/5 p-3 rounded flex items-center justify-between">
                                     <span className="text-[13px] text-gray-400 font-medium">Upcoming</span>
                                     <span className="text-[14px] font-bold text-amber-400">
-                                        {tournaments.filter(t => t.status === "upcoming").length}
+                                        {stats.upcoming}
                                     </span>
                                 </div>
                                 <div className="bg-[#1f1a1a] border border-white/5 p-3 rounded flex items-center justify-between">
                                     <span className="text-[13px] text-gray-400 font-medium">Completed</span>
                                     <span className="text-[14px] font-bold text-gray-300">
-                                        {tournaments.filter(t => t.status === "completed").length}
+                                        {stats.completed}
                                     </span>
                                 </div>
                             </div>
@@ -482,6 +496,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                         }
                     });
                     fetchCalendarTournaments();
+                    fetchStats();
                 }}
                 editingTournament={editingTournament}
             />

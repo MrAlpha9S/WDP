@@ -856,6 +856,29 @@ class AdminService {
         }
     }
 
+    // Get tournament counts by status (live/upcoming/completed) — true totals
+    // across every tournament, unaffected by the pagination/search above.
+    async getTournamentStats() {
+        try {
+            const Tournament = require('../entities/Tournament');
+            const baseFilter = { tournamentName: { $ne: 'Non-tournament' } };
+
+            const [live, upcoming, completed] = await Promise.all([
+                Tournament.countDocuments({ ...baseFilter, status: 'ongoing' }),
+                Tournament.countDocuments({ ...baseFilter, status: 'scheduled' }),
+                Tournament.countDocuments({ ...baseFilter, status: 'completed' }),
+            ]);
+
+            return {
+                code: 200,
+                data: { live, upcoming, completed },
+                msg: 'Tournament stats retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
     // Get Race Rounds
     async getRaceRounds(tournament_id = null, raceRound_id = null, page = 1, limit = 10, status = null, search = null, sortBy = 'raceDate', order = 'desc', raceType = null) {
         try {

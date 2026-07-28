@@ -115,6 +115,12 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // Get tournament counts by status (live/upcoming/completed), unaffected by pagination/search
+    async getTournamentStats(req, res) {
+        const response = await AdminService.getTournamentStats();
+        return res.status(response.code).json(response);
+    }
+
     // Get race rounds
     async getRaceRounds(req, res) {
         const tournament_id = req.query.tournament_id || null;
