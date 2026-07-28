@@ -48,7 +48,7 @@ class PayoutService {
         return (netPool - stakeOnHorse) / stakeOnHorse;
     }
 
-    // Formula 4 — Payout per $1 bet (return including stake): N / Bᵢ
+    // Formula 4 — Payout per 1vnd bet (return including stake): N / Bᵢ
     payoutPerUnit(netPool, stakeOnHorse) {
         if (!stakeOnHorse || stakeOnHorse <= 0) return 0;
         return netPool / stakeOnHorse;
@@ -160,17 +160,22 @@ class PayoutService {
                 const N = this.netPool(P, T);
                 houseTake += (P - N);
 
-                const anyCorrect = preds.some(pred => {
-                    const actualPos = posMap[pred.registrationId.toString()];
-                    return isWin
+                // Evaluate correctness once per prediction — reused for both the
+                // anyCorrect check and the per-prediction settlement below.
+                const evaluated = preds.map(pred => {
+                    const rid = pred.registrationId.toString();
+                    const actualPos = posMap[rid];
+                    const isCorrect = isWin
                         ? actualPos === 1
                         : (pred.predictedRank != null && actualPos === pred.predictedRank);
+                    return { pred, rid, isCorrect };
                 });
+                const anyCorrect = evaluated.some(e => e.isCorrect);
 
                 if (!anyCorrect) {
                     // Nobody won this pool — refund each stake minus the house's
                     // cut instead of letting the net pool go unaccounted for.
-                    for (const pred of preds) {
+                    for (const { pred } of evaluated) {
                         const S = pred.rewardPoints || 0;
                         const refundAmount = parseFloat((S * (1 - T)).toFixed(2));
 
@@ -189,14 +194,8 @@ class PayoutService {
                     continue;
                 }
 
-                for (const pred of preds) {
-                    const rid = pred.registrationId.toString();
-                    const actualPos = posMap[rid];
+                for (const { pred, rid, isCorrect } of evaluated) {
                     const S = pred.rewardPoints || 0; // stake
-
-                    const isCorrect = isWin
-                        ? actualPos === 1
-                        : (pred.predictedRank != null && actualPos === pred.predictedRank);
 
                     const Bi = stakes[rid] || 0;
                     const earn = isCorrect && Bi > 0 && S > 0
