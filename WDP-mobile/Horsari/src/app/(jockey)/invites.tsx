@@ -203,10 +203,10 @@ function InviteDetailSheet({
                 value={invite.raceRound.trackLength ? `${invite.raceRound.trackLength} m` : '—'}
               />
               <SheetRow label="Status" value={invite.raceRound.status === 'draft' ? 'Draft' : invite.raceRound.status === 'scheduled' ? 'Scheduled' : invite.raceRound.status === 'running' ? 'Running' : invite.raceRound.status === 'completed' ? 'Completed' : invite.raceRound.status === 'cancelled' ? 'Cancelled' : '—'} />
-              {(invite.raceRound.minimalRidingFees ?? 0) > 0 && (
+              {(invite.raceRound.baseFee ?? 0) > 0 && (
                 <SheetRow
                   label="Minimum Fee"
-                  value={`$${invite.raceRound.minimalRidingFees!.toLocaleString()}`}
+                  value={`$${invite.raceRound.baseFee!.toLocaleString()}`}
                   valueColor={Palette.gold}
                 />
               )}

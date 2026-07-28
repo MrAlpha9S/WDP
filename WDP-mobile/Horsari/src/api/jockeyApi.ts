@@ -65,7 +65,7 @@ export interface InvitationItem {
     location: string;
     raceGround: string;
     status: string;
-    minimalRidingFees: number;
+    baseFee: number;
   } | null;
   tournament: { tournamentId: string; tournamentName: string } | null;
 }
@@ -377,7 +377,7 @@ export interface RaceScheduleItem {
   status: string;
   maxParticipants: number | null;
   requireEntranceFees: number | null;
-  minimalRidingFees: number | null;
+  baseFee: number | null;
   currentParticipants: number;
   tournament: {
     _id: string;

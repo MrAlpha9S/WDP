@@ -90,7 +90,7 @@ export interface BrowsableRace {
   maxParticipants: number | null;
   currentParticipants: number;
   entryFee: number;
-  minimalRidingFees: number;
+  baseFee: number;
   raceType: string | null;
   eligibility: { requiredBreed: string | null; requiredGender: string | null; minAge: number | null; maxAge: number | null } | null;
   ownerRegistration: { status: string; registrationId: string } | null;

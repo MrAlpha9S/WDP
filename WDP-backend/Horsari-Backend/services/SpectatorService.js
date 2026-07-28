@@ -532,7 +532,7 @@ class SpectatorService {
                     status: r.status,
                     maxParticipants: r.maxParticipants || null,
                     requireEntranceFees: r.requireEntranceFees || null,
-                    minimalRidingFees: r.minimalRidingFees || null,
+                    baseFee: r.baseFee || null,
                     currentParticipants: countMap[r._id.toString()] || 0,
                     tournament: t ? {
                         _id: t._id,
@@ -1143,7 +1143,7 @@ class SpectatorService {
                         stakeByReg[rid] = (stakeByReg[rid] || 0) + (p.rewardPoints || 0);
                     }
 
-                    const T  = 0.17; // race methods takeout
+                    const T  = PayoutService.getRaceTakeoutRate(raceRound, method.methodType);
                     const P  = PayoutService.grossPool(Object.values(stakeByReg));
                     const N  = PayoutService.netPool(P, T);
                     const Bi = stakeByReg[prediction.registrationId?.toString()] || 0;

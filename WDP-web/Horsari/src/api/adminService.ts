@@ -414,7 +414,8 @@ export interface CreateRaceRoundPayload {
     raceDate: string;
     trackLength: number;
     maxParticipants: number;
-    minimalRidingFees: number;
+    baseFee: number;
+    housingFeePercentage?: number;
     raceGround: string;
     requireEntranceFees?: boolean;
     firstPlacePrize?: number;

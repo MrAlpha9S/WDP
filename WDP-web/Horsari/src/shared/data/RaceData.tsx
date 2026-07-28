@@ -51,9 +51,6 @@ export const HORSE_PROGRESS: Record<number, number> = {
 
 export const CAMERAS = [
     { id: 1, label: "Panning Main", src: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80" },
-    { id: 2, label: "Turn 1", src: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=900&q=80" },
-    { id: 3, label: "Finish Line", src: "https://images.unsplash.com/photo-1566033117334-c8a4f80c8df4?w=900&q=80" },
-    { id: 4, label: "Gate", src: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=900&q=80" },
 ];
 
 // ── Shared helpers ────────────────────────────────────────────────────────────

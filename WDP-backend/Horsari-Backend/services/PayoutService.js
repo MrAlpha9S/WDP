@@ -2,6 +2,7 @@ const Prediction = require('../entities/Prediction');
 const PredictionMethod = require('../entities/PredictionMethod');
 const RaceResult = require('../entities/RaceResult');
 const Registration = require('../entities/Registration');
+const RaceRound = require('../entities/RaceRound');
 const SpectatorRepository = require('../repositories/SpectatorRepository');
 const TransactionRepository = require('../repositories/TransactionRepository');
 const AdminRepository = require('../repositories/AdminRepository');
@@ -58,6 +59,15 @@ class PayoutService {
         return stake * this.payoutPerUnit(netPool, stakeOnHorse);
     }
 
+    // Single source of truth for the race-level takeout rate: a RaceRound's own
+    // housingFeePercentage override, else the platform default for that method type.
+    // Only applies to race_winner/race_rank — tournament_champion is never
+    // overridden by a RaceRound field (it's tournament-wide, not race-specific).
+    getRaceTakeoutRate(raceRound, methodType) {
+        if (raceRound?.housingFeePercentage != null) return raceRound.housingFeePercentage;
+        return TAKEOUT[methodType] ?? TAKEOUT.default;
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // SETTLE RACE PREDICTIONS — called from SimulationService after race_finished
     //
@@ -70,6 +80,8 @@ class PayoutService {
 
     async distributeRacePayouts(raceRoundId) {
         try {
+            const raceRound = await RaceRound.findById(raceRoundId).select('housingFeePercentage').lean();
+
             const results = await RaceResult.find({
                 raceRoundId,
                 resultStatus: 'official',
@@ -114,10 +126,47 @@ class PayoutService {
 
             for (const [methodId, { stakes, preds }] of Object.entries(byMethod)) {
                 const isWin = winnerMethod && methodId === winnerMethod._id.toString();
-                const T = isWin ? TAKEOUT.race_winner : TAKEOUT.race_rank;
+                const T = this.getRaceTakeoutRate(raceRound, isWin ? 'race_winner' : 'race_rank');
                 const P = this.grossPool(Object.values(stakes));
                 const N = this.netPool(P, T);
                 houseTake += (P - N);
+
+                const anyCorrect = preds.some(pred => {
+                    const actualPos = posMap[pred.registrationId.toString()];
+                    return isWin
+                        ? actualPos === 1
+                        : (pred.predictedRank != null && actualPos === pred.predictedRank);
+                });
+
+                if (!anyCorrect) {
+                    // Nobody won this pool — refund each stake minus the house's
+                    // cut instead of letting the net pool go unaccounted for.
+                    for (const pred of preds) {
+                        const S = pred.rewardPoints || 0;
+                        const refundAmount = parseFloat((S * (1 - T)).toFixed(2));
+
+                        await Prediction.findByIdAndUpdate(pred._id, {
+                            predictionStatus: 'refunded',
+                            rewardPoints: refundAmount,
+                        });
+
+                        if (refundAmount > 0) {
+                            await SpectatorRepository.addRewardPoints(pred.spectatorId, refundAmount);
+                            await TransactionRepository.create({
+                                userId:          pred.spectatorId,
+                                transactionType: 'refund',
+                                amount:          refundAmount,
+                                status:          'completed',
+                                description:     `No winning prediction — refund minus ${(T * 100).toFixed(0)}% house fee`,
+                                referenceId:     pred._id.toString(),
+                                referenceType:   'prediction',
+                            });
+                        }
+
+                        settled.push({ predictionId: pred._id, isCorrect: false, earn: refundAmount });
+                    }
+                    continue;
+                }
 
                 for (const pred of preds) {
                     const rid       = pred.registrationId.toString();
@@ -220,32 +269,61 @@ class PayoutService {
 
             const settled = [];
 
-            for (const pred of predictions) {
-                const isCorrect = pred.predictedHorseId?.toString() === championHorseId.toString();
-                const S         = pred.rewardPoints || 0;
-                const earn      = isCorrect && Bi > 0 && S > 0
-                    ? parseFloat(this.totalCollect(S, N, Bi).toFixed(2))
-                    : 0;
+            if (Bi === 0) {
+                // Nobody predicted the actual champion — refund each stake minus
+                // the house's cut instead of letting the net pool go unaccounted for.
+                for (const pred of predictions) {
+                    const S = pred.rewardPoints || 0;
+                    const refundAmount = parseFloat((S * (1 - T)).toFixed(2));
 
-                await Prediction.findByIdAndUpdate(pred._id, {
-                    predictionStatus: isCorrect ? 'correct' : 'incorrect',
-                    rewardPoints: earn,
-                });
-
-                if (isCorrect && earn > 0) {
-                    await SpectatorRepository.addRewardPoints(pred.spectatorId, earn);
-                    await TransactionRepository.create({
-                        userId:          pred.spectatorId,
-                        transactionType: 'reward',
-                        amount:          earn,
-                        status:          'completed',
-                        description:     `Parimutuel payout — tournament champion ${tournamentId}`,
-                        referenceId:     pred._id.toString(),
-                        referenceType:   'prediction',
+                    await Prediction.findByIdAndUpdate(pred._id, {
+                        predictionStatus: 'refunded',
+                        rewardPoints: refundAmount,
                     });
-                }
 
-                settled.push({ predictionId: pred._id, isCorrect, earn });
+                    if (refundAmount > 0) {
+                        await SpectatorRepository.addRewardPoints(pred.spectatorId, refundAmount);
+                        await TransactionRepository.create({
+                            userId:          pred.spectatorId,
+                            transactionType: 'refund',
+                            amount:          refundAmount,
+                            status:          'completed',
+                            description:     `No correct champion prediction — refund minus ${(T * 100).toFixed(0)}% house fee`,
+                            referenceId:     pred._id.toString(),
+                            referenceType:   'prediction',
+                        });
+                    }
+
+                    settled.push({ predictionId: pred._id, isCorrect: false, earn: refundAmount });
+                }
+            } else {
+                for (const pred of predictions) {
+                    const isCorrect = pred.predictedHorseId?.toString() === championHorseId.toString();
+                    const S         = pred.rewardPoints || 0;
+                    const earn      = isCorrect && S > 0
+                        ? parseFloat(this.totalCollect(S, N, Bi).toFixed(2))
+                        : 0;
+
+                    await Prediction.findByIdAndUpdate(pred._id, {
+                        predictionStatus: isCorrect ? 'correct' : 'incorrect',
+                        rewardPoints: earn,
+                    });
+
+                    if (isCorrect && earn > 0) {
+                        await SpectatorRepository.addRewardPoints(pred.spectatorId, earn);
+                        await TransactionRepository.create({
+                            userId:          pred.spectatorId,
+                            transactionType: 'reward',
+                            amount:          earn,
+                            status:          'completed',
+                            description:     `Parimutuel payout — tournament champion ${tournamentId}`,
+                            referenceId:     pred._id.toString(),
+                            referenceType:   'prediction',
+                        });
+                    }
+
+                    settled.push({ predictionId: pred._id, isCorrect, earn });
+                }
             }
 
             if (houseTake > 0) {

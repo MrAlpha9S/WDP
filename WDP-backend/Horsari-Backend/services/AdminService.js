@@ -1086,8 +1086,6 @@ class AdminService {
             }
 
             // ── Prediction pools (grouped by method type) ─────────────────────────
-            const POOL_TAKEOUT = { race_winner: 0.17, race_rank: 0.17 };
-
             const [winMethod, rankMethod] = await Promise.all([
                 PredictionMethod.findOne({ methodType: 'race_winner', isActive: true }).select('_id').lean(),
                 PredictionMethod.findOne({ methodType: 'race_rank', isActive: true }).select('_id').lean(),
@@ -1125,7 +1123,7 @@ class AdminService {
 
             for (const methodType of ['race_winner', 'race_rank']) {
                 const preds = predsByType[methodType] || [];
-                const T = POOL_TAKEOUT[methodType];
+                const T = PayoutService.getRaceTakeoutRate(raceRound, methodType);
 
                 if (preds.length === 0) {
                     predictionPools.push({ methodType, poolStatus: 'empty', takeoutRate: T, grossPool: 0, netPool: 0, houseEarning: 0, totalBettors: 0, perHorse: [] });
