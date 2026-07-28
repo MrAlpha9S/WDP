@@ -385,6 +385,12 @@ export interface AdminTournamentsResponse {
   msg: string;
 }
 
+export interface AdminTournamentStatsResponse {
+  code: number;
+  data: { live: number; upcoming: number; completed: number };
+  msg: string;
+}
+
 export type CreateRaceTournamentOption = { _id: string; tournamentName?: string } & Record<string, unknown>;
 export type CreateRaceEligibilityRuleOption = { _id: string; raceType?: string | null } & Record<string, unknown>;
 export type CreateRaceRefereeOption = { _id: string } & Record<string, unknown>;
@@ -701,12 +707,45 @@ export const adminService = {
     }
   },
 
-  getTournamentsWithDetails: async (page: number = 1, limit: number = 10): Promise<AdminTournamentsResponse> => {
+  // page/limit only apply when no date range is given — a date-range fetch
+  // (calendar view) always returns every matching tournament unpaginated.
+  getTournamentsWithDetails: async (
+    page?: number,
+    limit?: number,
+    startDate?: string,
+    endDate?: string,
+    search?: string
+  ): Promise<AdminTournamentsResponse> => {
     try {
-      const response = await api.get('/admin/tournaments', {
-        params: { page, limit }
-      });
+      const params: any = {};
+      if (page !== undefined) params.page = page;
+      if (limit !== undefined) params.limit = limit;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (search) params.search = search;
+      const response = await api.get('/admin/tournaments', { params });
       console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+
+  // True counts across every tournament, unaffected by pagination/search.
+  getTournamentStats: async (): Promise<AdminTournamentStatsResponse> => {
+    try {
+      const response = await api.get('/admin/tournaments/stats');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+
+  // Guarded status transition: blocks "completed" while rounds are unfinished,
+  // cascade-cancels rounds when the tournament is cancelled.
+  updateTournamentStatus: async (id: string, status: string): Promise<{ code: number; msg: string }> => {
+    try {
+      const response = await api.patch(`/admin/tournaments/${id}/status`, { status });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };

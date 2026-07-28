@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
 import { type AdminTab } from "./AdminComponents/NavBar";
 import type { Tournament } from "../../shared/types/TournamentTypes";
@@ -12,6 +12,8 @@ import { ErrorState } from "../../components/ErrorState";
 
 type AdminViewMode = "table" | "calendar";
 
+const TOURNAMENT_LIMIT_OPTIONS = [10, 25, 50, 100];
+
 interface Props {
     setActiveTab: (tab: AdminTab) => void;
 }
@@ -22,20 +24,30 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [allTournamentsForCalendar, setAllTournamentsForCalendar] = useState<Tournament[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const LIMIT = 10;
-    const totalPages = Math.ceil(totalItems / LIMIT) || 1;
+    const [limit, setLimit] = useState(10);
+    const totalPages = Math.ceil(totalItems / limit) || 1;
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    useEffect(() => { setPage(1); }, [searchQuery]);
+    // Debounce search input before it hits the server, mirroring the same
+    // pattern used in HorsesPage (src/pages/horseOwner/Management/Horses.tsx)
+    useEffect(() => {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+        return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
+    }, [searchQuery]);
+
+    useEffect(() => { setPage(1); }, [debouncedSearch, limit]);
 
     const fetchTournaments = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await adminService.getTournamentsWithDetails(page, LIMIT);
+            const res = await adminService.getTournamentsWithDetails(page, limit, undefined, undefined, debouncedSearch || undefined);
             if (res?.data?.items) {
                 const map = (item: any) => ({
                     id: item.tournament._id,
@@ -58,9 +70,21 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
         } finally {
             setLoading(false);
         }
-    }, [page]);
+    }, [page, limit, debouncedSearch]);
 
     useEffect(() => { fetchTournaments(); }, [fetchTournaments]);
+
+    // Quick Stats — true counts across every tournament, independent of the
+    // paginated/searched `tournaments` list above.
+    const [stats, setStats] = useState({ live: 0, upcoming: 0, completed: 0 });
+
+    const fetchStats = useCallback(() => {
+        adminService.getTournamentStats().then(res => {
+            if (res?.data) setStats(res.data);
+        }).catch(() => { });
+    }, []);
+
+    useEffect(() => { fetchStats(); }, [fetchStats]);
 
     // Real-time: auto-update status when the scheduler (or admin) changes it
     useEffect(() => {
@@ -72,14 +96,54 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                 prev.map(t => t.id === tournamentId ? { ...t, status: displayStatus } : t);
             setTournaments(updater);
             setAllTournamentsForCalendar(updater);
+            fetchStats();
         };
         socket.on('tournament:status_changed', onStatusChanged);
         return () => { socket.off('tournament:status_changed', onStatusChanged); };
-    }, [socket]);
+    }, [socket, fetchStats]);
 
-    // Load all tournaments once for the calendar view
-    useEffect(() => {
-        adminService.getTournamentsWithDetails(1, 100).then(res => {
+    const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
+
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingTournament, setDeletingTournament] = useState<Tournament | null>(null);
+
+    // Delete Handlers
+    const openDeleteModal = (tournament: Tournament) => {
+        setDeletingTournament(tournament);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleDeleteSuccess = (id: string) => {
+        setTournaments(tournaments.filter(t => t.id !== id));
+        fetchStats();
+    };
+
+    // Open Modal for Create or Edit
+    const openModal = (tournament?: Tournament) => {
+        setEditingTournament(tournament || null);
+        setIsModalOpen(true);
+    };
+
+    // Calendar State & Logic
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [calendarLoading, setCalendarLoading] = useState(false);
+
+    // Load tournaments overlapping the currently visible month for the calendar view
+    const fetchCalendarTournaments = useCallback(() => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const toISO = (d: Date) => d.toISOString().split("T")[0];
+        const monthStart = toISO(new Date(year, month, 1));
+        const monthEnd = toISO(new Date(year, month + 1, 0));
+
+        setCalendarLoading(true);
+        // No page/limit — a date-range fetch always returns every matching
+        // tournament unpaginated (see AdminService.getTournamentsWithDetails).
+        adminService.getTournamentsWithDetails(undefined, undefined, monthStart, monthEnd).then(res => {
             if (res?.data?.items) {
                 const mapped = res.data.items
                     .filter((item: any) => item.tournament.tournamentName !== "Non-tournament")
@@ -96,41 +160,10 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     } as Tournament));
                 setAllTournamentsForCalendar(mapped);
             }
-        }).catch(() => {});
-    }, []);
+        }).catch(() => { }).finally(() => setCalendarLoading(false));
+    }, [currentDate]);
 
-    const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
-
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
-
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [deletingTournament, setDeletingTournament] = useState<Tournament | null>(null);
-
-    // Filtered Data
-    const filteredTournaments = tournaments.filter(t =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    // Delete Handlers
-    const openDeleteModal = (tournament: Tournament) => {
-        setDeletingTournament(tournament);
-        setIsDeleteModalOpen(true);
-    };
-
-    const handleDeleteSuccess = (id: string) => {
-        setTournaments(tournaments.filter(t => t.id !== id));
-    };
-
-    // Open Modal for Create or Edit
-    const openModal = (tournament?: Tournament) => {
-        setEditingTournament(tournament || null);
-        setIsModalOpen(true);
-    };
-
-    // Calendar State & Logic
-    const [currentDate, setCurrentDate] = useState(new Date());
+    useEffect(() => { fetchCalendarTournaments(); }, [fetchCalendarTournaments]);
 
     const nextMonth = () => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -169,39 +202,41 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     </div>
 
                     <div className="p-5 flex flex-col gap-6 overflow-y-auto">
-                        <div>
-                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Search</label>
-                            <div className="relative w-full">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                                <input
-                                    type="text"
-                                    placeholder="Search name..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-[#111] border border-white/10 rounded-md py-2.5 pl-9 pr-3 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                                />
-                            </div>
-                        </div>
 
+                        {viewMode === "table" && (
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Search</label>
+                                <div className="relative w-full">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search name..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full bg-[#111] border border-white/10 rounded-md py-2.5 pl-9 pr-3 text-[13px] text-white focus:outline-none focus:border-red-500/50"
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <div>
                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Quick Stats</label>
                             <div className="flex flex-col gap-3">
                                 <div className="bg-[#1f1a1a] border border-white/5 p-3 rounded flex items-center justify-between">
                                     <span className="text-[13px] text-gray-400 font-medium">Total Live</span>
                                     <span className="text-[14px] font-bold text-emerald-400">
-                                        {tournaments.filter(t => t.status === "live").length}
+                                        {stats.live}
                                     </span>
                                 </div>
                                 <div className="bg-[#1f1a1a] border border-white/5 p-3 rounded flex items-center justify-between">
                                     <span className="text-[13px] text-gray-400 font-medium">Upcoming</span>
                                     <span className="text-[14px] font-bold text-amber-400">
-                                        {tournaments.filter(t => t.status === "upcoming").length}
+                                        {stats.upcoming}
                                     </span>
                                 </div>
                                 <div className="bg-[#1f1a1a] border border-white/5 p-3 rounded flex items-center justify-between">
                                     <span className="text-[13px] text-gray-400 font-medium">Completed</span>
                                     <span className="text-[14px] font-bold text-gray-300">
-                                        {tournaments.filter(t => t.status === "completed").length}
+                                        {stats.completed}
                                     </span>
                                 </div>
                             </div>
@@ -251,11 +286,34 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                     <CalendarIcon size={13} /> Calendar
                                 </button>
                             </div>
+
+                            {viewMode === "table" && (
+                                <select
+                                    value={limit}
+                                    onChange={(e) => setLimit(Number(e.target.value))}
+                                    className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                >
+                                    {TOURNAMENT_LIMIT_OPTIONS.map(n => (
+                                        <option key={n} value={n}>{n} rows</option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
                     </header>
 
                     {/* ── Main Content Area ── */}
-                    <div className="flex-1 overflow-auto bg-[#141414] mt-6 rounded-xl border border-white/5">
+                    <div className="flex-1 relative mt-6 rounded-xl border border-white/5 overflow-hidden min-h-0">
+                        {(viewMode === "table" ? loading : calendarLoading) && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#141414]/80 backdrop-blur-sm">
+                                <Loader2 className="animate-spin text-red-500" size={32} />
+                            </div>
+                        )}
+                        {viewMode === "table" && !loading && error ? (
+                            <div className="h-full w-full flex items-center justify-center bg-[#141414] p-6">
+                                <ErrorState message={error} onRetry={fetchTournaments} className="max-w-md" />
+                            </div>
+                        ) : (
+                        <div className="h-full w-full overflow-auto bg-[#141414] custom-scrollbar">
                         {viewMode === "table" ? (
                             <div className="bg-[#161616] border border-white/5 rounded-lg overflow-hidden">
                                 <table className="w-full text-left border-collapse">
@@ -269,14 +327,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {error && !loading && (
-                                            <tr>
-                                                <td colSpan={5} className="p-4">
-                                                    <ErrorState message={error} onRetry={fetchTournaments} />
-                                                </td>
-                                            </tr>
-                                        )}
-                                        {!error && filteredTournaments.map(t => (
+                                        {tournaments.map(t => (
                                             <tr
                                                 key={t.id}
                                                 className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${selectedTournamentId === t.id ? 'bg-[#f3b2a5]/5 border-l-2 border-[#f3b2a5]' : ''}`}
@@ -325,17 +376,10 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {filteredTournaments.length === 0 && !loading && !error && (
+                                        {tournaments.length === 0 && !loading && !error && (
                                             <tr>
                                                 <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500">
                                                     No tournaments found.
-                                                </td>
-                                            </tr>
-                                        )}
-                                        {loading && (
-                                            <tr>
-                                                <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500 animate-pulse">
-                                                    Loading tournaments...
                                                 </td>
                                             </tr>
                                         )}
@@ -345,7 +389,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                     page={page}
                                     totalPages={totalPages}
                                     totalItems={totalItems}
-                                    limit={LIMIT}
+                                    limit={limit}
                                     onPageChange={setPage}
                                 />
                             </div>
@@ -412,6 +456,8 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                 </div>
                             </div>
                         )}
+                        </div>
+                        )}
                     </div>
                 </main>
 
@@ -420,7 +466,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     <div className="flex-1 min-w-[360px] min-h-0">
                         <TournamentDetailPanel
                             selectedTournamentId={selectedTournamentId}
-                            onRefresh={fetchTournaments}
+                            onRefresh={() => { fetchTournaments(); fetchStats(); fetchCalendarTournaments(); }}
                             onClose={() => setSelectedTournamentId(null)}
                         />
                     </div>
@@ -449,6 +495,8 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                             setTournaments(mappedData);
                         }
                     });
+                    fetchCalendarTournaments();
+                    fetchStats();
                 }}
                 editingTournament={editingTournament}
             />

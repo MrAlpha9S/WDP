@@ -5,12 +5,15 @@ import {
 } from "lucide-react";
 import type { TournamentDetailData, TournamentRankEntry, RoundBreakdownEntry } from "../../../shared/types/TournamentTypes";
 import { adminService } from "../../../api/adminService";
+import { CancelTournamentModal } from "../modal/CancelTournamentModal";
 
 interface TournamentDetailPanelProps {
     selectedTournamentId: string;
     onRefresh?: () => void;
     onClose?: () => void;
 }
+
+const TOURNAMENT_STATUS_OPTIONS = ['draft', 'scheduled', 'ongoing', 'completed', 'cancelled'] as const;
 
 const TOURNAMENT_STATUS_COLORS: Record<string, string> = {
     draft:     'bg-amber-500/15 text-amber-400 border-amber-500/30',
@@ -78,7 +81,7 @@ function RoundResultCell({ rd }: { rd: RoundBreakdownEntry }) {
     return <span className="text-gray-600 text-[10px]">—</span>;
 }
 
-export default function TournamentDetailPanel({ selectedTournamentId, onClose }: TournamentDetailPanelProps) {
+export default function TournamentDetailPanel({ selectedTournamentId, onRefresh, onClose }: TournamentDetailPanelProps) {
     const [detail, setDetail] = useState<TournamentDetailData | null>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [detailError, setDetailError] = useState<string | null>(null);
@@ -87,6 +90,10 @@ export default function TournamentDetailPanel({ selectedTournamentId, onClose }:
     const [loadingRanking, setLoadingRanking] = useState(false);
     const [rankingError, setRankingError] = useState<string | null>(null);
     const [showRanking, setShowRanking] = useState(false);
+
+    const [statusUpdating, setStatusUpdating] = useState(false);
+    const [statusError, setStatusError] = useState<string | null>(null);
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
     const fetchDetail = useCallback(() => {
         if (!selectedTournamentId) return;
@@ -104,6 +111,8 @@ export default function TournamentDetailPanel({ selectedTournamentId, onClose }:
         setRanking([]);
         setRankingError(null);
         setShowRanking(false);
+        setStatusError(null);
+        setIsCancelModalOpen(false);
         fetchDetail();
     }, [selectedTournamentId]);
 
@@ -120,6 +129,26 @@ export default function TournamentDetailPanel({ selectedTournamentId, onClose }:
             setRankingError(err?.msg || 'Failed to load ranking');
         } finally {
             setLoadingRanking(false);
+        }
+    };
+
+    const handleStatusChange = async (newStatus: string) => {
+        if (!detail?.tournament || newStatus === detail.tournament.status) return;
+
+        if (newStatus === 'cancelled') {
+            setIsCancelModalOpen(true);
+            return;
+        }
+        setStatusUpdating(true);
+        setStatusError(null);
+        try {
+            await adminService.updateTournamentStatus(selectedTournamentId, newStatus);
+            fetchDetail();
+            onRefresh?.();
+        } catch (err: any) {
+            setStatusError(err?.msg || 'Failed to update status');
+        } finally {
+            setStatusUpdating(false);
         }
     };
 
@@ -153,9 +182,22 @@ export default function TournamentDetailPanel({ selectedTournamentId, onClose }:
                                     <h2 className="text-[20px] font-bold tracking-tight leading-tight text-white truncate">
                                         {t.tournamentName}
                                     </h2>
-                                    <span className={`self-start text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusColor}`}>
-                                        {t.status}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={t.status}
+                                            onChange={e => handleStatusChange(e.target.value)}
+                                            disabled={statusUpdating}
+                                            className={`self-start text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-transparent appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${statusColor}`}
+                                        >
+                                            {TOURNAMENT_STATUS_OPTIONS.map(s => (
+                                                <option key={s} value={s} className="bg-[#161616] text-white normal-case">{s}</option>
+                                            ))}
+                                        </select>
+                                        {statusUpdating && <Loader2 size={12} className="animate-spin text-gray-400" />}
+                                    </div>
+                                    {statusError && (
+                                        <span className="text-[11px] text-red-400">{statusError}</span>
+                                    )}
                                 </div>
                                 <button
                                     onClick={onClose}
@@ -400,6 +442,14 @@ export default function TournamentDetailPanel({ selectedTournamentId, onClose }:
                         </div>
                 </div>
             </div>
+
+            <CancelTournamentModal
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
+                onSuccess={() => { fetchDetail(); onRefresh?.(); }}
+                tournamentId={selectedTournamentId}
+                tournamentName={t?.tournamentName ?? ''}
+            />
         </aside>
     );
 }

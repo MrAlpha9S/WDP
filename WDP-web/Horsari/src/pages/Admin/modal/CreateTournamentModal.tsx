@@ -55,17 +55,6 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
         return sDate <= todayStr && todayStr <= eDate;
     };
 
-    const handleStatusChange = (newStatus: "draft" | "scheduled" | "ongoing" | "completed" | "cancelled") => {
-        if (newStatus === "ongoing") {
-            if (!validateOngoing(startDate, endDate)) {
-                setError("Cannot set status to ongoing: Today's date must fall between the start and end dates.");
-                return;
-            }
-        }
-        setError("");
-        setStatus(newStatus);
-    };
-
     const handleStartDateChange = (date: string) => {
         const today = new Date();
 
@@ -129,18 +118,11 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
 
         setLoading(true);
         try {
-            const data = {
-                tournamentName: name,
-                description,
-                startDate,
-                endDate,
-                status
-            };
-
             if (!editingTournament) {
-                await adminService.createTournament(data);
+                await adminService.createTournament({ tournamentName: name, description, startDate, endDate, status });
             } else {
-                await adminService.updateTournament(editingTournament.id, data);
+                // Status is edited from the tournament detail panel, not here.
+                await adminService.updateTournament(editingTournament.id, { tournamentName: name, description, startDate, endDate });
             }
 
             if (onSuccess) onSuccess();
@@ -196,18 +178,6 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                             <input value={endDate} onChange={e => handleEndDateChange(e.target.value)} type="date" className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
                         </div>
                     </div>
-                    {editingTournament && (
-                        <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Status</label>
-                            <select value={status} onChange={e => handleStatusChange(e.target.value as "draft" | "scheduled" | "ongoing" | "completed" | "cancelled")} className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none">
-                                <option value="draft">Draft</option>
-                                <option value="scheduled">Scheduled</option>
-                                <option value="ongoing">Ongoing</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
-                        </div>
-                    )}
                 </div>
 
                 <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">

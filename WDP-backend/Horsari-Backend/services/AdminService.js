@@ -4,6 +4,7 @@ const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const JockeyRepository = require('../repositories/JockeyRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
+const RaceRoundRepository = require('../repositories/RaceRoundRepository');
 const RegistrationRepository = require('../repositories/RegistrationRepository');
 const Invitation = require('../entities/Invitation');
 const Horse = require('../entities/Horse');
@@ -155,9 +156,9 @@ class AdminService {
                     const regIds = ownerInvitations.map(i => i.registrationId).filter(Boolean);
                     const ownerViolations = regIds.length
                         ? await Violation.find({ registrationId: { $in: regIds } })
-                              .populate('violationTypeId')
-                              .populate('raceRoundId', 'roundName raceDate')
-                              .lean()
+                            .populate('violationTypeId')
+                            .populate('raceRoundId', 'roundName raceDate')
+                            .lean()
                         : [];
 
                     // group violations by the horse that owns the registration
@@ -217,8 +218,8 @@ class AdminService {
 
                     const jockeyViolations = jockeyRegIds.length
                         ? await Violation.find({ registrationId: { $in: jockeyRegIds } })
-                              .populate('violationTypeId')
-                              .lean()
+                            .populate('violationTypeId')
+                            .lean()
                         : [];
 
                     const violationsByReg = {};
@@ -249,14 +250,14 @@ class AdminService {
                             roundName: raceRound.roundName,
                             raceDate: raceRound.raceDate,
                             finishPosition: raceResult?.finishPosition ?? null,
-                            finishTime:     raceResult?.finishTime     ?? null,
-                            prizeMoney:     raceResult?.prizeMoney     ?? null,
-                            resultStatus:   raceResult?.resultStatus   ?? null,
-                            distance:       raceResult?.distance       ?? null,
-                            horseId:   inv.horseId?._id   ?? null,
+                            finishTime: raceResult?.finishTime ?? null,
+                            prizeMoney: raceResult?.prizeMoney ?? null,
+                            resultStatus: raceResult?.resultStatus ?? null,
+                            distance: raceResult?.distance ?? null,
+                            horseId: inv.horseId?._id ?? null,
                             horseName: inv.horseId?.horseName ?? null,
                             horseBreed: inv.horseId?.breed ?? null,
-                            horseImg:  inv.horseId?.img   ?? null,
+                            horseImg: inv.horseId?.img ?? null,
                             attendance: inv.invitationStatus === 'didNotAttend' ? 'no_show' : inv.isBackup ? 'backup' : 'main',
                             bookingFees: inv.bookingFees ?? 0,
                             violations: violationsByReg[reg._id.toString()] ?? [],
@@ -351,39 +352,39 @@ class AdminService {
                     roleProfile = {
                         wallet: spectator?.wallet ?? 0,
                         predictions: predictions.map(p => ({
-                            predictionId:     p._id,
-                            methodName:       p.predictionMethodId?.methodName  ?? null,
-                            methodType:       p.predictionMethodId?.methodType  ?? null,
+                            predictionId: p._id,
+                            methodName: p.predictionMethodId?.methodName ?? null,
+                            methodType: p.predictionMethodId?.methodType ?? null,
                             predictionStatus: p.predictionStatus,
-                            rewardPoints:     p.rewardPoints,
-                            predictedRank:    p.predictedRank ?? null,
-                            predictedHorse:   p.predictedHorseId?.horseName    ?? null,
+                            rewardPoints: p.rewardPoints,
+                            predictedRank: p.predictedRank ?? null,
+                            predictedHorse: p.predictedHorseId?.horseName ?? null,
                             raceRound: p.registrationId?.raceRoundId
                                 ? {
                                     raceRoundId: p.registrationId.raceRoundId._id,
-                                    roundName:   p.registrationId.raceRoundId.roundName,
-                                    raceDate:    p.registrationId.raceRoundId.raceDate,
-                                    status:      p.registrationId.raceRoundId.status,
+                                    roundName: p.registrationId.raceRoundId.roundName,
+                                    raceDate: p.registrationId.raceRoundId.raceDate,
+                                    status: p.registrationId.raceRoundId.status,
                                 }
                                 : null,
                             tournament: p.tournamentId
                                 ? {
-                                    tournamentId:   p.tournamentId._id,
+                                    tournamentId: p.tournamentId._id,
                                     tournamentName: p.tournamentId.tournamentName,
-                                    status:         p.tournamentId.status,
+                                    status: p.tournamentId.status,
                                 }
                                 : null,
                             createdAt: p.created_at,
                         })),
                         transactions: transactions.map(t => ({
-                            transactionId:   t._id,
+                            transactionId: t._id,
                             transactionType: t.transactionType,
-                            amount:          t.amount,
-                            status:          t.status,
-                            description:     t.description ?? null,
-                            referenceId:     t.referenceId ?? null,
-                            referenceType:   t.referenceType ?? null,
-                            date:            t.date,
+                            amount: t.amount,
+                            status: t.status,
+                            description: t.description ?? null,
+                            referenceId: t.referenceId ?? null,
+                            referenceType: t.referenceType ?? null,
+                            date: t.date,
                         })),
                     };
                     break;
@@ -775,23 +776,44 @@ class AdminService {
     }
 
     // Get tournaments enriched with race rounds and total prediction reward pool
-    async getTournamentsWithDetails(page = 1, limit = 5) {
+    async getTournamentsWithDetails(page = 1, limit = 5, startDate, endDate, search) {
         try {
-            const skip = (page - 1) * limit;
-
             const Tournament = require('../entities/Tournament');
             const RaceRound = require('../entities/RaceRound');
             const Registration = require('../entities/Registration');
             const Prediction = require('../entities/Prediction');
 
-            const tournaments = await Tournament.find()
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(limit)
-                .lean();
+            // Two mutually exclusive fetch modes: a plain page/limit fetch
+            // (table view), or a date-range fetch (calendar view) that
+            // returns every matching tournament unpaginated — a month can't
+            // be split across pages without breaking the calendar grid.
+            // Date filtering only ever engages when BOTH bounds are given —
+            // a lone startDate/endDate is ignored rather than partially
+            // filtering (the controller already rejects that combo as a 400).
+            const isDateRangeQuery = Boolean(startDate && endDate);
 
-            const totalItems = await Tournament.countDocuments();
-            const totalPages = Math.ceil(totalItems / limit);
+            // Overlap filter: include tournaments whose date span overlaps the
+            // requested range, so a tournament spanning across a month
+            // boundary still shows up on that month's calendar.
+            const filter = { tournamentName: { $ne: 'Non-tournament' } };
+            if (isDateRangeQuery) {
+                filter.endDate = { $gte: new Date(startDate) };
+                filter.startDate = { $lte: new Date(endDate) };
+            }
+            if (search) filter.tournamentName = { $regex: search, $options: 'i' };
+
+            let tournamentQuery = Tournament.find(filter).sort({ createdAt: -1 });
+            if (!isDateRangeQuery) {
+                const skip = (page - 1) * limit;
+                tournamentQuery = tournamentQuery.skip(skip).limit(limit);
+            }
+
+            const tournaments = await tournamentQuery.lean();
+
+            const totalItems = await Tournament.countDocuments(filter);
+            const totalPages = isDateRangeQuery ? 1 : Math.ceil(totalItems / limit);
+            const currentPage = isDateRangeQuery ? 1 : page;
+            const responseLimit = isDateRangeQuery ? totalItems : limit;
 
             const items = await Promise.all(
                 tournaments.map(async (tournament) => {
@@ -824,12 +846,95 @@ class AdminService {
                     pagination: {
                         totalItems,
                         totalPages,
-                        currentPage: page,
-                        limit,
+                        currentPage,
+                        limit: responseLimit,
                     },
                 },
                 msg: 'Tournaments retrieved successfully',
             };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Get tournament counts by status (live/upcoming/completed) — true totals
+    // across every tournament, unaffected by the pagination/search above.
+    async getTournamentStats() {
+        try {
+            const Tournament = require('../entities/Tournament');
+            const baseFilter = { tournamentName: { $ne: 'Non-tournament' } };
+
+            const [live, upcoming, completed] = await Promise.all([
+                Tournament.countDocuments({ ...baseFilter, status: 'ongoing' }),
+                Tournament.countDocuments({ ...baseFilter, status: 'scheduled' }),
+                Tournament.countDocuments({ ...baseFilter, status: 'completed' }),
+            ]);
+
+            return {
+                code: 200,
+                data: { live, upcoming, completed },
+                msg: 'Tournament stats retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    async updateTournamentStats(tournament_id, status, io) {
+        try {
+            const tournament = await TournamentRepository.getTournamentById(tournament_id);
+            if (!tournament) return { code: 404, msg: 'Tournament not found' };
+            const raceRounds = await RaceRoundRepository.findByTournamentId(tournament_id);
+
+            switch (status) {
+                case 'completed': {
+                    // A cancelled round is closed out, not "still ongoing" — only
+                    // block completion on rounds that are neither completed nor cancelled.
+                    const stillActive = raceRounds.some(rr => rr.status !== 'completed' && rr.status !== 'cancelled');
+                    if (stillActive) {
+                        return { code: 400, msg: 'All race rounds must be completed or cancelled before the tournament can be marked completed.' };
+                    }
+                    tournament.status = 'completed';
+                    await tournament.save();
+                    break;
+                }
+                case 'cancelled': {
+                    // Cascade-cancel every round that isn't already finished, reusing
+                    // the single-round cancel flow (referees/registrations/invitations
+                    // cancelled, pending predictions refunded, notifications sent).
+                    // Rounds that are 'running' or 'awaitingConfirmation' are left as-is —
+                    // cancelRaceRound refuses those by design, and that's intentional here too.
+                    const RaceRoundService = require('./RaceRoundService');
+                    for (const rr of raceRounds) {
+                        if (rr.status === 'completed' || rr.status === 'cancelled') continue;
+                        const result = await RaceRoundService.cancelRaceRound(rr._id, io);
+                        if (result.code !== 200) {
+                            console.error(`[updateTournamentStats] could not cancel race round ${rr._id} (${rr.status}): ${result.message}`);
+                        }
+                    }
+                    tournament.status = 'cancelled';
+                    await tournament.save();
+                    break;
+                }
+                case 'ongoing':
+                    tournament.status = 'ongoing';
+                    await tournament.save();
+                    break;
+                case 'scheduled':
+                    if (tournament.status !== 'draft') {
+                        return { code: 400, msg: `Tournament has already been ${tournament.status}` };
+                    }
+                    tournament.status = 'scheduled';
+                    await tournament.save();
+                    break;
+                default:
+                    return { code: 400, msg: 'Invalid status' };
+            }
+
+            if (io) {
+                io.emit('tournament:status_changed', { tournamentId: String(tournament_id), status: tournament.status });
+            }
+            return { code: 200, msg: `Tournament ${status} successfully` };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -985,12 +1090,12 @@ class AdminService {
 
             const [winMethod, rankMethod] = await Promise.all([
                 PredictionMethod.findOne({ methodType: 'race_winner', isActive: true }).select('_id').lean(),
-                PredictionMethod.findOne({ methodType: 'race_rank',   isActive: true }).select('_id').lean(),
+                PredictionMethod.findOne({ methodType: 'race_rank', isActive: true }).select('_id').lean(),
             ]);
 
             const methodIdToType = {};
             const poolMethodIds = [];
-            if (winMethod)  { poolMethodIds.push(winMethod._id);  methodIdToType[winMethod._id.toString()]  = 'race_winner'; }
+            if (winMethod) { poolMethodIds.push(winMethod._id); methodIdToType[winMethod._id.toString()] = 'race_winner'; }
             if (rankMethod) { poolMethodIds.push(rankMethod._id); methodIdToType[rankMethod._id.toString()] = 'race_rank'; }
 
             // registrationId → horseName, built from the Registration array already assembled
@@ -1001,7 +1106,7 @@ class AdminService {
 
             const allPreds = poolMethodIds.length
                 ? await Prediction.find({
-                    registrationId:     { $in: registrations.map(r => r._id) },
+                    registrationId: { $in: registrations.map(r => r._id) },
                     predictionMethodId: { $in: poolMethodIds },
                 }).lean()
                 : [];
@@ -1027,10 +1132,10 @@ class AdminService {
                     continue;
                 }
 
-                const pending   = preds.filter(p => p.predictionStatus === 'pending');
-                const correct   = preds.filter(p => p.predictionStatus === 'correct');
+                const pending = preds.filter(p => p.predictionStatus === 'pending');
+                const correct = preds.filter(p => p.predictionStatus === 'correct');
                 const incorrect = preds.filter(p => p.predictionStatus === 'incorrect');
-                const refunded  = preds.filter(p => p.predictionStatus === 'refunded');
+                const refunded = preds.filter(p => p.predictionStatus === 'refunded');
 
                 if (pending.length > 0) {
                     // ── Live pool: bets still open ──────────────────────────────────
@@ -1060,8 +1165,8 @@ class AdminService {
                                 registrationId: rid,
                                 horseName: regHorseMap[rid] || null,
                                 totalStake: Bi,
-                                poolShare:     P > 0 ? parseFloat((Bi / P * 100).toFixed(2)) : 0,
-                                odds:          parseFloat(PayoutService.oddsForHorse(N, Bi).toFixed(4)),
+                                poolShare: P > 0 ? parseFloat((Bi / P * 100).toFixed(2)) : 0,
+                                odds: parseFloat(PayoutService.oddsForHorse(N, Bi).toFixed(4)),
                                 displayPayout: parseFloat(PayoutService.totalCollect(1000, N, Bi).toFixed(2)),
                             }))
                             .sort((a, b) => b.totalStake - a.totalStake),
@@ -1085,14 +1190,14 @@ class AdminService {
                         methodType,
                         poolStatus: allRefunded ? 'refunded' : 'settled',
                         takeoutRate: T,
-                        grossPool:     P_est,
-                        netPool:       N_est,
-                        houseEarning:  houseEarning != null ? houseEarning : null,
+                        grossPool: P_est,
+                        netPool: N_est,
+                        houseEarning: houseEarning != null ? houseEarning : null,
                         totalPaidOut,
-                        totalWinners:  correct.length,
-                        totalLosers:   incorrect.length,
+                        totalWinners: correct.length,
+                        totalLosers: incorrect.length,
                         totalRefunded: refunded.length,
-                        totalBettors:  preds.length,
+                        totalBettors: preds.length,
                     });
                 }
             }
@@ -1866,8 +1971,8 @@ AdminService.prototype.createStreamForRace = async function (raceRoundId) {
         return {
             code: 201,
             data: {
-                rtmpUrl:    'rtmps://global-live.mux.com:443/app',
-                streamKey:  info.streamKey,
+                rtmpUrl: 'rtmps://global-live.mux.com:443/app',
+                streamKey: info.streamKey,
                 playbackId: info.livePlaybackId,
             },
             msg: 'Live stream created successfully.',
@@ -1970,7 +2075,7 @@ AdminService.prototype.getAllHorses = async function (page = 1, limit = 10, sear
         const query = {};
         if (search) query.$or = [
             { horseName: { $regex: search, $options: 'i' } },
-            { breed:     { $regex: search, $options: 'i' } },
+            { breed: { $regex: search, $options: 'i' } },
         ];
         if (status) query.status = status;
 
@@ -1990,18 +2095,18 @@ AdminService.prototype.getAllHorses = async function (page = 1, limit = 10, sear
         const ownerMap = Object.fromEntries(owners.map(u => [u._id.toString(), u.fullName]));
 
         const items = horses.map(h => ({
-            horseId:          h._id,
-            horseName:        h.horseName,
-            breed:            h.breed            ?? null,
-            gender:           h.gender           ?? null,
-            healthStatus:     h.healthStatus,
-            status:           h.status,
+            horseId: h._id,
+            horseName: h.horseName,
+            breed: h.breed ?? null,
+            gender: h.gender ?? null,
+            healthStatus: h.healthStatus,
+            status: h.status,
             registrationDate: h.registrationDate ?? null,
-            dateOfBirth:      h.dateOfBirth      ?? null,
-            img:              h.img              ?? null,
-            ownerId:          h.ownerId,
-            ownerName:        ownerMap[h.ownerId.toString()] ?? null,
-            createdAt:        h.createdAt,
+            dateOfBirth: h.dateOfBirth ?? null,
+            img: h.img ?? null,
+            ownerId: h.ownerId,
+            ownerName: ownerMap[h.ownerId.toString()] ?? null,
+            createdAt: h.createdAt,
         }));
 
         return {
@@ -2009,8 +2114,8 @@ AdminService.prototype.getAllHorses = async function (page = 1, limit = 10, sear
             data: {
                 items,
                 pagination: {
-                    totalItems:  total,
-                    totalPages:  Math.ceil(total / limit),
+                    totalItems: total,
+                    totalPages: Math.ceil(total / limit),
                     currentPage: page,
                     limit,
                 },
@@ -2035,14 +2140,14 @@ AdminService.prototype.getHorseDetail = async function (horseId) {
         const [registrations, results, violations] = await Promise.all([
             regIds.length
                 ? Registration.find({ _id: { $in: regIds } })
-                      .populate('raceRoundId', 'roundName raceDate location status')
-                      .lean()
+                    .populate('raceRoundId', 'roundName raceDate location status')
+                    .lean()
                 : [],
             regIds.length ? RaceResult.find({ registrationId: { $in: regIds } }).lean() : [],
             regIds.length
                 ? Violation.find({ registrationId: { $in: regIds } })
-                      .populate('violationTypeId', 'violationName category severity')
-                      .lean()
+                    .populate('violationTypeId', 'violationName category severity')
+                    .lean()
                 : [],
         ]);
 
@@ -2056,23 +2161,23 @@ AdminService.prototype.getHorseDetail = async function (horseId) {
         const raceHistory = registrations.map(reg => {
             const rid = reg._id.toString();
             return {
-                registrationId:     reg._id,
+                registrationId: reg._id,
                 registrationStatus: reg.registrationStatus,
-                roundName:          reg.raceRoundId?.roundName ?? null,
-                raceDate:           reg.raceRoundId?.raceDate  ?? null,
-                location:           reg.raceRoundId?.location  ?? null,
-                raceStatus:         reg.raceRoundId?.status    ?? null,
-                finishPosition:     resultMap[rid]?.finishPosition ?? null,
-                finishTime:         resultMap[rid]?.finishTime     ?? null,
-                prizeMoney:         resultMap[rid]?.prizeMoney     ?? 0,
-                resultStatus:       resultMap[rid]?.resultStatus   ?? null,
-                distance:           resultMap[rid]?.distance       ?? null,
+                roundName: reg.raceRoundId?.roundName ?? null,
+                raceDate: reg.raceRoundId?.raceDate ?? null,
+                location: reg.raceRoundId?.location ?? null,
+                raceStatus: reg.raceRoundId?.status ?? null,
+                finishPosition: resultMap[rid]?.finishPosition ?? null,
+                finishTime: resultMap[rid]?.finishTime ?? null,
+                prizeMoney: resultMap[rid]?.prizeMoney ?? 0,
+                resultStatus: resultMap[rid]?.resultStatus ?? null,
+                distance: resultMap[rid]?.distance ?? null,
                 violations: (violationMap[rid] ?? []).map(v => ({
-                    violationId:     v._id,
-                    typeName:        v.violationTypeId?.violationName ?? null,
-                    category:        v.violationTypeId?.category      ?? null,
-                    severity:        v.severity ?? v.violationTypeId?.severity ?? null,
-                    stewardAction:   v.stewardAction    ?? null,
+                    violationId: v._id,
+                    typeName: v.violationTypeId?.violationName ?? null,
+                    category: v.violationTypeId?.category ?? null,
+                    severity: v.severity ?? v.violationTypeId?.severity ?? null,
+                    stewardAction: v.stewardAction ?? null,
                     violationStatus: v.violationStatus,
                 })),
             };
@@ -2081,9 +2186,9 @@ AdminService.prototype.getHorseDetail = async function (horseId) {
         return {
             code: 200,
             data: {
-                horse:          { ...horse, horseId: horse._id },
-                owner:          { ownerId: owner?._id ?? null, fullName: owner?.fullName ?? null, email: owner?.email ?? null },
-                totalRaces:     raceHistory.length,
+                horse: { ...horse, horseId: horse._id },
+                owner: { ownerId: owner?._id ?? null, fullName: owner?.fullName ?? null, email: owner?.email ?? null },
+                totalRaces: raceHistory.length,
                 totalViolations: violations.length,
                 raceHistory,
             },
@@ -2119,10 +2224,10 @@ AdminService.prototype._settlePredictionsForRace = async function (raceRoundId) 
 // Settle tournament_champion predictions after admin sets the champion horse.
 AdminService.prototype.settleTournamentPredictions = async function (tournamentId, championHorseId) {
     try {
-        const Tournament     = require('../entities/Tournament');
-        const Prediction     = require('../entities/Prediction');
-        const Spectator      = require('../entities/Spectator');
-        const Horse          = require('../entities/Horse');
+        const Tournament = require('../entities/Tournament');
+        const Prediction = require('../entities/Prediction');
+        const Spectator = require('../entities/Spectator');
+        const Horse = require('../entities/Horse');
 
         const tournament = await Tournament.findById(tournamentId).lean();
         if (!tournament) return { code: 404, msg: 'Tournament not found' };
@@ -2147,10 +2252,10 @@ AdminService.prototype.settleTournamentPredictions = async function (tournamentI
 // Get single tournament with its race rounds and auto-complete if end date passed.
 AdminService.prototype.getTournamentDetail = async function (tournamentId) {
     try {
-        const Tournament   = require('../entities/Tournament');
-        const RaceRound    = require('../entities/RaceRound');
+        const Tournament = require('../entities/Tournament');
+        const RaceRound = require('../entities/RaceRound');
         const Registration = require('../entities/Registration');
-        const Horse        = require('../entities/Horse');
+        const Horse = require('../entities/Horse');
 
         let tournament = await Tournament.findById(tournamentId).lean();
         if (!tournament) return { code: 404, msg: 'Tournament not found' };
@@ -2202,11 +2307,11 @@ AdminService.prototype.getTournamentDetail = async function (tournamentId) {
 // roundBreakdown covers every tournament round — type:'result'|'no_result'|'not_registered'.
 AdminService.prototype.getTournamentRanking = async function (tournamentId) {
     try {
-        const RaceRound    = require('../entities/RaceRound');
+        const RaceRound = require('../entities/RaceRound');
         const Registration = require('../entities/Registration');
-        const RaceResult   = require('../entities/RaceResult');
-        const Horse        = require('../entities/Horse');
-        const User         = require('../entities/User');
+        const RaceResult = require('../entities/RaceResult');
+        const Horse = require('../entities/Horse');
+        const User = require('../entities/User');
 
         const SCORE_MAP = { 1: 60, 2: 40, 3: 30, 4: 20 };
         const calcScore = (pos) => SCORE_MAP[pos] ?? 10;
@@ -2220,7 +2325,7 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
         // All registrations across all rounds
         const registrations = await Registration.find({ raceRoundId: { $in: roundIds } }).lean();
         const regById = Object.fromEntries(registrations.map(r => [r._id.toString(), r]));
-        const regIds  = registrations.map(r => r._id);
+        const regIds = registrations.map(r => r._id);
 
         // horseRoundReg[horseId][roundId] = registration
         const horseRoundReg = {};
@@ -2253,10 +2358,10 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
             }
             const s = horseStats[key];
             const pos = result.finishPosition;
-            s.score         += calcScore(pos);
-            s.totalRaces    += 1;
-            if (pos === 1) s.wins    += 1;
-            if (pos <= 3)  s.podiums += 1;
+            s.score += calcScore(pos);
+            s.totalRaces += 1;
+            if (pos === 1) s.wins += 1;
+            if (pos <= 3) s.podiums += 1;
             s.totalPrizeMoney += result.prizeMoney || 0;
         }
 
@@ -2288,7 +2393,7 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
         // Sort: score desc, wins desc, totalPrizeMoney desc
         entries.sort((a, b) =>
             b.score - a.score ||
-            b.wins  - a.wins  ||
+            b.wins - a.wins ||
             b.totalPrizeMoney - a.totalPrizeMoney
         );
 
@@ -2315,15 +2420,15 @@ AdminService.prototype.getTournamentRanking = async function (tournamentId) {
 
             return {
                 rank,
-                horseId:         e.horseId,
-                horseName:       h.horseName ?? 'Unknown',
-                horseImg:        h.img ?? null,
-                ownerId:         e.ownerId,
-                ownerName:       ownerNameMap[e.ownerId?.toString()] ?? 'Unknown',
-                score:           e.score,
-                totalRaces:      e.totalRaces,
-                wins:            e.wins,
-                podiums:         e.podiums,
+                horseId: e.horseId,
+                horseName: h.horseName ?? 'Unknown',
+                horseImg: h.img ?? null,
+                ownerId: e.ownerId,
+                ownerName: ownerNameMap[e.ownerId?.toString()] ?? 'Unknown',
+                score: e.score,
+                totalRaces: e.totalRaces,
+                wins: e.wins,
+                podiums: e.podiums,
                 totalPrizeMoney: e.totalPrizeMoney,
                 roundBreakdown,
             };
@@ -2340,8 +2445,8 @@ AdminService.prototype.getAllViolations = async function (page, limit, { status,
     try {
         const Violation = require('../entities/Violation');
         const filter = {};
-        if (status)      filter.violationStatus = status;
-        if (severity)    filter.severity = Number(severity);
+        if (status) filter.violationStatus = status;
+        if (severity) filter.severity = Number(severity);
         if (raceRoundId) filter.raceRoundId = raceRoundId;
 
         // Violation's timestamps option remaps createdAt -> created_at (see entities/Violation.js)
@@ -2381,8 +2486,8 @@ AdminService.prototype.getAllViolationTypes = async function (page, limit, { sea
     try {
         const ViolationType = require('../entities/ViolationType');
         const filter = {};
-        if (search)   filter.violationName = { $regex: search, $options: 'i' };
-        if (type)     filter.type = type;
+        if (search) filter.violationName = { $regex: search, $options: 'i' };
+        if (type) filter.type = type;
         if (category) filter.category = category;
 
         const allowedSortFields = ['violationName', 'severity', 'type', 'category', 'createdAt', 'updatedAt'];
