@@ -23,6 +23,9 @@ function pickIntensity() {
 // (real-world analog: Skiba's critical-power/W'-balance fatigue model).
 const CS_FRACTION = 0.70;
 const RECOVERY_MAX_FACTOR = 0.5; // recovery ceiling relative to baseDrain
+const BASELINE_DRAIN_FACTOR = 0.15; // per-tick "cost of moving at all" charged even below critical
+                                     // speed — recovery now only partially offsets it, so a horse
+                                     // can no longer sit at 100% pool for free.
 
 // ── Horse-to-horse interaction (blocking/drafting) ──────────────────────────────
 // No lane/lateral dimension exists, so "traffic" is abstracted via distance bands
@@ -195,11 +198,17 @@ function simulateTick(horse, trackLength, fieldSnapshot = []) {
         const drain = baseDrain * drainRate * draftMultiplier * Math.pow(speedFraction, 1.8);
         horse.staminaPool = Math.max(0, horse.staminaPool - drain);
     } else {
-        // Deeper below critical speed → faster recovery (linear stand-in for
-        // the real exponential W'-balance recovery curve).
+        // Deeper below critical speed → faster recovery (linear stand-in for the real
+        // exponential W'-balance recovery curve) — but recovery is no longer free: a
+        // small baseline cost is paid every tick regardless of how far below critical
+        // speed the horse is, and the recovery gain only partially offsets it. Net can
+        // still be positive (real recovery) when deficitFraction is large enough, but a
+        // horse can no longer sit indefinitely pinned at 100% pool.
         const deficitFraction = (criticalSpeed - target) / criticalSpeed;
         const recoveryMax = baseDrain * RECOVERY_MAX_FACTOR * (0.7 + (horse.stamina / 100) * 0.3);
-        horse.staminaPool = Math.min(horse.initialStaminaPool, horse.staminaPool + recoveryMax * deficitFraction);
+        const baselineDrain = baseDrain * BASELINE_DRAIN_FACTOR;
+        const netStaminaChange = recoveryMax * deficitFraction - baselineDrain;
+        horse.staminaPool = Math.max(0, Math.min(horse.initialStaminaPool, horse.staminaPool + netStaminaChange));
         recovering = true;
     }
 
