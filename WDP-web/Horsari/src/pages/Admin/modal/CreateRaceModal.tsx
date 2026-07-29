@@ -361,17 +361,9 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                                 setMaxParticipants={setMaxParticipants}
                                 housingFeePercentage={housingFeePercentage}
                                 setHousingFeePercentage={setHousingFeePercentage}
+                                overrideScheduleConflict={overrideScheduleConflict}
+                                setOverrideScheduleConflict={setOverrideScheduleConflict}
                             />
-
-                            <label className="flex items-center gap-2 text-[11.5px] text-gray-500 cursor-pointer -mt-1">
-                                <input
-                                    type="checkbox"
-                                    checked={overrideScheduleConflict}
-                                    onChange={(e) => setOverrideScheduleConflict(e.target.checked)}
-                                    className="accent-amber-500"
-                                />
-                                <span>Override scheduling restrictions (same-day, &lt;2-week lead time, 90-min location conflicts)</span>
-                            </label>
 
                             <CreateRacePrizes
                                 currencyType={currencyType}

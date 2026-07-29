@@ -27,6 +27,8 @@ interface BasicInfoProps {
     setMaxParticipants: (v: number) => void;
     housingFeePercentage: number | "";
     setHousingFeePercentage: (v: number | "") => void;
+    overrideScheduleConflict: boolean;
+    setOverrideScheduleConflict: (v: boolean) => void;
 }
 
 export default function CreateRaceBasicInfo(props: BasicInfoProps) {
@@ -137,6 +139,15 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                             className="w-full bg-[#111] border border-white/10 rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
                         />
                     </div>
+                    <label className="flex items-center gap-2 mt-2 text-[11.5px] text-gray-500 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={props.overrideScheduleConflict}
+                            onChange={(e) => props.setOverrideScheduleConflict(e.target.checked)}
+                            className="accent-amber-500"
+                        />
+                        <span>Override scheduling restrictions (same-day, &lt;2-week lead time, 90-min location conflicts)</span>
+                    </label>
                 </div>
                 <div>
                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Time</label>
