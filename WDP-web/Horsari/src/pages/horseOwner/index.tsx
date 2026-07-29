@@ -18,19 +18,17 @@ function ActiveView({
   tab,
   onNavigate,
   onPendingChange,
-  onNavigateToInvitations,
 }: {
   tab: OwnerNavKey;
   onNavigate: (mgmtTab: ManagementTab) => void;
   onPendingChange: (count: number) => void;
-  onNavigateToInvitations: () => void;
 }) {
   switch (tab) {
     case "Dashboard":    return <HomePage onNavigate={onNavigate} />;
     case "Horses":       return <HorsesPage />;
     case "Jockeys":      return <JockeysPage />;
     case "Financials":   return <FinancialsPage />;
-    case "Races":        return <RacesPage onNavigateToInvitations={onNavigateToInvitations} />;
+    case "Races":        return <RacesPage />;
     case "Invitations":  return <InvitationsPage onPendingChange={onPendingChange} />;
     case "Profile":      return <OwnerProfilePage />;
     default:             return <HomePage onNavigate={onNavigate} />;
@@ -94,7 +92,6 @@ export default function DashboardPage() {
             tab={activeTab}
             onNavigate={setActiveTab}
             onPendingChange={setPendingInvitations}
-            onNavigateToInvitations={() => setActiveTab("Invitations")}
           />
         </div>
       </div>

@@ -4,6 +4,7 @@ import { horseOwnerService, type Horse } from "../../../api/horseOwnerService";
 import HorseProfile from "./HorseProfile";
 import { RefetchButton } from "../../../components/RefetchButton";
 import { ErrorState } from "../../../components/ErrorState";
+import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type HorseStatus = "Racing" | "Training" | "Resting" | "Injured";
@@ -112,7 +113,7 @@ function HorseCardItem({
 
   return (
     <div className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col group hover:border-white/15 transition-colors duration-200">
-      <div className="relative h-40 overflow-hidden bg-bg flex items-center justify-center">
+      <div className="relative h-28 overflow-hidden bg-bg flex items-center justify-center">
         <img
           src={horse.image}
           alt={horse.name}
@@ -122,7 +123,7 @@ function HorseCardItem({
           }}
           className={
             isPlaceholder
-              ? "h-20 w-20 object-contain opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+              ? "h-16 w-16 object-contain opacity-20 group-hover:opacity-30 transition-opacity duration-500"
               : "absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-65 transition-opacity duration-500"
           }
         />
@@ -135,10 +136,10 @@ function HorseCardItem({
         </div>
       </div>
 
-      <div className="px-5 pt-4 pb-5 flex flex-col gap-4 flex-1">
+      <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
         <div>
           <h3
-            className="text-[18px] font-bold text-white leading-tight font-serif"
+            className="text-[16px] font-bold text-white leading-tight font-serif"
           >
             {horse.name}
           </h3>
@@ -170,6 +171,60 @@ function HorseCardItem({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Horse Table ───────────────────────────────────────────────────────────────
+function HorseTable({ horses, onViewProfile, onOpenUpdate }: {
+  horses: HorseCard[];
+  onViewProfile: (id: string) => void;
+  onOpenUpdate: (id: string) => void;
+}) {
+  return (
+    <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-surface border-b border-border/60">
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Name</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Age / Breed / Sex</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Grade</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/5">
+          {horses.map((horse) => (
+            <tr key={horse.id} className="hover:bg-white/[0.02] transition-colors">
+              <td className="p-4 text-[13px] font-semibold text-white">{horse.name}</td>
+              <td className="p-4 text-[12.5px] text-gray-400">{horse.age}YO {horse.color} {horse.sex}</td>
+              <td className="p-4 text-[12.5px] text-gray-400">{horse.grade}</td>
+              <td className="p-4">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-black/40 text-[10.5px] font-semibold tracking-wide">
+                  <span className={`w-1.5 h-1.5 rounded-full ${statusDot(horse.status)}`} />
+                  <span className={statusLabel(horse.status)}>{horse.status.toUpperCase()}</span>
+                </span>
+              </td>
+              <td className="p-4 text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => onViewProfile(horse.id)}
+                    className="px-3.5 py-1.5 rounded-lg border border-red-700/60 text-red-400 text-[11px] font-semibold hover:bg-red-700/10 hover:border-red-600 transition-all duration-150"
+                  >
+                    View Profile
+                  </button>
+                  <button
+                    onClick={() => onOpenUpdate(horse.id)}
+                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150"
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -666,6 +721,7 @@ export default function HorsesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All Statuses" | HorseStatus>("All Statuses");
   const [classFilter, setClassFilter] = useState("All Classes");
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [userHorse, setUserHorse] = useState<Horse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -755,6 +811,7 @@ export default function HorsesPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <ViewToggle value={viewMode} onChange={setViewMode} />
             <RefetchButton onRefetch={() => setRefreshSeed((s) => s + 1)} lastUpdated={lastUpdated} />
             <button
               onClick={() => setShowRegister(true)}
@@ -815,16 +872,24 @@ export default function HorsesPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((horse) => (
-              <HorseCardItem
-                key={horse.id}
-                horse={horse}
-                onViewProfile={() => setProfileHorseId(horse.id)}
-                onOpenUpdate={() => handleOpenEdit(horse.id)}
-              />
-            ))}
-          </div>
+          {viewMode === "card" ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filtered.map((horse) => (
+                <HorseCardItem
+                  key={horse.id}
+                  horse={horse}
+                  onViewProfile={() => setProfileHorseId(horse.id)}
+                  onOpenUpdate={() => handleOpenEdit(horse.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <HorseTable
+              horses={filtered}
+              onViewProfile={setProfileHorseId}
+              onOpenUpdate={handleOpenEdit}
+            />
+          )}
           <PaginationBar
             page={page}
             totalPages={totalPages}

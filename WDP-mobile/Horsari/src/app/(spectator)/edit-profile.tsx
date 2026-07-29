@@ -22,6 +22,7 @@ import { uploadAvatar } from '../../api/profileApi';
 import { isNetworkError, NETWORK_ERROR_MESSAGE } from '../../api/axios';
 import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
+import { DateOfBirthField } from '@/components/ui/DateOfBirthField';
 
 // Form-input treatment isn't part of the shared token set yet — extend locally
 // rather than block on adding an Input primitive.
@@ -247,18 +248,11 @@ export default function SpectatorEditProfileScreen() {
             </View>
 
             <Text style={styles.fieldLabel}>Date of Birth</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="calendar-outline" size={18} color={Palette.textMuted} />
-              <TextInput
-                style={styles.input}
-                value={dateOfBirth}
-                onChangeText={(v) => { setDateOfBirth(v); setErrorMsg(null); }}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={Palette.textPlaceholder}
-                keyboardType="numbers-and-punctuation"
-                maxLength={10}
-              />
-            </View>
+            <DateOfBirthField
+              value={dateOfBirth}
+              onChange={(v) => { setDateOfBirth(v); setErrorMsg(null); }}
+              accentColor={Palette.gold}
+            />
 
             <Button label="SAVE CHANGES" onPress={handleSubmit} loading={isSubmitting} style={{ marginTop: 8 }} />
 

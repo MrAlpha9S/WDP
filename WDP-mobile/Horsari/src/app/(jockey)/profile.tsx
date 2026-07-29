@@ -324,7 +324,7 @@ export default function ProfileScreen() {
           )}
 
           {/* ─── Account Settings ─── */}
-          <View style={styles.settingsCard}>
+          {/* <View style={styles.settingsCard}>
             <Text style={styles.settingsTitle}>Account Settings</Text>
 
             <View style={styles.settingsRow}>
@@ -337,7 +337,7 @@ export default function ProfileScreen() {
                 thumbColor={Palette.text}
               />
             </View>
-          </View>
+          </View> */}
 
           {/* ─── Log out ─── */}
           <Pressable

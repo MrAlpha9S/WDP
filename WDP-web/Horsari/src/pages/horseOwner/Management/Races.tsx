@@ -1,9 +1,10 @@
 ﻿import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Plus, Loader2, AlertCircle, X, Trophy, ShieldAlert, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Calendar, MapPin, Loader2, AlertCircle, X, Trophy, ShieldAlert, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
 import { horseOwnerService, type RaceInvitationEntry } from "../../../api/horseOwnerService";
 import { RefetchButton } from "../../../components/RefetchButton";
+import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
@@ -499,11 +500,69 @@ function RaceCard({ race, onDetail, onLive }: { race: MyRace; onDetail: () => vo
   );
 }
 
+// ── Race Table ────────────────────────────────────────────────────────────────
+function RaceTable({ races, onDetail, onLive }: { races: MyRace[]; onDetail: (race: MyRace) => void; onLive: (race: MyRace) => void }) {
+  return (
+    <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-surface border-b border-border/60">
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Race Name</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Date</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Venue</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Horse</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/5">
+          {races.map((race) => {
+            const cfg = STATUS_CFG[race.status];
+            const isLive = race.status === "LIVE";
+            const isFinished = race.status === "FINISHED";
+            return (
+              <tr key={race.id} className="hover:bg-white/[0.02] transition-colors">
+                <td className={`p-4 text-[13px] font-semibold ${isFinished ? "text-gray-500" : "text-white"}`}>{race.name}</td>
+                <td className="p-4">
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10.5px] font-bold ${cfg.bg} ${cfg.text}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                    {cfg.label}
+                  </span>
+                </td>
+                <td className="p-4 text-[12.5px] text-gray-400">{race.date}</td>
+                <td className="p-4 text-[12.5px] text-gray-400">{race.venue}</td>
+                <td className="p-4 text-[12.5px] font-semibold text-red-400">{race.horse}</td>
+                <td className="p-4 text-right">
+                  {isLive ? (
+                    <button
+                      onClick={() => onLive(race)}
+                      className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-widest uppercase bg-red-700 hover:bg-red-600 text-white transition-all duration-150"
+                    >
+                      View Live
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onDetail(race)}
+                      className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-widest uppercase border border-white/15 text-gray-300 hover:border-white/30 hover:text-white transition-all duration-150"
+                    >
+                      {isFinished ? "View Results" : "Manage"}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 // ── Skeleton card ─────────────────────────────────────────────────────────────
 function RaceSkeleton() {
   return (
     <div className="bg-surface rounded-2xl border border-border/60 overflow-hidden flex flex-col animate-pulse">
-      <div className="h-40 bg-white/5" />
+      <div className="h-28 bg-white/5" />
       <div className="px-4 pt-3 pb-4 flex flex-col gap-3">
         <div className="h-4 w-3/4 bg-white/8 rounded" />
         <div className="space-y-1.5">
@@ -516,20 +575,6 @@ function RaceSkeleton() {
         </div>
         <div className="h-9 bg-white/5 rounded-lg mt-auto" />
       </div>
-    </div>
-  );
-}
-
-// ── Register tile ─────────────────────────────────────────────────────────────
-function RegisterTile({ onClick }: { onClick: () => void }) {
-  return (
-    <div onClick={onClick} className="bg-surface rounded-2xl border border-dashed border-white/15 flex flex-col items-center justify-center gap-3 min-h-[280px] cursor-pointer hover:border-red-700/50 hover:bg-red-950/10 transition-all duration-200 group">
-      <div className="w-10 h-10 rounded-full border border-white/15 flex items-center justify-center group-hover:border-red-600/50 transition-colors duration-200">
-        <Plus size={18} className="text-gray-600 group-hover:text-red-500 transition-colors duration-200" />
-      </div>
-      <p className="text-[13px] font-semibold text-gray-600 group-hover:text-gray-400 transition-colors duration-200">
-        Register New Race
-      </p>
     </div>
   );
 }
@@ -567,13 +612,14 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInvitations: () => void }) {
+export default function RacesPage() {
   const navigate = useNavigate();
   const [races, setRaces] = useState<MyRace[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRaceRoundId, setSelectedRaceRoundId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterTab>("ALL");
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [page, setPage] = useState(1);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
@@ -639,7 +685,10 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
               </span>
             </div>
           </div>
-          <RefetchButton onRefetch={fetchRaces} lastUpdated={lastUpdated} />
+          <div className="flex items-center gap-2 shrink-0">
+            <ViewToggle value={viewMode} onChange={setViewMode} />
+            <RefetchButton onRefetch={fetchRaces} lastUpdated={lastUpdated} />
+          </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           {FILTER_TABS.map((tab) => {
@@ -713,28 +762,30 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
                 Show all races
               </button>
             )}
-            {activeFilter === "ALL" && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 w-full mt-4">
-                <RegisterTile onClick={onNavigateToInvitations} />
-              </div>
-            )}
           </div>
         )}
 
         {/* Grid */}
         {!loading && !error && filteredRaces.length > 0 && (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {pagedRaces.map((race) => (
-                <RaceCard
-                  key={race.id}
-                  race={race}
-                  onDetail={() => race.raceRoundId && setSelectedRaceRoundId(race.raceRoundId)}
-                  onLive={() => race.raceRoundId && navigate(`/owner/race-monitor/${race.raceRoundId}`)}
-                />
-              ))}
-              {activeFilter === "ALL" && page === 1 && <RegisterTile onClick={onNavigateToInvitations} />}
-            </div>
+            {viewMode === "card" ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {pagedRaces.map((race) => (
+                  <RaceCard
+                    key={race.id}
+                    race={race}
+                    onDetail={() => race.raceRoundId && setSelectedRaceRoundId(race.raceRoundId)}
+                    onLive={() => race.raceRoundId && navigate(`/owner/race-monitor/${race.raceRoundId}`)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <RaceTable
+                races={pagedRaces}
+                onDetail={(race) => race.raceRoundId && setSelectedRaceRoundId(race.raceRoundId)}
+                onLive={(race) => race.raceRoundId && navigate(`/owner/race-monitor/${race.raceRoundId}`)}
+              />
+            )}
             <PaginationBar page={page} totalPages={totalPages} onPrev={() => setPage(p => p - 1)} onNext={() => setPage(p => p + 1)} />
           </>
         )}

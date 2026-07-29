@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LayoutGrid, List, Plus, Loader2 } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
 import type { ViewMode } from "../../shared/types/RaceTypes";
@@ -33,9 +33,20 @@ export default function RaceSchedulingPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const timelineScrollRef = useRef<HTMLDivElement>(null);
 
 
-    const TIME_SLOTS = ["14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"];
+    // Full-day axis (00:00 -> 23:59). Ticks are shown every 2h so labels don't
+    // crowd the header; race positioning below still derives from the full
+    // 24h range so a race's left offset stays accurate to the minute.
+    const TIMELINE_TOTAL_HOURS = 24;
+    const TIME_SLOTS = Array.from({ length: TIMELINE_TOTAL_HOURS / 2 }, (_, i) => `${String(i * 2).padStart(2, '0')}:00`);
+    // Each 2h slot gets a fixed pixel width (the timeline area scrolls
+    // horizontally, so we don't need to squeeze columns to fit the viewport)
+    // and a race block spans a full slot's width so its title/time don't clip.
+    const TIMELINE_COLUMN_WIDTH = 220;
+    const TIMELINE_LABEL_WIDTH = 200;
+    const TIMELINE_CONTENT_WIDTH = TIMELINE_LABEL_WIDTH + TIME_SLOTS.length * TIMELINE_COLUMN_WIDTH;
 
     const fetchData = async () => {
         setLoading(true);
@@ -114,13 +125,12 @@ export default function RaceSchedulingPage() {
         if (isNaN(d.getTime())) return { leftPercent: "0%", widthPercent: "15%" };
 
         const hours = d.getHours() + d.getMinutes() / 60;
-        // Base 09:00 = 0%, 17:00 = 100%
-        const totalHours = 8; // 17 - 9
-        const offset = Math.max(0, Math.min(hours - 9, totalHours));
-        const leftPercent = (offset / totalHours) * 100;
+        // Base 00:00 = 0%, 24:00 = 100% — same range as TIME_SLOTS above.
+        const offset = Math.max(0, Math.min(hours, TIMELINE_TOTAL_HOURS));
+        const leftPercent = (offset / TIMELINE_TOTAL_HOURS) * 100;
         return {
             leftPercent: `${leftPercent}%`,
-            widthPercent: "12.5%" // fixed 1-hour duration for visual
+            widthPercent: `${(2 / TIMELINE_TOTAL_HOURS) * 100}%` // fixed 2-hour duration for visual — matches one timeline column's width
         };
     };
 
@@ -201,6 +211,20 @@ export default function RaceSchedulingPage() {
             setSelectedDate(uniqueDates[currentIndex + 1]);
         }
     };
+
+    // Whenever the visible day (or a filter narrowing its races) changes,
+    // snap the horizontal scroll so the day's earliest race is right next to
+    // the sticky track-label column, instead of leaving the user to hunt for
+    // it by scrolling right themselves.
+    useEffect(() => {
+        const container = timelineScrollRef.current;
+        if (!container || viewMode !== "timeline" || filteredRaces.length === 0) return;
+        const earliest = filteredRaces.reduce((min, r) => r.rawDate.getTime() < min.rawDate.getTime() ? r : min);
+        const offsetWithinTimeline = (parseFloat(earliest.leftPercent) / 100) * (TIME_SLOTS.length * TIMELINE_COLUMN_WIDTH);
+        const SCROLL_PADDING = 24;
+        container.scrollLeft = Math.max(0, offsetWithinTimeline - SCROLL_PADDING);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedDate, viewMode, selectedTournament, selectedStatus, selectedRaceType]);
 
     return (
         <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
@@ -317,9 +341,9 @@ export default function RaceSchedulingPage() {
                                 <ErrorState message={error} onRetry={fetchData} className="max-w-md" />
                             </div>
                         ) : (
-                            <div className="h-full w-full overflow-auto bg-surface custom-scrollbar">
+                            <div ref={timelineScrollRef} className="h-full w-full overflow-auto bg-surface custom-scrollbar">
                                 {viewMode === "timeline" ? (
-                                    <div className="min-w-[1600px] border border-border/60 rounded-lg bg-surface">
+                                    <div style={{ minWidth: TIMELINE_CONTENT_WIDTH }} className="border border-border/60 rounded-lg bg-surface">
                                         {/* Time Headers */}
                                         <div className="sticky top-0 z-40 flex border-b border-border/60 bg-surface">
                                             <div className="sticky left-0 z-50 w-[200px] shrink-0 border-r border-border/60 px-2 py-3 flex items-center justify-between bg-bg shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
@@ -341,10 +365,13 @@ export default function RaceSchedulingPage() {
                                                     &rarr;
                                                 </button>
                                             </div>
-                                            <div className="flex-1 flex">
+                                            <div className="flex">
                                                 {TIME_SLOTS.map((time, idx) => (
-                                                    <div key={idx} className="flex-1 border-r border-border/60 last:border-r-0 py-4 flex justify-center">
-                                                        <span className="text-[11px] font-medium text-gray-400 font-mono">{time}</span>
+                                                    <div key={idx} style={{ width: TIMELINE_COLUMN_WIDTH }} className="relative shrink-0 py-4">
+                                                        {/* Tick mark + label sit at the left edge — this is the 00:00/02:00/... instant,
+                                                            not a label for the whole column, which would read as a duration. */}
+                                                        <div className="absolute left-0 top-0 bottom-0 w-px bg-border/70" />
+                                                        <span className="absolute left-0 -translate-x-1/2 bg-surface px-1 text-[11px] font-medium text-gray-400 font-mono">{time}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -365,10 +392,12 @@ export default function RaceSchedulingPage() {
                                                     </div>
 
                                                     {/* Timeline area for this track */}
-                                                    <div className="flex-1 relative flex">
-                                                        {/* Background Grid Lines (1 line per time slot) */}
+                                                    <div style={{ width: TIME_SLOTS.length * TIMELINE_COLUMN_WIDTH }} className="shrink-0 relative flex">
+                                                        {/* Background Grid Lines — one at each tick's exact position (its left
+                                                            edge), matching the header ticks above rather than boxing each
+                                                            2h span as if it were a single labeled cell. */}
                                                         {TIME_SLOTS.map((_, idx) => (
-                                                            <div key={idx} className="flex-1 border-r border-border/60 last:border-r-0" />
+                                                            <div key={idx} style={{ width: TIMELINE_COLUMN_WIDTH }} className="shrink-0 border-l border-border/60" />
                                                         ))}
 
                                                         {/* Placed Races */}

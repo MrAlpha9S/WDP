@@ -11,7 +11,7 @@ export default function SpectatorTabs() {
         { name: 'predictions', title: 'PREDICTIONS', icon: 'stats-chart-outline' },
         { name: 'profile', title: 'PROFILE', icon: 'person-outline' },
       ]}
-      hidden={['race/[id]', 'transactions', 'statistics']}
+      hidden={['race/[id]', 'transactions', 'statistics', 'edit-profile']}
     />
   );
 }

@@ -1,4 +1,5 @@
 import { MapPin, Calendar } from "lucide-react";
+import Select from "../../../components/ui/Select";
 
 interface BasicInfoProps {
     raceTitle: string;
@@ -49,33 +50,27 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                 </div>
                 <div>
                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Tournament</label>
-                    <select
+                    <Select
                         value={props.tournamentId}
-                        onChange={(e) => props.setTournamentId(e.target.value)}
-                        className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none"
-                    >
-                        {metadata?.tournaments?.map((t: any) => (
-                            <option className="bg-surface text-white" key={t._id} value={t._id}>{t.tournamentName}</option>
-                        ))}
-                    </select>
+                        onChange={props.setTournamentId}
+                        options={(metadata?.tournaments ?? []).map((t: any) => ({ value: t._id, label: t.tournamentName }))}
+                        placeholder="Select tournament..."
+                    />
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Race Type</label>
-                    <select
+                    <Select
                         value={props.createRaceType}
-                        onChange={(e) => {
-                            props.setCreateRaceType(e.target.value);
+                        onChange={(v) => {
+                            props.setCreateRaceType(v);
                             props.setSelectedOwners([]);
                         }}
-                        className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 appearance-none"
-                    >
-                        {metadata?.eligibilityRules?.map((rule: any) => (
-                            <option className="bg-surface text-white" key={rule._id} value={rule._id}>{rule.raceType}</option>
-                        ))}
-                    </select>
+                        options={(metadata?.eligibilityRules ?? []).map((rule: any) => ({ value: rule._id, label: rule.raceType }))}
+                        placeholder="Select race type..."
+                    />
                 </div>
                 <div>
                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Track Location</label>
@@ -152,25 +147,22 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                 <div>
                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Time</label>
                     <div className="flex gap-2 items-center">
-                        <select
+                        <Select
+                            className="flex-1"
                             value={props.raceTime.split(':')[0] ?? '09'}
-                            onChange={(e) => props.setRaceTime(`${e.target.value}:${props.raceTime.split(':')[1] ?? '00'}`)}
-                            className="flex-1 bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                        >
-                            {Array.from({ length: 9 }, (_, i) => i + 9).map(h => {
+                            onChange={(v) => props.setRaceTime(`${v}:${props.raceTime.split(':')[1] ?? '00'}`)}
+                            options={Array.from({ length: 9 }, (_, i) => i + 9).map(h => {
                                 const hh = String(h).padStart(2, '0');
-                                return <option key={hh} value={hh}>{hh}</option>;
+                                return { value: hh, label: hh };
                             })}
-                        </select>
+                        />
                         <span className="text-white font-bold">:</span>
-                        <select
+                        <Select
+                            className="flex-1"
                             value={props.raceTime.split(':')[1] ?? '00'}
-                            onChange={(e) => props.setRaceTime(`${props.raceTime.split(':')[0] ?? '09'}:${e.target.value}`)}
-                            className="flex-1 bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
-                        >
-                            <option value="00">00</option>
-                            <option value="30">30</option>
-                        </select>
+                            onChange={(v) => props.setRaceTime(`${props.raceTime.split(':')[0] ?? '09'}:${v}`)}
+                            options={[{ value: "00", label: "00" }, { value: "30", label: "30" }]}
+                        />
                     </div>
                 </div>
             </div>

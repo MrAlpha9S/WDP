@@ -303,9 +303,10 @@ export default function WalletScreen() {
                   style={{ flex: 1 }}
                 />
                 <Button
-                  label="WITHDRAW"
+                  label="WITHDRAW · SOON"
                   variant="secondary"
-                  onPress={() => setModal('withdraw')}
+                  disabled
+                  onPress={() => {}}
                   icon={<Ionicons name="arrow-up-circle-outline" size={16} color={Palette.text} />}
                   style={{ flex: 1 }}
                 />
