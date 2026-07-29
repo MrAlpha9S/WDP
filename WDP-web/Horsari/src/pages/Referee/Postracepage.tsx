@@ -9,7 +9,7 @@ import { RefetchButton } from "../../components/RefetchButton";
 import { ErrorState } from "../../components/ErrorState";
 
 function VideoReviewPanel({ raceRound }: { raceRound: any }) {
-    const playbackId = raceRound?.muxVodPlaybackId || raceRound?.muxPlaybackId;
+    const playbackId = raceRound?.muxVodPlaybackId;
 
     return (
         <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
@@ -104,6 +104,13 @@ export default function PostRacePage() {
 
     const hasObjection = violations.some(v => v.violationStatus === 'pending') && !objectionResolved;
 
+    // Publishing is only allowed while the race round is awaiting confirmation
+    // (mirrors AdminService.confirmRaceResult's own status guard); a race round
+    // that already loaded as 'completed' counts as already-published even if
+    // this session never clicked Publish itself.
+    const canPublish = raceRound?.status === 'awaitingConfirmation';
+    const isAlreadyPublished = published || raceRound?.status === 'completed';
+
     const handleDismiss = async (violationId: string) => {
         try {
             await refereeService.deleteViolation(violationId);
@@ -125,7 +132,7 @@ export default function PostRacePage() {
     };
 
     const handlePublish = async () => {
-        if (hasObjection || published || !raceRoundId || isPublishing) return;
+        if (hasObjection || isAlreadyPublished || !canPublish || !raceRoundId || isPublishing) return;
         try {
             setIsPublishing(true);
             await refereeService.confirmRaceResult(raceRoundId);
@@ -323,15 +330,15 @@ export default function PostRacePage() {
                     </button>
                     <button
                         onClick={handlePublish}
-                        disabled={hasObjection || published || isPublishing}
+                        disabled={hasObjection || isAlreadyPublished || isPublishing || !canPublish}
                         className={["w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
-                            published ? "bg-green-700 text-white cursor-default"
-                                : hasObjection ? "bg-white/5 border border-white/8 text-gray-600 cursor-not-allowed"
+                            isAlreadyPublished ? "bg-green-700 text-white cursor-default"
+                                : hasObjection || !canPublish ? "bg-white/5 border border-white/8 text-gray-600 cursor-not-allowed"
                                     : "bg-green-700 text-white hover:bg-green-600 shadow-lg shadow-green-900/30",
                         ].join(" ")}
                     >
                         <Trophy size={14} />
-                        {isPublishing ? "Publishing..." : published ? "Results Published ✓" : hasObjection ? "Awaiting Objection" : "Publish Official Results"}
+                        {isPublishing ? "Publishing..." : isAlreadyPublished ? "Results Published ✓" : hasObjection ? "Awaiting Objection" : !canPublish ? "Not Ready" : "Publish Official Results"}
                     </button>
                 </div>
             </div>
