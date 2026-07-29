@@ -1,44 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { AlertTriangle, Camera, Flag, Loader2, Medal, Trophy, Video } from "lucide-react";
+import { AlertTriangle, Camera, Flag, Loader2, Medal, Trophy } from "lucide-react";
 import { ordinal } from "../../shared/data/RaceData";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationRecord } from "../../api/refereeService";
-import MuxPlayer from "@mux/mux-player-react";
 import { RefetchButton } from "../../components/RefetchButton";
 import { ErrorState } from "../../components/ErrorState";
-
-function VideoReviewPanel({ raceRound }: { raceRound: any }) {
-    const playbackId = raceRound?.muxVodPlaybackId || raceRound?.muxPlaybackId;
-
-    return (
-        <div className="bg-surface rounded-xl border border-border overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
-                    <Video size={14} className="text-blue-400" /> Race Video Review
-                </h2>
-                {playbackId && <span className="text-[11px] text-gray-600 font-medium">VOD Playback</span>}
-            </div>
-
-            {/* Video player */}
-            <div className="relative mx-4 mt-4 mb-4 rounded-xl overflow-hidden aspect-video bg-black">
-                {playbackId ? (
-                    <MuxPlayer
-                        playbackId={playbackId}
-                        className="w-full h-full"
-                        style={{ aspectRatio: "16/9" }}
-                    />
-                ) : (
-                    <div className="flex flex-col items-center justify-center w-full h-full text-gray-500">
-                        <Video size={32} className="mb-2 opacity-50" />
-                        <p className="text-[12px] font-medium">Recording is being processed...</p>
-                        <p className="text-[10px] text-gray-600 mt-1">Check back shortly.</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
 
 type DistUnit = 'lengths' | 'metres';
 const fmtLength = (l: number | null | undefined, unit: DistUnit = 'lengths'): string => {
@@ -104,6 +71,13 @@ export default function PostRacePage() {
 
     const hasObjection = violations.some(v => v.violationStatus === 'pending') && !objectionResolved;
 
+    // Publishing is only allowed while the race round is awaiting confirmation
+    // (mirrors AdminService.confirmRaceResult's own status guard); a race round
+    // that already loaded as 'completed' counts as already-published even if
+    // this session never clicked Publish itself.
+    const canPublish = raceRound?.status === 'awaitingConfirmation';
+    const isAlreadyPublished = published || raceRound?.status === 'completed';
+
     const handleDismiss = async (violationId: string) => {
         try {
             await refereeService.deleteViolation(violationId);
@@ -125,7 +99,7 @@ export default function PostRacePage() {
     };
 
     const handlePublish = async () => {
-        if (hasObjection || published || !raceRoundId || isPublishing) return;
+        if (hasObjection || isAlreadyPublished || !canPublish || !raceRoundId || isPublishing) return;
         try {
             setIsPublishing(true);
             await refereeService.confirmRaceResult(raceRoundId);
@@ -240,9 +214,6 @@ export default function PostRacePage() {
                     </div>
                 </div>
 
-                {/* Video review */}
-                <VideoReviewPanel raceRound={raceRound} />
-
                 {/* Incident review */}
                 <div className="bg-surface rounded-xl border border-border overflow-hidden">
                     <div className="px-5 py-3.5 border-b border-border">
@@ -323,15 +294,15 @@ export default function PostRacePage() {
                     </button>
                     <button
                         onClick={handlePublish}
-                        disabled={hasObjection || published || isPublishing}
+                        disabled={hasObjection || isAlreadyPublished || isPublishing || !canPublish}
                         className={["w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
-                            published ? "bg-green-700 text-white cursor-default"
-                                : hasObjection ? "bg-white/5 border border-border text-gray-600 cursor-not-allowed"
+                            isAlreadyPublished ? "bg-green-700 text-white cursor-default"
+                                : hasObjection || !canPublish ? "bg-white/5 border border-border text-gray-600 cursor-not-allowed"
                                     : "bg-green-700 text-white hover:bg-green-600 shadow-lg shadow-green-900/30",
                         ].join(" ")}
                     >
                         <Trophy size={14} />
-                        {isPublishing ? "Publishing..." : published ? "Results Published ✓" : hasObjection ? "Awaiting Objection" : "Publish Official Results"}
+                        {isPublishing ? "Publishing..." : isAlreadyPublished ? "Results Published ✓" : hasObjection ? "Awaiting Objection" : !canPublish ? "Not Ready" : "Publish Official Results"}
                     </button>
                 </div>
             </div>

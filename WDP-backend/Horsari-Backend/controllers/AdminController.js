@@ -200,9 +200,9 @@ class AdminController {
 
     async setRaceRoundStatus(req, res) {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, override } = req.body;
         const io = req.app.get('io');
-        const response = await AdminService.setRaceRoundStatus(id, status, io);
+        const response = await AdminService.setRaceRoundStatus(id, status, io, override === true);
         return res.status(response.code).json(response);
     }
 

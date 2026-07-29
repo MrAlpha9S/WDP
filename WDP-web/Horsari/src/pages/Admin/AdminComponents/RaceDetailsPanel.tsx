@@ -7,6 +7,7 @@ import {
 import type { ScheduledRace } from "../../../shared/types/RaceTypes";
 import { adminService } from "../../../api/adminService";
 import { useSocket } from "../../../providers/SocketProvider";
+import { isRaceDayToday, hasReachedStartTime } from "../../../utils/raceDayUtil";
 
 interface RaceDetailsPanelProps {
     selectedRace?: ScheduledRace;
@@ -55,6 +56,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const [isCancelling, setIsCancelling] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
+    const [isStartDateWarningOpen, setIsStartDateWarningOpen] = useState(false);
     const [isCreatingStream, setIsCreatingStream] = useState(false);
     const [isQuickAssigning, setIsQuickAssigning] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
@@ -99,6 +101,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     const data: any = res.data;
                     setDetailedOverview({
                         location: data.location,
+                        raceDate: data.raceDate,
                         address: data.address,
                         trackLength: data.trackLength,
                         raceGround: data.raceGround,
@@ -227,19 +230,37 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         }
     };
 
-    const handleStartRace = async () => {
+    const detailedRaceDate: string | undefined = detailedOverview?.raceDate;
+    const isRaceDayMismatch = !!detailedRaceDate && !isRaceDayToday(detailedRaceDate);
+    const raceNotStartedYet = !!detailedRaceDate && isRaceDayToday(detailedRaceDate) && !hasReachedStartTime(detailedRaceDate);
+    const needsStartConfirm = isRaceDayMismatch || raceNotStartedYet;
+    const startWarningMessage = isRaceDayMismatch
+        ? `This race is scheduled for ${new Date(detailedRaceDate!).toLocaleDateString()}, not today.`
+        : `This race hasn't reached its scheduled start time yet (${new Date(detailedRaceDate!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).`;
+
+    const doStartRace = async (override: boolean) => {
         if (!selectedRace) return;
         setIsStarting(true);
         setActionError(null);
         try {
-            await adminService.setRaceRoundStatus(selectedRace.id, 'running');
+            await adminService.setRaceRoundStatus(selectedRace.id, 'running', override);
             if (onRefresh) onRefresh();
             fetchDetails();
         } catch (error: any) {
             setActionError(error?.msg || 'Failed to start race');
         } finally {
             setIsStarting(false);
+            setIsStartDateWarningOpen(false);
         }
+    };
+
+    const handleStartRace = () => {
+        if (!selectedRace) return;
+        if (needsStartConfirm) {
+            setIsStartDateWarningOpen(true);
+            return;
+        }
+        doStartRace(false);
     };
 
     const handleCancelRace = async () => {
@@ -497,12 +518,6 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         <span>Awaiting Referee race results confirmation</span>
                                     </div>
                                 </>
-                            )}
-                            {actionError && (
-                                <div className="flex items-center gap-2 text-[12px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-                                    <TriangleAlert size={13} className="shrink-0" />
-                                    {actionError}
-                                </div>
                             )}
                         </div>
                     )}
@@ -978,6 +993,57 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     )}
                 </div>
             </div>
+
+            {/* ── Start Race Date-Mismatch Confirmation Modal ── */}
+            {isStartDateWarningOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-[#161616] border border-white/10 rounded-xl shadow-2xl w-[400px] overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-5 border-b border-white/5 bg-[#1a1a1a]">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-amber-500/20 rounded-full">
+                                    <TriangleAlert className="text-amber-500" size={20} />
+                                </div>
+                                <h3 className="text-[16px] font-bold text-white">Race Schedule Warning</h3>
+                            </div>
+                            <button
+                                onClick={() => !isStarting && setIsStartDateWarningOpen(false)}
+                                disabled={isStarting}
+                                className="text-gray-500 hover:text-white transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-[14px] text-gray-300 leading-relaxed">
+                                {startWarningMessage} Are you sure you want to start it anyway?
+                            </p>
+                            {actionError && (
+                                <p className="text-[12px] text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">{actionError}</p>
+                            )}
+                        </div>
+                        <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsStartDateWarningOpen(false)}
+                                disabled={isStarting}
+                                className="px-4 py-2 text-[13px] font-medium text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded transition-colors disabled:opacity-50"
+                            >
+                                Go Back
+                            </button>
+                            <button
+                                onClick={() => doStartRace(true)}
+                                disabled={isStarting}
+                                className="px-4 py-2 text-[13px] font-medium text-white bg-amber-600 hover:bg-amber-700 rounded transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isStarting ? (
+                                    <><Loader2 size={14} className="animate-spin" /> Starting...</>
+                                ) : (
+                                    "Yes, Start Anyway"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Cancel Confirmation Modal ── */}
             {isCancelModalOpen && (

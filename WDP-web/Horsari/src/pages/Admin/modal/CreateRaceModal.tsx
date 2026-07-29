@@ -38,6 +38,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     const [submitLoading, setSubmitLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [overrideScheduleConflict, setOverrideScheduleConflict] = useState(false);
 
     const [metadata, setMetadata] = useState<any>(null);
     const [loading, setLoading] = useState(false);
@@ -120,6 +121,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             setCurrencyType("VND");
             setError(null);
             setShowConfirm(false);
+            setOverrideScheduleConflict(false);
         }
     }, [isOpen]);
 
@@ -195,13 +197,13 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             return;
         }
 
-        if (selectedDate < twoWeeksFromNow && !raceToEdit) {
+        if (selectedDate < twoWeeksFromNow && !raceToEdit && !overrideScheduleConflict) {
             setError("Race date must be at least 14 days from today to allow for preparations.");
             return;
         }
 
         const selectedTournament = metadata?.tournaments?.find((t: any) => t._id === tournamentId);
-        if (selectedTournament) {
+        if (selectedTournament && !overrideScheduleConflict) {
             if (selectedTournament.startDate) {
                 const tStart = new Date(selectedTournament.startDate);
                 tStart.setHours(0, 0, 0, 0);
@@ -261,7 +263,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             RefereeInvitation: selectedReferees.map(id => {
                 const fee = refereeFees[id];
                 return fee !== undefined ? { refereeId: id, fee } : { refereeId: id };
-            })
+            }),
+            overrideScheduleConflict,
         };
 
         setSubmitLoading(true);
@@ -276,7 +279,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             onClose();
         } catch (err: any) {
             console.error("Failed to create race", err);
-            setError(`Failed to create race: ${err.message || err.msg || 'Unknown error'}`);
+            const message: string = err.message || err.msg || 'Unknown error';
+            setError(`Failed to create race: ${message}`);
             setShowConfirm(false);
         } finally {
             setSubmitLoading(false);
@@ -293,18 +297,18 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     twoWeeksFromNow.setDate(new Date().getDate() + 14);
     const twoWeeksStr = twoWeeksFromNow.toISOString().split('T')[0];
 
-    if (!raceToEdit) {
+    if (!raceToEdit && !overrideScheduleConflict) {
         minDateUI = twoWeeksStr;
     }
 
     if (selectedTournamentUI) {
-        if (selectedTournamentUI.startDate) {
+        if (selectedTournamentUI.startDate && !overrideScheduleConflict) {
             const tournamentStartStr = new Date(selectedTournamentUI.startDate).toISOString().split('T')[0];
             if (!minDateUI || tournamentStartStr > minDateUI) {
                 minDateUI = tournamentStartStr;
             }
         }
-        if (selectedTournamentUI.endDate) {
+        if (selectedTournamentUI.endDate && !overrideScheduleConflict) {
             maxDateUI = new Date(selectedTournamentUI.endDate).toISOString().split('T')[0];
         }
     }
@@ -357,6 +361,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                                 setMaxParticipants={setMaxParticipants}
                                 housingFeePercentage={housingFeePercentage}
                                 setHousingFeePercentage={setHousingFeePercentage}
+                                overrideScheduleConflict={overrideScheduleConflict}
+                                setOverrideScheduleConflict={setOverrideScheduleConflict}
                             />
 
                             <CreateRacePrizes

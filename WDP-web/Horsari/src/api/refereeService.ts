@@ -358,9 +358,10 @@ export const refereeService = {
 
     finalizeRaceRound: async (
         raceRoundId: string,
+        override?: boolean,
     ): Promise<{ code: number; data: { status: 'prepared' | 'cancelled' }; msg: string }> => {
         try {
-            const response = await api.post(`/referee/race-rounds/${raceRoundId}/finalize`);
+            const response = await api.post(`/referee/race-rounds/${raceRoundId}/finalize`, { override });
             return response.data;
         } catch (error: any) {
             throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };

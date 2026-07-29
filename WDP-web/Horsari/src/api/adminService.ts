@@ -428,6 +428,7 @@ export interface CreateRaceRoundPayload {
   };
   HorseOwnerInvitation?: string[];
   RefereeInvitation?: { refereeId: string; fee?: number }[];
+  overrideScheduleConflict?: boolean;
 }
 
 export interface UpdateRaceRoundPayload {
@@ -435,6 +436,7 @@ export interface UpdateRaceRoundPayload {
   RaceRound?: Partial<CreateRaceRoundPayload['RaceRound']>;
   HorseOwnerInvitation?: string[];
   RefereeInvitation?: { refereeId: string; fee?: number }[];
+  overrideScheduleConflict?: boolean;
 }
 
 export interface RaceRoundMutationResponse {
@@ -1032,9 +1034,9 @@ export const adminService = {
 
   // --- Race Round Status & Results ---
 
-  setRaceRoundStatus: async (id: string, status: 'running' | 'cancelled'): Promise<{ code: number; data: RaceRoundData; msg: string }> => {
+  setRaceRoundStatus: async (id: string, status: 'running' | 'cancelled', override?: boolean): Promise<{ code: number; data: RaceRoundData; msg: string }> => {
     try {
-      const response = await api.put(`/admin/race-rounds/${id}/status`, { status });
+      const response = await api.put(`/admin/race-rounds/${id}/status`, { status, override });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };

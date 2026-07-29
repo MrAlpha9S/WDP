@@ -127,7 +127,7 @@ class RefereeController {
     async finalizeRaceRound(req, res) {
         const { id } = req.params;
         const io = req.app.get('io');
-        const response = await RefereeService.finalizeRaceRound(req.userId, id, io);
+        const response = await RefereeService.finalizeRaceRound(req.userId, id, io, req.body?.override === true);
         return res.status(response.code).json(response);
     }
 

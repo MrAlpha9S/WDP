@@ -155,11 +155,9 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
     const hasFails = failedVtIds.length > 0 || noJockeyFail;
     const failCount = failedVtIds.length + (noJockeyFail ? 1 : 0);
 
-    const noJockeyVtId = violationTypes.find(vt => vt.violationName === 'Unlicensed Participation')?._id;
-
     const builtViolationReason = [
         ...violationTypes.filter(vt => checks.get(vt._id) === 'fail').map(vt => vt.violationName),
-        noJockeyFail ? 'Unlicensed Participation — No eligible jockey present' : null,
+        noJockeyFail ? 'No eligible jockey present' : null,
     ].filter(Boolean).join('; ');
 
     // canSubmit: jockey situation resolved + violation types loaded
@@ -171,10 +169,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
         setSubmitError(null);
         const status = hasFails ? 'failed' : 'verified';
         try {
-            const failedChecks = [
-                ...failedVtIds,
-                noJockeyFail && noJockeyVtId ? noJockeyVtId : null,
-            ].filter(Boolean) as string[];
+            const failedChecks = failedVtIds;
 
             await refereeService.verifyRegistration(raceRoundId, registration._id, {
                 status,
