@@ -203,7 +203,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         }
 
         const selectedTournament = metadata?.tournaments?.find((t: any) => t._id === tournamentId);
-        if (selectedTournament) {
+        if (selectedTournament && !overrideScheduleConflict) {
             if (selectedTournament.startDate) {
                 const tStart = new Date(selectedTournament.startDate);
                 tStart.setHours(0, 0, 0, 0);
@@ -302,13 +302,13 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     }
 
     if (selectedTournamentUI) {
-        if (selectedTournamentUI.startDate) {
+        if (selectedTournamentUI.startDate && !overrideScheduleConflict) {
             const tournamentStartStr = new Date(selectedTournamentUI.startDate).toISOString().split('T')[0];
             if (!minDateUI || tournamentStartStr > minDateUI) {
                 minDateUI = tournamentStartStr;
             }
         }
-        if (selectedTournamentUI.endDate) {
+        if (selectedTournamentUI.endDate && !overrideScheduleConflict) {
             maxDateUI = new Date(selectedTournamentUI.endDate).toISOString().split('T')[0];
         }
     }
