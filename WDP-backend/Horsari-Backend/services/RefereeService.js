@@ -1,6 +1,7 @@
 const RefereeRepository = require('../repositories/RefereeRepository');
 const UserRepository = require('../repositories/UserRepository');
 const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
+const RaceDateUtil = require('../utils/RaceDateUtil');
 const RaceRefereeRepository = require('../repositories/RaceRefereeRepository');
 const TransactionRepository = require('../repositories/TransactionRepository');
 const NotificationService = require('./NotificationService');
@@ -822,7 +823,7 @@ class RefereeService {
     // Finalize a race round after all registrations are inspected.
     // Sets status to "prepared" if at least one registration is verified,
     // or "cancelled" if all registrations ended up failed/cancelled/rejected.
-    async finalizeRaceRound(refereeId, raceRoundId, io) {
+    async finalizeRaceRound(refereeId, raceRoundId, io, override = false) {
         try {
             const assignment = await RaceReferee.findOne({ raceRoundId, refereeId }).lean();
             if (!assignment) {
@@ -850,6 +851,15 @@ class RefereeService {
             });
 
             const newStatus = verifiedCount >= 2 ? 'prepared' : 'cancelled';
+
+            if (newStatus === 'prepared' && !override && !RaceDateUtil.isSameCalendarDay(raceRound.raceDate, new Date())) {
+                return {
+                    code: 422,
+                    msg: 'This race round is not scheduled for today.',
+                    data: { dateMismatch: true, raceDate: raceRound.raceDate },
+                };
+            }
+
             await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus });
 
             return {

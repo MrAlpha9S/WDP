@@ -8,7 +8,7 @@ const NotificationService = require('./NotificationService');
 
 class RaceRoundService {
     async createRaceRound(payload, adminID, io) {
-        const { TournamentId, RaceRound: raceRoundData, HorseOwnerInvitation = [], RefereeInvitation = [] } = payload;
+        const { TournamentId, RaceRound: raceRoundData, HorseOwnerInvitation = [], RefereeInvitation = [], overrideScheduleConflict = false } = payload;
 
         // Safely extract a plain string/ObjectId from a value that might be a populated object
         const toId = (v) => (v && typeof v === 'object') ? (v._id ?? v) : v;
@@ -20,7 +20,7 @@ class RaceRoundService {
 
         // Prevent scheduling race rounds too close to each other on the same day/location
         const newRaceDate = new Date(raceRoundData.raceDate);
-        if (raceRoundData.location && !isNaN(newRaceDate.getTime())) {
+        if (!overrideScheduleConflict && raceRoundData.location && !isNaN(newRaceDate.getTime())) {
             const startOfDay = new Date(newRaceDate);
             startOfDay.setHours(0, 0, 0, 0);
 
@@ -134,7 +134,7 @@ class RaceRoundService {
         };
     }
     async updateRaceRound(id, payload, adminID, io) {
-        const { TournamentId, RaceRound: updateData, HorseOwnerInvitation, RefereeInvitation } = payload;
+        const { TournamentId, RaceRound: updateData, HorseOwnerInvitation, RefereeInvitation, overrideScheduleConflict = false } = payload;
         const toId = (v) => (v && typeof v === 'object') ? (v._id ?? v).toString() : (v ? v.toString() : v);
 
         const existingRaceRound = await RaceRoundRepository.findById(id);
@@ -149,7 +149,7 @@ class RaceRoundService {
         const twoWeeksFromToday = new Date(today.getTime() + TWO_WEEKS_MS);
 
         // Rule 2: Cannot reschedule to < 14 days from today
-        if (updateData && updateData.raceDate) {
+        if (!overrideScheduleConflict && updateData && updateData.raceDate) {
             const newDate = new Date(updateData.raceDate);
             if (!isNaN(newDate.getTime()) && newDate < twoWeeksFromToday && 
                 newDate.getTime() !== new Date(existingRaceRound.raceDate).getTime()) {
@@ -161,7 +161,7 @@ class RaceRoundService {
         const effectiveDate = (updateData && updateData.raceDate) ? new Date(updateData.raceDate) : new Date(existingRaceRound.raceDate);
 
         // Rule 1: Time collision validation
-        if (updateData && (updateData.raceDate || updateData.location)) {
+        if (!overrideScheduleConflict && updateData && (updateData.raceDate || updateData.location)) {
             const checkLocation = updateData.location || existingRaceRound.location;
             if (checkLocation && !isNaN(effectiveDate.getTime())) {
                 const startOfDay = new Date(effectiveDate);

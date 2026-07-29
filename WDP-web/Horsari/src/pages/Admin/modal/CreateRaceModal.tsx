@@ -38,6 +38,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     const [submitLoading, setSubmitLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [overrideScheduleConflict, setOverrideScheduleConflict] = useState(false);
 
     const [metadata, setMetadata] = useState<any>(null);
     const [loading, setLoading] = useState(false);
@@ -120,6 +121,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             setCurrencyType("VND");
             setError(null);
             setShowConfirm(false);
+            setOverrideScheduleConflict(false);
         }
     }, [isOpen]);
 
@@ -195,7 +197,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             return;
         }
 
-        if (selectedDate < twoWeeksFromNow && !raceToEdit) {
+        if (selectedDate < twoWeeksFromNow && !raceToEdit && !overrideScheduleConflict) {
             setError("Race date must be at least 14 days from today to allow for preparations.");
             return;
         }
@@ -261,7 +263,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             RefereeInvitation: selectedReferees.map(id => {
                 const fee = refereeFees[id];
                 return fee !== undefined ? { refereeId: id, fee } : { refereeId: id };
-            })
+            }),
+            overrideScheduleConflict,
         };
 
         setSubmitLoading(true);
@@ -276,7 +279,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             onClose();
         } catch (err: any) {
             console.error("Failed to create race", err);
-            setError(`Failed to create race: ${err.message || err.msg || 'Unknown error'}`);
+            const message: string = err.message || err.msg || 'Unknown error';
+            setError(`Failed to create race: ${message}`);
             setShowConfirm(false);
         } finally {
             setSubmitLoading(false);
@@ -293,7 +297,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     twoWeeksFromNow.setDate(new Date().getDate() + 14);
     const twoWeeksStr = twoWeeksFromNow.toISOString().split('T')[0];
 
-    if (!raceToEdit) {
+    if (!raceToEdit && !overrideScheduleConflict) {
         minDateUI = twoWeeksStr;
     }
 
@@ -358,6 +362,16 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                                 housingFeePercentage={housingFeePercentage}
                                 setHousingFeePercentage={setHousingFeePercentage}
                             />
+
+                            <label className="flex items-start gap-2 p-3 bg-amber-950/20 border border-amber-600/30 rounded text-[13px] text-amber-200 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={overrideScheduleConflict}
+                                    onChange={(e) => setOverrideScheduleConflict(e.target.checked)}
+                                    className="mt-0.5"
+                                />
+                                <span>Override scheduling restrictions (allow same-day / less-than-2-week lead time, and conflicts within 90 minutes at this location).</span>
+                            </label>
 
                             <CreateRacePrizes
                                 currencyType={currencyType}
