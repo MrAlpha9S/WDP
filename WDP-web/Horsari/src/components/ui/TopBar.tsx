@@ -3,6 +3,7 @@ import { ChevronDown, User, LogOut } from "lucide-react";
 import { useAuth } from "../../providers/AuthProvider";
 import { useSocket } from "../../providers/SocketProvider";
 import { useNavigate } from "react-router-dom";
+import horsariLogo from "../../assets/horsari_logo_in_image.png";
 
 function getInitials(user: { name?: string; email: string }) {
     if (user.name) {
@@ -54,13 +55,14 @@ export default function TopBar({ logo, onProfileClick, onLogout }: TopBarProps) 
             <div className="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     {logo ?? (
-                        <span
-                            className="text-[15px] font-bold tracking-widest text-gold uppercase font-mono"
-                            style={{ letterSpacing: "0.18em" }}
-                        >
-                            Horsari
-                        </span>
+                        <img src={horsariLogo} alt="Horsari" className="h-8 w-auto" />
                     )}
+                    <span
+                        className="text-[15px] font-bold tracking-widest text-[#AB3030] uppercase font-mono"
+                        style={{ letterSpacing: "0.18em" }}
+                    >
+                        Horsari
+                    </span>
                     <span
                         className={`w-1.5 h-1.5 rounded-full ${wsConnected ? "bg-green animate-pulse" : "bg-red"}`}
                         title={wsConnected ? "Connected" : "Disconnected"}

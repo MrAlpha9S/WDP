@@ -52,11 +52,11 @@ export default function Sidebar<T extends string>({
                                         key={key}
                                         onClick={() => onSelect(key)}
                                         className={`relative flex items-center gap-3 pl-3 pr-3 py-2.5 rounded-md text-[13.5px] font-medium transition-all duration-150 w-full text-left border-l-[3px] cursor-pointer ${isActive
-                                            ? "border-gold bg-surface-raised text-gold"
+                                            ? "border-[#AB3030] bg-surface-raised text-[#AB3030]"
                                             : "border-transparent text-text-muted hover:text-text hover:bg-surface-raised/60"
                                             }`}
                                     >
-                                        <span className={isActive ? "text-gold" : "text-text-muted"}>{icon}</span>
+                                        <span className={isActive ? "text-[#AB3030]" : "text-text-muted"}>{icon}</span>
                                         <span className="flex-1">{label}</span>
                                         {badge != null && badge > 0 && (
                                             <span className="ml-auto w-4 h-4 bg-red rounded-full text-[9px] font-bold text-white flex items-center justify-center shrink-0">
