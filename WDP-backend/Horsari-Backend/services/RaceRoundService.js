@@ -149,7 +149,7 @@ class RaceRoundService {
         const twoWeeksFromToday = new Date(today.getTime() + TWO_WEEKS_MS);
 
         // Rule 2: Cannot reschedule to < 14 days from today
-        if (updateData && updateData.raceDate) {
+        if (!overrideScheduleConflict && updateData && updateData.raceDate) {
             const newDate = new Date(updateData.raceDate);
             if (!isNaN(newDate.getTime()) && newDate < twoWeeksFromToday && 
                 newDate.getTime() !== new Date(existingRaceRound.raceDate).getTime()) {
