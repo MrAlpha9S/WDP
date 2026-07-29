@@ -1,44 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { AlertTriangle, Camera, Flag, Loader2, Medal, Trophy, Video } from "lucide-react";
+import { AlertTriangle, Camera, Flag, Loader2, Medal, Trophy } from "lucide-react";
 import { ordinal } from "../../shared/data/RaceData";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationRecord } from "../../api/refereeService";
-import MuxPlayer from "@mux/mux-player-react";
 import { RefetchButton } from "../../components/RefetchButton";
 import { ErrorState } from "../../components/ErrorState";
-
-function VideoReviewPanel({ raceRound }: { raceRound: any }) {
-    const playbackId = raceRound?.muxVodPlaybackId || raceRound?.muxPlaybackId;
-
-    return (
-        <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8">
-                <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
-                    <Video size={14} className="text-blue-400" /> Race Video Review
-                </h2>
-                {playbackId && <span className="text-[11px] text-gray-600 font-medium">VOD Playback</span>}
-            </div>
-
-            {/* Video player */}
-            <div className="relative mx-4 mt-4 mb-4 rounded-xl overflow-hidden aspect-video bg-black">
-                {playbackId ? (
-                    <MuxPlayer
-                        playbackId={playbackId}
-                        className="w-full h-full"
-                        style={{ aspectRatio: "16/9" }}
-                    />
-                ) : (
-                    <div className="flex flex-col items-center justify-center w-full h-full text-gray-500">
-                        <Video size={32} className="mb-2 opacity-50" />
-                        <p className="text-[12px] font-medium">Recording is being processed...</p>
-                        <p className="text-[10px] text-gray-600 mt-1">Check back shortly.</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
 
 type DistUnit = 'lengths' | 'metres';
 const fmtLength = (l: number | null | undefined, unit: DistUnit = 'lengths'): string => {
@@ -239,9 +206,6 @@ export default function PostRacePage() {
                         })}
                     </div>
                 </div>
-
-                {/* Video review */}
-                <VideoReviewPanel raceRound={raceRound} />
 
                 {/* Incident review */}
                 <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
