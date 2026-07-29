@@ -1,6 +1,7 @@
 const AdminRepository = require('../repositories/AdminRepository');
 const UserRepository = require('../repositories/UserRepository');
 const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
+const RaceDateUtil = require('../utils/RaceDateUtil');
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const JockeyRepository = require('../repositories/JockeyRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
@@ -1438,7 +1439,7 @@ async function getRegistrationIdsByRound(raceRoundId) {
 }
 
 // Appended to AdminService prototype after class definition
-AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStatus, io) {
+AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStatus, io, override = false) {
     try {
         const allowed = ['running', 'cancelled'];
         if (!allowed.includes(newStatus)) {
@@ -1455,6 +1456,14 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
 
         if (newStatus === 'running' && !raceRound.muxLiveStreamId) {
             return { code: 422, msg: 'A stream key must be created before starting the race. Use the "Create Stream Key" button first.' };
+        }
+
+        if (newStatus === 'running' && !override && !RaceDateUtil.isSameCalendarDay(raceRound.raceDate, new Date())) {
+            return {
+                code: 422,
+                msg: 'This race round is not scheduled for today.',
+                data: { dateMismatch: true, raceDate: raceRound.raceDate },
+            };
         }
 
         const updated = await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus }, { new: true }).lean();
@@ -2936,7 +2945,7 @@ AdminService.prototype.getDashboardTopPerformers = async function () {
             { $limit: 5 },
         ]);
 
-        const horseIds = topHorsesTx.map(r => r._id).filter(Boolean);
+        const horseIds = topHorsesTx.map(r => r._id).filter(Boolean);//Safe guard for null case
         const horseDocs = horseIds.length ? await Horse.find({ _id: { $in: horseIds } }, 'horseName img').lean() : [];
         const horseMap = new Map(horseDocs.map(h => [String(h._id), h]));
         const topEarningHorses = topHorsesTx.map(r => ({
