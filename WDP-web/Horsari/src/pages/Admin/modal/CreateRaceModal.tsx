@@ -311,8 +311,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-[600px] bg-[#161616] border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col">
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#1a1a1a]">
+            <div className="w-[600px] bg-surface border border-border rounded-xl overflow-hidden shadow-2xl flex flex-col">
+                <div className="p-6 border-b border-border/60 flex justify-between items-center bg-surface-raised">
                     <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">
                         {showConfirm ? (raceToEdit ? "Confirm Race Update" : "Confirm Race Creation") : (raceToEdit ? "Edit Race Round" : "Create New Race")}
                     </h2>
@@ -323,7 +323,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
 
                 <div className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[60vh] custom-scrollbar relative">
                     {loading && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#161616]/80 backdrop-blur-sm">
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface/80 backdrop-blur-sm">
                             <Loader2 className="animate-spin text-red-500" size={32} />
                         </div>
                     )}
@@ -413,7 +413,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                     )}
                 </div>
 
-                <div className="p-4 border-t border-white/5 flex justify-end gap-3 bg-[#1a1a1a]">
+                <div className="p-4 border-t border-border/60 flex justify-end gap-3 bg-surface-raised">
                     {showConfirm ? (
                         <>
                             <button onClick={() => setShowConfirm(false)} className="px-6 py-2.5 text-[13px] font-semibold text-white hover:bg-white/5 rounded transition-colors" disabled={submitLoading}>

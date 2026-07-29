@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -27,23 +26,12 @@ import {
   WalletInfo,
 } from '../../api/spectatorApi';
 import { isNetworkError } from '../../api/axios';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette, Radius } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
-
-const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
-  redDark: '#8C1620',
-  gold: '#C9A24B',
-  goldDark: '#1E1A0A',
-  green: '#22C55E',
-  sheet: '#1A1A1C',
-} as const;
+import { Badge, BadgeTone } from '@/components/ui/Badge';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { Button } from '@/components/ui/Button';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,10 +75,10 @@ function txAmountColor(item: TransactionItem): string {
   return item.amount < 0 ? Palette.red : Palette.green;
 }
 
-function txStatusColor(status: TransactionItem['status']): string {
-  if (status === 'completed') return Palette.green;
-  if (status === 'failed')    return Palette.red;
-  return Palette.gold;
+function txStatusTone(status: TransactionItem['status']): BadgeTone {
+  if (status === 'completed') return 'green';
+  if (status === 'failed')    return 'red';
+  return 'amber';
 }
 
 function txStatusLabel(status: TransactionItem['status']): string {
@@ -127,11 +115,7 @@ function TxRow({ item }: { item: TransactionItem }) {
         <Text style={[styles.txAmount, { color: amtColor }]}>
           {sign}{Math.abs(item.amount).toLocaleString()}
         </Text>
-        <View style={[styles.txStatusBadge, { borderColor: `${txStatusColor(item.status)}44` }]}>
-          <Text style={[styles.txStatusText, { color: txStatusColor(item.status) }]}>
-            {txStatusLabel(item.status)}
-          </Text>
-        </View>
+        <Badge label={txStatusLabel(item.status)} tone={txStatusTone(item.status)} />
       </View>
     </View>
   );
@@ -176,56 +160,45 @@ function PointsModal({
   };
 
   return (
-    <Modal
-      visible
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      statusBarTranslucent>
-      <Pressable style={styles.overlay} onPress={onClose} />
-      <View style={styles.modal}>
-        <View style={styles.modalHandle} />
-        <View style={styles.modalHeader}>
-          <Text style={[styles.modalTitle, { color: accentColor }]}>{title}</Text>
-          <Pressable onPress={onClose} hitSlop={8} style={styles.modalCloseBtn}>
-            <Ionicons name="close" size={20} color={Palette.textMuted} />
-          </Pressable>
-        </View>
-
-        <View style={styles.modalBody}>
-          <Text style={styles.inputLabel}>Points</Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.textInput}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="Enter amount..."
-              placeholderTextColor={Palette.textMuted}
-              keyboardType="numeric"
-              maxLength={10}
-            />
-            <Text style={styles.inputUnit}>POINT</Text>
-          </View>
-
-          {err && (
-            <View style={styles.errRow}>
-              <Ionicons name="alert-circle-outline" size={14} color={Palette.red} />
-              <Text style={styles.errText}>{err}</Text>
-            </View>
-          )}
-
-          <Pressable
-            style={[styles.submitBtn, { backgroundColor: accentColor }, busy && styles.btnDisabled]}
-            onPress={handleSubmit}
-            disabled={busy}>
-            {busy
-              ? <ActivityIndicator color="#FFF" size="small" />
-              : <Text style={styles.submitBtnText}>{title}</Text>
-            }
-          </Pressable>
-        </View>
+    <BottomSheet visible onClose={onClose}>
+      <View style={styles.modalHeader}>
+        <Text style={[styles.modalTitle, { color: accentColor }]}>{title}</Text>
+        <Pressable onPress={onClose} hitSlop={8} style={styles.modalCloseBtn} accessibilityLabel="Close">
+          <Ionicons name="close" size={20} color={Palette.textMuted} />
+        </Pressable>
       </View>
-    </Modal>
+
+      <View style={styles.modalBody}>
+        <Text style={styles.inputLabel}>Points</Text>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.textInput}
+            value={amount}
+            onChangeText={setAmount}
+            placeholder="Enter amount..."
+            placeholderTextColor={Palette.textMuted}
+            keyboardType="numeric"
+            maxLength={10}
+          />
+          <Text style={styles.inputUnit}>POINT</Text>
+        </View>
+
+        {err && (
+          <View style={styles.errRow}>
+            <Ionicons name="alert-circle-outline" size={14} color={Palette.red} />
+            <Text style={styles.errText}>{err}</Text>
+          </View>
+        )}
+
+        <Button
+          label={title}
+          onPress={handleSubmit}
+          loading={busy}
+          accentColor={accentColor}
+          style={{ marginTop: 4 }}
+        />
+      </View>
+    </BottomSheet>
   );
 }
 
@@ -323,14 +296,19 @@ export default function WalletScreen() {
                 {rewardPoints.toLocaleString()} POINT
               </Text>
               <View style={styles.balanceActions}>
-                <Pressable style={styles.btnDeposit} onPress={() => setModal('deposit')}>
-                  <Ionicons name="add-circle-outline" size={16} color="#FFF" />
-                  <Text style={styles.btnDepositText}>DEPOSIT</Text>
-                </Pressable>
-                <Pressable style={styles.btnWithdraw} onPress={() => setModal('withdraw')}>
-                  <Ionicons name="arrow-up-circle-outline" size={16} color={Palette.textMuted} />
-                  <Text style={styles.btnWithdrawText}>WITHDRAW</Text>
-                </Pressable>
+                <Button
+                  label="DEPOSIT"
+                  onPress={() => setModal('deposit')}
+                  icon={<Ionicons name="add-circle-outline" size={16} color={Palette.background} />}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  label="WITHDRAW"
+                  variant="secondary"
+                  onPress={() => setModal('withdraw')}
+                  icon={<Ionicons name="arrow-up-circle-outline" size={16} color={Palette.text} />}
+                  style={{ flex: 1 }}
+                />
               </View>
             </View>
 
@@ -462,41 +440,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   balanceActions: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
-  btnDeposit: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 44,
-    backgroundColor: Palette.red,
-    borderRadius: 12,
-  },
-  btnDepositText: {
-    fontFamily: Fonts.mono,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    color: '#FFF',
-  },
-  btnWithdraw: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-  },
-  btnWithdrawText: {
-    fontFamily: Fonts.mono,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    color: Palette.textMuted,
-  },
 
   // Stats
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
@@ -579,18 +522,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  txStatusBadge: {
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  txStatusText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
   txDivider: { height: 1, backgroundColor: Palette.cardBorder, marginHorizontal: 14 },
   txEmpty: {
     alignItems: 'center',
@@ -601,31 +532,7 @@ const styles = StyleSheet.create({
 
   bottomPad: { height: 20 },
 
-  // Modal
-  overlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  modal: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    backgroundColor: Palette.sheet,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: Palette.cardBorder,
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#3A3A3F',
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 4,
-  },
+  // Deposit/withdraw sheet
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -688,27 +595,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#2A1215',
-    borderRadius: 8,
+    backgroundColor: Palette.errorBg,
+    borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: '#5C1A1F',
+    borderColor: Palette.errorBorder,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  errText: { flex: 1, fontSize: 13, color: '#FF6B6B' },
-  submitBtn: {
-    height: 52,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  submitBtnText: {
-    fontFamily: Fonts.mono,
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    color: '#FFF',
-  },
-  btnDisabled: { opacity: 0.5 },
+  errText: { flex: 1, fontSize: 13, color: Palette.red },
 });

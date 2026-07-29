@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -20,20 +19,12 @@ import {
   PaymentStatus,
 } from '../../api/jockeyApi';
 import { useSocket } from '../../socket/SocketContext';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
-
-const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
-  gold: '#C9A24B',
-  green: '#22C55E',
-} as const;
+import { Badge, BadgeTone } from '@/components/ui/Badge';
+import { Chip } from '@/components/ui/Chip';
+import { Button } from '@/components/ui/Button';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -53,9 +44,15 @@ function paymentTypeLabel(type: PaymentEntity['paymentType']): string {
   }
 }
 
+function paymentStatusTone(status: PaymentStatus): BadgeTone {
+  if (status === 'paid') return 'green';
+  if (status === 'processing') return 'amber';
+  return 'muted';
+}
+
 function paymentStatusColor(status: PaymentStatus): string {
   if (status === 'paid') return Palette.green;
-  if (status === 'processing') return Palette.gold;
+  if (status === 'processing') return Palette.amber;
   return Palette.textMuted;
 }
 
@@ -101,20 +98,16 @@ function PaymentRow({
       </View>
       <View style={styles.rowRight}>
         <Text style={styles.rowAmount}>{item.amount.toLocaleString()} ₫</Text>
-        <View style={[styles.statusBadge, { borderColor: `${color}66`, backgroundColor: `${color}18` }]}>
-          <Text style={[styles.statusText, { color }]}>{paymentStatusLabel(item.paymentStatus)}</Text>
-        </View>
+        <Badge label={paymentStatusLabel(item.paymentStatus)} tone={paymentStatusTone(item.paymentStatus)} />
         {canConfirm && (
-          <Pressable
-            style={[styles.confirmBtn, busy && styles.btnDisabled]}
-            disabled={busy}
-            onPress={() => onConfirm(item._id)}>
-            {busy ? (
-              <ActivityIndicator color="#FFF" size="small" />
-            ) : (
-              <Text style={styles.confirmBtnText}>CONFIRM RECEIVED</Text>
-            )}
-          </Pressable>
+          <Button
+            label="CONFIRM RECEIVED"
+            size="compact"
+            accentColor={Palette.red}
+            loading={busy}
+            onPress={() => onConfirm(item._id)}
+            style={styles.confirmBtn}
+          />
         )}
       </View>
     </View>
@@ -197,22 +190,9 @@ export default function PaymentsScreen() {
 
         {/* ─── Filter bar ─── */}
         <View style={styles.filterBar}>
-          {FILTERS.map(({ key, label }) => {
-            const active = activeFilter === key;
-            return (
-              <Pressable
-                key={key}
-                style={[
-                  styles.filterPill,
-                  active && { borderColor: Palette.gold, backgroundColor: `${Palette.gold}1A` },
-                ]}
-                onPress={() => setActiveFilter(key)}>
-                <Text style={[styles.filterPillText, active && { color: Palette.gold }]}>
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {FILTERS.map(({ key, label }) => (
+            <Chip key={key} label={label} active={activeFilter === key} onPress={() => setActiveFilter(key)} />
+          ))}
         </View>
 
         {/* ─── Body ─── */}
@@ -241,7 +221,7 @@ export default function PaymentsScreen() {
 
             {error && (
               <View style={styles.errorBanner}>
-                <Ionicons name="alert-circle-outline" size={14} color="#FF6B6B" />
+                <Ionicons name="alert-circle-outline" size={14} color={Palette.red} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
@@ -313,16 +293,16 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2A1215',
+    backgroundColor: Palette.errorBg,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#5C1A1F',
+    borderColor: Palette.errorBorder,
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 8,
     marginBottom: 16,
   },
-  errorText: { flex: 1, fontSize: 13, color: '#FF6B6B', lineHeight: 18 },
+  errorText: { flex: 1, fontSize: 13, color: Palette.red, lineHeight: 18 },
 
   // Filter bar
   filterBar: {
@@ -332,24 +312,6 @@ const styles = StyleSheet.create({
     gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: Palette.cardBorder,
-  },
-  filterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-    backgroundColor: 'transparent',
-  },
-  filterPillText: {
-    fontFamily: Fonts.mono,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    color: Palette.textMuted,
   },
 
   // Payment list
@@ -389,35 +351,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     color: Palette.gold,
   },
-  statusBadge: {
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  statusText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  confirmBtn: {
-    marginTop: 4,
-    backgroundColor: Palette.red,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  confirmBtnText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    color: '#FFF',
-  },
-  btnDisabled: { opacity: 0.5 },
+  confirmBtn: { marginTop: 4 },
   divider: { height: 1, backgroundColor: Palette.cardBorder, marginHorizontal: 14 },
 
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 12 },

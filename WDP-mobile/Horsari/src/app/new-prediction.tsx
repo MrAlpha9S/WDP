@@ -27,19 +27,11 @@ import {
   TournamentForPrediction,
 } from '../api/spectatorApi';
 import { isNetworkError } from '../api/axios';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette } from '@/constants/theme';
 import { NoConnectionState } from '@/components/NoConnectionState';
-
-const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
-  gold: '#C9A24B',
-  green: '#22C55E',
-} as const;
+import { Badge, BadgeTone } from '@/components/ui/Badge';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { Button } from '@/components/ui/Button';
 
 type TargetType = 'race' | 'tournament';
 type Step = 'pick-type' | 'pick-race' | 'pick-tournament' | 'configure';
@@ -62,10 +54,10 @@ function formatDate(d: string) {
   return `${dt.getDate()} Th${String(dt.getMonth() + 1).padStart(2, '0')}, ${dt.getFullYear()}`;
 }
 
-function statusStyle(s: string): { label: string; color: string } {
-  if (s === 'running' || s === 'ongoing') return { label: 'Live', color: Palette.red };
-  if (s === 'scheduled') return { label: 'Upcoming', color: Palette.gold };
-  return { label: s, color: Palette.textMuted };
+function statusStyle(s: string): { label: string; tone: BadgeTone } {
+  if (s === 'running' || s === 'ongoing') return { label: 'Live', tone: 'red' };
+  if (s === 'scheduled') return { label: 'Upcoming', tone: 'gold' };
+  return { label: s, tone: 'muted' };
 }
 
 // ─── Section header ───────────────────────────────────────────────────────────
@@ -156,6 +148,8 @@ export default function NewPredictionScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [pendingBody, setPendingBody] = useState<CreatePredictionBody | null>(null);
   const backTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear the post-success navigation timer if the screen unmounts before it fires.
@@ -244,42 +238,55 @@ export default function NewPredictionScreen() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!target || !selectedMethod || !selectedMethodId) return;
+  // Validates the current selection and builds the request body, without submitting.
+  // Used to gate opening the confirmation sheet — the actual API call only happens
+  // from handleConfirm, once the user has reviewed the stake and target.
+  const buildBody = (): CreatePredictionBody | null => {
+    if (!target || !selectedMethod || !selectedMethodId) return null;
     setSubmitError(null);
-    setIsSubmitting(true);
 
     const rewardPoints = parseInt(stakeInput, 10);
     if (!rewardPoints || rewardPoints <= 0) {
       setSubmitError('Please enter a valid stake amount (> 0).');
-      setIsSubmitting(false);
-      return;
+      return null;
     }
 
-    let body: CreatePredictionBody | null = null;
-
     if (selectedMethod.methodType === 'tournament_champion') {
-      if (!selectedHorseId) { setSubmitError('Please select a horse.'); setIsSubmitting(false); return; }
-      body = {
+      if (!selectedHorseId) { setSubmitError('Please select a horse.'); return null; }
+      return {
         predictionMethodId: selectedMethodId,
         tournamentId: (target.item as TournamentForPrediction)._id,
         predictedHorseId: selectedHorseId,
         rewardPoints,
       };
-    } else if (selectedMethod.methodType === 'race_winner') {
-      if (!selectedRegId) { setSubmitError('Please select a horse.'); setIsSubmitting(false); return; }
-      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, rewardPoints };
-    } else if (selectedMethod.methodType === 'race_rank') {
-      const rank = parseInt(predictedRank, 10);
-      if (!selectedRegId) { setSubmitError('Please select a horse.'); setIsSubmitting(false); return; }
-      if (!rank || rank < 1) { setSubmitError('Please enter a valid rank (≥ 1).'); setIsSubmitting(false); return; }
-      body = { predictionMethodId: selectedMethodId, registrationId: selectedRegId, predictedRank: rank, rewardPoints };
     }
+    if (selectedMethod.methodType === 'race_winner') {
+      if (!selectedRegId) { setSubmitError('Please select a horse.'); return null; }
+      return { predictionMethodId: selectedMethodId, registrationId: selectedRegId, rewardPoints };
+    }
+    if (selectedMethod.methodType === 'race_rank') {
+      const rank = parseInt(predictedRank, 10);
+      if (!selectedRegId) { setSubmitError('Please select a horse.'); return null; }
+      if (!rank || rank < 1) { setSubmitError('Please enter a valid rank (≥ 1).'); return null; }
+      return { predictionMethodId: selectedMethodId, registrationId: selectedRegId, predictedRank: rank, rewardPoints };
+    }
+    return null;
+  };
 
-    if (!body) { setIsSubmitting(false); return; }
+  const handleReview = () => {
+    const body = buildBody();
+    if (body) {
+      setPendingBody(body);
+      setConfirmVisible(true);
+    }
+  };
 
-    const result = await createPrediction(body);
+  const handleConfirm = async () => {
+    if (!pendingBody) return;
+    setIsSubmitting(true);
+    const result = await createPrediction(pendingBody);
     setIsSubmitting(false);
+    setConfirmVisible(false);
 
     if (result.ok) {
       setSuccess(true);
@@ -293,6 +300,12 @@ export default function NewPredictionScreen() {
     target?.type === 'race'
       ? registrations.filter(r => r.horse).map(r => ({ _id: r.horse!._id, horseName: r.horse!.horseName, laneNumber: r.laneNumber }))
       : (target?.item as TournamentForPrediction | undefined)?.horses ?? [];
+
+  const selectedHorseName = horses.find(h => h._id === selectedHorseId)?.horseName ?? null;
+  const targetName =
+    target?.type === 'tournament'
+      ? (target.item as TournamentForPrediction).tournamentName
+      : (target?.item as RaceScheduleItem | undefined)?.roundName ?? null;
 
   // ─── Header ──────────────────────────────────────────────────────────────────
 
@@ -360,11 +373,12 @@ export default function NewPredictionScreen() {
                       <Text style={styles.emptyText}>No races are currently open for predictions</Text>
                     </View>
                   ) : races.map(race => {
-                    const { label, color } = statusStyle(race.status);
+                    const { label, tone } = statusStyle(race.status);
+                    const iconColor = tone === 'red' ? Palette.red : tone === 'gold' ? Palette.gold : Palette.textMuted;
                     return (
                       <Pressable key={race._id} style={styles.listCard} onPress={() => handleSelectRace(race)}>
-                        <View style={[styles.listCardIcon, { backgroundColor: `${color}18` }]}>
-                          <Ionicons name="flag-outline" size={18} color={color} />
+                        <View style={[styles.listCardIcon, { backgroundColor: `${iconColor}18` }]}>
+                          <Ionicons name="flag-outline" size={18} color={iconColor} />
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.listCardTitle} numberOfLines={1}>{race.roundName}</Text>
@@ -373,9 +387,7 @@ export default function NewPredictionScreen() {
                           )}
                           <Text style={styles.listCardMeta}>{formatDate(race.raceDate)}</Text>
                         </View>
-                        <View style={[styles.statusPill, { borderColor: `${color}44`, backgroundColor: `${color}18` }]}>
-                          <Text style={[styles.statusPillText, { color }]}>{label}</Text>
-                        </View>
+                        <Badge label={label} tone={tone} />
                       </Pressable>
                     );
                   })
@@ -388,15 +400,16 @@ export default function NewPredictionScreen() {
                       <Text style={styles.emptyText}>No tournaments are currently open for champion predictions</Text>
                     </View>
                   ) : tournaments.map(t => {
-                    const { label, color } = statusStyle(t.status);
+                    const { label, tone } = statusStyle(t.status);
+                    const iconColor = tone === 'red' ? Palette.red : tone === 'gold' ? Palette.gold : Palette.textMuted;
                     return (
                       <Pressable
                         key={t._id}
                         style={[styles.listCard, t.alreadyPredicted && styles.listCardDimmed]}
                         disabled={t.alreadyPredicted}
                         onPress={() => handleSelectTournament(t)}>
-                        <View style={[styles.listCardIcon, { backgroundColor: `${color}18` }]}>
-                          <Ionicons name="ribbon-outline" size={18} color={color} />
+                        <View style={[styles.listCardIcon, { backgroundColor: `${iconColor}18` }]}>
+                          <Ionicons name="ribbon-outline" size={18} color={iconColor} />
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.listCardTitle} numberOfLines={1}>{t.tournamentName}</Text>
@@ -406,14 +419,9 @@ export default function NewPredictionScreen() {
                           )}
                         </View>
                         {t.alreadyPredicted ? (
-                          <View style={[styles.statusPill, { borderColor: Palette.green + '44', backgroundColor: Palette.green + '18' }]}>
-                            <Ionicons name="checkmark" size={10} color={Palette.green} />
-                            <Text style={[styles.statusPillText, { color: Palette.green }]}>Predicted</Text>
-                          </View>
+                          <Badge label="Predicted" tone="green" icon="checkmark" />
                         ) : (
-                          <View style={[styles.statusPill, { borderColor: `${color}44`, backgroundColor: `${color}18` }]}>
-                            <Text style={[styles.statusPillText, { color }]}>{label}</Text>
-                          </View>
+                          <Badge label={label} tone={tone} />
                         )}
                       </Pressable>
                     );
@@ -574,19 +582,58 @@ export default function NewPredictionScreen() {
         {/* Submit bar — fixed at bottom */}
         {step === 'configure' && !isConfigLoading && !success && (
           <SafeAreaView edges={['bottom']} style={styles.submitBar}>
-            <Pressable
-              style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
-              onPress={handleSubmit}
-              disabled={isSubmitting}>
-              {isSubmitting
-                ? <ActivityIndicator color={Palette.background} size="small" />
-                : <Text style={styles.submitBtnText}>PLACE PREDICTION</Text>
-              }
-            </Pressable>
+            <Button label="PLACE PREDICTION" onPress={handleReview} disabled={isSubmitting} />
           </SafeAreaView>
         )}
 
       </SafeAreaView>
+
+      {/* Bet confirmation — the one deliberate commit checkpoint before money moves */}
+      <BottomSheet visible={confirmVisible} onClose={() => !isSubmitting && setConfirmVisible(false)}>
+        <Text style={styles.confirmTitle}>Confirm prediction</Text>
+        <View style={styles.confirmRow}>
+          <Text style={styles.confirmLabel}>Target</Text>
+          <Text style={styles.confirmValue} numberOfLines={1}>{targetName}</Text>
+        </View>
+        {selectedMethod && (
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmLabel}>Method</Text>
+            <Text style={styles.confirmValue} numberOfLines={1}>{selectedMethod.methodName}</Text>
+          </View>
+        )}
+        {selectedHorseName && (
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmLabel}>Horse</Text>
+            <Text style={styles.confirmValue} numberOfLines={1}>{selectedHorseName}</Text>
+          </View>
+        )}
+        {selectedMethod?.methodType === 'race_rank' && predictedRank !== '' && (
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmLabel}>Predicted rank</Text>
+            <Text style={styles.confirmValue}>#{predictedRank}</Text>
+          </View>
+        )}
+        <View style={styles.confirmStakeRow}>
+          <Text style={styles.confirmLabel}>Stake</Text>
+          <Text style={styles.confirmStakeValue}>{stakeInput} pts</Text>
+        </View>
+
+        <View style={styles.confirmActions}>
+          <Button
+            label="CANCEL"
+            variant="secondary"
+            onPress={() => setConfirmVisible(false)}
+            disabled={isSubmitting}
+            style={{ flex: 1 }}
+          />
+          <Button
+            label="CONFIRM"
+            onPress={handleConfirm}
+            loading={isSubmitting}
+            style={{ flex: 1 }}
+          />
+        </View>
+      </BottomSheet>
     </View>
   );
 }
@@ -663,16 +710,6 @@ const styles = StyleSheet.create({
   listCardTitle: { fontSize: 14, fontWeight: '700', color: Palette.text, marginBottom: 2 },
   listCardSub: { fontSize: 12, color: Palette.textMuted, marginBottom: 2 },
   listCardMeta: { fontFamily: Fonts.mono, fontSize: 10, color: Palette.textMuted },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  statusPillText: { fontFamily: Fonts.mono, fontSize: 9, fontWeight: '700', letterSpacing: 0.4 },
 
   emptyState: { alignItems: 'center', paddingVertical: 60, gap: 12 },
   emptyText: { fontSize: 13, color: Palette.textMuted, textAlign: 'center', lineHeight: 20 },
@@ -774,13 +811,24 @@ const styles = StyleSheet.create({
     borderTopColor: Palette.cardBorder,
     backgroundColor: Palette.background,
   },
-  submitBtn: {
-    backgroundColor: Palette.gold,
-    borderRadius: 14,
-    paddingVertical: 16,
+  confirmTitle: { fontSize: 18, fontWeight: '800', color: Palette.text, marginBottom: 16 },
+  confirmRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Palette.cardBorder,
+    gap: 12,
   },
-  submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { fontFamily: Fonts.mono, fontSize: 14, fontWeight: '800', letterSpacing: 1.5, color: Palette.background },
+  confirmLabel: { fontSize: 13, color: Palette.textMuted },
+  confirmValue: { flex: 1, textAlign: 'right', fontSize: 14, fontWeight: '600', color: Palette.text },
+  confirmStakeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  confirmStakeValue: { fontFamily: Fonts.mono, fontSize: 22, fontWeight: '800', color: Palette.gold },
+  confirmActions: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 16 },
 });

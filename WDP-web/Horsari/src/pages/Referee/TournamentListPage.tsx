@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+﻿import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Tournament, RaceRound } from "../../shared/types/TournamentTypes";
 import TournamentCalendar from "./RefereeComponents/TournamentCalendar";
@@ -85,7 +85,7 @@ export default function TournamentListPage({ onSelect, onOpenRaceMonitor }: Tour
                         <p className="text-[13px] text-gray-500 mt-0.5">Race series and championship events.</p>
                     </div>
                     <RefetchButton onRefetch={fetchTournaments} lastUpdated={lastUpdated} />
-                    {/* <div className="bg-[#1a1a1a] border border-white/8 rounded-xl px-4 py-2.5 text-right">
+                    {/* <div className="bg-surface border border-border rounded-xl px-4 py-2.5 text-right">
                         <p className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Assigned</p>
                         <p className="text-[22px] font-black text-red-500 tracking-tight leading-tight font-serif">
                             {TOURNAMENTS.filter(t => t.assignment !== "none").length}
@@ -95,7 +95,7 @@ export default function TournamentListPage({ onSelect, onOpenRaceMonitor }: Tour
 
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-                        <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-white/40 animate-spin mb-4" />
+                        <div className="w-8 h-8 rounded-full border-2 border-border border-t-white/40 animate-spin mb-4" />
                         <p className="text-[12px] uppercase tracking-widest font-bold">Loading Events</p>
                     </div>
                 ) : error ? (

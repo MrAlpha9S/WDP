@@ -63,8 +63,8 @@ export default function ViolationManagementPage() {
     const SortIcon = ({ field }: { field: string }) => {
         if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
         return order === 'asc'
-            ? <ArrowUp size={11} className="text-[#f3b2a5] ml-1 inline" />
-            : <ArrowDown size={11} className="text-[#f3b2a5] ml-1 inline" />;
+            ? <ArrowUp size={11} className="text-gold ml-1 inline" />
+            : <ArrowDown size={11} className="text-gold ml-1 inline" />;
     };
 
     const fetchViolations = useCallback(async () => {
@@ -107,19 +107,19 @@ export default function ViolationManagementPage() {
     const panelOpen = selectedViolation !== null;
 
     return (
-        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? 'flex-[0_0_50%]' : 'flex-1'}`}>
 
                     {/* Header */}
-                    <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+                    <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
                                 <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight font-serif">
                                     Violations
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                                         All Races
                                     </span>
                                     <span className="text-[12px] text-gray-500">· {totalItems} violation{totalItems !== 1 ? 's' : ''}</span>
@@ -131,7 +131,7 @@ export default function ViolationManagementPage() {
                             <select
                                 value={statusFilter}
                                 onChange={e => setStatusFilter(e.target.value)}
-                                className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Statuses</option>
                                 <option value="pending">Pending</option>
@@ -141,7 +141,7 @@ export default function ViolationManagementPage() {
                             <select
                                 value={severityFilter}
                                 onChange={e => setSeverityFilter(e.target.value)}
-                                className="w-[140px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                className="w-[140px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Severities</option>
                                 {[1, 2, 3, 4, 5].map(s => <option key={s} value={s}>Severity {s}</option>)}
@@ -154,7 +154,7 @@ export default function ViolationManagementPage() {
                                     setOrder(dir as 'asc' | 'desc');
                                     setPage(1);
                                 }}
-                                className="w-[175px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="created_at:desc">Newest First</option>
                                 <option value="created_at:asc">Oldest First</option>
@@ -167,10 +167,10 @@ export default function ViolationManagementPage() {
 
                     {/* Table */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar pt-6">
-                        <div className="w-full rounded-xl border border-white/[0.07] bg-[#141414] overflow-hidden">
+                        <div className="w-full rounded-xl border border-border bg-surface overflow-hidden">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-[#1a1a1a] border-b border-white/5">
+                                    <tr className="bg-surface border-b border-border/60">
                                         <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Type</th>
                                         {!panelOpen && (
                                             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Race Round</th>
@@ -197,11 +197,11 @@ export default function ViolationManagementPage() {
                                             <tr
                                                 key={v._id}
                                                 onClick={() => setSelectedViolation(isSelected ? null : v)}
-                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? 'bg-[#f3b2a5]/5 border-l-2 border-[#f3b2a5]' : ''}`}
+                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? 'bg-gold/5 border-l-2 border-gold' : ''}`}
                                             >
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-2.5 min-w-0">
-                                                        <div className="w-8 h-8 rounded bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 shrink-0">
+                                                        <div className="w-8 h-8 rounded bg-white/5 border border-border flex items-center justify-center text-gray-400 shrink-0">
                                                             <AlertTriangle size={14} />
                                                         </div>
                                                         <div className="min-w-0">

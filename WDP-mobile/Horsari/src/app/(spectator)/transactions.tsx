@@ -15,20 +15,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getTransactionHistory, TransactionItem } from '../../api/spectatorApi';
 import { isNetworkError } from '../../api/axios';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
-
-const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
-  gold: '#C9A24B',
-  green: '#22C55E',
-} as const;
+import { Badge, BadgeTone } from '@/components/ui/Badge';
 
 // ─── Helpers (mirrors wallet.tsx) ─────────────────────────────────────────────
 
@@ -72,10 +62,10 @@ function txAmountColor(item: TransactionItem): string {
   return item.amount < 0 ? Palette.red : Palette.green;
 }
 
-function txStatusColor(status: TransactionItem['status']): string {
-  if (status === 'completed') return Palette.green;
-  if (status === 'failed')    return Palette.red;
-  return Palette.gold;
+function txStatusTone(status: TransactionItem['status']): BadgeTone {
+  if (status === 'completed') return 'green';
+  if (status === 'failed')    return 'red';
+  return 'amber';
 }
 
 function txStatusLabel(status: TransactionItem['status']): string {
@@ -104,11 +94,7 @@ function TxRow({ item }: { item: TransactionItem }) {
         <Text style={[styles.txAmount, { color: amtColor }]}>
           {sign}{Math.abs(item.amount).toLocaleString()}
         </Text>
-        <View style={[styles.txStatusBadge, { borderColor: `${txStatusColor(item.status)}44` }]}>
-          <Text style={[styles.txStatusText, { color: txStatusColor(item.status) }]}>
-            {txStatusLabel(item.status)}
-          </Text>
-        </View>
+        <Badge label={txStatusLabel(item.status)} tone={txStatusTone(item.status)} />
       </View>
     </View>
   );
@@ -172,7 +158,7 @@ export default function TransactionsScreen() {
 
         {/* ─── Header ─── */}
         <View style={styles.header}>
-          <Pressable hitSlop={8} onPress={() => router.back()}>
+          <Pressable hitSlop={8} onPress={() => router.back()} accessibilityLabel="Go back" accessibilityRole="button">
             <Ionicons name="chevron-back" size={22} color={Palette.text} />
           </Pressable>
           <Text style={styles.headerTitle}>TRANSACTION HISTORY</Text>
@@ -295,18 +281,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.mono,
     fontSize: 15,
     fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  txStatusBadge: {
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  txStatusText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '700',
     letterSpacing: 0.5,
   },
   txDivider: { height: 1, backgroundColor: Palette.cardBorder, marginHorizontal: 14 },

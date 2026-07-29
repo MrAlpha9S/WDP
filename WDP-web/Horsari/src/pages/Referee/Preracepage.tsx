@@ -14,8 +14,8 @@ function regStatusBadge(status?: string) {
         case "verified": return <span className="text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-700/40 px-1.5 py-0.5 rounded-md">Verified</span>;
         case "failed": return <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-1.5 py-0.5 rounded-md">Failed</span>;
         case "approved": return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-700/40 px-1.5 py-0.5 rounded-md">Approved</span>;
-        case "cancelled": return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-md">Cancelled</span>;
-        default: return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-md">Pending</span>;
+        case "cancelled": return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Cancelled</span>;
+        default: return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Pending</span>;
     }
 }
 
@@ -106,8 +106,8 @@ export default function PreRacePage() {
                 <div className="flex flex-col gap-4">
 
                     {/* Horse checklist */}
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8">
+                    <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
                             <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
                                 <ClipboardList size={14} className="text-yellow-500" /> Horse Inspection Checklist
                             </h2>
@@ -143,7 +143,7 @@ export default function PreRacePage() {
                                             regStatus === "failed" ? "border-red-800/40 bg-red-500/5" :
                                                 regStatus === "verified" ? "border-green-800/40 bg-green-500/5" :
                                                     regStatus === "approved" ? "border-amber-800/30 bg-amber-500/5" :
-                                                        "border-white/8 bg-white/[0.02]",
+                                                        "border-border bg-white/[0.02]",
                                         ].join(" ")}
                                     >
                                         <div className="flex items-center gap-3">
@@ -215,7 +215,7 @@ export default function PreRacePage() {
                     </div>
 
                     {/* Venue & Track */}
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-5">
+                    <div className="bg-surface rounded-xl border border-border p-5">
                         <h2 className="text-[13px] font-bold text-white mb-4 font-serif">Venue & Track</h2>
                         <div className="grid grid-cols-2 gap-3">
                             {[
@@ -224,7 +224,7 @@ export default function PreRacePage() {
                                 { label: "Location", value: raceRound?.location ?? "-" },
                                 { label: "Address", value: raceRound?.address ?? "-" },
                             ].map(item => (
-                                <div key={item.label} className="bg-white/[0.03] rounded-lg border border-white/6 px-3 py-2.5">
+                                <div key={item.label} className="bg-white/[0.03] rounded-lg border border-border/60 px-3 py-2.5">
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-0.5">{item.label}</p>
                                     <p className="text-[13px] font-semibold text-white truncate">{item.value}</p>
                                 </div>
@@ -235,7 +235,7 @@ export default function PreRacePage() {
 
                 {/* RIGHT */}
                 <div className="flex flex-col gap-4">
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
+                    <div className="bg-surface rounded-xl border border-border p-4">
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Details</h2>
                         {[
                             { label: "Race Type", value: raceRound?.RaceType?.raceType ?? "-" },
@@ -243,14 +243,14 @@ export default function PreRacePage() {
                             { label: "Post Time", value: postTime },
                             { label: "Entries", value: `${registrations.length} horses` },
                         ].map(item => (
-                            <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                            <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
                                 <span className="text-[12px] text-gray-500">{item.label}</span>
                                 <span className="text-[12px] font-semibold text-white">{item.value}</span>
                             </div>
                         ))}
                     </div>
 
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
+                    <div className="bg-surface rounded-xl border border-border p-4">
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Inspection Progress</h2>
                         {(() => {
                             const verifiedCount = registrations.filter(r => r.registrationStatus === "verified").length;
@@ -280,7 +280,7 @@ export default function PreRacePage() {
                                 },
                                 { label: "Track Inspection", ok: true, value: "Cleared" },
                             ].map(item => (
-                                <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                                <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
                                     <span className="text-[12px] text-gray-500">{item.label}</span>
                                     {item.ok
                                         ? <span className="flex items-center gap-1 text-[11px] font-bold text-green-400"><CheckCircle2 size={11} />{item.value}</span>
@@ -313,7 +313,7 @@ export default function PreRacePage() {
 
                         if (!allResolved) {
                             return (
-                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 text-gray-500 border border-white/8 text-[13px] font-bold uppercase tracking-widest">
+                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 text-gray-500 border border-border text-[13px] font-bold uppercase tracking-widest">
                                     <Clock size={14} /> Awaiting Clearance
                                 </div>
                             );
@@ -332,7 +332,7 @@ export default function PreRacePage() {
                                     className={[
                                         "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
                                         finalizing
-                                            ? "bg-white/5 text-gray-600 border border-white/8 cursor-not-allowed"
+                                            ? "bg-white/5 text-gray-600 border border-border cursor-not-allowed"
                                             : hasVerified
                                                 ? "bg-green-700 text-white hover:bg-green-600 shadow-lg shadow-green-900/30"
                                                 : "bg-red-700 text-white hover:bg-red-600 shadow-lg shadow-red-900/30",

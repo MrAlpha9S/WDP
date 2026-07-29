@@ -1,8 +1,35 @@
 @import "tailwindcss";
 
 @theme {
+  /* Typography — inherits mobile's system-sans body + mono data/label signature.
+     --font-serif is aliased to sans (not removed) so the 49 call sites using
+     font-serif for headings don't need a mass find/replace; it can be retired
+     for real once those headings are touched during page-by-page redesign. */
   --font-sans: "DM Sans", sans-serif;
-  --font-serif: "Playfair Display", serif;
+  --font-serif: "DM Sans", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Color tokens — inherited from WDP-mobile/Horsari/src/constants/theme.ts (Palette).
+     Replaces the ad hoc #111111/#1a1a1a/#f3b2a5/#ef4444 hex values scattered per-file. */
+  --color-bg: #0a0a0b;
+  --color-surface: #161618;
+  --color-surface-raised: #1e1e21;
+  --color-border: #262629;
+  --color-text: #ffffff;
+  --color-text-muted: #9a9aa0;
+  --color-gold: #c9a24b;
+  --color-gold-tint: #1a1608;
+  --color-red: #c81e2e;
+  --color-green: #22c55e;
+  --color-amber: #e07b3a;
+  --color-error-bg: #2a1215;
+  --color-error-border: #3a1218;
+
+  /* Radius scale — inherited from mobile's Radius tokens (sm/md/lg/xl/full). */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
 }
 
 /* Custom Scrollbar Styles */

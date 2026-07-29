@@ -33,7 +33,7 @@ function PanelAvatar({ src, name, id }: { src: string; name: string; id: string 
                     <div className="relative max-w-xs w-full" onClick={e => e.stopPropagation()}>
                         <button
                             onClick={() => setExpanded(false)}
-                            className="absolute -top-3 -right-3 z-10 w-7 h-7 rounded-full bg-[#1a1a1a] border border-white/[0.1] flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                            className="absolute -top-3 -right-3 z-10 w-7 h-7 rounded-full bg-surface border border-border flex items-center justify-center text-gray-400 hover:text-white transition-colors"
                         >
                             <X size={13} />
                         </button>
@@ -41,7 +41,7 @@ function PanelAvatar({ src, name, id }: { src: string; name: string; id: string 
                             src={src}
                             alt={name}
                             onError={() => { setErrored(true); setExpanded(false); }}
-                            className="w-full rounded-2xl border border-white/[0.1] shadow-2xl"
+                            className="w-full rounded-2xl border border-border shadow-2xl"
                         />
                         <p className="text-center text-[12px] text-gray-500 mt-3">{name}</p>
                     </div>
@@ -56,7 +56,7 @@ function PanelAvatar({ src, name, id }: { src: string; name: string; id: string 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
     const isNull = value === null || value === undefined || value === "";
     return (
-        <div className="flex items-center justify-between gap-4 py-2.5 border-b border-white/[0.05] last:border-0">
+        <div className="flex items-center justify-between gap-4 py-2.5 border-b border-border/60 last:border-0">
             <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium flex-shrink-0">{label}</span>
             <span className="text-[12px] text-gray-200 text-right">
                 {isNull ? <span className="italic text-gray-600">N/A</span> : value}
@@ -104,7 +104,7 @@ function FileLink({ label, href, type }: { label: string; href: string; type: "p
             <button
                 onClick={() => setConfirming(true)}
                 disabled={loading}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.08] hover:border-white/[0.14] transition-all group text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-border hover:bg-white/[0.08] hover:border-white/[0.14] transition-all group text-left disabled:opacity-60 disabled:cursor-not-allowed"
             >
                 <div className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 ${type === "pdf" ? "bg-red-500/15 text-red-400" : "bg-blue-500/15 text-blue-400"}`}>
                     {loading ? <Loader2 size={13} className="animate-spin" /> : type === "pdf" ? <FileText size={13} /> : <ImageIcon size={13} />}
@@ -118,7 +118,7 @@ function FileLink({ label, href, type }: { label: string; href: string; type: "p
 
             {confirming && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setConfirming(false)}>
-                    <div className="bg-[#1a1a1a] border border-white/[0.1] rounded-xl shadow-2xl w-[320px] p-5" onClick={e => e.stopPropagation()}>
+                    <div className="bg-surface border border-border rounded-xl shadow-2xl w-[320px] p-5" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-3 mb-3">
                             <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${type === "pdf" ? "bg-red-500/15 text-red-400" : "bg-blue-500/15 text-blue-400"}`}>
                                 {type === "pdf" ? <FileText size={16} /> : <ImageIcon size={16} />}
@@ -134,7 +134,7 @@ function FileLink({ label, href, type }: { label: string; href: string; type: "p
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setConfirming(false)}
-                                className="flex-1 py-2 rounded-lg text-[12px] font-semibold bg-white/[0.05] hover:bg-white/[0.09] text-gray-300 border border-white/[0.07] transition-colors"
+                                className="flex-1 py-2 rounded-lg text-[12px] font-semibold bg-white/[0.05] hover:bg-white/[0.09] text-gray-300 border border-border transition-colors"
                             >
                                 Cancel
                             </button>
@@ -206,7 +206,7 @@ function SpectatorActivityTab({ data }: { data: SpectatorData }) {
     const [subTab, setSubTab] = useState<'predictions' | 'transactions'>('predictions');
     return (
         <div className="flex flex-col gap-3">
-            <div className="flex rounded-lg overflow-hidden border border-white/[0.07] divide-x divide-white/[0.07]">
+            <div className="flex rounded-lg overflow-hidden border border-border divide-x divide-white/[0.07]">
                 <button onClick={() => setSubTab('predictions')} className={`flex-1 text-[11px] font-semibold py-1.5 transition-colors ${subTab === 'predictions' ? 'bg-white/[0.08] text-white' : 'text-gray-500 hover:text-gray-300'}`}>
                     Predictions ({data.predictions.length})
                 </button>
@@ -217,7 +217,7 @@ function SpectatorActivityTab({ data }: { data: SpectatorData }) {
 
             {subTab === 'predictions' && (
                 data.predictions.length ? data.predictions.map(p => (
-                    <div key={p.predictionId} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 flex flex-col gap-1">
+                    <div key={p.predictionId} className="rounded-lg bg-white/[0.02] border border-border/60 p-3 flex flex-col gap-1">
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                                 <p className="text-[12px] font-semibold text-white truncate">{p.predictedHorse ?? 'Unknown Horse'}</p>
@@ -238,7 +238,7 @@ function SpectatorActivityTab({ data }: { data: SpectatorData }) {
 
             {subTab === 'transactions' && (
                 data.transactions.length ? data.transactions.map(t => (
-                    <div key={t.transactionId} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 flex items-center justify-between gap-2">
+                    <div key={t.transactionId} className="rounded-lg bg-white/[0.02] border border-border/60 p-3 flex items-center justify-between gap-2">
                         <div className="min-w-0">
                             <p className="text-[12px] font-semibold text-white capitalize truncate">{t.transactionType.replace(/_/g, ' ')}</p>
                             {t.description && <p className="text-[11px] text-gray-500 truncate">{t.description}</p>}
@@ -267,7 +267,7 @@ function RoleDetails({ user }: { user: FullUser }) {
                 <div className={`w-1 h-3.5 rounded-full ${accentClass(user.role)}`} />
                 <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">{style.label} Details</p>
             </div>
-            <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-3 flex flex-col">
+            <div className="rounded-lg bg-white/[0.02] border border-border/60 px-3 flex flex-col">
                 {user.role === "HorseOwner" && (<>
                     <DetailRow label="Address" value={user.data?.address} />
                     <DetailRow label="License Status" value={
@@ -356,13 +356,13 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
 
     return (
         <div
-            className="flex flex-col bg-[#141414] border border-white/[0.07] rounded-xl overflow-hidden h-full"
+            className="flex flex-col bg-surface border border-border rounded-xl overflow-hidden h-full"
             style={{ animation: "panelIn 0.18s ease-out" }}
         >
             <style>{`@keyframes panelIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }`}</style>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.07] flex-shrink-0">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
                 <div className="flex items-center gap-2">
                     <div className={`w-1 h-4 rounded-full ${accentClass(user.role)}`} />
                     <p className="text-[13px] font-semibold text-white">User Detail</p>
@@ -395,7 +395,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-white/[0.07] mt-2 mb-2">
+                <div className="flex border-b border-border mt-2 mb-2">
                     <button 
                         className={`flex-1 pb-2 text-[12px] font-semibold transition-colors ${activeTab === "Overview" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
                         onClick={() => setActiveTab("Overview")}
@@ -421,7 +421,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                 <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                     {/* Tab Content */}
                     {activeTab === "Overview" && (
-                        <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-3 flex flex-col">
+                        <div className="rounded-lg bg-white/[0.02] border border-border/60 px-3 flex flex-col">
                             <DetailRow label="Email" value={user.email} />
                             <DetailRow label="Phone" value={user.phoneNumber} />
                             <DetailRow label="Date of Birth" value={user.dateOfBirth} />
@@ -440,7 +440,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                             : <>
                                 <RoleDetails user={user} />
                                 {onVerify && ['HorseOwner', 'Jockey', 'Referee'].includes(user.role) && (user.data as any)?.licenseStatus === 'pending' && (
-                                    <div className="mt-3 flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                                    <div className="mt-3 flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-border/60 bg-white/[0.02]">
                                         <div className="flex items-center gap-2">
                                             <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
                                             <span className="text-[11px] text-amber-400/90 font-medium">License pending review</span>
@@ -472,7 +472,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                         <div className="flex flex-col gap-2">
                             {!!user.data.raceHistory?.length && (
                                 <div className="flex justify-end">
-                                    <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
+                                    <div className="flex items-center gap-0.5 bg-white/5 border border-border rounded-lg p-0.5">
                                         {(['lengths', 'metres'] as const).map(u => (
                                             <button key={u} onClick={() => setDistUnit(u)}
                                                 className={["text-[10px] font-bold font-mono px-2 py-1 rounded-md transition-all", distUnit === u ? "bg-white/15 text-white" : "text-gray-600 hover:text-gray-400"].join(" ")}>
@@ -487,7 +487,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                                 const posColor = race.position === 1 ? 'text-amber-400' : race.position === 2 ? 'text-gray-300' : race.position === 3 ? 'text-orange-400' : 'text-gray-500';
                                 const hasResult = race.position != null || race.prize != null || race.finishTime != null;
                                 return (
-                                    <div key={race.id} className="rounded-lg bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+                                    <div key={race.id} className="rounded-lg bg-white/[0.02] border border-border/60 overflow-hidden">
                                         {/* Race name + date */}
                                         <div className="px-3 pt-3 pb-2 flex items-start justify-between gap-2">
                                             <div className="min-w-0">
@@ -515,7 +515,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
 
                                         {/* Horse ridden */}
                                         {race.horseName && (
-                                            <div className="mx-3 mb-2 flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.06]">
+                                            <div className="mx-3 mb-2 flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-border/60">
                                                 {race.horseImg
                                                     ? <img src={race.horseImg} alt={race.horseName} className="w-5 h-5 rounded-full object-cover flex-shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                                                     : <div className="w-5 h-5 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0"><span className="text-[8px] font-bold text-amber-400">{race.horseName[0]}</span></div>
@@ -529,18 +529,18 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
 
                                         {/* Result row */}
                                         {hasResult && (
-                                            <div className="grid grid-cols-4 gap-2 mx-3 mb-3 px-3 py-2 rounded-md bg-white/[0.02] border border-white/[0.05]">
+                                            <div className="grid grid-cols-4 gap-2 mx-3 mb-3 px-3 py-2 rounded-md bg-white/[0.02] border border-border/60">
                                                 <div className="text-center">
                                                     <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Position</p>
                                                     <p className={`text-[13px] font-bold ${posLabel ? posColor : 'text-gray-600'}`}>{posLabel ?? '—'}</p>
                                                 </div>
-                                                <div className="text-center border-x border-white/[0.05]">
+                                                <div className="text-center border-x border-border/60">
                                                     <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Time</p>
                                                     <p className="text-[12px] text-gray-300 font-medium flex items-center justify-center gap-1">
                                                         <Timer size={9} className="text-gray-600" />{race.finishTime ?? '—'}
                                                     </p>
                                                 </div>
-                                                <div className="text-center border-r border-white/[0.05]">
+                                                <div className="text-center border-r border-border/60">
                                                     <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-0.5">Margin</p>
                                                     <p className="text-[12px] text-gray-400 font-medium">{fmtLength(race.distance)}</p>
                                                 </div>
@@ -569,7 +569,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                     {activeTab === "History" && user.role === "HorseOwner" && user.data && 'horses' in user.data && (
                         <div className="flex flex-col gap-2">
                             {user.data.horses?.length ? user.data.horses.map((horse: any) => (
-                                <div key={horse.id} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 flex items-center justify-between">
+                                <div key={horse.id} className="rounded-lg bg-white/[0.02] border border-border/60 p-3 flex items-center justify-between">
                                     <div>
                                         <p className="text-[13px] font-semibold text-white">{horse.name}</p>
                                         <p className="text-[11px] text-gray-500">{horse.breed} • {horse.age} yrs</p>
@@ -585,7 +585,7 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
                     {activeTab === "History" && user.role === "Referee" && user.data && 'assignments' in user.data && (
                         <div className="flex flex-col gap-2">
                             {user.data.assignments?.length ? user.data.assignments.map((a: any) => (
-                                <div key={a.assignmentId} className="rounded-lg bg-white/[0.02] border border-white/[0.06] overflow-hidden">
+                                <div key={a.assignmentId} className="rounded-lg bg-white/[0.02] border border-border/60 overflow-hidden">
                                     <div className="p-3">
                                         <div className="flex items-start justify-between gap-2 mb-1">
                                             <p className="text-[13px] font-semibold text-white">{a.roundName || 'Unknown Race'}</p>
@@ -613,8 +613,8 @@ export default function UserDetailPanel({ user, onClose, detailLoading = false, 
             </div>
 
             {/* Footer */}
-            <div className="flex gap-2 px-5 py-3 border-t border-white/[0.07] flex-shrink-0">
-                <button className="flex-1 text-[12px] font-semibold bg-white/[0.05] hover:bg-white/[0.09] text-gray-300 py-2 rounded-lg transition-colors border border-white/[0.07]">
+            <div className="flex gap-2 px-5 py-3 border-t border-border flex-shrink-0">
+                <button className="flex-1 text-[12px] font-semibold bg-white/[0.05] hover:bg-white/[0.09] text-gray-300 py-2 rounded-lg transition-colors border border-border">
                     Edit User
                 </button>
                 {user.status === "active" ? (

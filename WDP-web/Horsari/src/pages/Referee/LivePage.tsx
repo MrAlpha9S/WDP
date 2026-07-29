@@ -39,7 +39,7 @@ function IncidentButton({
             disabled={loading}
             className={["group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border text-center transition-all duration-200 cursor-pointer select-none relative",
                 active ? "border-red-700 bg-red-500/10 text-red-400"
-                    : "border-white/8 bg-white/[0.03] text-gray-500 hover:border-white/15 hover:bg-white/[0.06] hover:text-gray-300",
+                    : "border-border bg-white/[0.03] text-gray-500 hover:border-white/15 hover:bg-white/[0.06] hover:text-gray-300",
                 loading ? "opacity-60 cursor-not-allowed" : "",
             ].join(" ")}
         >
@@ -88,7 +88,7 @@ function HorsePickerModal({
             onClick={onClose}
         >
             <div
-                className="bg-[#1c1c1c] border border-white/10 rounded-2xl p-5 w-[320px] shadow-2xl shadow-black/60 flex flex-col gap-4"
+                className="bg-surface-raised border border-border rounded-2xl p-5 w-[320px] shadow-2xl shadow-black/60 flex flex-col gap-4"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
@@ -116,7 +116,7 @@ function HorsePickerModal({
                                 "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all",
                                 selected === null
                                     ? "border-yellow-600/60 bg-yellow-500/8 text-yellow-400"
-                                    : "border-white/8 bg-white/[0.03] text-gray-500 hover:border-white/15 hover:text-gray-300",
+                                    : "border-border bg-white/[0.03] text-gray-500 hover:border-white/15 hover:text-gray-300",
                             ].join(" ")}
                         >
                             <span className={[
@@ -137,7 +137,7 @@ function HorsePickerModal({
                                     "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all",
                                     selected === h.registrationId
                                         ? "border-red-700/60 bg-red-500/8 text-red-300"
-                                        : "border-white/8 bg-white/[0.03] text-gray-400 hover:border-white/15 hover:text-gray-200",
+                                        : "border-border bg-white/[0.03] text-gray-400 hover:border-white/15 hover:text-gray-200",
                                 ].join(" ")}
                             >
                                 <span className={[
@@ -154,10 +154,10 @@ function HorsePickerModal({
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 pt-1 border-t border-white/8">
+                <div className="flex gap-2 pt-1 border-t border-border">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-2 rounded-xl border border-white/10 text-gray-500 text-[12px] font-semibold hover:border-white/20 hover:text-gray-300 transition-all"
+                        className="flex-1 py-2 rounded-xl border border-border text-gray-500 text-[12px] font-semibold hover:border-white/20 hover:text-gray-300 transition-all"
                     >
                         Cancel
                     </button>
@@ -213,7 +213,7 @@ function PositionTrack({
     const leader = [...displayHorses].sort((a, b) => b.currentDistance - a.currentDistance)[0];
 
     return (
-        <div className="bg-[#0f0f0f] rounded-xl border border-white/8 p-4">
+        <div className="bg-bg rounded-xl border border-border p-4">
             <div className="flex items-center justify-between mb-3">
                 <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">Track Position</h2>
                 <div className="flex items-center gap-2">
@@ -232,7 +232,7 @@ function PositionTrack({
 
             {/* Track bar — one lane per horse, separated vertically by horse number */}
             <div
-                className="relative bg-white/[0.03] rounded-2xl border border-white/6 overflow-visible mx-2"
+                className="relative bg-white/[0.03] rounded-2xl border border-border/60 overflow-visible mx-2"
                 style={{ height: `${Math.max(80, displayHorses.length * 30)}px` }}
             >
                 {/* Corner labels */}
@@ -462,8 +462,8 @@ export default function LivePage() {
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
 
                 {/* Camera */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8">
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                         <div className="flex items-center gap-2 flex-wrap">
                             {showMux ? (
                                 <span className="flex items-center gap-1.5 text-[11px] font-bold text-red-400">
@@ -519,7 +519,7 @@ export default function LivePage() {
                             </span>
                         </div>
 
-                        <div className="absolute bottom-2.5 left-2.5 bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-3">
+                        <div className="absolute bottom-2.5 left-2.5 bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg border border-border flex items-center gap-3">
                             <div>
                                 <p className="text-[8px] text-gray-400 uppercase tracking-wider font-medium">Pace</p>
                                 <p className="text-[11px] font-bold text-white">{paceMps}</p>
@@ -541,7 +541,7 @@ export default function LivePage() {
                         </button>
 
                         {showTrackOnStream && (
-                            <div className="absolute bottom-10 left-2.5 right-2.5 bg-black/75 backdrop-blur rounded-xl px-3 py-2 border border-white/10">
+                            <div className="absolute bottom-10 left-2.5 right-2.5 bg-black/75 backdrop-blur rounded-xl px-3 py-2 border border-border">
                                 <div
                                     className="relative bg-white/[0.06] rounded-xl overflow-visible"
                                     style={{ height: `${Math.max(40, (liveHorses?.length ?? 0) * 18)}px` }}
@@ -577,8 +577,8 @@ export default function LivePage() {
                 </div>
 
                 {/* Incident log */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0">
+                <div className="bg-surface rounded-xl border border-border flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
                         <h2 className="text-[13px] font-bold text-white font-serif">Incident Log</h2>
                         <div className="flex items-center gap-2">
                             {activeViolations.length > 0
@@ -611,7 +611,7 @@ export default function LivePage() {
 
                     {/* Flagged violation list with delete */}
                     {activeViolations.length > 0 && (
-                        <div className="border-t border-white/8 px-3 py-2 flex flex-col gap-1 max-h-36 overflow-y-auto shrink-0">
+                        <div className="border-t border-border px-3 py-2 flex flex-col gap-1 max-h-36 overflow-y-auto shrink-0">
                             {activeViolations.map(v => {
                                 const vtObj = typeof v.violationTypeId === 'object' && v.violationTypeId !== null ? v.violationTypeId : null;
                                 const name = vtObj?.violationName ?? 'Violation';
@@ -670,7 +670,7 @@ export default function LivePage() {
             {/* Row 3: Stats + Actions + Verification */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_300px] gap-4">
 
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
+                <div className="bg-surface rounded-xl border border-border p-4">
                     <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Stats</h2>
                     {[
                         { label: "Elapsed", value: elapsed },
@@ -679,17 +679,17 @@ export default function LivePage() {
                         { label: "Next Mark", value: lineMark !== null ? `${lineMark} m` : "—" },
                         { label: "Incidents", value: `${activeViolations.length}` },
                     ].map(item => (
-                        <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                        <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
                             <span className="text-[12px] text-gray-500">{item.label}</span>
                             <span className="text-[12px] font-semibold text-white">{item.value}</span>
                         </div>
                     ))}
                 </div>
 
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
+                <div className="bg-surface rounded-xl border border-border p-4">
                     <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Actions</h2>
                     <div className="flex flex-col gap-2.5">
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-gray-400 text-[13px] font-semibold hover:border-white/20 hover:text-gray-200 transition-all">
+                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-gray-400 text-[13px] font-semibold hover:border-white/20 hover:text-gray-200 transition-all">
                             <Camera size={13} /> Review Finish Photo
                         </button>
                         <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-700 text-white text-[13px] font-bold uppercase tracking-widest hover:bg-red-600 shadow-lg shadow-red-900/40 transition-all">
@@ -698,7 +698,7 @@ export default function LivePage() {
                     </div>
                 </div>
 
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
                     <button onClick={() => setVerificationOpen(o => !o)}
                         className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
                     >
@@ -708,7 +708,7 @@ export default function LivePage() {
                         <ChevronDown size={13} className={`text-gray-600 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
                     </button>
                     {verificationOpen && (
-                        <div className="p-3 flex flex-col gap-2 border-t border-white/8">
+                        <div className="p-3 flex flex-col gap-2 border-t border-border">
                             {horseOptions.map(horse => {
                                 const isReview = horses.find(h => h.number === horse.number)?.gearStatus === "review";
                                 const isSelected = selectedHorseRegId === horse.registrationId;
@@ -717,7 +717,7 @@ export default function LivePage() {
                                     ? sortedByDist.findIndex(h => h.registrationId === horse.registrationId) + 1
                                     : null;
                                 return (
-                                    <div key={horse.registrationId} className={["rounded-xl border overflow-hidden", isReview ? "border-red-800/60 bg-red-500/5" : "border-white/8 bg-white/[0.03]"].join(" ")}>
+                                    <div key={horse.registrationId} className={["rounded-xl border overflow-hidden", isReview ? "border-red-800/60 bg-red-500/5" : "border-border bg-white/[0.03]"].join(" ")}>
                                         <button
                                             onClick={() => setSelectedHorseRegId(id => id === horse.registrationId ? null : horse.registrationId)}
                                             className="w-full px-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-white/[0.03] transition-colors"
@@ -740,7 +740,7 @@ export default function LivePage() {
                                         </button>
 
                                         {isSelected && (
-                                            <div className="px-3 pb-3 pt-2 border-t border-white/6 flex flex-col gap-1.5">
+                                            <div className="px-3 pb-3 pt-2 border-t border-border/60 flex flex-col gap-1.5">
                                                 {liveData ? (
                                                     <>
                                                         {position !== null && (
@@ -760,7 +760,7 @@ export default function LivePage() {
 
                                                         {liveData.isFinished && (
                                                             <>
-                                                                <div className="mt-0.5 border-t border-white/6 pt-1.5 flex justify-between">
+                                                                <div className="mt-0.5 border-t border-border/60 pt-1.5 flex justify-between">
                                                                     <span className="text-[10px] text-gray-600">Finish</span>
                                                                     <span className="text-[10px] font-bold text-green-400">
                                                                         {liveData.finishPosition === 1 ? "1st" : liveData.finishPosition === 2 ? "2nd" : liveData.finishPosition === 3 ? "3rd" : `#${liveData.finishPosition}`}

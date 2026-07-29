@@ -189,14 +189,14 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
 
             {/* ── Top Content Area ── */}
             <div className="flex-1 flex gap-6 p-8 min-h-0 overflow-hidden">
 
                 {/* ── Left Panel (Overview & Filters) ── */}
-                <aside className="w-[240px] shrink-0 h-full bg-[#161616] border border-white/[0.05] rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20">
-                    <div className="px-5 py-6 shrink-0 border-b border-white/[0.05] bg-[#1a1a1a]">
+                <aside className="w-[240px] shrink-0 h-full bg-surface border border-border/60 rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20">
+                    <div className="px-5 py-6 shrink-0 border-b border-border/60 bg-surface">
                         <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">Overview</h2>
                         <p className="text-[12px] text-gray-400 mt-1">Filter and view tournament stats.</p>
                     </div>
@@ -213,7 +213,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                         placeholder="Search name..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-[#111] border border-white/10 rounded-md py-2.5 pl-9 pr-3 text-[13px] text-white focus:outline-none focus:border-red-500/50"
+                                        className="w-full bg-bg border border-border rounded-md py-2.5 pl-9 pr-3 text-[13px] text-white focus:outline-none focus:border-red-500/50"
                                     />
                                 </div>
                             </div>
@@ -221,19 +221,19 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                         <div>
                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Quick Stats</label>
                             <div className="flex flex-col gap-3">
-                                <div className="bg-[#1f1a1a] border border-white/5 p-3 rounded flex items-center justify-between">
+                                <div className="bg-[#1f1a1a] border border-border/60 p-3 rounded flex items-center justify-between">
                                     <span className="text-[13px] text-gray-400 font-medium">Total Live</span>
                                     <span className="text-[14px] font-bold text-emerald-400">
                                         {stats.live}
                                     </span>
                                 </div>
-                                <div className="bg-[#1f1a1a] border border-white/5 p-3 rounded flex items-center justify-between">
+                                <div className="bg-[#1f1a1a] border border-border/60 p-3 rounded flex items-center justify-between">
                                     <span className="text-[13px] text-gray-400 font-medium">Upcoming</span>
                                     <span className="text-[14px] font-bold text-amber-400">
                                         {stats.upcoming}
                                     </span>
                                 </div>
-                                <div className="bg-[#1f1a1a] border border-white/5 p-3 rounded flex items-center justify-between">
+                                <div className="bg-[#1f1a1a] border border-border/60 p-3 rounded flex items-center justify-between">
                                     <span className="text-[13px] text-gray-400 font-medium">Completed</span>
                                     <span className="text-[14px] font-bold text-gray-300">
                                         {stats.completed}
@@ -248,7 +248,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${selectedTournamentId ? 'flex-[0_0_50%]' : 'flex-1'}`}>
 
                     {/* ── Header ── */}
-                    <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+                    <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
                         {/* Row 1 */}
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
@@ -256,7 +256,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                     Tournament Management
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                                         All Tournaments
                                     </span>
                                     <span className="text-[12px] text-gray-500 truncate">· Manage schedules and prize pools</span>
@@ -272,7 +272,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
                         {/* Row 2 */}
                         <div className="flex items-center gap-3 flex-wrap">
-                            <div className="flex bg-[#1a1a1a] p-1 rounded-lg border border-white/5 shrink-0">
+                            <div className="flex bg-surface p-1 rounded-lg border border-border/60 shrink-0">
                                 <button
                                     onClick={() => setViewMode("table")}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "table" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
@@ -291,7 +291,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                 <select
                                     value={limit}
                                     onChange={(e) => setLimit(Number(e.target.value))}
-                                    className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                    className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                                 >
                                     {TOURNAMENT_LIMIT_OPTIONS.map(n => (
                                         <option key={n} value={n}>{n} rows</option>
@@ -302,23 +302,23 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     </header>
 
                     {/* ── Main Content Area ── */}
-                    <div className="flex-1 relative mt-6 rounded-xl border border-white/5 overflow-hidden min-h-0">
+                    <div className="flex-1 relative mt-6 rounded-xl border border-border/60 overflow-hidden min-h-0">
                         {(viewMode === "table" ? loading : calendarLoading) && (
-                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#141414]/80 backdrop-blur-sm">
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface/80 backdrop-blur-sm">
                                 <Loader2 className="animate-spin text-red-500" size={32} />
                             </div>
                         )}
                         {viewMode === "table" && !loading && error ? (
-                            <div className="h-full w-full flex items-center justify-center bg-[#141414] p-6">
+                            <div className="h-full w-full flex items-center justify-center bg-surface p-6">
                                 <ErrorState message={error} onRetry={fetchTournaments} className="max-w-md" />
                             </div>
                         ) : (
-                        <div className="h-full w-full overflow-auto bg-[#141414] custom-scrollbar">
+                        <div className="h-full w-full overflow-auto bg-surface custom-scrollbar">
                         {viewMode === "table" ? (
-                            <div className="bg-[#161616] border border-white/5 rounded-lg overflow-hidden">
+                            <div className="bg-surface border border-border/60 rounded-lg overflow-hidden">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-[#1a1a1a] border-b border-white/5">
+                                        <tr className="bg-surface border-b border-border/60">
                                             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Tournament Name</th>
                                             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Duration</th>
                                             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
@@ -330,7 +330,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                         {tournaments.map(t => (
                                             <tr
                                                 key={t.id}
-                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${selectedTournamentId === t.id ? 'bg-[#f3b2a5]/5 border-l-2 border-[#f3b2a5]' : ''}`}
+                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${selectedTournamentId === t.id ? 'bg-gold/5 border-l-2 border-gold' : ''}`}
                                                 onClick={() => setSelectedTournamentId(prev => prev === t.id ? null : t.id)}
                                             >
                                                 <td className="p-4">
@@ -394,7 +394,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                 />
                             </div>
                         ) : (
-                            <div className="bg-[#161616] border border-white/5 rounded-lg p-6">
+                            <div className="bg-surface border border-border/60 rounded-lg p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-4">
                                         <h3 className="text-[16px] font-bold text-white w-[150px]">{monthName} {currentYear}</h3>
@@ -413,9 +413,9 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-lg overflow-hidden">
+                                <div className="grid grid-cols-7 gap-px bg-white/10 border border-border rounded-lg overflow-hidden">
                                     {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                                        <div key={day} className="bg-[#1a1a1a] p-3 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                        <div key={day} className="bg-surface p-3 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                                             {day}
                                         </div>
                                     ))}
@@ -432,7 +432,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                         const displayNum = isCurrentMonth ? dayNum : (dayNum <= 0 ? prevMonthDays + dayNum : dayNum - daysInCurrentMonth);
 
                                         return (
-                                            <div key={idx} className={`min-h-[100px] bg-[#161616] p-2 border-t border-r border-white/5 ${!isCurrentMonth && 'opacity-30'}`}>
+                                            <div key={idx} className={`min-h-[100px] bg-surface p-2 border-t border-r border-border/60 ${!isCurrentMonth && 'opacity-30'}`}>
                                                 <span className={`text-[12px] font-semibold ${isCurrentMonth ? 'text-gray-300' : 'text-gray-600'}`}>
                                                     {displayNum}
                                                 </span>

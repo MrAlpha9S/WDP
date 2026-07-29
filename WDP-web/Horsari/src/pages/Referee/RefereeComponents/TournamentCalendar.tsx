@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { ChevronLeft, ChevronRight, Flag } from "lucide-react";
 import type { Tournament, RaceRound } from "../../../shared/types/TournamentTypes";
 import {
@@ -33,10 +33,10 @@ export default function TournamentCalendar({ tournaments, allRaces, onSelectTour
 
     return (
         <div className={["grid gap-4 items-start", selectedISO ? "grid-cols-1 lg:grid-cols-[1fr_300px]" : "grid-cols-1"].join(" ")}>
-            <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
 
                 {/* Nav */}
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
                     <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">
                         <ChevronLeft size={13} />
                     </button>
@@ -115,7 +115,7 @@ export default function TournamentCalendar({ tournaments, allRaces, onSelectTour
                 </div>
 
                 {/* Legend */}
-                <div className="px-4 py-3 border-t border-white/6 flex flex-wrap gap-x-4 gap-y-1.5">
+                <div className="px-4 py-3 border-t border-border/60 flex flex-wrap gap-x-4 gap-y-1.5">
                     {tournaments.filter(t => {
                         if (t.id === "none") return false;
                         const mStart = toISO(viewYear, viewMonth, 1);
@@ -136,7 +136,7 @@ export default function TournamentCalendar({ tournaments, allRaces, onSelectTour
 
             {/* Day popup */}
             {selectedISO && (
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
                     <DayPopup iso={selectedISO} tournaments={tournaments} allRaces={allRaces} onSelectTournament={onSelectTournament} onOpenRaceMonitor={onOpenRaceMonitor} />
                 </div>
             )}

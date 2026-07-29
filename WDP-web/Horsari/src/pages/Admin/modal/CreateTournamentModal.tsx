@@ -142,8 +142,8 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-[500px] bg-[#161616] border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col">
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#1a1a1a]">
+            <div className="w-[500px] bg-surface border border-border rounded-xl overflow-hidden shadow-2xl flex flex-col">
+                <div className="p-6 border-b border-border/60 flex justify-between items-center bg-surface-raised">
                     <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">
                         {editingTournament ? "Edit Tournament" : "Create New Tournament"}
                     </h2>
@@ -160,27 +160,27 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                     )}
                     <div>
                         <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Tournament Name</label>
-                        <input value={name} onChange={e => setName(e.target.value)} type="text" placeholder="e.g. Winter Cup" className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" />
+                        <input value={name} onChange={e => setName(e.target.value)} type="text" placeholder="e.g. Winter Cup" className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" />
                     </div>
 
                     <div>
                         <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Description</label>
-                        <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Brief description..." className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 resize-none"></textarea>
+                        <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Brief description..." className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 resize-none"></textarea>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Date</label>
-                            <input value={startDate} onChange={e => handleStartDateChange(e.target.value)} type="date" className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
+                            <input value={startDate} onChange={e => handleStartDateChange(e.target.value)} type="date" className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
                         </div>
                         <div>
                             <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">End Date</label>
-                            <input value={endDate} onChange={e => handleEndDateChange(e.target.value)} type="date" className="w-full bg-[#111] border border-white/10 rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
+                            <input value={endDate} onChange={e => handleEndDateChange(e.target.value)} type="date" className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
                         </div>
                     </div>
                 </div>
 
-                <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">
+                <div className="p-5 border-t border-border/60 bg-surface-raised flex justify-end gap-3">
                     <button onClick={onClose} disabled={loading} className="px-5 py-2 rounded text-[13px] font-medium text-gray-400 hover:text-white transition-colors">
                         Cancel
                     </button>

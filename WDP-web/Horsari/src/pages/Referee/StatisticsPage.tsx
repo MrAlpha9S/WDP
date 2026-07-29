@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Wallet, DollarSign, Clock, Shield, Percent, AlertTriangle, MapPin, BarChart2, Loader2, BookOpen } from "lucide-react";
 import { refereeService } from "../../api/refereeService";
 import type { RefereeStatistics, WorkHistoryEntry, ViolationTypeRecord } from "../../api/refereeService";
@@ -48,7 +48,7 @@ function StatCard({
     icon: React.ReactNode;
 }) {
     return (
-        <div className="rounded-xl p-5 flex flex-col gap-3 border border-white/[0.07] bg-[#141414]">
+        <div className="rounded-xl p-5 flex flex-col gap-3 border border-white/[0.07] bg-surface">
             <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">
                     {label}
@@ -83,7 +83,7 @@ function WorkHistorySection() {
     useEffect(() => { setLastUpdated(Date.now()); }, [data]);
 
     return (
-        <div className="mt-6 rounded-xl border border-white/[0.07] bg-[#141414] p-5">
+        <div className="mt-6 rounded-xl border border-white/[0.07] bg-surface p-5">
             <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
                 <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
                     <Shield size={15} className="text-red-500" />
@@ -94,7 +94,7 @@ function WorkHistorySection() {
                     <select
                         value={sortValue}
                         onChange={(e) => { setSortValue(e.target.value as typeof sortValue); setPage(1); }}
-                        className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                        className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                     >
                         <option value="raceDate:desc">Newest First</option>
                         <option value="raceDate:asc">Oldest First</option>
@@ -194,13 +194,13 @@ function FeesEarningsChart() {
     const toY = (v: number) => H - pad - (v / maxVal) * (H - pad * 2);
 
     return (
-        <div className="mt-6 rounded-xl border border-white/[0.07] bg-[#141414] p-5 flex flex-col h-[380px]">
+        <div className="mt-6 rounded-xl border border-white/[0.07] bg-surface p-5 flex flex-col h-[380px]">
             <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
                 <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
                     <BarChart2 size={15} className="text-red-500" />
                     Fees Earned Trend
                 </h2>
-                <div className="flex items-center bg-[#1a1a1a] rounded-lg p-1 border border-white/10">
+                <div className="flex items-center bg-surface rounded-lg p-1 border border-border">
                     {(['day', 'week', 'month', 'year'] as const).map(g => (
                         <button
                             key={g}
@@ -255,7 +255,7 @@ function FeesEarningsChart() {
 
                     {hoveredIdx !== null && (
                         <div
-                            className="absolute bg-[#1e1e1e] border border-white/10 rounded-lg px-3 py-2 text-[11px] text-gray-300 whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
+                            className="absolute bg-[#1e1e1e] border border-border rounded-lg px-3 py-2 text-[11px] text-gray-300 whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
                             style={{ left: `${(toX(hoveredIdx) / W) * 100}%`, top: '5%', transform: 'translateX(-50%)' }}
                         >
                             <p className="font-bold text-white mb-1">{fmtDate(series[hoveredIdx].date, groupBy)}</p>
@@ -283,7 +283,7 @@ function AllViolationsSection() {
     useEffect(() => { setLastUpdated(Date.now()); }, [data]);
 
     return (
-        <div className="mt-6 rounded-xl border border-white/[0.07] bg-[#141414] p-5">
+        <div className="mt-6 rounded-xl border border-white/[0.07] bg-surface p-5">
             <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
                 <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
                     <AlertTriangle size={15} className="text-red-500" />
@@ -294,7 +294,7 @@ function AllViolationsSection() {
                     <select
                         value={statusFilter}
                         onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1); }}
-                        className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                        className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                     >
                         <option value="">All Statuses</option>
                         <option value="pending">Pending</option>
@@ -304,7 +304,7 @@ function AllViolationsSection() {
                     <select
                         value={sortValue}
                         onChange={(e) => { setSortValue(e.target.value as typeof sortValue); setPage(1); }}
-                        className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                        className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                     >
                         <option value="created_at:desc">Newest First</option>
                         <option value="created_at:asc">Oldest First</option>
@@ -374,7 +374,7 @@ function ViolationTypesSection() {
     useEffect(() => { setLastUpdated(Date.now()); }, [data]);
 
     return (
-        <div className="mt-6 rounded-xl border border-white/[0.07] bg-[#141414] p-5">
+        <div className="mt-6 rounded-xl border border-white/[0.07] bg-surface p-5">
             <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
                 <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
                     <BookOpen size={15} className="text-red-500" />
@@ -387,12 +387,12 @@ function ViolationTypesSection() {
                         placeholder="Search..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 h-[28px]"
+                        className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 h-[28px]"
                     />
                     <select
                         value={phaseFilter}
                         onChange={(e) => { setPhaseFilter(e.target.value as typeof phaseFilter); setPage(1); }}
-                        className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                        className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                     >
                         <option value="">All Phases</option>
                         <option value="pre-race">Pre-race</option>

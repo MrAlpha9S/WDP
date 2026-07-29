@@ -26,21 +26,25 @@ import {
   LiveHorse,
   useSpectatorRaceSocket,
 } from '../../../hooks/useSpectatorRaceSocket';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { RaceVideoPlayer } from '@/components/RaceVideoPlayer';
 import { NoConnectionState } from '@/components/NoConnectionState';
+import { Badge, BadgeTone } from '@/components/ui/Badge';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+// This screen predates the shared token names (bg/muted vs background/textMuted) —
+// keep the local aliases so the extensive positioning/visualization code below
+// doesn't need touching, but source every value from the single shared Palette.
 const Palette = {
-  bg: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  muted: '#9A9AA0',
-  gold: '#C9A24B',
-  red: '#C81E2E',
-  green: '#22C55E',
+  bg: SharedPalette.background,
+  card: SharedPalette.card,
+  cardBorder: SharedPalette.cardBorder,
+  text: SharedPalette.text,
+  muted: SharedPalette.textMuted,
+  gold: SharedPalette.gold,
+  red: SharedPalette.red,
+  green: SharedPalette.green,
 } as const;
 
 // Keep in sync with WDP-web/Horsari/src/shared/data/RaceData.tsx HORSE_COLOR_PALETTE.
@@ -297,12 +301,12 @@ function HorseRow({
 
 // ─── Prediction chip ──────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: 'PENDING', color: Palette.gold, bg: '#1E1A0A' },
-  correct: { label: 'CORRECT', color: Palette.green, bg: '#0A1A0F' },
-  incorrect: { label: 'INCORRECT', color: Palette.red, bg: '#1A0A0D' },
-  cancelled: { label: 'CANCELLED', color: Palette.muted, bg: '#111' },
-  refunded: { label: 'REFUNDED', color: '#8B5CF6', bg: '#120A1A' },
+const STATUS_CONFIG: Record<string, { label: string; tone: BadgeTone }> = {
+  pending: { label: 'PENDING', tone: 'amber' },
+  correct: { label: 'CORRECT', tone: 'green' },
+  incorrect: { label: 'INCORRECT', tone: 'red' },
+  cancelled: { label: 'CANCELLED', tone: 'muted' },
+  refunded: { label: 'REFUNDED', tone: 'gold' },
 };
 
 function PredictionChip({
@@ -346,9 +350,7 @@ function PredictionChip({
         <Text style={styles.predPoints}>{prediction.rewardPoints} pts</Text>
       </View>
 
-      <View style={[styles.predStatusBadge, { backgroundColor: st.bg, borderColor: `${st.color}50` }]}>
-        <Text style={[styles.predStatusText, { color: st.color }]}>{st.label}</Text>
-      </View>
+      <Badge label={st.label} tone={st.tone} />
     </View>
   );
 }
@@ -487,7 +489,11 @@ function FinishedBanner({
           )}
         </View>
       ))}
-      <Pressable onPress={onToggleUnit} style={styles.distUnitToggle}>
+      <Pressable
+        onPress={onToggleUnit}
+        style={styles.distUnitToggle}
+        accessibilityRole="button"
+        accessibilityLabel={distUnit === 'metres' ? 'Switch distances to lengths' : 'Switch distances to metres'}>
         <Text style={styles.distUnitToggleText}>
           {distUnit === 'metres' ? 'Switch to lengths (L)' : 'Switch to metres (m)'}
         </Text>
@@ -652,7 +658,12 @@ export default function LiveRaceScreen() {
 
         {/* ── Header ── */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Go back">
             <Ionicons name="chevron-back" size={22} color={Palette.text} />
           </Pressable>
           <View style={styles.headerCenter}>
@@ -665,17 +676,7 @@ export default function LiveRaceScreen() {
               </Text>
             ) : null}
           </View>
-          <View style={[
-            styles.wsBadge,
-            connected
-              ? { borderColor: '#22533A', backgroundColor: '#0D2B1A' }
-              : { borderColor: '#5C1A1F', backgroundColor: '#1A0A0D' },
-          ]}>
-            <View style={[styles.wsDot, { backgroundColor: connected ? Palette.green : Palette.red }]} />
-            <Text style={[styles.wsBadgeText, { color: connected ? Palette.green : Palette.red }]}>
-              {connected ? 'LIVE' : 'OFFLINE'}
-            </Text>
-          </View>
+          <Badge label={connected ? 'LIVE' : 'OFFLINE'} tone={connected ? 'green' : 'red'} dot />
         </View>
 
         {/* ── Stats strip — only shown while race is live ── */}
@@ -846,23 +847,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
     letterSpacing: 0.3,
   },
-  wsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
-  wsDot: { width: 6, height: 6, borderRadius: 3 },
-  wsBadgeText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-
   topArea: { paddingHorizontal: 16 },
   scroll: { paddingHorizontal: 16 },
 
@@ -1142,18 +1126,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Palette.muted,
     marginTop: 1,
-  },
-  predStatusBadge: {
-    borderRadius: 6,
-    borderWidth: 1,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  predStatusText: {
-    fontFamily: Fonts.mono,
-    fontSize: 8,
-    fontWeight: '800',
-    letterSpacing: 0.5,
   },
 
   emptyText: { fontSize: 13, color: Palette.muted, textAlign: 'center', paddingVertical: 12 },

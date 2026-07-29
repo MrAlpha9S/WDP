@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import {
   X, Calendar, MapPin, Flag, Trophy,
   ShieldAlert, Loader2, AlertCircle, ChevronRight, Clock,
@@ -96,7 +96,7 @@ function SeverityDots({ level }: { level: number }) {
 // ── Stat cell ─────────────────────────────────────────────────────────────────
 function StatCell({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
-    <div className="bg-[#1e1e1e] rounded-xl px-3 py-3 border border-white/8 text-center">
+    <div className="bg-[#1e1e1e] rounded-xl px-3 py-3 border border-border text-center">
       <p className="text-[9px] font-semibold tracking-widest text-gray-600 uppercase mb-1">{label}</p>
       <p className={`text-[18px] font-bold ${accent ? "text-yellow-400" : "text-white"}`}>{value}</p>
     </div>
@@ -149,7 +149,7 @@ function RaceHistoryTab({ history }: { history: HorseRegistrationEntry[] }) {
   // Horse has never been registered for any race
   if (history.length === 0) {
     return (
-      <div className="rounded-xl border border-white/8 bg-white/2 px-5 py-12 text-center">
+      <div className="rounded-xl border border-border bg-white/2 px-5 py-12 text-center">
         <Trophy size={32} className="text-gray-700 mx-auto mb-3" />
         <p className="text-[14px] font-semibold text-gray-500 mb-1">No races entered yet</p>
         <p className="text-[12px] text-gray-600 max-w-xs mx-auto leading-relaxed">
@@ -187,14 +187,14 @@ function RaceHistoryTab({ history }: { history: HorseRegistrationEntry[] }) {
               const reg = entry.registration;
 
               return (
-                <div key={String(reg._id)} className="bg-[#1e1e1e] rounded-xl border border-white/8 px-4 py-3.5 flex items-center gap-4">
+                <div key={String(reg._id)} className="bg-[#1e1e1e] rounded-xl border border-border px-4 py-3.5 flex items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <p className="text-[13px] font-bold text-white truncate font-serif">
                         {rr?.roundName ?? "—"}
                       </p>
                       {rr?.tournament && (
-                        <span className="text-[10px] text-gray-600 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] text-gray-600 bg-white/5 border border-border px-1.5 py-0.5 rounded">
                           {rr.tournament.name}
                         </span>
                       )}
@@ -231,7 +231,7 @@ function RaceHistoryTab({ history }: { history: HorseRegistrationEntry[] }) {
         </div>
       ) : (
         upcoming.length > 0 && (
-          <div className="rounded-xl border border-white/8 bg-white/2 px-4 py-6 text-center">
+          <div className="rounded-xl border border-border bg-white/2 px-4 py-6 text-center">
             <p className="text-[13px] text-gray-600">No race results yet — awaiting upcoming event.</p>
           </div>
         )
@@ -244,7 +244,7 @@ function RaceHistoryTab({ history }: { history: HorseRegistrationEntry[] }) {
 function ViolationsTab({ violations }: { violations: HorseViolationEntry[] }) {
   if (violations.length === 0) {
     return (
-      <div className="rounded-xl border border-white/8 bg-white/2 px-5 py-10 text-center">
+      <div className="rounded-xl border border-border bg-white/2 px-5 py-10 text-center">
         <ShieldAlert size={28} className="text-gray-700 mx-auto mb-3" />
         <p className="text-[13px] text-gray-600">No violations on record.</p>
       </div>
@@ -254,14 +254,14 @@ function ViolationsTab({ violations }: { violations: HorseViolationEntry[] }) {
   return (
     <div className="space-y-3">
       {violations.map((v) => (
-        <div key={String(v._id)} className="bg-[#1e1e1e] rounded-xl border border-white/8 px-4 py-4">
+        <div key={String(v._id)} className="bg-[#1e1e1e] rounded-xl border border-border px-4 py-4">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-bold text-white mb-0.5">
                 {v.violationType?.violationName ?? "Unknown Violation"}
               </p>
               <div className="flex items-center gap-2 text-[11px] text-gray-500 flex-wrap">
-                <span className="capitalize text-gray-500 bg-white/5 border border-white/8 px-1.5 py-0.5 rounded text-[10px]">
+                <span className="capitalize text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded text-[10px]">
                   {v.violationType?.category ?? "—"}
                 </span>
                 {v.raceRound?.roundName && (
@@ -283,7 +283,7 @@ function ViolationsTab({ violations }: { violations: HorseViolationEntry[] }) {
             {v.stewardAction && <StewardChip action={v.stewardAction} />}
             <ViolationStatusChip status={v.violationStatus} />
             {v.actualPenalty && (
-              <span className="text-[10px] text-gray-600 bg-white/5 border border-white/8 px-2 py-0.5 rounded">
+              <span className="text-[10px] text-gray-600 bg-white/5 border border-border px-2 py-0.5 rounded">
                 {v.actualPenalty}
               </span>
             )}
@@ -355,16 +355,16 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl flex flex-col bg-[#111111] rounded-2xl border border-white/10 shadow-2xl font-sans"
+        className="relative w-full max-w-2xl flex flex-col bg-bg rounded-2xl border border-border shadow-2xl font-sans"
         style={{ maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Sticky header ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">Horse Profile</p>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
           >
             <X size={14} />
           </button>
@@ -408,8 +408,8 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
             return (
               <>
                 {/* Hero */}
-                <div className="bg-[#1a1a1a] rounded-2xl border border-white/8 p-5 flex items-center gap-5">
-                  <div className="w-20 h-20 rounded-xl bg-[#111] border border-white/10 flex items-center justify-center shrink-0">
+                <div className="bg-surface rounded-2xl border border-border p-5 flex items-center gap-5">
+                  <div className="w-20 h-20 rounded-xl bg-bg border border-border flex items-center justify-center shrink-0">
                     <img
                       src={(horse as typeof horse & { img?: string }).img ?? "/jumping-horse-silhouette-facing-left-side-view.png"}
                       alt={horse.horseName}
@@ -445,7 +445,7 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex items-center gap-1 p-1 bg-[#1a1a1a] border border-white/8 rounded-xl w-fit">
+                <div className="flex items-center gap-1 p-1 bg-surface border border-border rounded-xl w-fit">
                   {([
                     { id: "overview"   as Tab, label: "Overview",     count: 0 },
                     { id: "history"    as Tab, label: "Race History", count: raceHistory.length },

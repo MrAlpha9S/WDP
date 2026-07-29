@@ -158,7 +158,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
 
     return (
         <aside
-            className="h-full bg-[#161616] border border-white/[0.05] rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20"
+            className="h-full bg-surface border border-border/60 rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20"
             style={{ animation: 'panelIn 0.18s ease-out' }}
         >
             <style>{`@keyframes panelIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }`}</style>
@@ -166,10 +166,10 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
             <div className="flex flex-col flex-1 min-h-0">
 
                 {/* ── Header ── */}
-                <div className="px-5 py-5 shrink-0 border-b border-white/[0.05] bg-[#1a1a1a]">
+                <div className="px-5 py-5 shrink-0 border-b border-border/60 bg-surface">
                     {loadingDetail && !detail ? (
                         <div className="flex items-center justify-center py-4">
-                            <Loader2 size={22} className="animate-spin text-[#f3b2a5]" />
+                            <Loader2 size={22} className="animate-spin text-gold" />
                         </div>
                     ) : detailError && !detail ? (
                         <div className="flex items-center gap-2 text-[12px] text-red-400 py-2">
@@ -190,7 +190,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                             className={`self-start text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-transparent appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${statusColor}`}
                                         >
                                             {TOURNAMENT_STATUS_OPTIONS.map(s => (
-                                                <option key={s} value={s} className="bg-[#161616] text-white normal-case">{s}</option>
+                                                <option key={s} value={s} className="bg-surface text-white normal-case">{s}</option>
                                             ))}
                                         </select>
                                         {statusUpdating && <Loader2 size={12} className="animate-spin text-gray-400" />}
@@ -201,7 +201,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                 </div>
                                 <button
                                     onClick={onClose}
-                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-white/10 transition-colors shrink-0 mt-1"
+                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors shrink-0 mt-1"
                                     title="Close Panel"
                                 >
                                     <X size={14} />
@@ -266,8 +266,8 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                 {/* ── Content ── */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-4 relative">
                     {loadingDetail && (
-                        <div className="absolute inset-0 z-10 bg-[#161616]/80 backdrop-blur-sm flex items-center justify-center">
-                            <Loader2 size={32} className="animate-spin text-[#f3b2a5]" />
+                        <div className="absolute inset-0 z-10 bg-surface/80 backdrop-blur-sm flex items-center justify-center">
+                            <Loader2 size={32} className="animate-spin text-gold" />
                         </div>
                     )}
 
@@ -277,7 +277,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                         <button
                                 onClick={handleViewRanking}
                                 disabled={loadingRanking}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[12px] font-bold rounded-lg border transition-colors disabled:opacity-60 disabled:cursor-not-allowed bg-[#f3b2a5]/10 text-[#f3b2a5] border-[#f3b2a5]/20 hover:bg-[#f3b2a5]/20"
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[12px] font-bold rounded-lg border transition-colors disabled:opacity-60 disabled:cursor-not-allowed bg-gold/10 text-gold border-gold/20 hover:bg-gold/20"
                             >
                                 {loadingRanking
                                     ? <><Loader2 size={14} className="animate-spin" /> Loading Ranking…</>
@@ -293,15 +293,15 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
 
                             {/* Ranking table */}
                             {showRanking && ranking.length > 0 && (
-                                <div className="bg-[#1a1a1a] rounded-xl border border-white/5 overflow-hidden">
-                                    <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2">
-                                        <Trophy size={14} className="text-[#f3b2a5]" />
+                                <div className="bg-surface rounded-xl border border-border/60 overflow-hidden">
+                                    <div className="px-4 py-3 border-b border-border/60 flex items-center gap-2">
+                                        <Trophy size={14} className="text-gold" />
                                         <span className="text-[12px] font-bold text-white uppercase tracking-wider">Current Standings</span>
                                     </div>
                                     <div className="overflow-x-auto">
                                         <table className="text-left border-collapse" style={{ minWidth: '100%' }}>
                                             <thead>
-                                                <tr className="bg-[#111] border-b border-white/5">
+                                                <tr className="bg-bg border-b border-border/60">
                                                     <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">Rank</th>
                                                     <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">Horse</th>
                                                     <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">Owner</th>
@@ -310,7 +310,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                                     <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-center whitespace-nowrap">Wins</th>
                                                     <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gray-500 text-center whitespace-nowrap">Podiums</th>
                                                     {detail?.raceRounds.map((rr, ri) => (
-                                                        <th key={rr._id} title={rr.roundName} className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-[#f3b2a5]/70 text-center whitespace-nowrap border-l border-white/[0.04]">
+                                                        <th key={rr._id} title={rr.roundName} className="px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-gold/70 text-center whitespace-nowrap border-l border-white/[0.04]">
                                                             R{ri + 1}
                                                         </th>
                                                     ))}
@@ -344,7 +344,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                                             </span>
                                                         </td>
                                                         <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                                                            <span className="text-[13px] font-bold text-[#f3b2a5]">{entry.score}</span>
+                                                            <span className="text-[13px] font-bold text-gold">{entry.score}</span>
                                                         </td>
                                                         <td className="px-3 py-2.5 text-center whitespace-nowrap">
                                                             <span className="text-[12px] text-gray-300">{entry.totalRaces}</span>
@@ -370,7 +370,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div className="px-4 py-2 border-t border-white/5 bg-[#111]">
+                                    <div className="px-4 py-2 border-t border-border/60 bg-bg">
                                         <p className="text-[10px] text-gray-600">
                                             Points: 1st=60 · 2nd=40 · 3rd=30 · 4th=20 · 5th+=10 · Official results only
                                         </p>
@@ -379,21 +379,21 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                             )}
 
                             {showRanking && ranking.length === 0 && !loadingRanking && !rankingError && (
-                                <div className="text-[12px] text-gray-500 italic text-center bg-[#1a1a1a] rounded-xl border border-white/5 p-6">
+                                <div className="text-[12px] text-gray-500 italic text-center bg-surface rounded-xl border border-border/60 p-6">
                                     No official race results recorded yet.
                                 </div>
                             )}
 
                             {/* Race round cards */}
                             {detail?.raceRounds.length === 0 && (
-                                <div className="text-[13px] text-gray-500 italic text-center bg-[#1a1a1a] rounded-xl border border-white/5 p-8">
+                                <div className="text-[13px] text-gray-500 italic text-center bg-surface rounded-xl border border-border/60 p-8">
                                     No race rounds in this tournament.
                                 </div>
                             )}
                             {detail?.raceRounds.map((rr) => {
                                 const roundColor = ROUND_STATUS_COLORS[rr.status] ?? 'bg-amber-500/15 text-amber-400 border-amber-500/30';
                                 return (
-                                    <div key={rr._id} className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-3">
+                                    <div key={rr._id} className="bg-surface p-4 rounded-xl border border-border/60 flex flex-col gap-3">
                                         <div className="flex items-center justify-between gap-2">
                                             <span className="text-[14px] font-bold text-white truncate">{rr.roundName}</span>
                                             <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${roundColor}`}>
@@ -421,7 +421,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                             )}
                                         </div>
                                         {(rr.firstPlacePrize > 0 || rr.secondPlacePrize > 0 || rr.thirdPlacePrize > 0) && (
-                                            <div className="flex items-center gap-3 pt-2 border-t border-white/5 text-[11px]">
+                                            <div className="flex items-center gap-3 pt-2 border-t border-border/60 text-[11px]">
                                                 <Trophy size={11} className="text-amber-400 shrink-0" />
                                                 <span className="text-amber-400 font-semibold">
                                                     {rr.firstPlacePrize > 0 ? `${rr.currencyType} ${rr.firstPlacePrize.toLocaleString()}` : '—'}

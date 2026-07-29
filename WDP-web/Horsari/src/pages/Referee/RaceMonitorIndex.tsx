@@ -195,7 +195,7 @@ export default function RaceMonitorIndex() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
+            <div className="min-h-screen bg-bg flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
             </div>
         );
@@ -203,7 +203,7 @@ export default function RaceMonitorIndex() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center gap-4">
+            <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4">
                 <p className="text-[14px] text-red-400 font-medium">{error}</p>
                 <div className="flex items-center gap-3">
                     <button
@@ -225,7 +225,7 @@ export default function RaceMonitorIndex() {
 
     if (raceRound?.status === "cancelled") {
         return (
-            <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center gap-4">
+            <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4">
                 <p className="text-[14px] text-gray-400">
                     <span className="font-semibold text-white">{raceRound.roundName}</span> has been cancelled.
                 </p>
@@ -249,7 +249,7 @@ export default function RaceMonitorIndex() {
             liveUpdate,
             raceFinished,
         }}>
-            <div className="min-h-screen bg-[#0f0f0f] font-sans">
+            <div className="min-h-screen bg-bg font-sans">
                 <div className="max-w-5xl mx-auto px-5 py-8">
                     <PageHeader phase={phase} raceRound={raceRound} onBack={() => navigate("/referee/tournaments")} wsConnected={wsConnected} onRefetch={refetchRaceRound} lastUpdated={lastUpdated} />
                     {phase === "pre" && <PreRacePage />}
@@ -257,7 +257,7 @@ export default function RaceMonitorIndex() {
                     {phase === "post" && <PostRacePage />}
                 </div>
 
-                <footer className="border-t border-white/8 py-4 mt-8">
+                <footer className="border-t border-border py-4 mt-8">
                     <div className="max-w-5xl mx-auto px-5 flex items-center justify-between text-[12px] text-gray-600">
                         <span>© 2026 Equine Elite Management System</span>
                         <div className="flex items-center gap-4">

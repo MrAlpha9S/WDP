@@ -20,20 +20,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getMyProfile, JockeyProfileData } from '../../api/jockeyApi';
 import { isNetworkError, NETWORK_ERROR_MESSAGE } from '../../api/axios';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
+import { Badge, BadgeTone } from '@/components/ui/Badge';
 
 const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
-  redDark: '#8C1620',
+  ...SharedPalette,
   redLight: '#E8828A',
-  gold: '#C9A24B',
 } as const;
 
 // Ordinal position strings look like '1st'/'23rd'/'DNF' — pull the leading
@@ -49,27 +43,27 @@ function attendanceLabel(attendance: JockeyProfileData['recentRaces'][number]['a
   return null;
 }
 
-// Escalating severity color scale for a violation's steward action.
-function stewardActionColor(action: string): string {
+// Escalating severity scale for a violation's steward action.
+function stewardActionTone(action: string): BadgeTone {
   switch (action) {
     case 'disqualified':
     case 'permanent-ban':
-      return Palette.red;
+      return 'red';
     case 'fine':
     case 'suspended':
     case 'demoted':
-      return '#E07B3A';
+      return 'amber';
     case 'investigation':
-      return Palette.gold;
+      return 'gold';
     default: // no-action, warning
-      return Palette.textMuted;
+      return 'muted';
   }
 }
 
-function violationStatusStyle(v: JockeyProfileData['violations'][number]): { color: string; label: string } {
-  if (v.violationStatus === 'dismissed') return { color: Palette.textMuted, label: 'Dismissed' };
-  if (v.violationStatus === 'pending') return { color: Palette.gold, label: 'Pending Review' };
-  return { color: stewardActionColor(v.stewardAction), label: 'Confirmed' };
+function violationStatusStyle(v: JockeyProfileData['violations'][number]): { tone: BadgeTone; label: string } {
+  if (v.violationStatus === 'dismissed') return { tone: 'muted', label: 'Dismissed' };
+  if (v.violationStatus === 'pending') return { tone: 'amber', label: 'Pending Review' };
+  return { tone: stewardActionTone(v.stewardAction), label: 'Confirmed' };
 }
 
 export default function ProfileScreen() {
@@ -204,7 +198,9 @@ export default function ProfileScreen() {
               </View>
               <Pressable
                 style={styles.btnEditProfile}
-                onPress={() => router.push('/(jockey)/edit-profile')}>
+                onPress={() => router.push('/(jockey)/edit-profile')}
+                accessibilityRole="button"
+                accessibilityLabel="Edit profile">
                 <Text style={styles.btnEditProfileText}>EDIT PROFILE</Text>
               </Pressable>
             </View>
@@ -254,7 +250,9 @@ export default function ProfileScreen() {
 
           <Pressable
             style={styles.statsLinkRow}
-            onPress={() => router.push('/(jockey)/statistics' as any)}>
+            onPress={() => router.push('/(jockey)/statistics' as any)}
+            accessibilityRole="button"
+            accessibilityLabel="View detailed statistics">
             <Text style={styles.statsLinkText}>View detailed statistics</Text>
             <Ionicons name="chevron-forward" size={14} color={Palette.red} />
           </Pressable>
@@ -310,16 +308,11 @@ export default function ProfileScreen() {
                             )}
                           </View>
                           <View style={styles.violationBadges}>
-                            <View style={[styles.violationBadge, { borderColor: stewardActionColor(v.stewardAction) }]}>
-                              <Text style={[styles.violationBadgeText, { color: stewardActionColor(v.stewardAction) }]}>
-                                {v.stewardAction.replace('-', ' ').toUpperCase()}
-                              </Text>
-                            </View>
-                            <View style={[styles.violationBadge, { borderColor: status.color }]}>
-                              <Text style={[styles.violationBadgeText, { color: status.color }]}>
-                                {status.label.toUpperCase()}
-                              </Text>
-                            </View>
+                            <Badge
+                              label={v.stewardAction.replace('-', ' ').toUpperCase()}
+                              tone={stewardActionTone(v.stewardAction)}
+                            />
+                            <Badge label={status.label.toUpperCase()} tone={status.tone} />
                           </View>
                         </View>
                         {i < arr.length - 1 && <View style={styles.raceDivider} />}
@@ -347,7 +340,11 @@ export default function ProfileScreen() {
           </View>
 
           {/* ─── Log out ─── */}
-          <Pressable style={styles.logoutBtn} onPress={logout}>
+          <Pressable
+            style={styles.logoutBtn}
+            onPress={logout}
+            accessibilityRole="button"
+            accessibilityLabel="Log out">
             <Ionicons name="log-out-outline" size={16} color={Palette.red} />
             <Text style={styles.logoutText}>LOG OUT</Text>
           </Pressable>
@@ -616,18 +613,6 @@ const styles = StyleSheet.create({
   // Violations
   violationDismissed: { opacity: 0.5 },
   violationBadges: { alignItems: 'flex-end', gap: 4 },
-  violationBadge: {
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  violationBadgeText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
 
   // Settings
   settingsCard: {

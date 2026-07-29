@@ -54,12 +54,12 @@ function LedgerPanel() {
     }, [socket, refresh]);
 
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5">
+        <div className="rounded-xl border border-border bg-surface p-5">
             <div className="flex items-center justify-end mb-5 gap-3 flex-wrap">
                 <select
                     value={sortValue}
                     onChange={(e) => { setSortValue(e.target.value as typeof sortValue); setPage(1); }}
-                    className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                    className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                 >
                     <option value="createdAt:desc">Newest First</option>
                     <option value="createdAt:asc">Oldest First</option>
@@ -138,7 +138,7 @@ export default function AdminPaymentsPage() {
                         <select
                             value={paymentType}
                             onChange={e => setPaymentType(e.target.value as PaymentType | "All")}
-                            className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                         >
                             <option value="All">All Types</option>
                             {Object.entries(PAYMENT_TYPE_LABEL).map(([value, label]) => (
@@ -148,7 +148,7 @@ export default function AdminPaymentsPage() {
                         <select
                             value={status}
                             onChange={e => setStatus(e.target.value as PaymentStatus | "All")}
-                            className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                         >
                             <option value="All">All Statuses</option>
                             <option value="unpaid">Unpaid</option>
@@ -160,7 +160,7 @@ export default function AdminPaymentsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-white/[0.07] mb-5 shrink-0 gap-8">
+            <div className="flex border-b border-border mb-5 shrink-0 gap-8">
                 <button
                     className={`pb-2 text-[13px] font-semibold transition-colors ${activeTab === "Payments" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
                     onClick={() => setActiveTab("Payments")}

@@ -32,7 +32,7 @@ export function DeleteTournamentModal({ isOpen, onClose, onSuccess, tournament }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-[400px] bg-[#161616] border border-red-500/20 rounded-xl overflow-hidden shadow-2xl flex flex-col">
+            <div className="w-[400px] bg-surface border border-red-500/20 rounded-xl overflow-hidden shadow-2xl flex flex-col">
                 <div className="p-6 flex flex-col items-center text-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-2">
                         <AlertTriangle size={24} />
@@ -53,7 +53,7 @@ export function DeleteTournamentModal({ isOpen, onClose, onSuccess, tournament }
                     )}
                 </div>
 
-                <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">
+                <div className="p-5 border-t border-border/60 bg-surface-raised flex justify-end gap-3">
                     <button onClick={onClose} disabled={loading} className="px-5 py-2 rounded text-[13px] font-medium text-gray-400 hover:text-white transition-colors">
                         Cancel
                     </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Wallet, CheckCircle2, Loader2, Clock } from "lucide-react";
 import { usePaginatedFetch } from "../hooks/usePaginatedFetch";
 import { Pagination } from "./Pagination";
@@ -105,7 +105,7 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
     };
 
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5">
+        <div className="rounded-xl border border-white/[0.07] bg-surface p-5">
             <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
                 <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
                     <Wallet size={15} className="text-red-500" />
@@ -114,7 +114,7 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
                 <select
                     value={sortValue}
                     onChange={(e) => { setSortValue(e.target.value); setPage(1); }}
-                    className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                    className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                 >
                     {SORT_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>

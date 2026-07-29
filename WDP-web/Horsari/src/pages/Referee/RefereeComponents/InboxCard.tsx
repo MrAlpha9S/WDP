@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
     CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
     Clock, CreditCard, Flag, Loader2, MapPin, XCircle,
@@ -33,9 +33,9 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
         ? parsed.getDate() : null;
 
     return (
-        <div className="bg-white/[0.03] rounded-xl border border-white/8 overflow-hidden">
+        <div className="bg-white/[0.03] rounded-xl border border-border overflow-hidden">
             {/* Nav */}
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/8">
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
                 <button onClick={prevMonth} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
                     <ChevronLeft size={12} />
                 </button>
@@ -73,7 +73,7 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
 
             {/* Race date label */}
             {highlightDay && (
-                <div className="px-3 py-2 border-t border-white/6 flex items-center gap-2">
+                <div className="px-3 py-2 border-t border-border/60 flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
                     <span className="text-[10.5px] text-gray-500">Race: {highlightDate}</span>
                 </div>
@@ -106,11 +106,11 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
     };
 
     return (
-        <div className="border-t border-white/8 bg-white/[0.02]">
+        <div className="border-t border-border bg-white/[0.02]">
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-0">
 
                 {/* Left: detail content */}
-                <div className="px-5 pb-5 pt-4 border-r border-white/5">
+                <div className="px-5 pb-5 pt-4 border-r border-border/60">
 
                     {/* Race Classification */}
                     <div className="mb-4">
@@ -138,8 +138,8 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                     </div>
 
                     {/* Payment */}
-                    <div className="bg-[#1a1a1a] border border-white/8 rounded-xl overflow-hidden mb-4">
-                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8 bg-white/[0.03]">
+                    <div className="bg-surface border border-border rounded-xl overflow-hidden mb-4">
+                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-white/[0.03]">
                             <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-500">
                                 <CreditCard size={12} className="text-red-500" /> Payment
                             </div>
@@ -188,7 +188,7 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => onDecline(invite.id)}
-                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/10 text-[13px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-border text-[13px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
                             >
                                 <XCircle size={14} className="text-gray-600" /> Decline
                             </button>
@@ -227,7 +227,7 @@ export function InviteCard({ invite, onAccept, onDecline, onConfirmPayment }: In
 
     return (
         <div className={[
-            "bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden transition-all duration-200",
+            "bg-surface rounded-xl border border-border overflow-hidden transition-all duration-200",
             isPending ? "hover:border-white/[0.12]" : "opacity-70",
         ].join(" ")}>
 
@@ -278,7 +278,7 @@ export function InviteCard({ invite, onAccept, onDecline, onConfirmPayment }: In
                             <>
                                 <button
                                     onClick={() => onDecline(invite.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 text-[12px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-[12px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
                                 >
                                     <XCircle size={13} className="text-gray-600" /> Decline
                                 </button>
@@ -292,7 +292,7 @@ export function InviteCard({ invite, onAccept, onDecline, onConfirmPayment }: In
                         )} */}
                         <button
                             onClick={() => setExpanded(p => !p)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
                             aria-label={expanded ? "Collapse" : "Expand"}
                         >
                             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

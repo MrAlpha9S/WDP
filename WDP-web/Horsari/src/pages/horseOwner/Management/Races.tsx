@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, MapPin, Plus, Loader2, AlertCircle, X, Trophy, ShieldAlert, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
@@ -41,7 +41,7 @@ function mapToMyRace(raw: any, i: number): MyRace {
 const STATUS_CFG: Record<RaceStatus, { label: string; dot: string; text: string; bg: string }> = {
   LIVE: { label: "LIVE", dot: "bg-red-400 animate-pulse", text: "text-red-400", bg: "bg-red-500/20 border-red-500/40" },
   UPCOMING: { label: "UPCOMING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
-  FINISHED: { label: "FINISHED", dot: "bg-gray-500", text: "text-gray-400", bg: "bg-black/50 border-white/10" },
+  FINISHED: { label: "FINISHED", dot: "bg-gray-500", text: "text-gray-400", bg: "bg-black/50 border-border" },
   PREPARING: { label: "PREPARING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
 };
 
@@ -107,11 +107,11 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
       onClick={onClose}
     >
       <div
-        className="bg-[#1a1a1a] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] shadow-2xl shadow-black/60 flex flex-col"
+        className="bg-surface border border-border rounded-2xl w-full max-w-lg max-h-[90vh] shadow-2xl shadow-black/60 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-white/8 shrink-0">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-border shrink-0">
           <div>
             <p className="text-[9px] font-black uppercase tracking-widest text-gray-600 mb-1">Race Detail</p>
             <h2 className="text-[17px] font-bold text-white leading-tight font-serif">
@@ -173,7 +173,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
               </div>
 
               {/* Tabs */}
-              <div className="flex items-center gap-1 p-1 bg-[#141414] border border-white/8 rounded-xl w-fit flex-wrap">
+              <div className="flex items-center gap-1 p-1 bg-surface border border-border rounded-xl w-fit flex-wrap">
                 {([
                   { id: "overview" as const, label: "Overview", count: competition?.competitors?.length ?? 0 },
                   { id: "entry" as const, label: "My Entry", count: reg?.invitations?.length ?? 0 },
@@ -235,7 +235,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                           {competition.competitors.map((c: any) => (
                             <div
                               key={c.registrationId}
-                              className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-white/8 bg-white/[0.02] text-[12px]"
+                              className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border bg-white/[0.02] text-[12px]"
                             >
                               <Users size={12} className="text-gray-600 shrink-0" />
                               <div className="flex-1 min-w-0">
@@ -246,7 +246,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                                 <span className="text-gray-500 text-[11px] shrink-0">{c.jockeyName}</span>
                               )}
                               {c.laneNumber != null && (
-                                <span className="text-[10px] text-gray-600 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full shrink-0">
+                                <span className="text-[10px] text-gray-600 bg-white/5 border border-border px-1.5 py-0.5 rounded-full shrink-0">
                                   Lane {c.laneNumber}
                                 </span>
                               )}
@@ -280,7 +280,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
 
                     {/* Horse card */}
                     {reg.horse && (
-                      <div className="bg-[#111] rounded-xl border border-white/8 p-3 flex items-center gap-3">
+                      <div className="bg-bg rounded-xl border border-border p-3 flex items-center gap-3">
                         <img
                           src={reg.horse.img ?? "/jumping-horse-silhouette-facing-left-side-view.png"}
                           alt={reg.horse.horseName}
@@ -311,7 +311,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                             return (
                               <div
                                 key={inv._id}
-                                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-[12px] ${isSelected ? "border-yellow-600/40 bg-yellow-500/5" : "border-white/8 bg-white/[0.02]"}`}
+                                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-[12px] ${isSelected ? "border-yellow-600/40 bg-yellow-500/5" : "border-border bg-white/[0.02]"}`}
                               >
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -324,7 +324,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                                       </span>
                                     )}
                                     {inv.isBackup && (
-                                      <span className="text-[9px] font-bold uppercase text-gray-500 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded-full">
+                                      <span className="text-[9px] font-bold uppercase text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-full">
                                         Backup
                                       </span>
                                     )}
@@ -359,7 +359,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                   <div className="flex flex-col gap-4">
                     {/* Race result */}
                     {reg.raceResult ? (
-                      <div className="bg-[#111] rounded-xl border border-white/8 p-3">
+                      <div className="bg-bg rounded-xl border border-border p-3">
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Race Result</p>
                         {reg.raceResult.resultStatus === "cancelled" ? (
                           <div className="flex items-center gap-2 text-red-400 text-[13px] font-bold">
@@ -406,7 +406,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                             return (
                               <div
                                 key={v._id}
-                                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red-500/5" : "border-white/8 bg-white/[0.02]"}`}
+                                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red-500/5" : "border-border bg-white/[0.02]"}`}
                               >
                                 <span className={`w-2 h-2 rounded-full shrink-0 ${severityColor(severity)}`} />
                                 <span className={`flex-1 ${isOwnerReg ? "text-red-400" : "text-gray-400"}`}>{vtName}</span>
@@ -440,9 +440,9 @@ function RaceCard({ race, onDetail, onLive }: { race: MyRace; onDetail: () => vo
 
   return (
     <div
-      className={`bg-[#1a1a1a] rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 hover:shadow-xl hover:shadow-black/50 ${isFinished ? "border-white/5 opacity-70" : "border-white/8 hover:border-white/15"}`}
+      className={`bg-surface rounded-2xl border overflow-hidden flex flex-col transition-all duration-200 hover:shadow-xl hover:shadow-black/50 ${isFinished ? "border-border/60 opacity-70" : "border-border hover:border-white/15"}`}
     >
-      <div className="relative h-28 overflow-hidden bg-[#111] flex items-center justify-center">
+      <div className="relative h-28 overflow-hidden bg-bg flex items-center justify-center">
         <img
           src={race.image}
           alt={race.name}
@@ -487,7 +487,7 @@ function RaceCard({ race, onDetail, onLive }: { race: MyRace; onDetail: () => vo
           <button
             onClick={onDetail}
             className={`w-full py-2.5 rounded-lg text-[11.5px] font-bold tracking-widest uppercase transition-all duration-150 mt-auto ${isFinished
-              ? "border border-white/8 text-gray-500 hover:text-gray-300 hover:border-white/15"
+              ? "border border-border text-gray-500 hover:text-gray-300 hover:border-white/15"
               : "border border-white/15 text-gray-300 hover:border-white/30 hover:text-white"
               }`}
           >
@@ -502,7 +502,7 @@ function RaceCard({ race, onDetail, onLive }: { race: MyRace; onDetail: () => vo
 // ── Skeleton card ─────────────────────────────────────────────────────────────
 function RaceSkeleton() {
   return (
-    <div className="bg-[#1a1a1a] rounded-2xl border border-white/5 overflow-hidden flex flex-col animate-pulse">
+    <div className="bg-surface rounded-2xl border border-border/60 overflow-hidden flex flex-col animate-pulse">
       <div className="h-40 bg-white/5" />
       <div className="px-4 pt-3 pb-4 flex flex-col gap-3">
         <div className="h-4 w-3/4 bg-white/8 rounded" />
@@ -523,7 +523,7 @@ function RaceSkeleton() {
 // ── Register tile ─────────────────────────────────────────────────────────────
 function RegisterTile({ onClick }: { onClick: () => void }) {
   return (
-    <div onClick={onClick} className="bg-[#161616] rounded-2xl border border-dashed border-white/15 flex flex-col items-center justify-center gap-3 min-h-[280px] cursor-pointer hover:border-red-700/50 hover:bg-red-950/10 transition-all duration-200 group">
+    <div onClick={onClick} className="bg-surface rounded-2xl border border-dashed border-white/15 flex flex-col items-center justify-center gap-3 min-h-[280px] cursor-pointer hover:border-red-700/50 hover:bg-red-950/10 transition-all duration-200 group">
       <div className="w-10 h-10 rounded-full border border-white/15 flex items-center justify-center group-hover:border-red-600/50 transition-colors duration-200">
         <Plus size={18} className="text-gray-600 group-hover:text-red-500 transition-colors duration-200" />
       </div>
@@ -554,12 +554,12 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
   return (
     <div className="flex items-center justify-center gap-4 mt-8">
       <button onClick={onPrev} disabled={page === 1}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
         <ChevronLeft size={13} /> Prev
       </button>
       <span className="text-[12px] text-gray-500 font-medium">Page {page} of {totalPages}</span>
       <button onClick={onNext} disabled={page === totalPages}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
         Next <ChevronRight size={13} />
       </button>
     </div>
@@ -623,15 +623,15 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
   const pagedRaces = filteredRaces.slice((page - 1) * RACES_PAGE_SIZE, page * RACES_PAGE_SIZE);
 
   return (
-    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col font-sans">
-      <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+    <div className="flex-1 px-8 py-8 min-h-screen bg-bg flex flex-col font-sans">
+      <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
               My Races
             </h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                 Race Management
               </span>
               <span className="text-[12px] text-gray-500 truncate">
@@ -656,7 +656,7 @@ export default function RacesPage({ onNavigateToInvitations }: { onNavigateToInv
                     ? isLiveTab
                       ? "bg-red-700/30 border-red-600/50 text-red-300"
                       : "bg-white/10 border-white/20 text-white"
-                    : "bg-transparent border-white/8 text-gray-500 hover:border-white/15 hover:text-gray-300",
+                    : "bg-transparent border-border text-gray-500 hover:border-white/15 hover:text-gray-300",
                 ].join(" ")}
               >
                 {isLiveTab && isActive && (

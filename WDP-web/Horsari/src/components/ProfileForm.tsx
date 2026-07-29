@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Camera, FileText, Loader2, UploadCloud } from "lucide-react";
 import type { SelfProfileData, UpdateSelfProfilePayload } from "../api/profileTypes";
 
@@ -131,9 +131,9 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
       <div className="flex items-center gap-5 mb-8">
         <div className="relative w-20 h-20 shrink-0">
           {avatarPreview ? (
-            <img src={avatarPreview} alt="Avatar" className="w-20 h-20 rounded-full object-cover border border-white/10" />
+            <img src={avatarPreview} alt="Avatar" className="w-20 h-20 rounded-full object-cover border border-border" />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-700 to-red-900 text-white flex items-center justify-center text-[22px] font-bold border border-white/10">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-700 to-red-900 text-white flex items-center justify-center text-[22px] font-bold border border-border">
               {getInitials(profile.fullName, profile.username)}
             </div>
           )}
@@ -141,7 +141,7 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
             type="button"
             onClick={() => avatarInputRef.current?.click()}
             disabled={uploadingAvatar}
-            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#1a1a1a] border border-white/15 flex items-center justify-center hover:bg-white/10 transition-colors disabled:opacity-50"
+            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-surface border border-white/15 flex items-center justify-center hover:bg-white/10 transition-colors disabled:opacity-50"
           >
             {uploadingAvatar ? <Loader2 size={12} className="animate-spin text-gray-300" /> : <Camera size={12} className="text-gray-300" />}
           </button>
@@ -157,11 +157,11 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Username</label>
-          <p className="text-[13px] text-gray-400 bg-[#111] border border-white/5 rounded-lg px-3 py-2 h-[38px] flex items-center">{profile.username}</p>
+          <p className="text-[13px] text-gray-400 bg-bg border border-border/60 rounded-lg px-3 py-2 h-[38px] flex items-center">{profile.username}</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Email</label>
-          <p className="text-[13px] text-gray-400 bg-[#111] border border-white/5 rounded-lg px-3 py-2 h-[38px] flex items-center truncate">{profile.email}</p>
+          <p className="text-[13px] text-gray-400 bg-bg border border-border/60 rounded-lg px-3 py-2 h-[38px] flex items-center truncate">{profile.email}</p>
         </div>
       </div>
 
@@ -174,7 +174,7 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Your full name"
-            className="bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
+            className="bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
           />
         </div>
 
@@ -186,7 +186,7 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               placeholder="0901234567"
-              className="bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
+              className="bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -196,7 +196,7 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
               max={new Date().toISOString().slice(0, 10)}
-              className="bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
+              className="bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
             />
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Your address"
-            className="bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
+            className="bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
           />
         </div>
 
@@ -241,7 +241,7 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
 
       {/* Read-only extras (wallet, isMainAdmin, etc.) */}
       {extraInfo && extraInfo.length > 0 && (
-        <div className="mt-8 pt-6 border-t border-white/5">
+        <div className="mt-8 pt-6 border-t border-border/60">
           <h3 className="text-[13px] font-semibold text-white mb-3">Account Info</h3>
           <div className="flex flex-col gap-2">
             {extraInfo.map((row) => (
@@ -256,7 +256,7 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
 
       {/* License (Referee / HorseOwner only) */}
       {license && (
-        <div className="mt-8 pt-6 border-t border-white/5">
+        <div className="mt-8 pt-6 border-t border-border/60">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[13px] font-semibold text-white">License</h3>
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${LICENSE_BADGE[license.status]}`}>
@@ -278,7 +278,7 @@ export default function ProfileForm({ profile, loading, onSave, onAvatarUpload, 
               type="button"
               onClick={() => licenseInputRef.current?.click()}
               disabled={uploadingLicense}
-              className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-border rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
             >
               {uploadingLicense ? <Loader2 size={13} className="animate-spin" /> : <UploadCloud size={13} />}
               Re-upload License (PDF)

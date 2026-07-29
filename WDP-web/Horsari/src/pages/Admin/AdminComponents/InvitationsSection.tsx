@@ -94,7 +94,7 @@ export function InvitationTable({
         : ["Invitee", "Role", "Status", "Details", "Action"];
 
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-6 mt-4 min-w-0">
+        <div className="rounded-xl border border-border bg-surface p-6 mt-4 min-w-0">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-[17px] font-semibold text-white">
                     {title}
@@ -102,7 +102,7 @@ export function InvitationTable({
                 {onViewAll && (
                     <button
                         onClick={onViewAll}
-                        className="text-[13px] text-gray-400 hover:text-white border border-white/[0.1] px-4 py-1.5 rounded-lg transition-colors"
+                        className="text-[13px] text-gray-400 hover:text-white border border-border px-4 py-1.5 rounded-lg transition-colors"
                     >
                         View All
                     </button>
@@ -112,7 +112,7 @@ export function InvitationTable({
             <div className="overflow-x-auto pb-2">
                 <div className="min-w-[900px]">
                     {/* Table header */}
-                    <div className={`grid ${gridColsClass} gap-4 pb-3 border-b border-white/[0.07] mb-2`}>
+                    <div className={`grid ${gridColsClass} gap-4 pb-3 border-b border-border mb-2`}>
                         {headers.map((h) => (
                             <p key={h} className="text-[12px] font-semibold tracking-widest text-gray-500 uppercase">
                                 {h}
@@ -181,7 +181,7 @@ export function InvitationTable({
                                     <div className="flex flex-col gap-2.5 text-[13px] text-gray-400 leading-snug">
                                         {/* Registered Race Info (Shown for everyone if available) */}
                                         {a.registeredRace && (
-                                            <div className="flex flex-col gap-1 border-b border-white/5 pb-2.5">
+                                            <div className="flex flex-col gap-1 border-b border-border/60 pb-2.5">
                                                 <p className="flex items-center gap-2">
                                                     <span className="text-gray-500 font-medium">Race:</span>
                                                     <span className="text-white font-medium">{a.registeredRace}</span>
@@ -205,9 +205,9 @@ export function InvitationTable({
                                             <>
                                                 <p className="flex items-center gap-2">
                                                     <span className="text-gray-500 font-medium">Selected Horse:</span>
-                                                    <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">{a.horseSelected || "None"}</span>
+                                                    <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-border">{a.horseSelected || "None"}</span>
                                                 </p>
-                                                <div className="flex flex-col gap-1.5 mt-1 border-l-2 border-white/5 pl-3">
+                                                <div className="flex flex-col gap-1.5 mt-1 border-l-2 border-border/60 pl-3">
                                                     <div className="flex items-center gap-3 flex-wrap">
                                                         <span className="w-[100px] text-gray-500 shrink-0">Main Jockey:</span>
                                                         <span className="text-gray-200 w-[120px] truncate">{a.mainJockeyName || "-"}</span>
@@ -230,7 +230,7 @@ export function InvitationTable({
                                             <>
                                                 <p className="flex items-center gap-2 mb-2">
                                                     <span className="text-gray-500 font-medium">Selected Horse:</span>
-                                                    <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">{a.horseSelected || "None"}</span>
+                                                    <span className="text-white font-medium bg-white/5 px-2 py-0.5 rounded border border-border">{a.horseSelected || "None"}</span>
                                                 </p>
                                                 {a.bookingFees != null && a.bookingFees > 0 && (
                                                     <p className="flex items-center gap-2">
@@ -249,7 +249,7 @@ export function InvitationTable({
                                 <div>
                                     <button
                                         onClick={() => handleRevoke(a.id)}
-                                        className="text-[13px] font-medium text-gray-400 hover:text-white border border-white/[0.1] hover:border-red-500/50 hover:bg-red-500/10 px-4 py-2 rounded-lg transition-colors"
+                                        className="text-[13px] font-medium text-gray-400 hover:text-white border border-border hover:border-red-500/50 hover:bg-red-500/10 px-4 py-2 rounded-lg transition-colors"
                                     >
                                         Revoke
                                     </button>
@@ -428,8 +428,8 @@ export default function InvitationsSection({ limit = DEFAULT_LIMIT, onViewAll }:
     };
 
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-6 flex flex-col h-full min-w-0">
-            <div className="flex gap-4 mb-2 border-b border-white/[0.07]">
+        <div className="rounded-xl border border-border bg-surface p-6 flex flex-col h-full min-w-0">
+            <div className="flex gap-4 mb-2 border-b border-border">
                 <button
                     onClick={() => { setActiveTab("Horse Owner"); setPage(1); }}
                     className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Horse Owner" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}

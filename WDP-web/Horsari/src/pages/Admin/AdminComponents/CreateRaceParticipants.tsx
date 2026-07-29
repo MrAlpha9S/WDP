@@ -25,7 +25,7 @@ export default function CreateRaceParticipants(props: ParticipantsProps) {
                 <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
                     Invite Horse Owners <span className="text-gray-500 normal-case ml-1 font-normal">(Auto-filtered for {selectedRuleName} eligibility)</span>
                 </label>
-                <div className="p-3 bg-[#111] border border-white/10 rounded flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar">
+                <div className="p-3 bg-bg border border-border rounded flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar">
                     {metadata?.owners?.filter((owner: any) => owner.horses.some((h: any) => checkEligibility(h, createRaceType))).map((owner: any) => {
                         const ownerId = owner._id?._id ?? owner._id;
                         const ownerName = owner.user?.fullName ?? owner._id?.fullName ?? 'Unknown Owner';
@@ -67,7 +67,7 @@ export default function CreateRaceParticipants(props: ParticipantsProps) {
                 <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
                     Assign Referee <span className="text-gray-500 normal-case ml-1 font-normal">(Optional)</span>
                 </label>
-                <div className="p-3 bg-[#111] border border-white/10 rounded flex flex-col gap-2">
+                <div className="p-3 bg-bg border border-border rounded flex flex-col gap-2">
                     <div className="relative mb-2">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
                         <input
@@ -75,7 +75,7 @@ export default function CreateRaceParticipants(props: ParticipantsProps) {
                             placeholder="Search referee by name..."
                             value={props.refereeSearchQuery}
                             onChange={(e) => props.setRefereeSearchQuery(e.target.value)}
-                            className="w-full bg-[#1a1a1a] border border-white/10 rounded py-1.5 pl-9 pr-3 text-[12px] text-white focus:outline-none focus:border-red-500/50"
+                            className="w-full bg-surface border border-border rounded py-1.5 pl-9 pr-3 text-[12px] text-white focus:outline-none focus:border-red-500/50"
                         />
                     </div>
                     <div className="max-h-[120px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
@@ -112,7 +112,7 @@ export default function CreateRaceParticipants(props: ParticipantsProps) {
                                                 const val = parseDottedNumber(e.target.value) || 0;
                                                 props.setRefereeFees({ ...props.refereeFees, [String(refereeId)]: val });
                                             }}
-                                            className="w-[110px] bg-[#161616] border border-white/10 rounded p-1 text-[11px] text-white focus:outline-none focus:border-red-500/50"
+                                            className="w-[110px] bg-surface border border-border rounded p-1 text-[11px] text-white focus:outline-none focus:border-red-500/50"
                                         />
                                     )}
                                 </label>

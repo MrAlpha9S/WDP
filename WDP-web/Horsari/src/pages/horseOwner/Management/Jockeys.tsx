@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, SlidersHorizontal, User, Diamond, Loader2 } from "lucide-react";
 import JockeyDetailModal, { type Jockey, STATUS_CFG } from "../../../components/ownerComponents/JockeyModal/Jockeydetailmodal";
 import HireJockeyModal from "../../../components/ownerComponents/JockeyModal/Hirejockey";
@@ -79,7 +79,7 @@ function FilterSelect({ options, value, onChange }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-lg pl-4 pr-8 py-2 text-[12.5px] text-gray-300 focus:outline-none focus:border-white/25 cursor-pointer transition-colors duration-150"
+        className="appearance-none bg-surface border border-border rounded-lg pl-4 pr-8 py-2 text-[12.5px] text-gray-300 focus:outline-none focus:border-white/25 cursor-pointer transition-colors duration-150"
       >
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -91,7 +91,7 @@ function FilterSelect({ options, value, onChange }: {
 // ── Skeleton card ─────────────────────────────────────────────────────────────
 function JockeySkeleton() {
   return (
-    <div className="bg-[#1a1a1a] rounded-2xl border border-white/5 overflow-hidden animate-pulse">
+    <div className="bg-surface rounded-2xl border border-border/60 overflow-hidden animate-pulse">
       <div className="h-52 bg-white/5" />
       <div className="px-4 pt-4 pb-5 flex flex-col gap-3">
         <div className="h-5 w-2/3 bg-white/8 rounded" />
@@ -117,12 +117,12 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
 
   return (
     <div
-      className={`bg-[#1a1a1a] rounded-2xl border border-white/8 overflow-hidden flex flex-col transition-all duration-200 ${!isUnavailable
+      className={`bg-surface rounded-2xl border border-border overflow-hidden flex flex-col transition-all duration-200 ${!isUnavailable
           ? "hover:border-white/15 hover:shadow-xl hover:shadow-black/40"
           : "opacity-80"
         }`}
     >
-      <div className="relative h-52 bg-[#111] overflow-hidden">
+      <div className="relative h-52 bg-bg overflow-hidden">
         {jockey.image ? (
           <img
             src={jockey.image}
@@ -130,7 +130,7 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
             className={`w-full h-full object-cover object-top ${isUnavailable ? "grayscale brightness-50" : ""}`}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-[#161616]">
+          <div className="w-full h-full flex items-center justify-center bg-surface">
             <User size={48} className="text-gray-700" />
           </div>
         )}
@@ -149,13 +149,13 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-[#141414] rounded-lg px-3 py-2.5 border border-white/6">
+          <div className="bg-surface rounded-lg px-3 py-2.5 border border-border/60">
             <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-1">Win Rate</p>
             <p className={`text-[15px] font-bold ${isUnavailable ? "text-gray-500" : "text-green-400"}`}>
               {jockey.winRate}%
             </p>
           </div>
-          <div className="bg-[#141414] rounded-lg px-3 py-2.5 border border-white/6">
+          <div className="bg-surface rounded-lg px-3 py-2.5 border border-border/60">
             <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-1">Starts</p>
             <p className="text-[15px] font-bold text-white">{jockey.starts.toLocaleString()}</p>
           </div>
@@ -172,7 +172,7 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
             disabled={isUnavailable}
             onClick={isUnavailable ? undefined : onHire}
             className={`flex-1 py-2.5 rounded-lg text-[12px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 ${isUnavailable
-                ? "bg-[#242424] border border-white/8 text-gray-600 cursor-not-allowed"
+                ? "bg-[#242424] border border-border text-gray-600 cursor-not-allowed"
                 : "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
               }`}
           >
@@ -307,7 +307,7 @@ export default function JockeysPage() {
 
       {/* Empty */}
       {!loading && !error && jockeys.length === 0 && (
-        <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
+        <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
           No jockeys found.
         </div>
       )}

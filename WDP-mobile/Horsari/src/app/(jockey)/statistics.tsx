@@ -20,19 +20,13 @@ import {
   EarningsSeries,
 } from '../../api/jockeyApi';
 import { isNetworkError } from '../../api/axios';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
 
 const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
+  ...SharedPalette,
   redLight: '#E8828A',
-  gold: '#C9A24B',
 } as const;
 
 type GroupBy = 'day' | 'week' | 'month' | 'year';
@@ -80,8 +74,12 @@ function StatCard({
 
 function PayoutsBarChart({ series }: { series: EarningsSeries['series'] }) {
   const max = Math.max(...series.map((s) => s.payoutsEarned), 1);
+  const total = series.reduce((sum, s) => sum + s.payoutsEarned, 0);
   return (
-    <View style={styles.barChart}>
+    <View
+      style={styles.barChart}
+      accessible
+      accessibilityLabel={`Earnings chart, ${series.length} periods, ${total.toLocaleString()} dong total`}>
       {series.map((s, i) => (
         <View key={i} style={styles.barCol}>
           <View style={styles.barTrack}>
@@ -158,7 +156,7 @@ export default function JockeyStatisticsScreen() {
 
         {/* ─── Header ─── */}
         <View style={styles.header}>
-          <Pressable hitSlop={8} onPress={() => router.back()}>
+          <Pressable hitSlop={8} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back">
             <Ionicons name="chevron-back" size={22} color={Palette.text} />
           </Pressable>
           <Text style={styles.headerTitle}>STATISTICS</Text>
@@ -247,7 +245,10 @@ export default function JockeyStatisticsScreen() {
                   <Pressable
                     key={opt.value}
                     onPress={() => setGroupBy(opt.value)}
-                    style={[styles.groupByBtn, groupBy === opt.value && styles.groupByBtnActive]}>
+                    style={[styles.groupByBtn, groupBy === opt.value && styles.groupByBtnActive]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: groupBy === opt.value }}
+                    accessibilityLabel={`Group by ${opt.label.toLowerCase()}`}>
                     <Text style={[styles.groupByBtnText, groupBy === opt.value && styles.groupByBtnTextActive]}>
                       {opt.label}
                     </Text>

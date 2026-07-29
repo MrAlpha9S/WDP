@@ -20,20 +20,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getSpectatorProfile, updateSpectatorProfile } from '../../api/spectatorApi';
 import { uploadAvatar } from '../../api/profileApi';
 import { isNetworkError, NETWORK_ERROR_MESSAGE } from '../../api/axios';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette as SharedPalette } from '@/constants/theme';
+import { Button } from '@/components/ui/Button';
 
+// Form-input treatment isn't part of the shared token set yet — extend locally
+// rather than block on adding an Input primitive.
 const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
+  ...SharedPalette,
   inputBackground: '#0E0E10',
   inputBorder: '#2A2A2D',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
   textPlaceholder: '#6A6A70',
-  gold: '#C9A24B',
-  errorBg: '#2A1215',
-  errorBorder: '#5C1A1F',
 } as const;
 
 export default function SpectatorEditProfileScreen() {
@@ -156,7 +152,7 @@ export default function SpectatorEditProfileScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
           <View style={styles.header}>
-            <Pressable hitSlop={8} onPress={() => router.back()}>
+            <Pressable hitSlop={8} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back">
               <Ionicons name="chevron-back" size={22} color={Palette.text} />
             </Pressable>
             <Text style={styles.headerTitle}>EDIT PROFILE</Text>
@@ -170,10 +166,10 @@ export default function SpectatorEditProfileScreen() {
 
             {errorMsg && (
               <View style={styles.errorBanner}>
-                <Ionicons name="alert-circle-outline" size={16} color="#FF6B6B" />
+                <Ionicons name="alert-circle-outline" size={16} color={Palette.red} />
                 <Text style={styles.errorText}>{errorMsg}</Text>
                 {loadFailed && (
-                  <Pressable onPress={load} hitSlop={8}>
+                  <Pressable onPress={load} hitSlop={8} accessibilityRole="button" accessibilityLabel="Retry loading profile">
                     <Text style={styles.errorRetryText}>RETRY</Text>
                   </Pressable>
                 )}
@@ -192,7 +188,9 @@ export default function SpectatorEditProfileScreen() {
                 <Pressable
                   style={styles.avatarEditBtn}
                   onPress={handlePickAvatar}
-                  disabled={isUploadingAvatar}>
+                  disabled={isUploadingAvatar}
+                  accessibilityRole="button"
+                  accessibilityLabel="Change avatar photo">
                   {isUploadingAvatar ? (
                     <ActivityIndicator size="small" color={Palette.text} />
                   ) : (
@@ -200,7 +198,11 @@ export default function SpectatorEditProfileScreen() {
                   )}
                 </Pressable>
               </View>
-              <Pressable onPress={handlePickAvatar} disabled={isUploadingAvatar}>
+              <Pressable
+                onPress={handlePickAvatar}
+                disabled={isUploadingAvatar}
+                accessibilityRole="button"
+                accessibilityLabel="Change photo">
                 <Text style={styles.avatarChangeText}>Change Photo</Text>
               </Pressable>
             </View>
@@ -258,16 +260,7 @@ export default function SpectatorEditProfileScreen() {
               />
             </View>
 
-            <Pressable
-              style={[styles.submitBtn, isSubmitting && styles.submitDisabled]}
-              onPress={handleSubmit}
-              disabled={isSubmitting}>
-              {isSubmitting ? (
-                <ActivityIndicator color="#0A0A0B" size="small" />
-              ) : (
-                <Text style={styles.submitText}>SAVE CHANGES</Text>
-              )}
-            </Pressable>
+            <Button label="SAVE CHANGES" onPress={handleSubmit} loading={isSubmitting} style={{ marginTop: 8 }} />
 
             <View style={styles.bottomPad} />
           </ScrollView>
@@ -312,7 +305,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
-  errorText: { flex: 1, fontSize: 13, color: '#FF6B6B', lineHeight: 18 },
+  errorText: { flex: 1, fontSize: 13, color: Palette.red, lineHeight: 18 },
   errorRetryText: {
     fontFamily: Fonts.mono,
     fontSize: 11,
@@ -385,22 +378,6 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     fontSize: 15,
     height: '100%',
-  },
-
-  submitBtn: {
-    height: 54,
-    borderRadius: 12,
-    backgroundColor: Palette.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  submitDisabled: { opacity: 0.7 },
-  submitText: {
-    color: '#0A0A0B',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1.5,
   },
 
   bottomPad: { height: 30 },

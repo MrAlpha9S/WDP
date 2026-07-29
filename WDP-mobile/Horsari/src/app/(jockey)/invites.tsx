@@ -20,22 +20,16 @@ import {
   respondToInvitation,
 } from '../../api/jockeyApi';
 import { useSocket } from '../../socket/SocketContext';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
+import { Badge, BadgeTone } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Chip } from '@/components/ui/Chip';
 
 const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
-  redDark: '#8C1620',
+  ...SharedPalette,
   redLight: '#E8828A',
-  gold: '#C9A24B',
-  green: '#22C55E',
-  sheet: '#1A1A1C',
 } as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,14 +57,14 @@ function formatFee(bookingFees: number | undefined, pct: number | undefined): st
 
 // ─── Status colour helper (shared by card + sheet) ───────────────────────────
 
-function getStatusStyle(inv: InvitationItem): { color: string; label: string } {
-  if (inv.invitationStatus === 'didNotAttend') return { color: Palette.textMuted, label: 'No-Show' };
-  if (inv.invitationStatus === 'declined')  return { color: Palette.red,     label: 'Declined'   };
-  if (inv.invitationStatus === 'accepted')  return { color: '#22C55E',        label: 'Accepted' };
-  if (inv.invitationStatus === 'cancelled') return { color: Palette.textMuted, label: 'Cancelled'      };
+function getStatusStyle(inv: InvitationItem): { tone: BadgeTone; label: string } {
+  if (inv.invitationStatus === 'didNotAttend') return { tone: 'muted', label: 'No-Show' };
+  if (inv.invitationStatus === 'declined')  return { tone: 'red',   label: 'Declined'   };
+  if (inv.invitationStatus === 'accepted')  return { tone: 'green', label: 'Accepted' };
+  if (inv.invitationStatus === 'cancelled') return { tone: 'muted', label: 'Cancelled'      };
   // pending
-  if (inv.jockeyConfirmation) return { color: '#22C55E', label: 'Confirmed'    };
-  return                               { color: Palette.gold, label: 'Awaiting Response' };
+  if (inv.jockeyConfirmation) return { tone: 'green', label: 'Confirmed'    };
+  return                               { tone: 'amber', label: 'Awaiting Response' };
 }
 
 // ─── Detail sheet row ─────────────────────────────────────────────────────────
@@ -144,18 +138,19 @@ function InviteDetailSheet({
               {invite.tournament?.tournamentName ?? ''}
             </Text>
           </View>
-          <Pressable style={styles.sheetCloseBtn} onPress={onClose} hitSlop={8}>
+          <Pressable
+            style={styles.sheetCloseBtn}
+            onPress={onClose}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Close">
             <Ionicons name="close" size={20} color={Palette.textMuted} />
           </Pressable>
         </View>
 
         {/* Status badge row */}
         <View style={styles.sheetStatusRow}>
-          <View style={[styles.pendingBadge, { borderColor: `${statusStyle.color}66`, backgroundColor: `${statusStyle.color}18` }]}>
-            <Text style={[styles.pendingBadgeText, { color: statusStyle.color }]}>
-              {statusStyle.label}
-            </Text>
-          </View>
+          <Badge label={statusStyle.label} tone={statusStyle.tone} />
           {/* <View style={[
             styles.confirmBadge,
             invite.ownerConfirmation ? styles.confirmBadgeGreen : styles.confirmBadgeGray,
@@ -278,22 +273,21 @@ function InviteDetailSheet({
         {/* Action buttons — only for actionable (pending, not yet responded) invitations */}
         {invite.invitationStatus === 'pending' && !invite.jockeyConfirmation && (
           <View style={styles.sheetActions}>
-            <Pressable
-              style={[styles.sheetBtnDecline, busy && styles.btnDisabled]}
+            <Button
+              label="DECLINE"
+              variant="secondary"
               disabled={busy}
-              onPress={() => onRespond(invite.invitationId, 'rejected')}>
-              <Text style={styles.sheetBtnDeclineText}>DECLINE</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.sheetBtnAccept, busy && styles.btnDisabled]}
+              onPress={() => onRespond(invite.invitationId, 'rejected')}
+              style={{ flex: 1 }}
+            />
+            <Button
+              label="ACCEPT"
+              accentColor={Palette.red}
+              loading={busy}
               disabled={busy}
-              onPress={() => onRespond(invite.invitationId, 'accepted')}>
-              {busy ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <Text style={styles.sheetBtnAcceptText}>ACCEPT</Text>
-              )}
-            </Pressable>
+              onPress={() => onRespond(invite.invitationId, 'accepted')}
+              style={{ flex: 2 }}
+            />
           </View>
         )}
       </View>
@@ -420,30 +414,16 @@ export default function InvitesScreen() {
 
         {/* ─── Filter bar ─── */}
         <View style={styles.filterBar}>
-          {FILTERS.map(({ key, label, color }) => {
-            const count = countFor(key);
-            const active = activeFilter === key;
-            return (
-              <Pressable
-                key={key}
-                style={[
-                  styles.filterPill,
-                  active && { borderColor: color, backgroundColor: `${color}1A` },
-                ]}
-                onPress={() => setActiveFilter(key)}>
-                <Text style={[styles.filterPillText, active && { color }]}>
-                  {label}
-                </Text>
-                {count > 0 && (
-                  <View style={[styles.filterCount, active && { backgroundColor: color }]}>
-                    <Text style={[styles.filterCountText, active && styles.filterCountTextActive]}>
-                      {count}
-                    </Text>
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
+          {FILTERS.map(({ key, label, color }) => (
+            <Chip
+              key={key}
+              label={label}
+              active={activeFilter === key}
+              accentColor={color}
+              count={countFor(key)}
+              onPress={() => setActiveFilter(key)}
+            />
+          ))}
         </View>
 
         {/* ─── Body ─── */}
@@ -472,7 +452,7 @@ export default function InvitesScreen() {
 
             {error && (
               <View style={styles.errorBanner}>
-                <Ionicons name="alert-circle-outline" size={14} color="#FF6B6B" />
+                <Ionicons name="alert-circle-outline" size={14} color={Palette.red} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
@@ -499,7 +479,7 @@ export default function InvitesScreen() {
               const fee = formatFee(invite.bookingFees, invite.percentagePayout);
               const isResponding = respondingId === invite.invitationId;
 
-              const { color: statusColor, label: statusText } = getStatusStyle(invite);
+              const { tone: statusTone, label: statusText } = getStatusStyle(invite);
 
               return (
                 <View key={invite.invitationId} style={[
@@ -542,14 +522,7 @@ export default function InvitesScreen() {
                         </View>
                         <Text style={styles.inviteHorseName} numberOfLines={1}>{horse}</Text>
                       </View>
-                      <View style={[styles.pendingBadge, {
-                        borderColor: `${statusColor}66`,
-                        backgroundColor: `${statusColor}18`,
-                      }]}>
-                        <Text style={[styles.pendingBadgeText, { color: statusColor }]}>
-                          {statusText.toUpperCase()}
-                        </Text>
-                      </View>
+                      <Badge label={statusText.toUpperCase()} tone={statusTone} />
                     </View>
 
                     <View style={styles.inviteDivider} />
@@ -593,22 +566,21 @@ export default function InvitesScreen() {
                   {/* Action buttons — only shown on the pending tab */}
                   {activeFilter === 'pending' && (
                     <View style={styles.inviteActions}>
-                      <Pressable
-                        style={[styles.btnAccept, isResponding && styles.btnDisabled]}
+                      <Button
+                        label="ACCEPT"
+                        accentColor={Palette.red}
+                        loading={isResponding}
                         disabled={isResponding}
-                        onPress={() => respond(invite.invitationId, 'accepted')}>
-                        {isResponding ? (
-                          <ActivityIndicator color="#FFFFFF" size="small" />
-                        ) : (
-                          <Text style={styles.btnAcceptText}>ACCEPT</Text>
-                        )}
-                      </Pressable>
-                      <Pressable
-                        style={[styles.btnDecline, isResponding && styles.btnDisabled]}
+                        onPress={() => respond(invite.invitationId, 'accepted')}
+                        style={{ flex: 1 }}
+                      />
+                      <Button
+                        label="DECLINE"
+                        variant="secondary"
                         disabled={isResponding}
-                        onPress={() => respond(invite.invitationId, 'rejected')}>
-                        <Text style={styles.btnDeclineText}>DECLINE</Text>
-                      </Pressable>
+                        onPress={() => respond(invite.invitationId, 'rejected')}
+                        style={{ flex: 1 }}
+                      />
                     </View>
                   )}
                 </View>
@@ -679,16 +651,16 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2A1215',
+    backgroundColor: Palette.errorBg,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#5C1A1F',
+    borderColor: Palette.errorBorder,
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 8,
     marginBottom: 16,
   },
-  errorText: { flex: 1, fontSize: 13, color: '#FF6B6B', lineHeight: 18 },
+  errorText: { flex: 1, fontSize: 13, color: Palette.red, lineHeight: 18 },
 
   sectionHeader: {
     flexDirection: 'row',
@@ -813,24 +785,6 @@ const styles = StyleSheet.create({
     color: Palette.textMuted,
   },
   inviteHorseName: { fontSize: 17, fontWeight: '800', color: Palette.text, letterSpacing: 0.3 },
-  pendingBadge: {
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Palette.gold,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  pendingBadgeText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    color: Palette.gold,
-  },
-  confirmedBadge: { borderColor: 'rgba(34,197,94,0.5)', backgroundColor: 'rgba(34,197,94,0.1)' },
-  confirmedBadgeText: { color: '#22C55E' },
-  declinedBadge: { borderColor: 'rgba(200,30,46,0.4)', backgroundColor: 'rgba(200,30,46,0.1)' },
-  declinedBadgeText: { color: Palette.red },
   inviteDivider: { height: 1, backgroundColor: Palette.cardBorder },
   inviteDetails: { gap: 10 },
   inviteDetailRow: { flexDirection: 'row', gap: 12 },
@@ -852,38 +806,6 @@ const styles = StyleSheet.create({
   },
 
   inviteActions: { flexDirection: 'row', gap: 10, padding: 16, paddingTop: 0 },
-  btnAccept: {
-    flex: 1,
-    height: 44,
-    backgroundColor: Palette.red,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnAcceptText: {
-    fontFamily: Fonts.mono,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1,
-    color: Palette.text,
-  },
-  btnDecline: {
-    flex: 1,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnDeclineText: {
-    fontFamily: Fonts.mono,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1,
-    color: Palette.textMuted,
-  },
-  btnDisabled: { opacity: 0.5 },
 
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   emptyText: { fontSize: 14, color: Palette.textMuted, textAlign: 'center' },
@@ -912,36 +834,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Palette.cardBorder,
   },
-  filterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-    backgroundColor: 'transparent',
-  },
-  filterPillText: {
-    fontFamily: Fonts.mono,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    color: Palette.textMuted,
-  },
-  filterCount: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: Palette.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  filterCountText: { fontSize: 10, fontWeight: '800', color: Palette.textMuted },
-  filterCountTextActive: { color: '#FFF' },
-
   // ─── Bottom sheet ────────────────────────────────────────────────────────────
   overlay: {
     position: 'absolute',
@@ -956,7 +848,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Palette.sheet,
+    backgroundColor: Palette.cardRaised,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderWidth: 1,
@@ -1112,36 +1004,5 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: Palette.cardBorder,
-  },
-  sheetBtnDecline: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sheetBtnDeclineText: {
-    fontFamily: Fonts.mono,
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1,
-    color: Palette.textMuted,
-  },
-  sheetBtnAccept: {
-    flex: 2,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: Palette.red,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sheetBtnAcceptText: {
-    fontFamily: Fonts.mono,
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1,
-    color: '#FFF',
   },
 });

@@ -22,27 +22,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getMyProfile, updateMyProfile, updateMyLicense } from '../../api/jockeyApi';
 import { uploadAvatar } from '../../api/profileApi';
 import { isNetworkError, NETWORK_ERROR_MESSAGE } from '../../api/axios';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette as SharedPalette } from '@/constants/theme';
+import { Badge, BadgeTone } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 
-const LICENSE_BADGE_COLOR: Record<string, string> = {
-  pending: '#C9A24B',
-  approved: '#3DBE6C',
-  rejected: '#C81E2E',
+const LICENSE_BADGE_TONE: Record<string, BadgeTone> = {
+  pending: 'amber',
+  approved: 'green',
+  rejected: 'red',
 };
 
+// Form-input treatment isn't part of the shared token set yet — extend locally.
 const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
+  ...SharedPalette,
   inputBackground: '#0E0E10',
   inputBorder: '#2A2A2D',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
   textPlaceholder: '#6A6A70',
-  red: '#C81E2E',
-  errorBg: '#2A1215',
-  errorBorder: '#5C1A1F',
-  gold: '#C9A24B',
 } as const;
 
 export default function EditProfileScreen() {
@@ -217,7 +212,7 @@ export default function EditProfileScreen() {
 
           {/* ─── Header ─── */}
           <View style={styles.header}>
-            <Pressable hitSlop={8} onPress={() => router.back()}>
+            <Pressable hitSlop={8} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back">
               <Ionicons name="chevron-back" size={22} color={Palette.text} />
             </Pressable>
             <Text style={styles.headerTitle}>EDIT PROFILE</Text>
@@ -231,10 +226,10 @@ export default function EditProfileScreen() {
 
             {errorMsg && (
               <View style={styles.errorBanner}>
-                <Ionicons name="alert-circle-outline" size={16} color="#FF6B6B" />
+                <Ionicons name="alert-circle-outline" size={16} color={Palette.red} />
                 <Text style={styles.errorText}>{errorMsg}</Text>
                 {loadFailed && (
-                  <Pressable onPress={load} hitSlop={8}>
+                  <Pressable onPress={load} hitSlop={8} accessibilityRole="button" accessibilityLabel="Retry loading profile">
                     <Text style={styles.errorRetryText}>RETRY</Text>
                   </Pressable>
                 )}
@@ -253,7 +248,9 @@ export default function EditProfileScreen() {
                 <Pressable
                   style={styles.avatarEditBtn}
                   onPress={handlePickAvatar}
-                  disabled={isUploadingAvatar}>
+                  disabled={isUploadingAvatar}
+                  accessibilityRole="button"
+                  accessibilityLabel="Change avatar photo">
                   {isUploadingAvatar ? (
                     <ActivityIndicator size="small" color={Palette.text} />
                   ) : (
@@ -261,7 +258,11 @@ export default function EditProfileScreen() {
                   )}
                 </Pressable>
               </View>
-              <Pressable onPress={handlePickAvatar} disabled={isUploadingAvatar}>
+              <Pressable
+                onPress={handlePickAvatar}
+                disabled={isUploadingAvatar}
+                accessibilityRole="button"
+                accessibilityLabel="Change photo">
                 <Text style={styles.avatarChangeText}>Change Photo</Text>
               </Pressable>
             </View>
@@ -362,31 +363,28 @@ export default function EditProfileScreen() {
               />
             </View>
 
-            <Pressable
-              style={[styles.submitBtn, isSubmitting && styles.submitDisabled]}
+            <Button
+              label="SAVE CHANGES"
               onPress={handleSubmit}
-              disabled={isSubmitting}>
-              {isSubmitting ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <Text style={styles.submitText}>SAVE CHANGES</Text>
-              )}
-            </Pressable>
+              loading={isSubmitting}
+              accentColor={Palette.red}
+              style={{ marginTop: 8 }}
+            />
 
             <View style={styles.licenseSection}>
               <View style={styles.licenseHeader}>
                 <Text style={styles.sectionTitle}>License</Text>
                 {licenseStatus && (
-                  <View style={[styles.licenseBadge, { borderColor: LICENSE_BADGE_COLOR[licenseStatus] ?? Palette.textMuted }]}>
-                    <Text style={[styles.licenseBadgeText, { color: LICENSE_BADGE_COLOR[licenseStatus] ?? Palette.textMuted }]}>
-                      {licenseStatus.toUpperCase()}
-                    </Text>
-                  </View>
+                  <Badge label={licenseStatus.toUpperCase()} tone={LICENSE_BADGE_TONE[licenseStatus] ?? 'muted'} />
                 )}
               </View>
               <View style={styles.licenseActions}>
                 {licenseLink && (
-                  <Pressable onPress={() => Linking.openURL(licenseLink)} style={styles.licenseLinkBtn}>
+                  <Pressable
+                    onPress={() => Linking.openURL(licenseLink)}
+                    style={styles.licenseLinkBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel="View current license">
                     <Ionicons name="document-text-outline" size={14} color={Palette.textMuted} />
                     <Text style={styles.licenseLinkText}>View current license</Text>
                   </Pressable>
@@ -394,7 +392,9 @@ export default function EditProfileScreen() {
                 <Pressable
                   style={styles.licenseUploadBtn}
                   onPress={handlePickLicense}
-                  disabled={isUploadingLicense}>
+                  disabled={isUploadingLicense}
+                  accessibilityRole="button"
+                  accessibilityLabel="Re-upload license PDF">
                   {isUploadingLicense ? (
                     <ActivityIndicator size="small" color={Palette.text} />
                   ) : (
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
-  errorText: { flex: 1, fontSize: 13, color: '#FF6B6B', lineHeight: 18 },
+  errorText: { flex: 1, fontSize: 13, color: Palette.red, lineHeight: 18 },
   errorRetryText: {
     fontFamily: Fonts.mono,
     fontSize: 11,
@@ -492,22 +492,6 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     fontSize: 15,
     height: '100%',
-  },
-
-  submitBtn: {
-    height: 54,
-    borderRadius: 12,
-    backgroundColor: Palette.red,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  submitDisabled: { opacity: 0.7 },
-  submitText: {
-    color: Palette.text,
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1.5,
   },
 
   bottomPad: { height: 30 },
@@ -561,18 +545,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
-  },
-  licenseBadge: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  licenseBadgeText: {
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
   },
   licenseActions: {
     flexDirection: 'row',

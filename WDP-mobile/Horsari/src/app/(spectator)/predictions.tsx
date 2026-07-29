@@ -27,20 +27,12 @@ import {
 } from '../../api/spectatorApi';
 import { isNetworkError } from '../../api/axios';
 import { useSocket } from '../../socket/SocketContext';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
-
-const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
-  gold: '#C9A24B',
-  green: '#22C55E',
-} as const;
+import { Badge, BadgeTone } from '@/components/ui/Badge';
+import { Chip } from '@/components/ui/Chip';
+import { Button } from '@/components/ui/Button';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,13 +44,16 @@ function formatDate(dateStr: string): string {
   return `${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
 }
 
-function predStatusStyle(s: PredictionStatus): { color: string; label: string; icon: string } {
+function predStatusStyle(s: PredictionStatus): { color: string; tone: BadgeTone; label: string; icon: string } {
   switch (s) {
-    case 'correct':   return { color: Palette.green,    label: 'Correct',   icon: 'checkmark-circle' };
-    case 'incorrect': return { color: Palette.red,      label: 'Incorrect', icon: 'close-circle' };
-    case 'cancelled': return { color: Palette.textMuted, label: 'Cancelled', icon: 'ban-outline' };
-    case 'refunded':  return { color: Palette.gold,     label: 'Refunded',  icon: 'refresh-circle' };
-    default:          return { color: Palette.gold,     label: 'Pending',   icon: 'time-outline' };
+    case 'correct':   return { color: Palette.green,     tone: 'green', label: 'Correct',   icon: 'checkmark-circle' };
+    case 'incorrect': return { color: Palette.red,       tone: 'red',   label: 'Incorrect', icon: 'close-circle' };
+    case 'cancelled': return { color: Palette.textMuted, tone: 'muted', label: 'Cancelled', icon: 'ban-outline' };
+    case 'refunded':  return { color: Palette.gold,      tone: 'gold',  label: 'Refunded',  icon: 'refresh-circle' };
+    // Pending gets its own "amber" tone rather than gold — gold is the brand/primary
+    // accent used throughout the chrome, and reusing it here made "pending" status
+    // visually blend into ordinary UI instead of reading as a distinct state.
+    default:          return { color: Palette.amber,     tone: 'amber', label: 'Pending',   icon: 'time-outline' };
   }
 }
 
@@ -218,7 +213,7 @@ function PredictionDetailModal({
 
   if (!item) return null;
 
-  const { color, label, icon } = predStatusStyle(item.predictionStatus);
+  const { color, tone, label, icon } = predStatusStyle(item.predictionStatus);
   const isChampion = item.predictionMethod?.methodType === 'tournament_champion';
   const isRaceWinner = item.predictionMethod?.methodType === 'race_winner';
 
@@ -257,9 +252,8 @@ function PredictionDetailModal({
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.sheetTitle} numberOfLines={2}>{title}</Text>
-            <View style={[styles.statusBadge, { borderColor: `${color}55`, backgroundColor: `${color}18`, alignSelf: 'flex-start', marginTop: 4 }]}>
-              <Ionicons name={icon as any} size={11} color={color} />
-              <Text style={[styles.statusText, { color }]}>{label.toUpperCase()}</Text>
+            <View style={{ alignSelf: 'flex-start', marginTop: 4 }}>
+              <Badge label={label.toUpperCase()} tone={tone} icon={icon as any} />
             </View>
           </View>
         </View>
@@ -286,9 +280,7 @@ function PredictionDetailModal({
         {/* Payout section */}
         <PayoutSection item={item} detail={detail} loading={detailLoading} />
 
-        <Pressable style={styles.closeBtn} onPress={onClose}>
-          <Text style={styles.closeBtnText}>CLOSE</Text>
-        </Pressable>
+        <Button label="CLOSE" variant="secondary" onPress={onClose} style={{ marginTop: 20 }} />
       </Animated.View>
     </Modal>
   );
@@ -297,7 +289,7 @@ function PredictionDetailModal({
 // ─── Prediction Card ──────────────────────────────────────────────────────────
 
 function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () => void }) {
-  const { color, label, icon } = predStatusStyle(item.predictionStatus);
+  const { color, tone, label, icon } = predStatusStyle(item.predictionStatus);
   const isChampion = item.predictionMethod?.methodType === 'tournament_champion';
   const isRaceWinner = item.predictionMethod?.methodType === 'race_winner';
 
@@ -329,10 +321,7 @@ function PredictionCard({ item, onPress }: { item: PredictionItem; onPress: () =
           <Text style={styles.cardRaceName} numberOfLines={1}>{titleText}</Text>
           {subtitleText && <Text style={styles.cardTournament} numberOfLines={1}>{subtitleText}</Text>}
         </View>
-        <View style={[styles.statusBadge, { borderColor: `${color}55`, backgroundColor: `${color}18` }]}>
-          <Ionicons name={icon as any} size={11} color={color} />
-          <Text style={[styles.statusText, { color }]}>{label.toUpperCase()}</Text>
-        </View>
+        <Badge label={label.toUpperCase()} tone={tone} icon={icon as any} />
       </View>
 
       <View style={styles.divider} />
@@ -479,24 +468,27 @@ export default function PredictionsScreen() {
             </View>
           )}
           <RefetchButton onRefetch={() => load(activeFilter, true)} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.gold} />
-          <Pressable style={styles.addBtn} onPress={() => router.push('/new-prediction' as any)}>
+          <Pressable
+            style={styles.addBtn}
+            onPress={() => router.push('/new-prediction' as any)}
+            hitSlop={8}
+            accessibilityLabel="New prediction"
+            accessibilityRole="button">
             <Ionicons name="add" size={20} color={Palette.background} />
           </Pressable>
         </View>
 
         {/* ─── Filter bar ─── */}
         <View style={styles.filterBar}>
-          {FILTERS.map(({ key, label, color }) => {
-            const active = activeFilter === key;
-            return (
-              <Pressable
-                key={key}
-                style={[styles.filterPill, active && { borderColor: color, backgroundColor: `${color}1A` }]}
-                onPress={() => onFilterChange(key)}>
-                <Text style={[styles.filterPillText, active && { color }]}>{label}</Text>
-              </Pressable>
-            );
-          })}
+          {FILTERS.map(({ key, label, color }) => (
+            <Chip
+              key={key}
+              label={label}
+              active={activeFilter === key}
+              accentColor={color}
+              onPress={() => onFilterChange(key)}
+            />
+          ))}
         </View>
 
         {/* ─── Body ─── */}
@@ -613,20 +605,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Palette.cardBorder,
   },
-  filterPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-  },
-  filterPillText: {
-    fontFamily: Fonts.mono,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    color: Palette.textMuted,
-  },
 
   scroll: { paddingHorizontal: 16, paddingTop: 4 },
   scrollEmpty: { flexGrow: 1 },
@@ -671,17 +649,6 @@ const styles = StyleSheet.create({
   },
   cardRaceName: { fontSize: 14, fontWeight: '700', color: Palette.text },
   cardTournament: { fontFamily: Fonts.mono, fontSize: 10, color: Palette.textMuted, letterSpacing: 0.2, marginTop: 2 },
-
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  statusText: { fontFamily: Fonts.mono, fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
 
   divider: { height: 1, backgroundColor: Palette.cardBorder },
 
@@ -781,23 +748,6 @@ const styles = StyleSheet.create({
   },
   detailLabel: { fontFamily: Fonts.mono, fontSize: 11, color: Palette.textMuted, flex: 1 },
   detailValue: { fontSize: 13, fontWeight: '700', color: Palette.text, flex: 1, textAlign: 'right' },
-
-  closeBtn: {
-    marginTop: 20,
-    backgroundColor: Palette.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  closeBtnText: {
-    fontFamily: Fonts.mono,
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    color: Palette.textMuted,
-  },
 
   // ── Payout Section ──
   payoutBox: {

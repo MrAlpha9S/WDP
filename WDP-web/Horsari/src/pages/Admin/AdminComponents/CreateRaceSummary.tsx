@@ -23,7 +23,7 @@ export default function CreateRaceSummary(props: SummaryProps) {
 
     return (
         <div className="flex flex-col gap-4 text-white">
-            <div className="p-4 bg-[#111] border border-white/10 rounded">
+            <div className="p-4 bg-bg border border-border rounded">
                 <h3 className="text-[14px] font-semibold mb-4 text-gray-300">Race Summary</h3>
                 <div className="grid grid-cols-2 gap-y-3 text-[13px]">
                     <div className="text-gray-500">Title</div>
@@ -47,7 +47,7 @@ export default function CreateRaceSummary(props: SummaryProps) {
                     <div className="font-medium">{raceTypeName}</div>
 
                     <div className="text-gray-500">Prize Pool</div>
-                    <div className="font-medium text-[#f3b2a5]">{props.currencyType} {props.firstPlacePrize || 0} / {props.secondPlacePrize || 0} / {props.thirdPlacePrize || 0}</div>
+                    <div className="font-medium text-gold">{props.currencyType} {props.firstPlacePrize || 0} / {props.secondPlacePrize || 0} / {props.thirdPlacePrize || 0}</div>
 
                     <div className="text-gray-500">Owners Invited</div>
                     <div className="font-medium">{props.selectedOwners.length}</div>

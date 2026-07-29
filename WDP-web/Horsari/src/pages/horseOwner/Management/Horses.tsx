@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+﻿import { useEffect, useState, useRef } from "react";
 import { Search, ChevronDown, Plus, MoreVertical, ChevronLeft, ChevronRight, X, Loader2, ImagePlus } from "lucide-react";
 import { horseOwnerService, type Horse } from "../../../api/horseOwnerService";
 import HorseProfile from "./HorseProfile";
@@ -87,7 +87,7 @@ function statusLabel(status: HorseStatus) {
 // ── Info grid cell ────────────────────────────────────────────────────────────
 function InfoCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-[#1e1e1e] rounded-lg px-3 py-2.5 border border-white/6">
+    <div className="bg-[#1e1e1e] rounded-lg px-3 py-2.5 border border-border/60">
       <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-1">
         {label}
       </p>
@@ -111,8 +111,8 @@ function HorseCardItem({
   );
 
   return (
-    <div className="bg-[#1a1a1a] rounded-2xl border border-white/8 overflow-hidden flex flex-col group hover:border-white/15 transition-colors duration-200">
-      <div className="relative h-40 overflow-hidden bg-[#111] flex items-center justify-center">
+    <div className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col group hover:border-white/15 transition-colors duration-200">
+      <div className="relative h-40 overflow-hidden bg-bg flex items-center justify-center">
         <img
           src={horse.image}
           alt={horse.name}
@@ -127,7 +127,7 @@ function HorseCardItem({
           }
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/30 to-transparent" />
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-border">
           <span className={`w-1.5 h-1.5 rounded-full ${statusDot(horse.status)}`} />
           <span className={`text-[11px] font-semibold tracking-wide ${statusLabel(horse.status)}`}>
             {horse.status.toUpperCase()}
@@ -164,7 +164,7 @@ function HorseCardItem({
           </button>
           <button
             onClick={onOpenUpdate}
-            className="w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150 shrink-0"
+            className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150 shrink-0"
           >
             <MoreVertical size={15} />
           </button>
@@ -252,9 +252,9 @@ function EditHorseModal({
     }
   }
 
-  const inputCls = "w-full bg-[#1e1e1e] border border-white/10 rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
+  const inputCls = "w-full bg-[#1e1e1e] border border-border rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
   const labelCls = "block text-[10.5px] font-bold tracking-widest text-gray-500 uppercase mb-1.5";
-  const idle = "text-gray-600 border-white/8 bg-transparent hover:border-white/20 hover:text-gray-400";
+  const idle = "text-gray-600 border-border bg-transparent hover:border-white/20 hover:text-gray-400";
 
   const statusOptions: { label: string; value: 'active' | 'inactive' | 'retired'; active: string }[] = [
     { label: "Active",   value: "active",   active: "text-green-400 border-green-500/50 bg-green-500/10" },
@@ -273,11 +273,11 @@ function EditHorseModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col font-sans"
+        className="w-full max-w-md bg-bg rounded-2xl border border-border shadow-2xl overflow-hidden max-h-[90vh] flex flex-col font-sans"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div>
             <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">Edit Horse</p>
             <h2 className="text-[17px] font-bold text-white mt-0.5 font-serif">
@@ -286,7 +286,7 @@ function EditHorseModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
           >
             <X size={14} />
           </button>
@@ -300,7 +300,7 @@ function EditHorseModal({
             <p className={labelCls}>Photo</p>
             <div
               onClick={() => fileRef.current?.click()}
-              className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-[#1a1a1a] flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group overflow-hidden relative"
+              className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-surface flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group overflow-hidden relative"
             >
               {displayImg && (
                 <img
@@ -418,7 +418,7 @@ function EditHorseModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-white/10 text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
+              className="flex-1 py-2.5 rounded-lg border border-border text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
             >
               Cancel
             </button>
@@ -498,17 +498,17 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
     }
   }
 
-  const inputCls = "w-full bg-[#1e1e1e] border border-white/10 rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
+  const inputCls = "w-full bg-[#1e1e1e] border border-border rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
   const labelCls = "block text-[10.5px] font-bold tracking-widest text-gray-500 uppercase mb-1.5";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden font-sans"
+        className="w-full max-w-md bg-bg rounded-2xl border border-border shadow-2xl overflow-hidden font-sans"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
             <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">New Registration</p>
             <h2 className="text-[17px] font-bold text-white mt-0.5 font-serif">
@@ -517,7 +517,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
           >
             <X size={14} />
           </button>
@@ -529,7 +529,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
           {/* Image upload */}
           <div
             onClick={() => fileRef.current?.click()}
-            className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-[#1a1a1a] flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group"
+            className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-surface flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group"
           >
             {imagePreview ? (
               <img src={imagePreview} className="h-20 object-contain rounded-lg" alt="preview" />
@@ -614,7 +614,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-white/10 text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
+              className="flex-1 py-2.5 rounded-lg border border-border text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
             >
               Cancel
             </button>
@@ -644,7 +644,7 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
       <button
         onClick={onPrev}
         disabled={page === 1}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
       >
         <ChevronLeft size={13} /> Prev
       </button>
@@ -652,7 +652,7 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
       <button
         onClick={onNext}
         disabled={page === totalPages}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
       >
         Next <ChevronRight size={13} />
       </button>
@@ -740,15 +740,15 @@ export default function HorsesPage() {
         onSaved={() => { setEditTarget(null); setRefreshSeed(s => s + 1); }}
       />
     )}
-    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col font-sans">
-      <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+    <div className="flex-1 px-8 py-8 min-h-screen bg-bg flex flex-col font-sans">
+      <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
               Active Roster
             </h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                 Horse Management
               </span>
               <span className="text-[12px] text-gray-500 truncate">· {filtered.length} horse{filtered.length !== 1 ? "s" : ""}</span>
@@ -772,14 +772,14 @@ export default function HorsesPage() {
               placeholder="Search horses..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-9 pr-4 text-[11px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 h-[32px] transition-colors duration-150"
+              className="w-full bg-surface border border-border rounded-md pl-9 pr-4 text-[11px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 h-[32px] transition-colors duration-150"
             />
           </div>
           <div className="relative">
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1); }}
-              className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
+              className="appearance-none bg-surface border border-border rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -791,7 +791,7 @@ export default function HorsesPage() {
             <select
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
-              className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
+              className="appearance-none bg-surface border border-border rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
             >
               {CLASSES.map((c) => (
                 <option key={c} value={c}>{c}</option>

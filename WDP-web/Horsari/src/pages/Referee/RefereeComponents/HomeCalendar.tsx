@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Clock, Flag, MapPin } from "lucide-react";
 import type { UpcomingRace, RaceType } from "../../../shared/types/HomepageTypes";
@@ -108,10 +108,10 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
         <div className="flex flex-col gap-4">
 
             {/* Calendar Grid */}
-            <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
 
                 {/* Nav */}
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
                     <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">
                         <ChevronLeft size={13} />
                     </button>
@@ -170,7 +170,7 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
                 </div>
 
                 {/* Legend */}
-                <div className="flex items-center gap-4 px-5 py-3 border-t border-white/6 flex-wrap">
+                <div className="flex items-center gap-4 px-5 py-3 border-t border-border/60 flex-wrap">
                     {activeRules.map((rule) => {
                         const palette = getPalette(rule.raceType);
                         return (
@@ -183,8 +183,8 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
             </div>
 
             {/* Selected Day Detail */}
-            <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-            <div className="px-5 py-3 border-b border-white/8">
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div className="px-5 py-3 border-b border-border">
                 <p className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">
                     {`${DAYS[selected.getDay()]}, ${MONTHS[selected.getMonth()]} ${selected.getDate()}`}
                 </p>
@@ -199,7 +199,7 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
                         <div
                             key={race.id}
                             onClick={() => navigate(`/referee/race-monitor/${race.id}`)}
-                            className={`flex items-start gap-3 px-5 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors duration-150 ${i !== selectedRaces.length - 1 ? "border-b border-white/5" : ""}`}
+                            className={`flex items-start gap-3 px-5 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors duration-150 ${i !== selectedRaces.length - 1 ? "border-b border-border/60" : ""}`}
                         >
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${race.status === "confirmed" ? "bg-red-900/40" : "bg-white/5"}`}>
                                 <Flag size={14} className={race.status === "confirmed" ? "text-red-500" : "text-gray-600"} />
@@ -209,7 +209,7 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
                                     <span className="text-[14px] font-bold text-white">{race.label}</span>
                                     <RaceTypeBadge type={race.raceType} />
                                     {race.status === "tentative" && (
-                                        <span className="text-[10px] text-gray-600 border border-white/10 px-1.5 py-0.5 rounded">Tentative</span>
+                                        <span className="text-[10px] text-gray-600 border border-border px-1.5 py-0.5 rounded">Tentative</span>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-1.5">

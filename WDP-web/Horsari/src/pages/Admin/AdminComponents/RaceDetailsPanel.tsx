@@ -303,14 +303,14 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
     return (
         <aside
-            className="h-full bg-[#161616] border border-white/[0.05] rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20"
+            className="h-full bg-surface border border-border/60 rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20"
             style={{ animation: "panelIn 0.18s ease-out" }}
         >
             <style>{`@keyframes panelIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }`}</style>
 
             <div className="flex flex-col flex-1 min-h-0">
                 {/* ── Header ── */}
-                <div className="px-5 py-5 shrink-0 border-b border-white/[0.05] bg-[#1a1a1a]">
+                <div className="px-5 py-5 shrink-0 border-b border-border/60 bg-surface">
                     <div className="flex flex-col gap-1 mb-3">
                         <div className="flex justify-between items-start w-full gap-4">
                             <div className="flex flex-col gap-2">
@@ -332,7 +332,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                             </span>
                                         ) : status}
                                     </span>
-                                    <span className="text-[14px] font-medium text-[#f3b2a5]">{selectedRace.tournament}</span>
+                                    <span className="text-[14px] font-medium text-gold">{selectedRace.tournament}</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 pt-1">
@@ -346,7 +346,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         >
                                             {isQuickAssigning ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
                                         </button>
-                                        <div className="pointer-events-none absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 w-64 bg-[#1a1a1a] border border-amber-500/20 rounded-lg p-3 text-[11px] text-gray-400 shadow-xl">
+                                        <div className="pointer-events-none absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 w-64 bg-surface border border-amber-500/20 rounded-lg p-3 text-[11px] text-gray-400 shadow-xl">
                                             <span className="block font-bold text-amber-500 mb-1">Debug: Quick-Assign</span>
                                             Auto-pick an eligible horse + jockey for registrations. Leaves already-ready ones untouched. Doesn't verify or start the race.
                                         </div>
@@ -370,7 +370,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 )}
                                 <button
                                     onClick={onClose}
-                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-white/10 transition-colors ml-1"
+                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors ml-1"
                                     title="Close Panel"
                                 >
                                     <X size={14} />
@@ -409,7 +409,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         <div className="mt-4 flex flex-col gap-2">
                             {/* Stream setup — required before starting */}
                             {isPrepared && (
-                                <div className="rounded-xl border border-blue-500/20 bg-[#111] p-3 flex flex-col gap-2">
+                                <div className="rounded-xl border border-blue-500/20 bg-bg p-3 flex flex-col gap-2">
                                     <div className="flex items-center justify-between">
                                         <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                                             <Radio size={12} className={streamInfo ? 'text-emerald-400' : 'text-blue-400'} />
@@ -455,14 +455,14 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                     {streamInfo && !streamLoading && (
                                         <div className="flex flex-col gap-1.5 text-[11px]">
                                             {streamInfo.rtmpUrl && (
-                                                <div className="flex items-center gap-2 bg-[#0d0d0d] rounded-lg px-2 py-1.5 border border-white/5">
+                                                <div className="flex items-center gap-2 bg-bg rounded-lg px-2 py-1.5 border border-border/60">
                                                     <span className="text-gray-500 shrink-0">RTMP</span>
                                                     <span className="text-gray-300 font-mono truncate flex-1">{streamInfo.rtmpUrl}</span>
                                                     <CopyButton text={streamInfo.rtmpUrl} />
                                                 </div>
                                             )}
                                             {streamInfo.streamKey && (
-                                                <div className="flex items-center gap-2 bg-[#0d0d0d] rounded-lg px-2 py-1.5 border border-white/5">
+                                                <div className="flex items-center gap-2 bg-bg rounded-lg px-2 py-1.5 border border-border/60">
                                                     <span className="text-gray-500 shrink-0">Key</span>
                                                     <span className="text-gray-300 font-mono truncate flex-1 select-all">{streamInfo.streamKey}</span>
                                                     <CopyButton text={streamInfo.streamKey} />
@@ -509,13 +509,13 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                 </div>
 
                 {/* ── Tabs ── */}
-                <div className="flex items-center border-b border-white/[0.05] shrink-0 bg-[#161616]">
+                <div className="flex items-center border-b border-border/60 shrink-0 bg-surface">
                     {tabs.map(({ key, label }) => (
                         <button
                             key={key}
                             onClick={() => setActiveTab(key)}
                             className={`flex-1 py-3 text-[11px] font-bold uppercase tracking-widest transition-colors border-b-2 ${activeTab === key
-                                ? "text-[#f3b2a5] border-[#f3b2a5] bg-[#f3b2a5]/5"
+                                ? "text-gold border-gold bg-gold/5"
                                 : "text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5"
                                 }`}
                         >
@@ -527,7 +527,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                 {/* ── Tab Content ── */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-4 relative">
                     {loadingDetails && (
-                        <div className="absolute inset-0 z-10 bg-[#161616]/80 backdrop-blur-sm flex items-center justify-center">
+                        <div className="absolute inset-0 z-10 bg-surface/80 backdrop-blur-sm flex items-center justify-center">
                             <Loader2 size={32} className="animate-spin text-red-500" />
                         </div>
                     )}
@@ -535,7 +535,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     {/* ── Overview Tab ── */}
                     {activeTab === 'overview' && (
                         <div className="flex flex-col gap-4">
-                            <div className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-4">
+                            <div className="bg-surface p-4 rounded-xl border border-border/60 flex flex-col gap-4">
                                 <h3 className="text-[13px] font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-2">
                                     <Map size={16} className="text-gray-500" /> Location Details
                                 </h3>
@@ -549,7 +549,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 </div>
                             </div>
 
-                            <div className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-4">
+                            <div className="bg-surface p-4 rounded-xl border border-border/60 flex flex-col gap-4">
                                 <h3 className="text-[13px] font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-2">
                                     <Flag size={16} className="text-gray-500" /> Track & Limits
                                 </h3>
@@ -567,17 +567,17 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 </div>
                             </div>
 
-                            <div className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-4">
+                            <div className="bg-surface p-4 rounded-xl border border-border/60 flex flex-col gap-4">
                                 <h3 className="text-[13px] font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-2">
                                     <Trophy size={16} className="text-gray-500" /> Prize Pool
                                 </h3>
                                 <div className="grid grid-cols-[120px_1fr] gap-y-3 gap-x-4 text-[13px]">
                                     <span className="text-gray-500 font-medium">1st Place</span>
-                                    <span className="text-[#f3b2a5] font-semibold">{detailedOverview?.firstPlacePrize ? `${detailedOverview?.currencyType} ${detailedOverview.firstPlacePrize.toLocaleString()}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                    <span className="text-gold font-semibold">{detailedOverview?.firstPlacePrize ? `${detailedOverview?.currencyType} ${detailedOverview.firstPlacePrize.toLocaleString()}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
                                     <span className="text-gray-500 font-medium">2nd Place</span>
-                                    <span className="text-[#f3b2a5] font-semibold">{detailedOverview?.secondPlacePrize ? `${detailedOverview?.currencyType} ${detailedOverview.secondPlacePrize.toLocaleString()}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                    <span className="text-gold font-semibold">{detailedOverview?.secondPlacePrize ? `${detailedOverview?.currencyType} ${detailedOverview.secondPlacePrize.toLocaleString()}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
                                     <span className="text-gray-500 font-medium">3rd Place</span>
-                                    <span className="text-[#f3b2a5] font-semibold">{detailedOverview?.thirdPlacePrize ? `${detailedOverview?.currencyType} ${detailedOverview.thirdPlacePrize.toLocaleString()}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                    <span className="text-gold font-semibold">{detailedOverview?.thirdPlacePrize ? `${detailedOverview?.currencyType} ${detailedOverview.thirdPlacePrize.toLocaleString()}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
                                 </div>
                             </div>
                         </div>
@@ -588,7 +588,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         <div className="flex flex-col gap-3">
                             {detailedParticipants.length > 0 && (
                                 <div className="flex justify-end">
-                                    <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
+                                    <div className="flex items-center gap-0.5 bg-white/5 border border-border rounded-lg p-0.5">
                                         {(['lengths', 'metres'] as const).map(u => (
                                             <button key={u} onClick={() => setDistUnit(u)}
                                                 className={["text-[10px] font-bold font-mono px-2 py-1 rounded-md transition-all", distUnit === u ? "bg-white/15 text-white" : "text-gray-600 hover:text-gray-400"].join(" ")}>
@@ -601,8 +601,8 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                             {detailedParticipants.map((p: any, idx: number) => {
                                 const colorClass = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending;
                                 return (
-                                    <div key={p.registrationId ?? idx} className="p-4 rounded-xl bg-[#1a1a1a] border border-white/5 flex flex-col gap-4">
-                                        <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+                                    <div key={p.registrationId ?? idx} className="p-4 rounded-xl bg-surface border border-border/60 flex flex-col gap-4">
+                                        <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
                                             <div className="flex items-center gap-2">
                                                 <Users size={16} className="text-gray-500" />
                                                 <span className="text-[14px] font-bold text-white truncate">{p.ownerName || <span className="text-gray-600 italic font-medium">No Owner</span>}</span>
@@ -631,7 +631,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                             </div>
                                             <div className="flex flex-col gap-1">
                                                 <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prediction Pool</span>
-                                                <span className="text-[#f3b2a5] font-semibold">{p.sum_prediction != null ? `${p.sum_prediction} pts` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                                <span className="text-gold font-semibold">{p.sum_prediction != null ? `${p.sum_prediction} pts` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
                                             </div>
                                             {isCompleted && p.raceResult && (
                                                 <>
@@ -649,7 +649,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                     </div>
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prize</span>
-                                                        <span className="text-[#f3b2a5] font-semibold">{p.raceResult.prizeMoney > 0 ? `${detailedOverview?.currencyType ?? 'VND'} ${p.raceResult.prizeMoney.toLocaleString()}` : '-'}</span>
+                                                        <span className="text-gold font-semibold">{p.raceResult.prizeMoney > 0 ? `${detailedOverview?.currencyType ?? 'VND'} ${p.raceResult.prizeMoney.toLocaleString()}` : '-'}</span>
                                                     </div>
                                                 </>
                                             )}
@@ -666,7 +666,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 );
                             })}
                             {detailedParticipants.length === 0 && !loadingDetails && (
-                                <div className="text-[13px] text-gray-500 italic p-8 text-center bg-[#1a1a1a] rounded-xl border border-white/5">No registrations yet.</div>
+                                <div className="text-[13px] text-gray-500 italic p-8 text-center bg-surface rounded-xl border border-border/60">No registrations yet.</div>
                             )}
                         </div>
                     )}
@@ -677,7 +677,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                             {detailedReferees.map((ref: any, idx: number) => {
                                 const colorClass = STATUS_COLORS[ref.assignmentStatus] ?? STATUS_COLORS.pending;
                                 return (
-                                    <div key={ref.refereeId ?? idx} className="flex flex-col gap-3 p-4 rounded-xl bg-[#1a1a1a] border border-white/5">
+                                    <div key={ref.refereeId ?? idx} className="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border/60">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <Shield size={16} className="text-gray-500 shrink-0" />
@@ -689,13 +689,13 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         </div>
                                         <div className="flex items-center gap-2 text-[12px]">
                                             <span className="text-gray-500 font-medium">Fee:</span>
-                                            <span className="text-[#f3b2a5] font-semibold">{ref.fee != null ? `$${ref.fee}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                            <span className="text-gold font-semibold">{ref.fee != null ? `$${ref.fee}` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
                                         </div>
                                     </div>
                                 );
                             })}
                             {detailedReferees.length === 0 && !loadingDetails && (
-                                <div className="text-[13px] text-gray-500 italic p-8 text-center bg-[#1a1a1a] rounded-xl border border-white/5">No referees assigned.</div>
+                                <div className="text-[13px] text-gray-500 italic p-8 text-center bg-surface rounded-xl border border-border/60">No referees assigned.</div>
                             )}
                         </div>
                     )}
@@ -705,7 +705,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         <div className="flex flex-col gap-4">
                             {/* Track Earnings Summary */}
                             {detailedTrackEarnings && (
-                                <div className="bg-[#1a1a1a] p-4 rounded-xl border border-amber-500/20 flex flex-col gap-3">
+                                <div className="bg-surface p-4 rounded-xl border border-amber-500/20 flex flex-col gap-3">
                                     <h3 className="text-[13px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
                                         <TrendingUp size={16} className="text-amber-400" /> Track Earnings (House Take)
                                     </h3>
@@ -713,7 +713,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         {(['race_winner', 'race_rank'] as const).map(mt => {
                                             const val = detailedTrackEarnings.byPool?.[mt];
                                             return (
-                                                <div key={mt} className="bg-[#111] rounded-lg px-3 py-2.5 flex flex-col gap-1 border border-white/5">
+                                                <div key={mt} className="bg-bg rounded-lg px-3 py-2.5 flex flex-col gap-1 border border-border/60">
                                                     <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
                                                         {mt === 'race_winner' ? 'Win Pool' : 'Rank Pool'}
                                                     </span>
@@ -735,7 +735,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
                             {/* Per-pool cards */}
                             {detailedPools.length === 0 && !loadingDetails && (
-                                <div className="text-[13px] text-gray-500 italic p-8 text-center bg-[#1a1a1a] rounded-xl border border-white/5">
+                                <div className="text-[13px] text-gray-500 italic p-8 text-center bg-surface rounded-xl border border-border/60">
                                     No prediction pool data available.
                                 </div>
                             )}
@@ -751,10 +751,10 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                     ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse inline-block" />Live</span>
                                     : isSettled ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Settled</span>
                                         : isRefunded ? <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">Refunded</span>
-                                            : <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-gray-500 border border-white/10">No Bets</span>;
+                                            : <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-white/5 text-gray-500 border border-border">No Bets</span>;
 
                                 return (
-                                    <div key={pool.methodType} className="bg-[#1a1a1a] p-4 rounded-xl border border-white/5 flex flex-col gap-3">
+                                    <div key={pool.methodType} className="bg-surface p-4 rounded-xl border border-border/60 flex flex-col gap-3">
                                         {/* Pool header */}
                                         <div className="flex items-center justify-between">
                                             <h3 className="text-[13px] font-bold text-white flex items-center gap-2">
@@ -774,15 +774,15 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         {/* Pool stats row */}
                                         {!isEmpty && !isRefunded && (
                                             <div className="grid grid-cols-3 gap-2 text-[11px]">
-                                                <div className="bg-[#111] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-white/5">
+                                                <div className="bg-bg rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-border/60">
                                                     <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">Gross Pool</span>
                                                     <span className="text-white font-semibold">{pool.grossPool != null ? `${pool.grossPool.toLocaleString()} pts` : '—'}</span>
                                                 </div>
-                                                <div className="bg-[#111] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-white/5">
+                                                <div className="bg-bg rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-border/60">
                                                     <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">Net Pool</span>
                                                     <span className="text-white font-semibold">{pool.netPool != null ? `${pool.netPool.toLocaleString()} pts` : '—'}</span>
                                                 </div>
-                                                <div className="bg-[#111] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-white/5">
+                                                <div className="bg-bg rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-border/60">
                                                     <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px] flex items-center gap-1"><Percent size={8} />Take ({(pool.takeoutRate * 100).toFixed(0)}%)</span>
                                                     <span className="text-amber-400 font-semibold">{pool.houseEarning != null ? `${pool.houseEarning.toLocaleString()} pts` : '—'}</span>
                                                 </div>
@@ -800,17 +800,17 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                     <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">Losers</span>
                                                     <span className="text-red-400 font-bold text-[13px]">{pool.totalLosers ?? 0}</span>
                                                 </div>
-                                                <div className="bg-[#111] rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-white/5">
+                                                <div className="bg-bg rounded-lg px-2.5 py-2 flex flex-col gap-0.5 border border-border/60">
                                                     <span className="text-gray-500 font-bold uppercase tracking-wider text-[9px]">Paid Out</span>
-                                                    <span className="text-[#f3b2a5] font-semibold">{pool.totalPaidOut != null ? `${pool.totalPaidOut.toLocaleString()} pts` : '—'}</span>
+                                                    <span className="text-gold font-semibold">{pool.totalPaidOut != null ? `${pool.totalPaidOut.toLocaleString()} pts` : '—'}</span>
                                                 </div>
                                             </div>
                                         )}
 
                                         {/* Live per-horse breakdown */}
                                         {isLive && pool.perHorse && pool.perHorse.length > 0 && (
-                                            <div className="rounded-lg border border-white/5 overflow-hidden mt-1">
-                                                <div className="grid grid-cols-[1fr_56px_50px_56px_64px] text-[9px] uppercase tracking-wider text-gray-500 font-bold px-3 py-2 bg-[#111] border-b border-white/5">
+                                            <div className="rounded-lg border border-border/60 overflow-hidden mt-1">
+                                                <div className="grid grid-cols-[1fr_56px_50px_56px_64px] text-[9px] uppercase tracking-wider text-gray-500 font-bold px-3 py-2 bg-bg border-b border-border/60">
                                                     <span>Horse</span>
                                                     <span className="text-right">Stake</span>
                                                     <span className="text-right">Share</span>
@@ -823,7 +823,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                         <span className="text-right text-gray-300">{h.totalStake}</span>
                                                         <span className="text-right text-gray-300">{h.poolShare}%</span>
                                                         <span className="text-right text-amber-400 font-semibold">{h.odds}×</span>
-                                                        <span className="text-right text-[#f3b2a5] font-semibold">{h.displayPayout}</span>
+                                                        <span className="text-right text-gold font-semibold">{h.displayPayout}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -843,7 +843,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         <div className="flex flex-col gap-4">
                             {/* ── LIVE Stream Info (running / awaiting confirmation) ── */}
                             {(isRunning || isAwaitingConfirmation) && (
-                                <div className="bg-[#1a1a1a] p-4 rounded-xl border border-blue-500/20 flex flex-col gap-4">
+                                <div className="bg-surface p-4 rounded-xl border border-blue-500/20 flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-[13px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
                                             <Radio size={16} className="text-red-400 animate-pulse" /> Live Stream (OBS)
@@ -872,7 +872,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                             {streamInfo.rtmpUrl && (
                                                 <div className="flex flex-col gap-1">
                                                     <span className="text-gray-500 font-medium text-[11px] uppercase tracking-wider">RTMP Ingest URL</span>
-                                                    <div className="flex items-center gap-2 bg-[#111] rounded-lg px-3 py-2 border border-white/5">
+                                                    <div className="flex items-center gap-2 bg-bg rounded-lg px-3 py-2 border border-border/60">
                                                         <span className="text-gray-300 font-mono text-[12px] truncate flex-1">{streamInfo.rtmpUrl}</span>
                                                         <CopyButton text={streamInfo.rtmpUrl} />
                                                     </div>
@@ -881,7 +881,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                             {streamInfo.streamKey && (
                                                 <div className="flex flex-col gap-1">
                                                     <span className="text-gray-500 font-medium text-[11px] uppercase tracking-wider">Stream Key</span>
-                                                    <div className="flex items-center gap-2 bg-[#111] rounded-lg px-3 py-2 border border-white/5">
+                                                    <div className="flex items-center gap-2 bg-bg rounded-lg px-3 py-2 border border-border/60">
                                                         <span className="text-gray-300 font-mono text-[12px] truncate flex-1 select-all">{streamInfo.streamKey}</span>
                                                         <CopyButton text={streamInfo.streamKey} />
                                                     </div>
@@ -890,7 +890,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                             {streamInfo.playbackId && (
                                                 <div className="flex flex-col gap-1">
                                                     <span className="text-gray-500 font-medium text-[11px] uppercase tracking-wider">Viewer Playback ID</span>
-                                                    <div className="flex items-center gap-2 bg-[#111] rounded-lg px-3 py-2 border border-white/5">
+                                                    <div className="flex items-center gap-2 bg-bg rounded-lg px-3 py-2 border border-border/60">
                                                         <span className="text-gray-300 font-mono text-[12px] truncate flex-1">{streamInfo.playbackId}</span>
                                                         <CopyButton text={streamInfo.playbackId} />
                                                     </div>
@@ -919,7 +919,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
                             {/* ── VOD Info (completed races) ── */}
                             {isCompleted && (
-                                <div className="bg-[#1a1a1a] p-4 rounded-xl border border-violet-500/20 flex flex-col gap-4">
+                                <div className="bg-surface p-4 rounded-xl border border-violet-500/20 flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-[13px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
                                             <Video size={16} className="text-violet-400" /> VOD Recording
@@ -948,7 +948,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                             {vodInfo.vodPlaybackId && (
                                                 <div className="flex flex-col gap-1">
                                                     <span className="text-gray-500 font-medium text-[11px] uppercase tracking-wider">VOD Playback ID</span>
-                                                    <div className="flex items-center gap-2 bg-[#111] rounded-lg px-3 py-2 border border-white/5">
+                                                    <div className="flex items-center gap-2 bg-bg rounded-lg px-3 py-2 border border-border/60">
                                                         <span className="text-gray-300 font-mono text-[12px] truncate flex-1">{vodInfo.vodPlaybackId}</span>
                                                         <CopyButton text={vodInfo.vodPlaybackId} />
                                                     </div>
@@ -982,8 +982,8 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
             {/* ── Cancel Confirmation Modal ── */}
             {isCancelModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#161616] border border-white/10 rounded-xl shadow-2xl w-[400px] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-5 border-b border-white/5 bg-[#1a1a1a]">
+                    <div className="bg-surface border border-border rounded-xl shadow-2xl w-[400px] overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-5 border-b border-border/60 bg-surface">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-red-500/20 rounded-full">
                                     <AlertCircle className="text-red-500" size={20} />
@@ -1009,11 +1009,11 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 <p className="text-[12px] text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">{actionError}</p>
                             )}
                         </div>
-                        <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">
+                        <div className="p-5 border-t border-border/60 bg-surface flex justify-end gap-3">
                             <button
                                 onClick={() => setIsCancelModalOpen(false)}
                                 disabled={isCancelling}
-                                className="px-4 py-2 text-[13px] font-medium text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded transition-colors disabled:opacity-50"
+                                className="px-4 py-2 text-[13px] font-medium text-white bg-white/5 hover:bg-white/10 border border-border rounded transition-colors disabled:opacity-50"
                             >
                                 Keep Race
                             </button>

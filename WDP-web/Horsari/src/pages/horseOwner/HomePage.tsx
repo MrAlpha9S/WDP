@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Flag, TrendingUp, Mail, ChevronRight, Mic2,
@@ -206,7 +206,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
               icon: <Mail size={16} className="text-gray-600" />,
             },
           ].map((card) => (
-            <div key={card.label} className="bg-[#1a1a1a] rounded-xl border border-white/8 px-6 py-5 flex items-start justify-between">
+            <div key={card.label} className="bg-surface rounded-xl border border-border px-6 py-5 flex items-start justify-between">
               <div>
                 <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase mb-2">{card.label}</p>
                 {card.value == null
@@ -227,8 +227,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
             <div className="grid grid-cols-3 gap-6">
 
               {/* My Upcoming Races table */}
-              <div className="col-span-2 bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+              <div className="col-span-2 bg-surface rounded-xl border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                   <h2 className="text-[15px] font-semibold text-white">My Upcoming Races</h2>
                   <button
                     onClick={() => onNavigate("Invitations")}
@@ -239,7 +239,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                 </div>
 
                 {/* Table header */}
-                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] px-6 py-2 border-b border-white/5">
+                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] px-6 py-2 border-b border-border/60">
                   {["RACE", "DATE / VENUE", "SPOTS", "1ST PRIZE", ""].map((h) => (
                     <span key={h} className="text-[10.5px] font-semibold tracking-widest text-gray-600 uppercase">{h}</span>
                   ))}
@@ -266,7 +266,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                 {!racesLoading && !racesError && myRaces.map((race, i) => (
                   <div
                     key={String(race.id)}
-                    className={`grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] px-6 py-4 items-center hover:bg-white/[0.03] transition-colors duration-150 ${i !== myRaces.length - 1 ? "border-b border-white/5" : ""}`}
+                    className={`grid grid-cols-[2fr_1.5fr_1fr_1fr_auto] px-6 py-4 items-center hover:bg-white/[0.03] transition-colors duration-150 ${i !== myRaces.length - 1 ? "border-b border-border/60" : ""}`}
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -317,7 +317,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                 ))}
 
                 {!racesLoading && myRaces.length > 0 && (
-                  <div className="px-6 py-3 border-t border-white/5 flex justify-end">
+                  <div className="px-6 py-3 border-t border-border/60 flex justify-end">
                     <button
                       onClick={() => onNavigate("Invitations")}
                       className="flex items-center gap-1 text-[11.5px] font-bold tracking-widest text-red-500 hover:text-red-400 uppercase transition-colors duration-150"
@@ -329,8 +329,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
               </div>
 
               {/* Top Performers */}
-              <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+              <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                   <h2 className="text-[15px] font-semibold text-white">Top Performers</h2>
                   <Mic2 size={15} className="text-gray-600" />
                 </div>
@@ -389,8 +389,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
         })()}
 
         {/* ── Race Browser (horizontal scroll) ───────────────────────────── */}
-        <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div>
               <h2 className="text-[15px] font-semibold text-white">Race Browser</h2>
               <p className="text-[11px] text-gray-600 mt-0.5">All active races — scroll to explore</p>
@@ -404,7 +404,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
             style={{ scrollbarWidth: "none" }}
           >
             {racesLoading && Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="shrink-0 w-60 rounded-xl bg-white/4 border border-white/6 p-4 space-y-3 animate-pulse">
+              <div key={i} className="shrink-0 w-60 rounded-xl bg-white/4 border border-border/60 p-4 space-y-3 animate-pulse">
                 <Skeleton className="h-3 w-16 rounded" />
                 <Skeleton className="h-5 w-4/5 rounded" />
                 <Skeleton className="h-3 w-3/5 rounded" />
@@ -426,11 +426,11 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
             )}
 
             {!racesLoading && !racesError && races.map((race) => {
-              const statusCfg = RACE_STATUS_CFG[race.status] ?? { label: race.status, cls: "text-gray-400 bg-white/5 border-white/10" };
+              const statusCfg = RACE_STATUS_CFG[race.status] ?? { label: race.status, cls: "text-gray-400 bg-white/5 border-border" };
               return (
                 <div
                   key={String(race.id)}
-                  className="shrink-0 w-60 rounded-xl bg-[#141414] border border-white/8 hover:border-white/16 transition-colors duration-150 flex flex-col overflow-hidden"
+                  className="shrink-0 w-60 rounded-xl bg-surface border border-border hover:border-white/16 transition-colors duration-150 flex flex-col overflow-hidden"
                 >
                   {/* Top accent bar for live races */}
                   {race.isLive && (
@@ -489,7 +489,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                     </div>
 
                     {/* Prize + action */}
-                    <div className="pt-3 border-t border-white/6 flex items-center justify-between">
+                    <div className="pt-3 border-t border-border/60 flex items-center justify-between">
                       <div>
                         <p className="text-[9px] font-semibold tracking-widest text-gray-600 uppercase">1st Prize</p>
                         <p className="text-[13px] font-bold text-yellow-400 mt-0.5">
@@ -517,7 +517,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                 <button
                   onClick={loadMoreRaces}
                   disabled={racesLoadingMore}
-                  className="flex flex-col items-center gap-2 px-5 py-4 rounded-xl border border-white/10 text-gray-500 hover:border-white/25 hover:text-gray-300 disabled:opacity-50 transition-all duration-150 w-full h-full justify-center"
+                  className="flex flex-col items-center gap-2 px-5 py-4 rounded-xl border border-border text-gray-500 hover:border-white/25 hover:text-gray-300 disabled:opacity-50 transition-all duration-150 w-full h-full justify-center"
                 >
                   {racesLoadingMore
                     ? <Loader2 size={18} className="animate-spin" />
