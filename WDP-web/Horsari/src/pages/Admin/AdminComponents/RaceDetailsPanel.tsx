@@ -7,6 +7,7 @@ import {
 import type { ScheduledRace } from "../../../shared/types/RaceTypes";
 import { adminService } from "../../../api/adminService";
 import { useSocket } from "../../../providers/SocketProvider";
+import { isRaceDayToday, hasReachedStartTime } from "../../../utils/raceDayUtil";
 
 interface RaceDetailsPanelProps {
     selectedRace?: ScheduledRace;
@@ -100,6 +101,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     const data: any = res.data;
                     setDetailedOverview({
                         location: data.location,
+                        raceDate: data.raceDate,
                         address: data.address,
                         trackLength: data.trackLength,
                         raceGround: data.raceGround,
@@ -228,7 +230,13 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         }
     };
 
-    const isRaceDayMismatch = !!selectedRace?.date && selectedRace.date !== new Date().toLocaleDateString();
+    const detailedRaceDate: string | undefined = detailedOverview?.raceDate;
+    const isRaceDayMismatch = !!detailedRaceDate && !isRaceDayToday(detailedRaceDate);
+    const raceNotStartedYet = !!detailedRaceDate && isRaceDayToday(detailedRaceDate) && !hasReachedStartTime(detailedRaceDate);
+    const needsStartConfirm = isRaceDayMismatch || raceNotStartedYet;
+    const startWarningMessage = isRaceDayMismatch
+        ? `This race is scheduled for ${new Date(detailedRaceDate!).toLocaleDateString()}, not today.`
+        : `This race hasn't reached its scheduled start time yet (${new Date(detailedRaceDate!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).`;
 
     const doStartRace = async (override: boolean) => {
         if (!selectedRace) return;
@@ -248,7 +256,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
     const handleStartRace = () => {
         if (!selectedRace) return;
-        if (isRaceDayMismatch) {
+        if (needsStartConfirm) {
             setIsStartDateWarningOpen(true);
             return;
         }
@@ -510,12 +518,6 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         <span>Awaiting Referee race results confirmation</span>
                                     </div>
                                 </>
-                            )}
-                            {actionError && (
-                                <div className="flex items-center gap-2 text-[12px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-                                    <TriangleAlert size={13} className="shrink-0" />
-                                    {actionError}
-                                </div>
                             )}
                         </div>
                     )}
@@ -1001,7 +1003,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 <div className="p-2 bg-amber-500/20 rounded-full">
                                     <TriangleAlert className="text-amber-500" size={20} />
                                 </div>
-                                <h3 className="text-[16px] font-bold text-white">Race Date Mismatch</h3>
+                                <h3 className="text-[16px] font-bold text-white">Race Schedule Warning</h3>
                             </div>
                             <button
                                 onClick={() => !isStarting && setIsStartDateWarningOpen(false)}
@@ -1013,8 +1015,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         </div>
                         <div className="p-6">
                             <p className="text-[14px] text-gray-300 leading-relaxed">
-                                This race is scheduled for <strong className="text-white">{selectedRace?.date}</strong>, not today.
-                                Are you sure you want to start it anyway?
+                                {startWarningMessage} Are you sure you want to start it anyway?
                             </p>
                             {actionError && (
                                 <p className="text-[12px] text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">{actionError}</p>

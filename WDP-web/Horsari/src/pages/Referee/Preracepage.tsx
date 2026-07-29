@@ -6,6 +6,7 @@ import { useRaceSocket } from "../../providers/useRaceSocket";
 import { refereeService } from "../../api/refereeService";
 import { RefetchButton } from "../../components/RefetchButton";
 import { ErrorState } from "../../components/ErrorState";
+import { isRaceDayToday } from "../../utils/raceDayUtil";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -77,9 +78,7 @@ export default function PreRacePage() {
     // The finalize action only sets status to 'prepared' when hasVerified is true —
     // otherwise it resolves to 'cancelled', which the backend never date-gates, so
     // the mismatch warning is only relevant on the "prepare" path.
-    const isRaceDayMismatch = raceRound?.raceDate
-        ? new Date(raceRound.raceDate).toDateString() !== new Date().toDateString()
-        : false;
+    const isRaceDayMismatch = !!raceRound?.raceDate && !isRaceDayToday(raceRound.raceDate);
 
     const doFinalize = async (override: boolean) => {
         if (!raceRound?._id || !allResolved || finalizing) return;

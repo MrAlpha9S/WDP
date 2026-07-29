@@ -1466,6 +1466,14 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
             };
         }
 
+        if (newStatus === 'running' && !override && !RaceDateUtil.hasReachedStartTime(raceRound.raceDate)) {
+            return {
+                code: 422,
+                msg: 'This race round has not reached its scheduled start time yet.',
+                data: { dateMismatch: true, raceDate: raceRound.raceDate },
+            };
+        }
+
         const updated = await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus }, { new: true }).lean();
 
         if (io) {
