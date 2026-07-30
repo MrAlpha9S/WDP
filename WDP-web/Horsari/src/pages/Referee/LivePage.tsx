@@ -468,7 +468,7 @@ export default function LivePage() {
                             {showMux ? (
                                 <span className="flex items-center gap-1.5 text-[11px] font-bold text-red-400">
                                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                                    OBS Stream Active
+                                    Live Stream ('placeholder')
                                 </span>
                             ) : (
                                 CAMERAS.map(c => (
@@ -595,16 +595,16 @@ export default function LivePage() {
                             {violationsError
                                 ? <div className="col-span-2"><ErrorState message={violationsError} onRetry={fetchViolations} /></div>
                                 : violationTypes.length === 0
-                                ? <p className="col-span-2 text-[12px] text-gray-600 text-center py-4">Loading violation types…</p>
-                                : violationTypes.map(vt => (
-                                    <IncidentButton
-                                        key={vt._id}
-                                        vt={vt}
-                                        activeCount={violationCountByType[vt._id] ?? 0}
-                                        loading={pendingVt?._id === vt._id && modalLoading}
-                                        onClick={() => setPendingVt(vt)}
-                                    />
-                                ))
+                                    ? <p className="col-span-2 text-[12px] text-gray-600 text-center py-4">Loading violation types…</p>
+                                    : violationTypes.map(vt => (
+                                        <IncidentButton
+                                            key={vt._id}
+                                            vt={vt}
+                                            activeCount={violationCountByType[vt._id] ?? 0}
+                                            loading={pendingVt?._id === vt._id && modalLoading}
+                                            onClick={() => setPendingVt(vt)}
+                                        />
+                                    ))
                             }
                         </div>
                     </div>
