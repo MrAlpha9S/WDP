@@ -122,7 +122,6 @@ class AuthService {
                 case 'spectator':
                     await SpectatorRepository.create({
                         _id: newUser._id,
-                        wallet: 0,
                     });
                     break;
                 default:
