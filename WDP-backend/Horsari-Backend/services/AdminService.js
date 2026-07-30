@@ -1057,9 +1057,11 @@ class AdminService {
                     invitationFilter._id = reg.jockeyInRaceId;
                 } else {
                     invitationFilter.isBackup = false;
+                    invitationFilter.invitationStatus = { $nin: ['declined', 'cancelled'] };
                 }
 
                 const invitation = await Invitation.findOne(invitationFilter)
+                    .sort({ createdAt: -1 })
                     .populate('horseId')
                     .populate('jockeyId')
                     .lean();
