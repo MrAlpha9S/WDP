@@ -7,11 +7,17 @@ class TournamentService {
             if (!createdByAdminId || !tournamentName || !description) {
                 return { code: 400, msg: 'createdByAdminId, tournamentName, and description are required' };
             }
+            const currentDate = new Date();
+            const twoWeekFromNow = new Date(currentDate.getTime() + 14 * 24 * 60 * 60 * 1000);
             if (!startDate || !endDate) {
                 return { code: 400, msg: 'startDate and endDate are required' };
             }
             if (new Date(startDate) >= new Date(endDate)) {
                 return { code: 400, msg: 'startDate must be before endDate' };
+            }
+
+            if(new Date(startDate) < currentDate || new Date(startDate) > twoWeekFromNow) {
+                return { code: 400, msg: 'startDate must be within the next two weeks' };
             }
 
             const tournament = await tournamentRepository.createTournament(tournamentData);
