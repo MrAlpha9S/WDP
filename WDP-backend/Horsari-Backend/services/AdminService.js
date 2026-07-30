@@ -1836,7 +1836,7 @@ AdminService.prototype.confirmRaceResult = async function (raceRoundId, adminId,
                     const percentageCut = (!isNoShow && result.prizeMoney > 0)
                         ? Math.round((invitation.percentagePayout / 100) * result.prizeMoney)
                         : 0;
-                    const bookingFeeAmount = isNoShow ? 0 : (invitation.bookingFees || 0);
+                    const bookingFeeAmount = isNoShow ? 0 : (invitation.bookingFees);
                     const payoutAmount = bookingFeeAmount + percentageCut;
 
                     // A no-show never actually raced — only real starters count

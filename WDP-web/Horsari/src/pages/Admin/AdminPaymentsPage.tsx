@@ -18,10 +18,6 @@ const ROLE_LABEL: Record<string, string> = {
     referee: "Referee",
 };
 
-// Money leaving a wallet (withdrawal) reads red; everything else credited to
-// a wallet (reward payout, deposit, refunded stake) reads green.
-const CREDIT_TYPES = new Set(["reward", "deposit", "refund"]);
-
 // Read-only, system-wide wallet-ledger view — every reward/deposit/withdrawal/
 // refund row for any user (spectator prediction payouts, admin house-take,
 // etc.), auto-applied with no confirmation step, so this is simpler than
@@ -80,7 +76,10 @@ function LedgerPanel() {
             ) : (
                 <div className="flex flex-col divide-y divide-white/[0.05]">
                     {data.map((entry) => {
-                        const isCredit = CREDIT_TYPES.has(entry.transactionType);
+                        // transactionType alone doesn't tell credit vs. debit — e.g. "reward"
+                        // covers both prediction payouts (positive) and stake deductions
+                        // (negative amount). The amount's own sign is the source of truth.
+                        const isCredit = entry.amount >= 0;
                         return (
                             <div key={entry._id} className="flex items-center justify-between py-3 gap-3">
                                 <div>
@@ -94,7 +93,7 @@ function LedgerPanel() {
                                     </p>
                                 </div>
                                 <span className={`text-[13px] font-bold ${isCredit ? "text-emerald-400" : "text-red-400"}`}>
-                                    {isCredit ? "+" : "-"}{entry.amount.toLocaleString()} ₫
+                                    {isCredit ? "+" : "-"}{Math.abs(entry.amount).toLocaleString()} ₫
                                 </span>
                             </div>
                         );
