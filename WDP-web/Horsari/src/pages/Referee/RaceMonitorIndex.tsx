@@ -85,7 +85,7 @@ function PageHeader({ phase, raceRound, onBack, wsConnected, onRefetch, lastUpda
             <div className="flex items-center justify-between mb-5">
                 <button onClick={onBack} className="flex items-center gap-2 text-[13px] text-gray-500 font-medium hover:text-gray-200 transition-colors group">
                     <ArrowLeft size={14} className="transition-transform duration-150 group-hover:-translate-x-0.5" />
-                    Back to Tournaments
+                    Back to Dashboard
                 </button>
                 <RefetchButton onRefetch={onRefetch} lastUpdated={lastUpdated} />
             </div>
@@ -213,10 +213,10 @@ export default function RaceMonitorIndex() {
                         Retry
                     </button>
                     <button
-                        onClick={() => navigate("/referee/tournaments")}
+                        onClick={() => navigate("/referee/dashboard")}
                         className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors"
                     >
-                        <ArrowLeft size={13} /> Back to Tournaments
+                        <ArrowLeft size={13} /> Back to Dashboard
                     </button>
                 </div>
             </div>
@@ -230,10 +230,10 @@ export default function RaceMonitorIndex() {
                     <span className="font-semibold text-white">{raceRound.roundName}</span> has been cancelled.
                 </p>
                 <button
-                    onClick={() => navigate("/referee/tournaments")}
+                    onClick={() => navigate("/referee/dashboard")}
                     className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors"
                 >
-                    <ArrowLeft size={13} /> Back to Tournaments
+                    <ArrowLeft size={13} /> Back to Dashboard
                 </button>
             </div>
         );
@@ -251,7 +251,7 @@ export default function RaceMonitorIndex() {
         }}>
             <div className="min-h-screen bg-bg font-sans">
                 <div className="max-w-5xl mx-auto px-5 py-8">
-                    <PageHeader phase={phase} raceRound={raceRound} onBack={() => navigate("/referee/tournaments")} wsConnected={wsConnected} onRefetch={refetchRaceRound} lastUpdated={lastUpdated} />
+                    <PageHeader phase={phase} raceRound={raceRound} onBack={() => navigate("/referee/dashboard")} wsConnected={wsConnected} onRefetch={refetchRaceRound} lastUpdated={lastUpdated} />
                     {phase === "pre" && <PreRacePage />}
                     {phase === "live" && <LivePage />}
                     {phase === "post" && <PostRacePage />}

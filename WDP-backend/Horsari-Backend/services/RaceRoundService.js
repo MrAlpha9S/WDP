@@ -18,8 +18,39 @@ class RaceRoundService {
         raceRoundData.tournamentId = TournamentId;
         raceRoundData.createdByAdminId = adminID;
 
-        // Prevent scheduling race rounds too close to each other on the same day/location
+        // fetch tournament entity (also used for the lead-time cap below and the response payload)
+        let tournament = null;
+        try {
+            tournament = await TournamentRepository.getTournamentById(TournamentId);
+        } catch (e) {
+            tournament = null;
+        }
+
         const newRaceDate = new Date(raceRoundData.raceDate);
+        if (!overrideScheduleConflict && !isNaN(newRaceDate.getTime())) {
+            const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
+            // Measure the lead time from the start of today (not the current instant) so the
+            // guard is calendar-day based — e.g. if today is Jul 30, Aug 13 (exactly 14 days
+            // later) must be a valid choice regardless of what time of day it is right now.
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            // Cap the required lead time at whatever runway actually remains before the
+            // tournament ends, instead of always demanding the full 14 days — otherwise, as
+            // a tournament's endDate approaches, it becomes impossible to add races that
+            // still validly fall inside the tournament's own bounds.
+            const remainingMs = tournament?.endDate ? (new Date(tournament.endDate).getTime() - today.getTime()) : FOURTEEN_DAYS_MS;
+            const requiredLeadMs = Math.min(FOURTEEN_DAYS_MS, Math.max(0, remainingMs));
+            const requiredDate = new Date(today.getTime() + requiredLeadMs);
+
+            if (newRaceDate.getTime() < requiredDate.getTime()) {
+                return {
+                    code: 400,
+                    message: `Race date must be at least ${Math.ceil(requiredLeadMs / (24 * 60 * 60 * 1000))} day(s) from today.`,
+                };
+            }
+        }
+
+        // Prevent scheduling race rounds too close to each other on the same day/location
         if (!overrideScheduleConflict && raceRoundData.location && !isNaN(newRaceDate.getTime())) {
             const startOfDay = new Date(newRaceDate);
             startOfDay.setHours(0, 0, 0, 0);
@@ -86,14 +117,6 @@ class RaceRoundService {
             }
         }
 
-        // fetch tournament entity
-        let tournament = null;
-        try {
-            tournament = await TournamentRepository.getTournamentById(TournamentId);
-        } catch (e) {
-            tournament = null;
-        }
-
         NotificationService.notify({
             role: 'admin',
             type: 'race_round_created',
@@ -148,12 +171,20 @@ class RaceRoundService {
         const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
         const twoWeeksFromToday = new Date(today.getTime() + TWO_WEEKS_MS);
 
-        // Rule 2: Cannot reschedule to < 14 days from today
+        // Rule 2: Cannot reschedule to less than the tournament's remaining runway (capped at 14 days) —
+        // otherwise, as a tournament's endDate approaches, it becomes impossible to reschedule a race
+        // to a date that still validly falls inside the tournament's own bounds.
         if (!overrideScheduleConflict && updateData && updateData.raceDate) {
             const newDate = new Date(updateData.raceDate);
-            if (!isNaN(newDate.getTime()) && newDate < twoWeeksFromToday && 
-                newDate.getTime() !== new Date(existingRaceRound.raceDate).getTime()) {
-                return { code: 400, message: 'Date cannot be rescheduled to be less than 2 weeks from today.' };
+            if (!isNaN(newDate.getTime()) && newDate.getTime() !== new Date(existingRaceRound.raceDate).getTime()) {
+                const tournamentForCap = await TournamentRepository.getTournamentById(existingRaceRound.tournamentId).catch(() => null);
+                const remainingMs = tournamentForCap?.endDate ? (new Date(tournamentForCap.endDate).getTime() - today.getTime()) : TWO_WEEKS_MS;
+                const requiredLeadMs = Math.min(TWO_WEEKS_MS, Math.max(0, remainingMs));
+                const requiredDate = new Date(today.getTime() + requiredLeadMs);
+
+                if (newDate < requiredDate) {
+                    return { code: 400, message: `Date cannot be rescheduled to be less than ${Math.ceil(requiredLeadMs / (24 * 60 * 60 * 1000))} day(s) from today.` };
+                }
             }
         }
 

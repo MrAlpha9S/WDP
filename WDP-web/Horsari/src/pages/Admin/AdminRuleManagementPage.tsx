@@ -43,11 +43,11 @@ export default function AdminRuleManagementPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalRule, setModalRule] = useState<RaceEligibilityRule | null>(null);
     const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
     const [totalItems, setTotalItems] = useState(0);
     const [sortBy, setSortBy] = useState<string>('createdAt');
     const [order, setOrder] = useState<'asc' | 'desc'>('desc');
-    const LIMIT = 10;
-    const totalPages = Math.ceil(totalItems / LIMIT) || 1;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
 
     const handleSort = (field: string) => {
         if (sortBy === field) {
@@ -66,14 +66,14 @@ export default function AdminRuleManagementPage() {
             : <ArrowDown size={11} className="text-gold ml-1 inline" />;
     };
 
-    useEffect(() => { setPage(1); }, [search]);
-    useEffect(() => { fetchRules(); }, [page, search, sortBy, order]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { setPage(1); }, [search, limit]);
+    useEffect(() => { fetchRules(); }, [page, limit, search, sortBy, order]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchRules = async () => {
         try {
             setLoading(true);
             setError(null);
-            const res = await adminService.getRules(page, LIMIT, search || undefined, sortBy, order);
+            const res = await adminService.getRules(page, limit, search || undefined, sortBy, order);
             const items: RaceEligibilityRule[] = res.data?.items ?? [];
             setRules(items);
             setTotalItems(res.data?.pagination?.totalItems ?? items.length);
@@ -188,6 +188,15 @@ export default function AdminRuleManagementPage() {
                                 <option value="minAge:desc">Age Limit High–Low</option>
                                 <option value="isActive:desc">Active First</option>
                                 <option value="isActive:asc">Inactive First</option>
+                            </select>
+                            <select
+                                value={limit}
+                                onChange={(e) => setLimit(Number(e.target.value))}
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            >
+                                {[5, 10, 25, 50, 100].map(n => (
+                                    <option key={n} value={n}>{n} rows</option>
+                                ))}
                             </select>
                         </div>
                     </header>
@@ -305,7 +314,7 @@ export default function AdminRuleManagementPage() {
                             page={page}
                             totalPages={totalPages}
                             totalItems={totalItems}
-                            limit={LIMIT}
+                            limit={limit}
                             onPageChange={setPage}
                         />
                     </div>

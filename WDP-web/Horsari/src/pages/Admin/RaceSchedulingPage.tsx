@@ -1,18 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { LayoutGrid, List, Plus, Loader2 } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
 import type { ViewMode } from "../../shared/types/RaceTypes";
 import CreateRaceModal from "./modal/CreateRaceModal";
 import RaceDetailsPanel from "./AdminComponents/RaceDetailsPanel";
-import { adminService, type RaceRoundData } from "../../api/adminService";
+import { adminService, type RaceRoundData, type TournamentNameOption } from "../../api/adminService";
 import { useSocket } from "../../providers/SocketProvider";
 import { ErrorState } from "../../components/ErrorState";
+import { calendarDayKey } from "../../utils/raceDayUtil";
 
 // RaceRound.status is a fixed schema enum (entities/RaceRound.js) — hardcoded here
 // rather than derived from fetched data, since fetched data is now itself
 // status-filtered server-side and would otherwise collapse the option list.
 const RACE_STATUSES = ["draft", "scheduled", "running", "completed", "cancelled", "awaitingConfirmation", "prepared"];
-const RACE_ROUNDS_LIMIT_OPTIONS = [10, 25, 50, 100, 200];
+const RACE_ROUNDS_LIMIT_OPTIONS = [5, 10, 25, 50, 100, 200];
 
 export default function RaceSchedulingPage() {
     const [viewMode, setViewMode] = useState<ViewMode>("timeline");
@@ -24,15 +25,18 @@ export default function RaceSchedulingPage() {
     const [selectedRaceType, setSelectedRaceType] = useState<string>("All");
     const [raceRoundsLimit, setRaceRoundsLimit] = useState<number>(50);
     const [tablePage, setTablePage] = useState(1);
-    const TABLE_ITEMS_PER_PAGE = 5;
 
-    const [tournaments, setTournaments] = useState<any[]>([]);
+    const [tournaments, setTournaments] = useState<TournamentNameOption[]>([]);
     const [raceTypes, setRaceTypes] = useState<string[]>([]);
     const [raceTypesActiveOnly, setRaceTypesActiveOnly] = useState(true);
     const [raceRoundsData, setRaceRoundsData] = useState<RaceRoundData[]>([]);
+    const [raceRoundsPagination, setRaceRoundsPagination] = useState({ totalItems: 0, totalPages: 1 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    // Distinct Vietnam-calendar-day keys with matching race rounds — the Timeline view's
+    // actual "pagination": each entry is a fetchable day, independent of raceRoundsLimit.
+    const [timelineDates, setTimelineDates] = useState<string[]>([]);
     const timelineScrollRef = useRef<HTMLDivElement>(null);
 
 
@@ -48,20 +52,39 @@ export default function RaceSchedulingPage() {
     const TIMELINE_LABEL_WIDTH = 200;
     const TIMELINE_CONTENT_WIDTH = TIMELINE_LABEL_WIDTH + TIME_SLOTS.length * TIMELINE_COLUMN_WIDTH;
 
-    const fetchData = async () => {
+    // Table view pages through the server's results (page/limit). Timeline view instead
+    // fetches one calendar day at a time via `date` — the day itself is the "page", drawn
+    // from `timelineDates` (see fetchTimelineDates below) rather than a row-offset, since a
+    // race round happens on one specific day rather than spanning a range the way a
+    // tournament does. If no day is selected yet (dates still loading, or none match the
+    // current filters), there's nothing sensible to fetch, so it's skipped entirely.
+    const fetchData = async (pageOverride?: number) => {
         setLoading(true);
         setError(null);
         try {
-            const tournamentsRes = await adminService.getTournamentsWithDetails(1, 100);
-            setTournaments(tournamentsRes.data?.items || []);
+            const tournamentsRes = await adminService.getTournamentNames();
+            setTournaments(tournamentsRes.data || []);
 
+            const isTable = viewMode === 'table';
+            if (!isTable && !selectedDate) {
+                setRaceRoundsData([]);
+                setRaceRoundsPagination({ totalItems: 0, totalPages: 1 });
+                return;
+            }
+
+            const page = isTable ? (pageOverride ?? tablePage) : 1;
             const raceRoundsRes = await adminService.getRaceRounds(
-                undefined, undefined, 1, raceRoundsLimit,
+                selectedTournament !== "All" ? selectedTournament : undefined, undefined, page, raceRoundsLimit,
                 selectedStatus !== "All" ? selectedStatus : undefined,
                 undefined, undefined, undefined,
                 selectedRaceType !== "All" ? selectedRaceType : undefined,
+                isTable ? undefined : (selectedDate ?? undefined),
             );
             setRaceRoundsData(raceRoundsRes.data?.items ?? []);
+            setRaceRoundsPagination({
+                totalItems: raceRoundsRes.data?.pagination?.totalItems ?? 0,
+                totalPages: raceRoundsRes.data?.pagination?.totalPages ?? 1,
+            });
         } catch (err: any) {
             console.error("Failed to fetch scheduling data", err);
             setError(err?.msg ?? "Failed to fetch scheduling data.");
@@ -70,14 +93,33 @@ export default function RaceSchedulingPage() {
         }
     };
 
+    // The Timeline day-navigation list — independent of raceRoundsLimit/tablePage, since
+    // it's a lightweight day list, not full race data. Mirrors how TournamentManagementPage's
+    // fetchCalendarTournaments fetches its own month-scoped data separately from the table.
+    const fetchTimelineDates = useCallback(async () => {
+        try {
+            const res = await adminService.getRaceRoundDates(
+                selectedTournament !== "All" ? selectedTournament : undefined,
+                selectedStatus !== "All" ? selectedStatus : undefined,
+                selectedRaceType !== "All" ? selectedRaceType : undefined,
+            );
+            setTimelineDates(res.data?.dates ?? []);
+        } catch (err) {
+            console.error("Failed to fetch race round dates", err);
+        }
+    }, [selectedTournament, selectedStatus, selectedRaceType]);
+
+    useEffect(() => { fetchTimelineDates(); }, [fetchTimelineDates]);
 
     const handleDataRefresh = async () => {
         await fetchData();
+        fetchTimelineDates();
     };
 
-    useEffect(() => {
-        fetchData();
-    }, [selectedStatus, selectedRaceType, raceRoundsLimit]);
+    const handleTablePageChange = (p: number) => {
+        setTablePage(p);
+        fetchData(p);
+    };
 
     // Race-type dropdown options — independent of the race-rounds fetch above,
     // only re-runs when the active/inactive-rules toggle changes.
@@ -102,7 +144,9 @@ export default function RaceSchedulingPage() {
 
     useEffect(() => {
         setTablePage(1);
-    }, [selectedTournament, selectedStatus, selectedRaceType, selectedDate, viewMode]);
+        fetchData(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedTournament, selectedStatus, selectedRaceType, raceRoundsLimit, viewMode, selectedDate]);
 
     const handleEditRace = async (race: any) => {
         if (!race) return;
@@ -137,11 +181,15 @@ export default function RaceSchedulingPage() {
     const ALL_RACES = raceRoundsData.map((rr) => {
         const dateObj = new Date(rr.raceDate);
         const timeStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const dateStr = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleDateString();
+        // Vietnam-anchored day key — matches timelineDates/selectedDate so a race's day never
+        // disagrees with the day list it's meant to be filed under (see fetchTimelineDates).
+        // `dateLabel` is the separate, human-readable string the Table view displays.
+        const dateStr = isNaN(dateObj.getTime()) ? "TBD" : calendarDayKey(rr.raceDate);
+        const dateLabel = isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleDateString();
         const { leftPercent, widthPercent } = getTimelineOffsets(rr.raceDate);
 
-        const parentTournament = tournaments.find(t => t.tournament._id === rr.tournamentId);
-        const tournamentName = parentTournament ? parentTournament.tournament.tournamentName : "Unknown Tournament";
+        const parentTournament = tournaments.find(t => t._id === rr.tournamentId);
+        const tournamentName = parentTournament ? parentTournament.tournamentName : "Unknown Tournament";
 
         return {
             id: rr._id,
@@ -149,6 +197,7 @@ export default function RaceSchedulingPage() {
             title: rr.roundName,
             tournament: tournamentName,
             date: dateStr,
+            dateLabel,
             time: timeStr,
             status: rr.status,
             participants: [],
@@ -163,24 +212,25 @@ export default function RaceSchedulingPage() {
         };
     });
 
-    // Date computation
-    const uniqueDates = Array.from(new Set(ALL_RACES.map(r => r.date))).filter(d => d !== "TBD");
-    uniqueDates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    // Day list comes from the server (fetchTimelineDates) rather than being derived from
+    // whatever races happen to already be loaded — see the comment on fetchData above.
+    const uniqueDates = timelineDates;
 
     // Auto-select a date if none is selected
     useEffect(() => {
         if (uniqueDates.length > 0 && (!selectedDate || !uniqueDates.includes(selectedDate))) {
             setSelectedDate(uniqueDates[0]);
+        } else if (uniqueDates.length === 0 && selectedDate) {
+            setSelectedDate(null);
         }
     }, [uniqueDates, selectedDate]);
 
-    // Status and race type are now filtered server-side (see fetchData), so
-    // ALL_RACES already only contains matching rounds — no client-side
-    // matchStatus/matchRaceType needed here.
+    // Tournament/status/race type are now all filtered server-side (see fetchData),
+    // so ALL_RACES already only contains matching rounds — no client-side
+    // matchTournament/matchStatus/matchRaceType needed here.
     const filteredRaces = ALL_RACES.filter(r => {
-        const matchTournament = selectedTournament === "All" || r.tournament === selectedTournament;
         const matchDate = viewMode === "timeline" && selectedDate ? r.date === selectedDate : true;
-        return matchTournament && matchDate;
+        return matchDate;
     }).sort((a, b) => {
         if (a.status === 'cancelled' && b.status !== 'cancelled') return 1;
         if (a.status !== 'cancelled' && b.status === 'cancelled') return -1;
@@ -211,6 +261,12 @@ export default function RaceSchedulingPage() {
             setSelectedDate(uniqueDates[currentIndex + 1]);
         }
     };
+
+    // selectedDate is the canonical "YYYY-MM-DD" Vietnam day key (for matching/fetching) —
+    // format it for display rather than showing the raw key.
+    const selectedDateLabel = selectedDate
+        ? new Date(`${selectedDate}T00:00:00+07:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+        : "N/A";
 
     // Whenever the visible day (or a filter narrowing its races) changes,
     // snap the horizontal scroll so the day's earliest race is right next to
@@ -247,7 +303,7 @@ export default function RaceSchedulingPage() {
                                     <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                                         All Scheduled Races
                                     </span>
-                                    <span className="text-[12px] text-gray-500 truncate">· {selectedTournament === "All" ? "Across All Tournaments" : selectedTournament}</span>
+                                    <span className="text-[12px] text-gray-500 truncate">· {selectedTournament === "All" ? "Across All Tournaments" : (tournaments.find(t => t._id === selectedTournament)?.tournamentName ?? "Unknown Tournament")}</span>
                                 </div>
                             </div>
                             <button
@@ -283,7 +339,7 @@ export default function RaceSchedulingPage() {
                             >
                                 <option value="All">All Tournaments</option>
                                 {tournaments.map(t => (
-                                    <option key={t.tournament._id} value={t.tournament.tournamentName}>{t.tournament.tournamentName}</option>
+                                    <option key={t._id} value={t._id}>{t.tournamentName}</option>
                                 ))}
                             </select>
 
@@ -355,7 +411,7 @@ export default function RaceSchedulingPage() {
                                                     &larr;
                                                 </button>
                                                 <div className="text-[11px] font-bold tracking-widest text-white uppercase text-center flex-1">
-                                                    {selectedDate || "N/A"}
+                                                    {selectedDateLabel}
                                                 </div>
                                                 <button
                                                     onClick={handleNextDate}
@@ -448,7 +504,7 @@ export default function RaceSchedulingPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
-                                                {filteredRaces.slice((tablePage - 1) * TABLE_ITEMS_PER_PAGE, tablePage * TABLE_ITEMS_PER_PAGE).map(race => {
+                                                {filteredRaces.map(race => {
                                                     const isSelected = selectedRaceId === race.id;
                                                     return (
                                                         <tr
@@ -473,7 +529,7 @@ export default function RaceSchedulingPage() {
                                                                 <div className="text-[13px] text-gray-300">{race.tournament}</div>
                                                             </td>
                                                             <td className="p-4">
-                                                                <div className="text-[13px] text-gray-300">{race.date}</div>
+                                                                <div className="text-[13px] text-gray-300">{race.dateLabel}</div>
                                                                 <div className="text-[11px] text-gray-500 mt-0.5 font-mono">{race.time}</div>
                                                             </td>
                                                             <td className="p-4">
@@ -496,10 +552,10 @@ export default function RaceSchedulingPage() {
                                         </table>
                                         <Pagination
                                             page={tablePage}
-                                            totalPages={Math.ceil(filteredRaces.length / TABLE_ITEMS_PER_PAGE) || 1}
-                                            totalItems={filteredRaces.length}
-                                            limit={TABLE_ITEMS_PER_PAGE}
-                                            onPageChange={setTablePage}
+                                            totalPages={raceRoundsPagination.totalPages}
+                                            totalItems={raceRoundsPagination.totalItems}
+                                            limit={raceRoundsLimit}
+                                            onPageChange={handleTablePageChange}
                                         />
                                     </div>
                                 )}

@@ -140,16 +140,16 @@ function mergeRoleDetail(base: FullUser, detail: any): FullUser {
                 id: String(r.raceRoundId),
                 raceName: r.roundName || 'Unknown Race',
                 date: r.raceDate ? r.raceDate.split('T')[0] : 'N/A',
-                position:     r.finishPosition ?? null,
-                finishTime:   r.finishTime     ?? null,
-                prize:        r.prizeMoney     ?? null,
-                resultStatus: r.resultStatus   ?? null,
-                distance:     r.distance       ?? null,
-                horseName:    r.horseName      ?? null,
-                horseBreed:   r.horseBreed     ?? null,
-                horseImg:     r.horseImg       ?? null,
-                attendance:   r.attendance     ?? 'main',
-                bookingFees:  r.bookingFees    ?? 0,
+                position: r.finishPosition ?? null,
+                finishTime: r.finishTime ?? null,
+                prize: r.prizeMoney ?? null,
+                resultStatus: r.resultStatus ?? null,
+                distance: r.distance ?? null,
+                horseName: r.horseName ?? null,
+                horseBreed: r.horseBreed ?? null,
+                horseImg: r.horseImg ?? null,
+                attendance: r.attendance ?? 'main',
+                bookingFees: r.bookingFees ?? 0,
                 violations: (r.violations || []).map(mapViolation),
             })),
         };
@@ -174,25 +174,25 @@ function mergeRoleDetail(base: FullUser, detail: any): FullUser {
         data = {
             wallet: rp.wallet ?? 0,
             predictions: (rp.predictions ?? []).map((p: any): SpectatorPredictionData => ({
-                predictionId:     String(p.predictionId ?? p._id),
-                methodName:       p.methodName       ?? null,
-                methodType:       p.methodType       ?? null,
+                predictionId: String(p.predictionId ?? p._id),
+                methodName: p.methodName ?? null,
+                methodType: p.methodType ?? null,
                 predictionStatus: p.predictionStatus ?? 'pending',
-                rewardPoints:     p.rewardPoints     ?? 0,
-                predictedRank:    p.predictedRank    ?? null,
-                predictedHorse:   p.predictedHorse   ?? null,
-                raceRound:        p.raceRound        ?? null,
-                tournament:       p.tournament       ?? null,
-                createdAt:        p.createdAt        ?? null,
+                rewardPoints: p.rewardPoints ?? 0,
+                predictedRank: p.predictedRank ?? null,
+                predictedHorse: p.predictedHorse ?? null,
+                raceRound: p.raceRound ?? null,
+                tournament: p.tournament ?? null,
+                createdAt: p.createdAt ?? null,
             })),
             transactions: (rp.transactions ?? []).map((t: any): SpectatorTransactionData => ({
-                transactionId:   String(t.transactionId ?? t._id),
+                transactionId: String(t.transactionId ?? t._id),
                 transactionType: t.transactionType,
-                amount:          t.amount,
-                status:          t.status,
-                description:     t.description  ?? null,
-                referenceType:   t.referenceType ?? null,
-                date:            t.date,
+                amount: t.amount,
+                status: t.status,
+                description: t.description ?? null,
+                referenceType: t.referenceType ?? null,
+                date: t.date,
             })),
         };
     } else if (base.role === 'Admin') {
@@ -248,6 +248,8 @@ export const STATUS_STYLES: Record<UserStatus, { icon: React.ReactNode; text: st
 function initials(name: string) {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 }
+
+const USER_LIMIT_OPTIONS = [5, 10, 25, 50, 100];
 
 const AVATAR_COLORS = ["#3b4a6b", "#4a3b6b", "#3b6b4a", "#6b3b4a", "#4a6b3b", "#6b4a3b", "#3b5a6b"];
 function avatarColor(id: string) { return AVATAR_COLORS[id.charCodeAt(1) % AVATAR_COLORS.length]; }
@@ -398,7 +400,7 @@ export default function AdminUsersPage() {
         <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? "flex-[0_0_50%]" : "flex-1"}`}>
-                    
+
                     {/* Header */}
                     <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
                         {/* Row 1 */}
@@ -431,16 +433,7 @@ export default function AdminUsersPage() {
                                     className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px] transition-colors"
                                 />
                             </div>
-                            <select
-                                value={limit}
-                                onChange={(e) => setLimit(Number(e.target.value))}
-                                className="shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
-                            >
-                                <option value={10}>10 / page</option>
-                                <option value={25}>25 / page</option>
-                                <option value={50}>50 / page</option>
-                                <option value={100}>100 / page</option>
-                            </select>
+
                             <select
                                 value={roleFilter}
                                 onChange={(e) => setRoleFilter(e.target.value as any)}
@@ -469,6 +462,15 @@ export default function AdminUsersPage() {
                                 <option value="fullName:desc">Name Z–A</option>
                                 <option value="role:asc">Group by Role</option>
                                 <option value="status:asc">Group by Status</option>
+                            </select>
+                            <select
+                                value={limit}
+                                onChange={(e) => setLimit(Number(e.target.value))}
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            >
+                                {USER_LIMIT_OPTIONS.map(n => (
+                                    <option key={n} value={n}>{n} rows</option>
+                                ))}
                             </select>
                         </div>
                     </header>

@@ -14,7 +14,7 @@ export default function AdminInvitationsPage() {
                 </p>
             </div>
 
-            <InvitationsSection limit={10} />
+            <InvitationsSection limit={10} allowLimitControl />
         </div>
     );
 }

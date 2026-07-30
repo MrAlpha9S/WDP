@@ -189,15 +189,16 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         // Date Validation
         const selectedDate = new Date(`${raceDate}T${raceTime}:00`);
         const now = new Date();
-        const twoWeeksFromNow = new Date();
-        twoWeeksFromNow.setDate(now.getDate() + 14);
+        const minAllowedDate = new Date();
+        minAllowedDate.setHours(0, 0, 0, 0);
+        minAllowedDate.setDate(minAllowedDate.getDate() + 14);
 
         if (selectedDate < now) {
             setError("Race date cannot be in the past.");
             return;
         }
 
-        if (selectedDate < twoWeeksFromNow && !raceToEdit && !overrideScheduleConflict) {
+        if (selectedDate < minAllowedDate && !raceToEdit && !overrideScheduleConflict) {
             setError("Race date must be at least 14 days from today to allow for preparations.");
             return;
         }
@@ -293,9 +294,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     let minDateUI: string | undefined = undefined;
     let maxDateUI: string | undefined = undefined;
 
-    const twoWeeksFromNow = new Date();
-    twoWeeksFromNow.setDate(new Date().getDate() + 14);
-    const twoWeeksStr = twoWeeksFromNow.toISOString().split('T')[0];
+    const minAllowedDateUI = new Date();
+    minAllowedDateUI.setHours(0, 0, 0, 0);
+    minAllowedDateUI.setDate(minAllowedDateUI.getDate() + 14);
+    const twoWeeksStr = `${minAllowedDateUI.getFullYear()}-${String(minAllowedDateUI.getMonth() + 1).padStart(2, '0')}-${String(minAllowedDateUI.getDate()).padStart(2, '0')}`;
 
     if (!raceToEdit && !overrideScheduleConflict) {
         minDateUI = twoWeeksStr;

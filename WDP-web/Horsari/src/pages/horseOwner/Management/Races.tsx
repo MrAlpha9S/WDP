@@ -521,7 +521,11 @@ function RaceTable({ races, onDetail, onLive }: { races: MyRace[]; onDetail: (ra
             const isLive = race.status === "LIVE";
             const isFinished = race.status === "FINISHED";
             return (
-              <tr key={race.id} className="hover:bg-white/[0.02] transition-colors">
+              <tr
+                key={race.id}
+                onClick={() => race.raceRoundId && onLive(race)}
+                className="hover:bg-white/[0.02] transition-colors cursor-pointer"
+              >
                 <td className={`p-4 text-[13px] font-semibold ${isFinished ? "text-gray-500" : "text-white"}`}>{race.name}</td>
                 <td className="p-4">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10.5px] font-bold ${cfg.bg} ${cfg.text}`}>
@@ -535,14 +539,14 @@ function RaceTable({ races, onDetail, onLive }: { races: MyRace[]; onDetail: (ra
                 <td className="p-4 text-right">
                   {isLive ? (
                     <button
-                      onClick={() => onLive(race)}
+                      onClick={(e) => { e.stopPropagation(); onLive(race); }}
                       className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-widest uppercase bg-red-700 hover:bg-red-600 text-white transition-all duration-150"
                     >
                       View Live
                     </button>
                   ) : (
                     <button
-                      onClick={() => onDetail(race)}
+                      onClick={(e) => { e.stopPropagation(); onDetail(race); }}
                       className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-widest uppercase border border-white/15 text-gray-300 hover:border-white/30 hover:text-white transition-all duration-150"
                     >
                       {isFinished ? "View Results" : "Manage"}

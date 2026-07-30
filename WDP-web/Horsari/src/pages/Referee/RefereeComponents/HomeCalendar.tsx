@@ -41,12 +41,15 @@ import type { RaceRoundData } from "../../../api/adminService";
 interface HomeCalendarProps {
     races: RaceRoundData[];
     activeRules?: any[];
+    /** Which month is displayed — owned by the parent (Homepage.tsx) so it can fetch that month's races, mirroring TournamentManagementPage's calendar. */
+    viewMonth: number;
+    viewYear: number;
+    onPrevMonth: () => void;
+    onNextMonth: () => void;
 }
 
-export default function HomeCalendar({ races: rawRaces, activeRules = [] }: HomeCalendarProps) {
+export default function HomeCalendar({ races: rawRaces, activeRules = [], viewMonth, viewYear, onPrevMonth, onNextMonth }: HomeCalendarProps) {
     const navigate = useNavigate();
-    const [viewMonth, setViewMonth] = useState(TODAY.getMonth());
-    const [viewYear, setViewYear] = useState(TODAY.getFullYear());
     const [selected, setSelected] = useState<Date>(TODAY);
 
     const races: UpcomingRace[] = rawRaces.map(r => {
@@ -64,29 +67,19 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
         };
     });
 
+    // Auto-select a day within whatever month is currently displayed (the month itself is
+    // owned by the parent, which fetches races scoped to it — see HomeCalendarProps).
     useEffect(() => {
-        if (races.length > 0) {
-            const todayStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate()).getTime();
+        if (races.length === 0) return;
+        const todayStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate()).getTime();
+        const sorted = [...races].sort((a, b) => a.date.getTime() - b.date.getTime());
 
-            const upcomingRaces = [...races].sort((a, b) => a.date.getTime() - b.date.getTime());
+        const nextRace = sorted.find(r => {
+            const raceDate = new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate()).getTime();
+            return raceDate >= todayStart;
+        });
 
-            const nextRace = upcomingRaces.find(r => {
-                const raceDate = new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate()).getTime();
-                return raceDate >= todayStart;
-            });
-
-            if (nextRace) {
-                setSelected(nextRace.date);
-                setViewMonth(nextRace.date.getMonth());
-                setViewYear(nextRace.date.getFullYear());
-            } else if (upcomingRaces.length > 0) {
-                // if all races are in the past, maybe select the most recent one
-                const lastRace = upcomingRaces[upcomingRaces.length - 1];
-                setSelected(lastRace.date);
-                setViewMonth(lastRace.date.getMonth());
-                setViewYear(lastRace.date.getFullYear());
-            }
-        }
+        setSelected((nextRace ?? sorted[sorted.length - 1]).date);
     }, [rawRaces]);
 
     const totalDays = daysInMonth(viewYear, viewMonth);
@@ -99,9 +92,6 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
         return acc;
     }, {});
 
-    const prevMonth = () => viewMonth === 0 ? (setViewMonth(11), setViewYear(y => y - 1)) : setViewMonth(m => m - 1);
-    const nextMonth = () => viewMonth === 11 ? (setViewMonth(0), setViewYear(y => y + 1)) : setViewMonth(m => m + 1);
-
     const selectedRaces = races.filter(r => isSameDay(r.date, selected));
 
     return (
@@ -112,13 +102,13 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [] }: Home
 
                 {/* Nav */}
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                    <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">
+                    <button onClick={onPrevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">
                         <ChevronLeft size={13} />
                     </button>
                     <span className="text-[14px] font-bold text-white font-serif">
                         {MONTHS[viewMonth]} {viewYear}
                     </span>
-                    <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">
+                    <button onClick={onNextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">
                         <ChevronRight size={13} />
                     </button>
                 </div>

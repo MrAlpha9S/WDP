@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { House, Trophy, Inbox, ClipboardList, ChartColumn } from "lucide-react";
+import { House, Inbox, ChartColumn } from "lucide-react";
 import { REFEREE_TABS, type RefereeTab } from "./RefereeComponents/NavBar";
 import TopBar from "../../components/ui/TopBar";
 import Sidebar, { type SidebarGroup } from "../../components/ui/Sidebar";
 import RefereeDashboard from "./Homepage";
-import ManagementPage from "./ManagementPage";
 import InboxPage from "./InboxPage";
-import TournamentListPage from "./TournamentListPage";
 import StatisticsPage from "./StatisticsPage";
 import RefereeProfilePage from "./RefereeProfilePage";
 import { useParams, useNavigate } from "react-router-dom";
@@ -16,9 +14,7 @@ import { useParams, useNavigate } from "react-router-dom";
 function ActiveView({ tab }: { tab: RefereeTab }) {
     switch (tab) {
         case "Dashboard":    return <RefereeDashboard />;
-        case "Management":   return <ManagementPage />;
         case "Inbox":        return <InboxPage />;
-        case "Tournaments":  return <TournamentListPage />;
         case "Statistics":   return <StatisticsPage />;
         case "Profile":      return <RefereeProfilePage />;
         default:             return <RefereeDashboard />;
@@ -31,13 +27,6 @@ const SIDEBAR_GROUPS: SidebarGroup<RefereeTab>[] = [
         items: [
             { key: "Dashboard", label: "Dashboard", icon: <House size={17} /> },
             { key: "Statistics", label: "Statistics", icon: <ChartColumn size={17} /> },
-        ],
-    },
-    {
-        label: "Racing",
-        items: [
-            { key: "Tournaments", label: "Tournaments", icon: <Trophy size={17} /> },
-            { key: "Management", label: "Management", icon: <ClipboardList size={17} /> },
         ],
     },
     {
@@ -54,7 +43,7 @@ export default function RefereeDashboardPage() {
     const { tabs } = useParams<{ tabs: string }>();
     const navigate = useNavigate();
 
-    const allTabs = [...REFEREE_TABS, "Management", "Inbox", "Profile"] as RefereeTab[];
+    const allTabs = [...REFEREE_TABS, "Inbox", "Profile"] as RefereeTab[];
 
     const initialTab = allTabs.find(
         t => t.toLowerCase() === tabs?.toLowerCase()

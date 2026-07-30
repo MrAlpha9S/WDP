@@ -51,8 +51,13 @@ class RefereeController {
     async getRefereeRaceRounds(req, res) {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const { status, search, sortBy = 'raceDate', order = 'desc' } = req.query;
-        const response = await RefereeService.getRefereeRaceRounds(req.userId, page, limit, status, search, sortBy, order);
+        const { status, search, sortBy = 'raceDate', order = 'desc', tournament_id, startDate, endDate } = req.query;
+        // A date-range fetch (Homepage calendar view) requires both bounds — a single bound
+        // alone can't be paired with the unpaginated behavior it implies.
+        if (Boolean(startDate) !== Boolean(endDate)) {
+            return res.status(400).json({ code: 400, msg: 'startDate and endDate must both be provided together.' });
+        }
+        const response = await RefereeService.getRefereeRaceRounds(req.userId, page, limit, status, search, sortBy, order, tournament_id || null, startDate, endDate);
         return res.status(response.code).json(response);
     }
 
@@ -62,6 +67,12 @@ class RefereeController {
         const limit = parseInt(req.query.limit) || 10;
         const { status, search, sortBy = 'startDate', order = 'desc' } = req.query;
         const response = await RefereeService.getRefereeTournaments(req.userId, page, limit, status, search, sortBy, order);
+        return res.status(response.code).json(response);
+    }
+
+    // Lightweight { _id, tournamentName } list for this referee's tournaments (see RefereeService.getTournamentNames)
+    async getTournamentNames(req, res) {
+        const response = await RefereeService.getTournamentNames(req.userId);
         return res.status(response.code).json(response);
     }
 

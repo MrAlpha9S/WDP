@@ -1,5 +1,5 @@
 import React from "react";
-import { X, ShieldAlert, ScrollText } from "lucide-react";
+import { X, ScrollText } from "lucide-react";
 import type { RaceEligibilityRule } from "../AdminRuleManagementPage";
 import { STATUS_STYLES } from "../AdminRuleManagementPage";
 
@@ -65,16 +65,7 @@ export default function RuleDetailPanel({
                     </div>
                 </div>
 
-                {/* Status Pills */}
-                <div className="grid grid-cols-1 gap-3 mt-2">
-                    <div className={`flex items-center justify-between p-3 rounded-lg border ${rule.licenseRequired ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-gray-500/10 border-border/60 text-gray-500'}`}>
-                        <div className="flex items-center gap-2">
-                            <ShieldAlert size={14} />
-                            <span className="text-[11px] font-semibold uppercase tracking-wider">License</span>
-                        </div>
-                        <span className="text-[12px] font-bold">{rule.licenseRequired ? "Required" : "Not Required"}</span>
-                    </div>
-                </div>
+
 
                 {/* Base info */}
                 <div className="mt-2">

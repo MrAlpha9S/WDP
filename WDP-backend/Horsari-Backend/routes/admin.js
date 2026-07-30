@@ -46,6 +46,12 @@ router.get('/tournaments', authMiddleware, authAdmin, AdminController.getTournam
 // Tournament counts by status (live/upcoming/completed), unaffected by pagination/search
 router.get('/tournaments/stats', authMiddleware, authAdmin, AdminController.getTournamentStats);
 
+// Lightweight { _id, tournamentName } list for EVERY tournament, including the
+// "Non-tournament" placeholder that getTournamentsWithDetails/getTournamentStats
+// deliberately hide — for resolving a race round's tournament name correctly
+// instead of falling back to "Unknown Tournament".
+router.get('/tournaments/names', authMiddleware, authAdmin, AdminController.getTournamentNames);
+
 // Update a tournament's status — blocks completion while rounds are unfinished,
 // cascade-cancels rounds on cancellation
 router.patch('/tournaments/:id/status', authMiddleware, authAdmin, AdminController.updateTournamentStatus);
@@ -71,6 +77,9 @@ router.get('/race-rounds', authMiddleware, authAdmin, AdminController.getRaceRou
 
 // Distinct race types (for the race-type filter dropdown) — ?isActive=true|false to narrow, omitted = all
 router.get('/race-rounds/race-types', authMiddleware, authAdmin, AdminController.getRaceTypes);
+
+// Distinct calendar days with matching race rounds — the schedule Timeline view's day-navigation list
+router.get('/race-rounds/dates', authMiddleware, authAdmin, AdminController.getRaceRoundDates);
 
 // Get race round details
 router.get('/race-rounds/:id/detail', authMiddleware, authAdmin, AdminController.getRaceRoundDetail);

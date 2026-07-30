@@ -160,10 +160,16 @@ class RefereeService {
     }
 
     // Get Race Rounds assigned to the referee (paginated)
-    async getRefereeRaceRounds(refereeId, page = 1, limit = 10, status = null, search = null, sortBy = 'raceDate', order = 'desc') {
+    // `startDate`/`endDate` (both required together) switch this to a date-range/calendar
+    // mode, mirroring AdminService.getTournamentsWithDetails's isDateRangeQuery: every
+    // matching round in that range is returned unpaginated, since a calendar month can't be
+    // split across pages without breaking the grid. `tournament_id` narrows either mode.
+    async getRefereeRaceRounds(refereeId, page = 1, limit = 10, status = null, search = null, sortBy = 'raceDate', order = 'desc', tournament_id = null, startDate = null, endDate = null) {
         try {
-            // ── 1. All assignment IDs for this referee ────────────────────────
-            const assignments = await RaceReferee.find({ refereeId }).lean();
+            // ── 1. All ACCEPTED assignment IDs for this referee ───────────────
+            // Only 'assigned' (i.e. accepted) assignments — a still-'pending' invitation,
+            // or one this referee 'rejected', shouldn't surface the race round here.
+            const assignments = await RaceReferee.find({ refereeId, status: 'assigned' }).lean();
             if (!assignments.length) {
                 return {
                     code: 200,
@@ -173,23 +179,35 @@ class RefereeService {
             }
 
             const raceRoundIds = assignments.map(a => a.raceRoundId);
+            const isDateRangeQuery = Boolean(startDate && endDate);
 
             // ── 2. Filter + paginate at DB level ──────────────────────────────
             const skip = (page - 1) * limit;
             const filter = { _id: { $in: raceRoundIds } };
             if (status) filter.status = status;
             if (search) filter.roundName = { $regex: search, $options: 'i' };
+            if (tournament_id) filter.tournamentId = tournament_id;
+            if (isDateRangeQuery) filter.raceDate = { $gte: new Date(startDate), $lte: new Date(endDate) };
             const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
 
+            let raceRoundQuery = RaceRound.find(filter).sort(sortObj);
+            if (!isDateRangeQuery) {
+                raceRoundQuery = raceRoundQuery.skip(skip).limit(limit);
+            }
+
             const [raceRounds, totalItems] = await Promise.all([
-                RaceRound.find(filter).sort(sortObj).skip(skip).limit(limit).lean(),
+                raceRoundQuery.lean(),
                 RaceRound.countDocuments(filter),
             ]);
+
+            const totalPages = isDateRangeQuery ? 1 : Math.ceil(totalItems / limit);
+            const currentPage = isDateRangeQuery ? 1 : page;
+            const responseLimit = isDateRangeQuery ? totalItems : limit;
 
             if (!raceRounds.length) {
                 return {
                     code: 200,
-                    data: { items: [], pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                    data: { items: [], pagination: { totalItems, totalPages, currentPage, limit: responseLimit } },
                     msg: 'Referee race rounds retrieved successfully',
                 };
             }
@@ -275,7 +293,7 @@ class RefereeService {
 
             return {
                 code: 200,
-                data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                data: { items, pagination: { totalItems, totalPages, currentPage, limit: responseLimit } },
                 msg: 'Referee race rounds retrieved successfully',
             };
         } catch (error) {
@@ -798,6 +816,14 @@ class RefereeService {
                 return { code: 403, msg: 'You are not assigned to this race round.' };
             }
 
+            // Only a jockey who actually confirmed can be marked a no-show — this also
+            // prevents overwriting a pending/declined/cancelled invitation (e.g. a race
+            // condition against the jockey's own accept/decline, or resurrecting an
+            // invitation whose race round was already cancelled).
+            if (invitation.invitationStatus !== 'accepted') {
+                return { code: 400, msg: `Cannot mark as no-show: invitation is "${invitation.invitationStatus}", not "accepted".` };
+            }
+
             const updated = await Invitation.findByIdAndUpdate(
                 invitationId,
                 { invitationStatus: 'didNotAttend' },
@@ -852,12 +878,9 @@ class RefereeService {
 
             const newStatus = verifiedCount >= 2 ? 'prepared' : 'cancelled';
 
-            if (newStatus === 'prepared' && !override && !RaceDateUtil.isSameCalendarDay(raceRound.raceDate, new Date())) {
-                return {
-                    code: 422,
-                    msg: 'This race round is not scheduled for today.',
-                    data: { dateMismatch: true, raceDate: raceRound.raceDate },
-                };
+            if (newStatus === 'prepared') {
+                const gateError = RaceDateUtil.getScheduleGateError(raceRound.raceDate, { override });
+                if (gateError) return gateError;
             }
 
             await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus });
@@ -1007,6 +1030,37 @@ class RefereeService {
             };
         } catch (error) {
             console.error('Error fetching referee tournaments:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Lightweight { _id, tournamentName } list for this referee's own tournaments — same
+    // distinct-tournamentIds-from-assignments lookup as getRefereeTournaments (lines
+    // 900-916 above), but skipping its nested race-round/registration/eligibility-rule
+    // population, which callers that only need id+name (e.g. Homepage's filter dropdown
+    // and name lookup) don't use. Mirrors AdminService.getTournamentNames.
+    async getTournamentNames(refereeId) {
+        try {
+            const assignments = await RaceReferee.find({ refereeId }).lean();
+            if (!assignments.length) {
+                return { code: 200, data: [], msg: 'No tournaments found.' };
+            }
+
+            const raceRoundIds = assignments.map(a => a.raceRoundId);
+            const roundsForTournaments = await RaceRound.find({ _id: { $in: raceRoundIds } }, 'tournamentId').lean();
+            const allTournamentIds = [...new Set(
+                roundsForTournaments.map(r => r.tournamentId?.toString()).filter(Boolean)
+            )];
+
+            const tournaments = await Tournament.find({ _id: { $in: allTournamentIds } }, 'tournamentName').lean();
+
+            return {
+                code: 200,
+                data: tournaments.map(t => ({ _id: t._id, tournamentName: t.tournamentName })),
+                msg: 'Tournament names retrieved successfully',
+            };
+        } catch (error) {
+            console.error('Error fetching referee tournament names:', error);
             return { code: 500, msg: error.message };
         }
     }

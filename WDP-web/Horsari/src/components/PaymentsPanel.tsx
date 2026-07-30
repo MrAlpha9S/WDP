@@ -32,8 +32,8 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
 
 interface PaymentsPanelProps {
     title: string;
-    /** Role-bound service call, e.g. `(page, sortBy, order) => adminService.getPayments(page, 10, undefined, 'payer', sortBy, order)`. */
-    fetchPayments: (page: number, sortBy: string, order: "asc" | "desc") => Promise<PaymentsResponse>;
+    /** Role-bound service call, e.g. `(page, limit, sortBy, order) => adminService.getPayments(page, limit, undefined, 'payer', sortBy, order)`. */
+    fetchPayments: (page: number, limit: number, sortBy: string, order: "asc" | "desc") => Promise<PaymentsResponse>;
     /** Role-bound confirm call, e.g. `adminService.confirmPaymentPaid`. */
     onConfirm: (paymentId: string) => Promise<{ code: number; data?: PaymentEntity; msg: string }>;
     /** Which side of the payment the current role sits on, to know when it's "my turn" to act. */
@@ -61,11 +61,12 @@ const SORT_OPTIONS: { value: string; label: string; sortBy: string; order: "asc"
 
 export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleSide, confirmLabel, cacheKey, currentUserId, onSettled }: PaymentsPanelProps) {
     const [sortValue, setSortValue] = useState("createdAt:desc");
+    const [limit, setLimit] = useState(10);
     const sortOption = SORT_OPTIONS.find((o) => o.value === sortValue) ?? SORT_OPTIONS[0];
 
     const { data, loading, error, pagination, page, setPage, mutate, refresh } = usePaginatedFetch<PaymentEntity>(
-        (p) => fetchPayments(p, sortOption.sortBy, sortOption.order).then((res) => res.data),
-        `${cacheKey}:${sortValue}`,
+        (p) => fetchPayments(p, limit, sortOption.sortBy, sortOption.order).then((res) => res.data),
+        `${cacheKey}:${sortValue}:${limit}`,
     );
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
@@ -118,6 +119,15 @@ export default function PaymentsPanel({ title, fetchPayments, onConfirm, myRoleS
                 >
                     {SORT_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                </select>
+                <select
+                    value={limit}
+                    onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+                    className="w-[110px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                >
+                    {[5, 10, 25, 50, 100].map((n) => (
+                        <option key={n} value={n}>{n} rows</option>
                     ))}
                 </select>
             </div>

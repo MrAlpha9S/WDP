@@ -506,7 +506,7 @@ export default function FinancialsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PaymentsPanel
           title="Payments to Jockeys"
-          fetchPayments={(page, sortBy, order) => horseOwnerService.getPayments(page, 10, undefined, 'payer', sortBy, order)}
+          fetchPayments={(page, limit, sortBy, order) => horseOwnerService.getPayments(page, limit, undefined, 'payer', sortBy, order)}
           onConfirm={horseOwnerService.confirmPaymentPaid}
           myRoleSide="payer"
           confirmLabel="Confirm Paid"
@@ -515,7 +515,7 @@ export default function FinancialsPage() {
         />
         <PaymentsPanel
           title="Prize Money Owed to You"
-          fetchPayments={(page, sortBy, order) => horseOwnerService.getPayments(page, 10, undefined, 'payee', sortBy, order)}
+          fetchPayments={(page, limit, sortBy, order) => horseOwnerService.getPayments(page, limit, undefined, 'payee', sortBy, order)}
           onConfirm={horseOwnerService.confirmPaymentReceived}
           myRoleSide="payee"
           confirmLabel="Confirm Received"

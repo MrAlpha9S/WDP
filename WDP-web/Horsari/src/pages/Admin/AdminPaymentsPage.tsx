@@ -8,8 +8,6 @@ import { useSocket } from "../../providers/SocketProvider";
 import { ErrorState } from "../../components/ErrorState";
 import type { PaymentStatus, PaymentType, LedgerEntry } from "../../api/paymentTypes";
 
-const LIMIT = 20;
-
 const ROLE_LABEL: Record<string, string> = {
     admin: "Admin (House)",
     spectator: "Spectator",
@@ -25,10 +23,11 @@ const ROLE_LABEL: Record<string, string> = {
 function LedgerPanel() {
     const [sortValue, setSortValue] = useState<"createdAt:desc" | "createdAt:asc" | "amount:desc" | "amount:asc">("createdAt:desc");
     const [sortBy, order] = sortValue.split(":") as [string, "asc" | "desc"];
+    const [limit, setLimit] = useState(20);
 
     const { data, loading, error, pagination, page, setPage, refresh } = usePaginatedFetch<LedgerEntry>(
-        (p) => adminService.getAllLedger(p, LIMIT, sortBy, order).then((res) => res.data),
-        `admin-ledger-all-${sortValue}`,
+        (p) => adminService.getAllLedger(p, limit, sortBy, order).then((res) => res.data),
+        `admin-ledger-all-${sortValue}-${limit}`,
     );
 
     // Live refetch when a payment-related notification arrives, or when any
@@ -61,6 +60,15 @@ function LedgerPanel() {
                     <option value="createdAt:asc">Oldest First</option>
                     <option value="amount:desc">Amount High–Low</option>
                     <option value="amount:asc">Amount Low–High</option>
+                </select>
+                <select
+                    value={limit}
+                    onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+                    className="w-[110px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                >
+                    {[5, 10, 20, 50, 100].map(n => (
+                        <option key={n} value={n}>{n} rows</option>
+                    ))}
                 </select>
             </div>
 
@@ -178,7 +186,7 @@ export default function AdminPaymentsPage() {
                 {activeTab === "Payments" ? (
                     <PaymentsPanel
                         title="All Payments"
-                        fetchPayments={(page, sortBy, order) => adminService.getAllPayments(page, LIMIT, status !== "All" ? status : undefined, paymentType !== "All" ? paymentType : undefined, sortBy, order)}
+                        fetchPayments={(page, limit, sortBy, order) => adminService.getAllPayments(page, limit, status !== "All" ? status : undefined, paymentType !== "All" ? paymentType : undefined, sortBy, order)}
                         onConfirm={adminService.confirmPaymentPaid}
                         myRoleSide="payer"
                         currentUserId={user?.id}

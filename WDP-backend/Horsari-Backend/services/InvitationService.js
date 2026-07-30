@@ -3,6 +3,9 @@ const Registration = require('../entities/Registration');
 const Invitation = require('../entities/Invitation');
 const Horse = require('../entities/Horse');
 const Jockey = require('../entities/Jockey');
+const RaceRound = require('../entities/RaceRound');
+const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
+const RaceResult = require('../entities/RaceResult');
 const NotificationService = require('./NotificationService');
 const { findJockeyScheduleConflict } = require('./JockeyScheduleConflict');
 /**
@@ -33,6 +36,17 @@ class InvitationService {
         if (!horse) return { code: 404, message: 'Horse not found' };
         if (String(horse.ownerId) !== String(ownerId)) {
             return { code: 403, message: 'You do not own this horse.' };
+        }
+
+        const raceRound = await RaceRound.findById(registration.raceRoundId).lean();
+        if (raceRound?.eligibilityRuleId) {
+            const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
+            if (rule) {
+                const ineligibleReason = await this._checkHorseEligibility(horse, rule);
+                if (ineligibleReason) {
+                    return { code: 422, message: ineligibleReason };
+                }
+            }
         }
 
         // All invitations for a registration must share the same horse
@@ -86,6 +100,50 @@ class InvitationService {
             message: "Invitation created successfully",
             data: invitation
         };
+    }
+
+    // Mirrors the frontend's checkEligibility (CreateRaceParticipants.tsx) field-for-field,
+    // so server and client agree — returns a rejection reason string, or null if eligible.
+    async _checkHorseEligibility(horse, rule) {
+        if (horse.status !== 'active' || horse.healthStatus !== 'healthy') {
+            return 'This horse must be active and healthy to race.';
+        }
+        if (rule.requiredBreed && horse.breed !== rule.requiredBreed) {
+            return `This race requires breed "${rule.requiredBreed}".`;
+        }
+        if (rule.requiredGender && rule.requiredGender !== horse.gender) {
+            return `This race requires gender "${rule.requiredGender}".`;
+        }
+
+        const currentYear = new Date().getFullYear();
+        const horseAge = horse.dateOfBirth ? (currentYear - new Date(horse.dateOfBirth).getFullYear()) : 0;
+        if (rule.minAge != null && horseAge < rule.minAge) {
+            return `This race requires a minimum age of ${rule.minAge}.`;
+        }
+        if (rule.maxAge != null && horseAge > rule.maxAge) {
+            return `This race requires a maximum age of ${rule.maxAge}.`;
+        }
+
+        if (rule.minRacesRun || rule.minRacesWon) {
+            const pastRegs = await Registration.find({ horseId: horse._id }).select('_id').lean();
+            const results = pastRegs.length
+                ? await RaceResult.find({
+                    registrationId: { $in: pastRegs.map(r => r._id) },
+                    resultStatus: 'official',
+                    finishPosition: { $ne: null },
+                }).lean()
+                : [];
+            const racesRun = results.length;
+            const wins = results.filter(r => r.finishPosition === 1).length;
+            if (rule.minRacesRun && racesRun < rule.minRacesRun) {
+                return `This race requires at least ${rule.minRacesRun} race(s) run.`;
+            }
+            if (rule.minRacesWon && wins < rule.minRacesWon) {
+                return `This race requires at least ${rule.minRacesWon} win(s).`;
+            }
+        }
+
+        return null; // eligible
     }
 }
 module.exports = new InvitationService();

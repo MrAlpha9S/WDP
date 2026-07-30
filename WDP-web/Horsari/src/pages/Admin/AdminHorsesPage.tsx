@@ -93,7 +93,7 @@ const STEWARD_COLORS: Record<string, string> = {
     "permanent-ban":    "text-red-600",
 };
 
-const LIMIT = 10;
+const LIMIT_OPTIONS = [5, 10, 25, 50, 100];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -466,6 +466,7 @@ function HorseDetailPanel({
 export default function AdminHorsesPage() {
     const [horses,       setHorses]       = useState<AdminHorse[]>([]);
     const [page,         setPage]         = useState(1);
+    const [limit,        setLimit]        = useState(10);
     const [totalItems,   setTotalItems]   = useState(0);
     const [totalPages,   setTotalPages]   = useState(1);
     const [search,       setSearch]       = useState("");
@@ -502,7 +503,7 @@ export default function AdminHorsesPage() {
     useEffect(() => {
         setLoading(true);
         setError(null);
-        adminService.getAllHorses(page, LIMIT, search || undefined, statusFilter || undefined, sortBy, order)
+        adminService.getAllHorses(page, limit, search || undefined, statusFilter || undefined, sortBy, order)
             .then((res: any) => {
                 const d = res?.data ?? {};
                 setHorses(d.items ?? []);
@@ -511,11 +512,12 @@ export default function AdminHorsesPage() {
             })
             .catch((err: any) => setError(err?.msg ?? "Failed to load horses."))
             .finally(() => setLoading(false));
-    }, [page, search, statusFilter, sortBy, order, refreshSeed]);
+    }, [page, limit, search, statusFilter, sortBy, order, refreshSeed]);
 
     // Reset page on filter change
     const handleSearch = useCallback((v: string) => { setSearch(v); setPage(1); }, []);
     const handleStatus = useCallback((v: string) => { setStatusFilter(v as any); setPage(1); }, []);
+    const handleLimitChange = useCallback((v: number) => { setLimit(v); setPage(1); }, []);
 
     // Fetch detail on row click
     const handleSelectHorse = useCallback((horse: AdminHorse) => {
@@ -605,6 +607,15 @@ export default function AdminHorsesPage() {
                                 <option value="status:asc">Group by Status</option>
                                 <option value="healthStatus:asc">Group by Health</option>
                             </select>
+                            <select
+                                value={limit}
+                                onChange={e => handleLimitChange(Number(e.target.value))}
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer"
+                            >
+                                {LIMIT_OPTIONS.map(n => (
+                                    <option key={n} value={n}>{n} rows</option>
+                                ))}
+                            </select>
                         </div>
                     </header>
 
@@ -686,7 +697,7 @@ export default function AdminHorsesPage() {
                                 </tbody>
                             </table>
 
-                            <Pagination page={page} totalPages={totalPages} totalItems={totalItems} limit={LIMIT} onPageChange={setPage} />
+                            <Pagination page={page} totalPages={totalPages} totalItems={totalItems} limit={limit} onPageChange={setPage} />
                         </div>
                     </div>
                 </main>

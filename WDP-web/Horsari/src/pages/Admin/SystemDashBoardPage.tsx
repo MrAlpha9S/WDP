@@ -264,7 +264,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                 <div className="mt-6">
                     <PaymentsPanel
                         title="Payments Awaiting Your Confirmation"
-                        fetchPayments={(page, sortBy, order) => adminService.getPayments(page, 10, undefined, 'payer', sortBy, order)}
+                        fetchPayments={(page, limit, sortBy, order) => adminService.getPayments(page, limit, undefined, 'payer', sortBy, order)}
                         onConfirm={adminService.confirmPaymentPaid}
                         myRoleSide="payer"
                         confirmLabel="Confirm Paid"

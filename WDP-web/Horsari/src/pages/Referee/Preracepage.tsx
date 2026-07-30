@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, ClipboardList, Clock, Flag, UserCheck, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardList, Clock, Flag, UserCheck } from "lucide-react";
 import PreRaceInspectionModal from "./modal/PreRaceCheckup";
 import type { RegistrationDetail } from "../../providers/useRaceSocket";
 import { useRaceSocket } from "../../providers/useRaceSocket";
 import { refereeService } from "../../api/refereeService";
 import { RefetchButton } from "../../components/RefetchButton";
 import { ErrorState } from "../../components/ErrorState";
-import { isRaceDayToday } from "../../utils/raceDayUtil";
+import { useScheduleGate } from "../../utils/raceDayUtil";
+import { ScheduleConfirmModal } from "../../components/ScheduleConfirmModal";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -73,12 +74,11 @@ export default function PreRacePage() {
 
     const [finalizing, setFinalizing] = useState(false);
     const [finalizeError, setFinalizeError] = useState<string | null>(null);
-    const [showDateWarning, setShowDateWarning] = useState(false);
 
     // The finalize action only sets status to 'prepared' when hasVerified is true —
     // otherwise it resolves to 'cancelled', which the backend never date-gates, so
     // the mismatch warning is only relevant on the "prepare" path.
-    const isRaceDayMismatch = !!raceRound?.raceDate && !isRaceDayToday(raceRound.raceDate);
+    const prepareGate = useScheduleGate(raceRound?.raceDate);
 
     const doFinalize = async (override: boolean) => {
         if (!raceRound?._id || !allResolved || finalizing) return;
@@ -91,14 +91,14 @@ export default function PreRacePage() {
             setFinalizeError(err?.msg || 'Failed to finalize race. Please try again.');
         } finally {
             setFinalizing(false);
-            setShowDateWarning(false);
+            prepareGate.close();
         }
     };
 
     const handleFinalize = () => {
         if (!raceRound?._id || !allResolved || finalizing) return;
-        if (hasVerified && isRaceDayMismatch) {
-            setShowDateWarning(true);
+        if (hasVerified && prepareGate.needsConfirm) {
+            prepareGate.open();
             return;
         }
         doFinalize(false);
@@ -368,59 +368,17 @@ export default function PreRacePage() {
                 </div>
             </div>
 
-            {showDateWarning && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#161616] border border-white/10 rounded-xl shadow-2xl w-[400px] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-5 border-b border-white/5 bg-[#1a1a1a]">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-amber-500/20 rounded-full">
-                                    <AlertTriangle className="text-amber-500" size={20} />
-                                </div>
-                                <h3 className="text-[16px] font-bold text-white">Race Date Mismatch</h3>
-                            </div>
-                            <button
-                                onClick={() => !finalizing && setShowDateWarning(false)}
-                                disabled={finalizing}
-                                className="text-gray-500 hover:text-white transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-[14px] text-gray-300 leading-relaxed">
-                                This race is scheduled for{" "}
-                                <strong className="text-white">
-                                    {raceRound?.raceDate ? new Date(raceRound.raceDate).toLocaleDateString() : "an unknown date"}
-                                </strong>
-                                , not today. Are you sure you want to prepare it anyway?
-                            </p>
-                            {finalizeError && (
-                                <p className="text-[12px] text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">{finalizeError}</p>
-                            )}
-                        </div>
-                        <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">
-                            <button
-                                onClick={() => setShowDateWarning(false)}
-                                disabled={finalizing}
-                                className="px-4 py-2 text-[13px] font-medium text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded transition-colors disabled:opacity-50"
-                            >
-                                Go Back
-                            </button>
-                            <button
-                                onClick={() => doFinalize(true)}
-                                disabled={finalizing}
-                                className="px-4 py-2 text-[13px] font-medium text-white bg-amber-600 hover:bg-amber-700 rounded transition-colors flex items-center gap-2 disabled:opacity-50"
-                            >
-                                {finalizing ? (
-                                    <><Clock size={14} className="animate-spin" /> Preparing...</>
-                                ) : (
-                                    "Yes, Prepare Anyway"
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ScheduleConfirmModal
+                open={prepareGate.isOpen}
+                title="Race Date Mismatch"
+                message={prepareGate.warningMessage}
+                actionVerb="Prepare"
+                pendingLabel="Preparing..."
+                pending={finalizing}
+                error={finalizeError}
+                onConfirm={() => doFinalize(true)}
+                onCancel={prepareGate.close}
+            />
 
             {inspecting && raceRound?._id && (
                 <PreRaceInspectionModal

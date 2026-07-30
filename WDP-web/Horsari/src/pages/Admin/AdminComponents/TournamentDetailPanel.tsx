@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     X, Loader2, Trophy, Calendar, DollarSign, Users, Flag,
-    AlertCircle, CheckCircle2, MapPin
+    AlertCircle, CheckCircle2, MapPin, Pencil, Ban
 } from "lucide-react";
 import type { TournamentDetailData, TournamentRankEntry, RoundBreakdownEntry } from "../../../shared/types/TournamentTypes";
 import { adminService } from "../../../api/adminService";
@@ -11,9 +11,16 @@ interface TournamentDetailPanelProps {
     selectedTournamentId: string;
     onRefresh?: () => void;
     onClose?: () => void;
+    onEdit?: () => void;
 }
 
-const TOURNAMENT_STATUS_OPTIONS = ['draft', 'scheduled', 'ongoing', 'completed', 'cancelled'] as const;
+// The only forward transition an admin can trigger from a given status — mirrors
+// AdminService.updateTournamentStats's supported cases (see backend/services/AdminService.js).
+const NEXT_STATUS: Record<string, { target: string; label: string } | undefined> = {
+    draft: { target: 'scheduled', label: 'Schedule Tournament' },
+    scheduled: { target: 'ongoing', label: 'Start Tournament' },
+    ongoing: { target: 'completed', label: 'Mark Completed' },
+};
 
 const TOURNAMENT_STATUS_COLORS: Record<string, string> = {
     draft:     'bg-amber-500/15 text-amber-400 border-amber-500/30',
@@ -81,7 +88,7 @@ function RoundResultCell({ rd }: { rd: RoundBreakdownEntry }) {
     return <span className="text-gray-600 text-[10px]">—</span>;
 }
 
-export default function TournamentDetailPanel({ selectedTournamentId, onRefresh, onClose }: TournamentDetailPanelProps) {
+export default function TournamentDetailPanel({ selectedTournamentId, onRefresh, onClose, onEdit }: TournamentDetailPanelProps) {
     const [detail, setDetail] = useState<TournamentDetailData | null>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [detailError, setDetailError] = useState<string | null>(null);
@@ -94,6 +101,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [statusError, setStatusError] = useState<string | null>(null);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
     const fetchDetail = useCallback(() => {
         if (!selectedTournamentId) return;
@@ -113,6 +121,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
         setShowRanking(false);
         setStatusError(null);
         setIsCancelModalOpen(false);
+        setPendingStatus(null);
         fetchDetail();
     }, [selectedTournamentId]);
 
@@ -182,30 +191,50 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                     <h2 className="text-[20px] font-bold tracking-tight leading-tight text-white truncate">
                                         {t.tournamentName}
                                     </h2>
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            value={t.status}
-                                            onChange={e => handleStatusChange(e.target.value)}
-                                            disabled={statusUpdating}
-                                            className={`self-start text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-transparent appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${statusColor}`}
-                                        >
-                                            {TOURNAMENT_STATUS_OPTIONS.map(s => (
-                                                <option key={s} value={s} className="bg-surface text-white normal-case">{s}</option>
-                                            ))}
-                                        </select>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${statusColor}`}>
+                                            {t.status}
+                                        </span>
+                                        {NEXT_STATUS[t.status] && (
+                                            <button
+                                                onClick={() => setPendingStatus(NEXT_STATUS[t.status]!.target)}
+                                                disabled={statusUpdating}
+                                                className="text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {NEXT_STATUS[t.status]!.label}
+                                            </button>
+                                        )}
                                         {statusUpdating && <Loader2 size={12} className="animate-spin text-gray-400" />}
                                     </div>
                                     {statusError && (
                                         <span className="text-[11px] text-red-400">{statusError}</span>
                                     )}
                                 </div>
-                                <button
-                                    onClick={onClose}
-                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors shrink-0 mt-1"
-                                    title="Close Panel"
-                                >
-                                    <X size={14} />
-                                </button>
+                                <div className="flex items-center gap-2 shrink-0 mt-1">
+                                    <button
+                                        onClick={onEdit}
+                                        className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded border border-blue-500/20 transition-colors"
+                                        title="Edit Tournament"
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
+                                    {t.status !== 'completed' && t.status !== 'cancelled' && (
+                                        <button
+                                            onClick={() => setIsCancelModalOpen(true)}
+                                            className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded border border-red-500/20 transition-colors"
+                                            title="Cancel Tournament"
+                                        >
+                                            <Ban size={14} />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={onClose}
+                                        className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors"
+                                        title="Close Panel"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-gray-400">
@@ -450,6 +479,58 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                 tournamentId={selectedTournamentId}
                 tournamentName={t?.tournamentName ?? ''}
             />
+
+            {/* ── Status Change Confirmation Modal ── */}
+            {pendingStatus && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="bg-[#161616] border border-white/10 rounded-xl shadow-2xl w-[400px] overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-5 border-b border-white/5 bg-[#1a1a1a]">
+                            <h3 className="text-[16px] font-bold text-white">Confirm Status Change</h3>
+                            <button
+                                onClick={() => !statusUpdating && setPendingStatus(null)}
+                                disabled={statusUpdating}
+                                className="text-gray-500 hover:text-white transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-[14px] text-gray-300 leading-relaxed">
+                                Are you sure you want to mark{" "}
+                                <strong className="text-white">{t?.tournamentName}</strong>
+                                {" "}as <strong className="text-white capitalize">{pendingStatus}</strong>?
+                            </p>
+                            {statusError && (
+                                <p className="text-[12px] text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">{statusError}</p>
+                            )}
+                        </div>
+                        <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">
+                            <button
+                                onClick={() => setPendingStatus(null)}
+                                disabled={statusUpdating}
+                                className="px-4 py-2 text-[13px] font-medium text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded transition-colors disabled:opacity-50"
+                            >
+                                Go Back
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const target = pendingStatus;
+                                    await handleStatusChange(target);
+                                    setPendingStatus(null);
+                                }}
+                                disabled={statusUpdating}
+                                className="px-4 py-2 text-[13px] font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {statusUpdating ? (
+                                    <><Loader2 size={14} className="animate-spin" /> Updating...</>
+                                ) : (
+                                    "Confirm"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </aside>
     );
 }

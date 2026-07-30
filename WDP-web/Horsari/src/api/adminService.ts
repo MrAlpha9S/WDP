@@ -391,6 +391,17 @@ export interface AdminTournamentStatsResponse {
   msg: string;
 }
 
+export interface TournamentNameOption {
+  _id: string;
+  tournamentName: string;
+}
+
+export interface TournamentNamesResponse {
+  code: number;
+  data: TournamentNameOption[];
+  msg: string;
+}
+
 export type CreateRaceTournamentOption = { _id: string; tournamentName?: string } & Record<string, unknown>;
 export type CreateRaceEligibilityRuleOption = { _id: string; raceType?: string | null } & Record<string, unknown>;
 export type CreateRaceRefereeOption = { _id: string } & Record<string, unknown>;
@@ -744,6 +755,22 @@ export const adminService = {
     }
   },
 
+  /**
+   * Lightweight { _id, tournamentName } list for every tournament, including the
+   * "Non-tournament" placeholder that getTournamentsWithDetails/getTournamentStats
+   * deliberately exclude — use this instead when resolving a race round's tournament
+   * name for display, so a standalone race is labeled "Non-tournament" rather than
+   * falling back to "Unknown Tournament".
+   */
+  getTournamentNames: async (): Promise<TournamentNamesResponse> => {
+    try {
+      const response = await api.get('/admin/tournaments/names');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+
   // Guarded status transition: blocks "completed" while rounds are unfinished,
   // cascade-cancels rounds when the tournament is cancelled.
   updateTournamentStatus: async (id: string, status: string): Promise<{ code: number; msg: string }> => {
@@ -765,6 +792,8 @@ export const adminService = {
     sortBy = 'raceDate',
     order: 'asc' | 'desc' = 'desc',
     raceType?: string,
+    /** "YYYY-MM-DD" Vietnam-calendar-day key — when given, returns every race round on that day (ignoring page/limit) instead of paging. See getRaceRoundDates for the day list this is meant to be driven by. */
+    date?: string,
   ): Promise<RaceRoundsResponse> => {
     try {
       const params: any = { page, limit, sortBy, order };
@@ -773,8 +802,28 @@ export const adminService = {
       if (status) params.status = status;
       if (search) params.search = search;
       if (raceType) params.raceType = raceType;
+      if (date) params.date = date;
       const response = await api.get('/admin/race-rounds', { params });
       console.log('API Response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+
+  // Distinct calendar days with matching race rounds — the schedule Timeline view's
+  // day-navigation list, fetched independently of any page/limit.
+  getRaceRoundDates: async (
+    tournament_id?: string | null,
+    status?: string,
+    raceType?: string,
+  ): Promise<{ code: number; data: { dates: string[] }; msg: string }> => {
+    try {
+      const params: any = {};
+      if (tournament_id) params.tournament_id = tournament_id;
+      if (status) params.status = status;
+      if (raceType) params.raceType = raceType;
+      const response = await api.get('/admin/race-rounds/dates', { params });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };

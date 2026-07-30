@@ -41,14 +41,14 @@ export default function ViolationManagementPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
     const [totalItems, setTotalItems] = useState(0);
     const [statusFilter, setStatusFilter] = useState<string>('All');
     const [severityFilter, setSeverityFilter] = useState<string>('All');
     const [selectedViolation, setSelectedViolation] = useState<ViolationEntity | null>(null);
     const [sortBy, setSortBy] = useState<string>('created_at');
     const [order, setOrder] = useState<'asc' | 'desc'>('desc');
-    const LIMIT = 10;
-    const totalPages = Math.ceil(totalItems / LIMIT) || 1;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
 
     const handleSort = (field: string) => {
         if (sortBy === field) {
@@ -72,7 +72,7 @@ export default function ViolationManagementPage() {
             setLoading(true);
             setError(null);
             const res = await adminService.getAllViolations(
-                page, LIMIT,
+                page, limit,
                 statusFilter !== 'All' ? statusFilter : undefined,
                 severityFilter !== 'All' ? Number(severityFilter) : undefined,
                 undefined,
@@ -92,9 +92,9 @@ export default function ViolationManagementPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, statusFilter, severityFilter, sortBy, order]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [page, limit, statusFilter, severityFilter, sortBy, order]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => { setPage(1); }, [statusFilter, severityFilter]);
+    useEffect(() => { setPage(1); }, [statusFilter, severityFilter, limit]);
     useEffect(() => { fetchViolations(); }, [fetchViolations]);
 
     const handleDismissed = (id: string) => {
@@ -161,6 +161,15 @@ export default function ViolationManagementPage() {
                                 <option value="severity:asc">Severity Low–High</option>
                                 <option value="severity:desc">Severity High–Low</option>
                                 <option value="violationStatus:asc">Group by Status</option>
+                            </select>
+                            <select
+                                value={limit}
+                                onChange={e => setLimit(Number(e.target.value))}
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            >
+                                {[5, 10, 25, 50, 100].map(n => (
+                                    <option key={n} value={n}>{n} rows</option>
+                                ))}
                             </select>
                         </div>
                     </header>
@@ -265,7 +274,7 @@ export default function ViolationManagementPage() {
                                 </tbody>
                             </table>
                         </div>
-                        <Pagination page={page} totalPages={totalPages} totalItems={totalItems} limit={LIMIT} onPageChange={setPage} />
+                        <Pagination page={page} totalPages={totalPages} totalItems={totalItems} limit={limit} onPageChange={setPage} />
                     </div>
                 </main>
 

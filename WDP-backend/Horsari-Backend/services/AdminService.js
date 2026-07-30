@@ -881,6 +881,26 @@ class AdminService {
         }
     }
 
+    // Lightweight { _id, tournamentName } list for EVERY tournament — deliberately does NOT
+    // exclude the "Non-tournament" placeholder the way getTournamentsWithDetails/
+    // getTournamentStats do (that exclusion is right for the tournament CRUD list/stats, but
+    // wrong for resolving a race round's tournament name, where a standalone race's
+    // tournamentId legitimately points at "Non-tournament" and should be labeled as such
+    // instead of falling back to "Unknown Tournament").
+    async getTournamentNames() {
+        try {
+            const Tournament = require('../entities/Tournament');
+            const tournaments = await Tournament.find({}, 'tournamentName').lean();
+            return {
+                code: 200,
+                data: tournaments.map(t => ({ _id: t._id, tournamentName: t.tournamentName })),
+                msg: 'Tournament names retrieved successfully',
+            };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
     async updateTournamentStats(tournament_id, status, io) {
         try {
             const tournament = await TournamentRepository.getTournamentById(tournament_id);
@@ -942,7 +962,13 @@ class AdminService {
     }
 
     // Get Race Rounds
-    async getRaceRounds(tournament_id = null, raceRound_id = null, page = 1, limit = 10, status = null, search = null, sortBy = 'raceDate', order = 'desc', raceType = null) {
+    //
+    // `date` (a "YYYY-MM-DD" Vietnam-calendar-day key) bounds the query to that single day
+    // and skips skip/limit entirely — used by the Admin schedule's Timeline view, which
+    // fetches one day at a time (see getRaceRoundDates below for the day list it navigates)
+    // rather than a page/limit-based slice. A single day's races are inherently a small,
+    // bounded set, so no further paging is needed once scoped this way.
+    async getRaceRounds(tournament_id = null, raceRound_id = null, page = 1, limit = 10, status = null, search = null, sortBy = 'raceDate', order = 'desc', raceType = null, date = null) {
         try {
             const skip = (page - 1) * limit;
             let query = {};
@@ -954,11 +980,20 @@ class AdminService {
                 const ruleIds = await RaceEligibilityRule.find({ raceType }).distinct('_id');
                 query.eligibilityRuleId = { $in: ruleIds };
             }
+            if (date) {
+                const { start, end } = RaceDateUtil.getVietnamDayRange(date);
+                query.raceDate = { $gte: start, $lte: end };
+            }
 
             const sortObj = { [sortBy]: order === 'asc' ? 1 : -1 };
 
+            let raceRoundQuery = RaceRound.find(query).sort(sortObj);
+            if (!date) {
+                raceRoundQuery = raceRoundQuery.skip(skip).limit(limit);
+            }
+
             const [raceRounds, totalItems] = await Promise.all([
-                RaceRound.find(query).sort(sortObj).skip(skip).limit(limit).lean(),
+                raceRoundQuery.lean(),
                 RaceRound.countDocuments(query),
             ]);
 
@@ -975,12 +1010,38 @@ class AdminService {
                 code: 200,
                 data: {
                     items,
-                    pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit },
+                    pagination: date
+                        ? { totalItems, totalPages: 1, currentPage: 1, limit: totalItems }
+                        : { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit },
                 },
                 msg: 'Race rounds retrieved successfully',
             };
         } catch (error) {
             console.error('Error fetching race rounds:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Distinct calendar days (Vietnam-anchored) that have at least one race round matching
+    // the given filters — the Admin schedule's Timeline view uses this list as its actual
+    // "pagination": each entry is a fetchable "page" via getRaceRounds's `date` param, rather
+    // than paging through a row-offset the way the Table view does.
+    async getRaceRoundDates(tournament_id = null, status = null, raceType = null) {
+        try {
+            let query = {};
+            if (tournament_id) query.tournamentId = tournament_id;
+            if (status) query.status = status;
+            if (raceType) {
+                const ruleIds = await RaceEligibilityRule.find({ raceType }).distinct('_id');
+                query.eligibilityRuleId = { $in: ruleIds };
+            }
+
+            const raceRounds = await RaceRound.find(query, 'raceDate').lean();
+            const dayKeys = [...new Set(raceRounds.map(rr => RaceDateUtil.calendarDayKey(rr.raceDate)))].sort();
+
+            return { code: 200, data: { dates: dayKeys }, msg: 'Race round dates retrieved successfully' };
+        } catch (error) {
+            console.error('Error fetching race round dates:', error);
             return { code: 500, msg: error.message };
         }
     }
@@ -1456,20 +1517,9 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
             return { code: 422, msg: 'A stream key must be created before starting the race. Use the "Create Stream Key" button first.' };
         }
 
-        if (newStatus === 'running' && !override && !RaceDateUtil.isSameCalendarDay(raceRound.raceDate, new Date())) {
-            return {
-                code: 422,
-                msg: 'This race round is not scheduled for today.',
-                data: { dateMismatch: true, raceDate: raceRound.raceDate },
-            };
-        }
-
-        if (newStatus === 'running' && !override && !RaceDateUtil.hasReachedStartTime(raceRound.raceDate)) {
-            return {
-                code: 422,
-                msg: 'This race round has not reached its scheduled start time yet.',
-                data: { dateMismatch: true, raceDate: raceRound.raceDate },
-            };
+        if (newStatus === 'running') {
+            const gateError = RaceDateUtil.getScheduleGateError(raceRound.raceDate, { requireStartTime: true, override });
+            if (gateError) return gateError;
         }
 
         const updated = await RaceRound.findByIdAndUpdate(raceRoundId, { status: newStatus }, { new: true }).lean();

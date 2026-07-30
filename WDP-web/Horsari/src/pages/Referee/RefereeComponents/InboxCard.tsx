@@ -1,7 +1,7 @@
 ﻿import { useState } from "react";
 import {
     CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
-    Clock, CreditCard, Flag, Loader2, MapPin, XCircle,
+    Clock, Flag, Loader2, MapPin, XCircle,
 } from "lucide-react";
 import type { RaceInvite } from "../../../shared/types/InboxTypes";
 import { RACE_TYPE_DESCRIPTIONS } from "../../../shared/data/InboxData";
@@ -33,29 +33,30 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
         ? parsed.getDate() : null;
 
     return (
-        <div className="bg-white/[0.03] rounded-xl border border-border overflow-hidden">
+        <div className="bg-white/[0.03] rounded-xl border border-border overflow-hidden h-full flex flex-col">
             {/* Nav */}
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
-                <button onClick={prevMonth} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
-                    <ChevronLeft size={12} />
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
+                    <ChevronLeft size={14} />
                 </button>
-                <span className="text-[11px] font-bold text-gray-300 font-serif">
-                    {CAL_MONTHS[viewMonth].slice(0, 3)} {viewYear}
+                <span className="text-[13px] font-bold text-gray-300 font-serif">
+                    {CAL_MONTHS[viewMonth]} {viewYear}
                 </span>
-                <button onClick={nextMonth} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
-                    <ChevronRight size={12} />
+                <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
+                    <ChevronRight size={14} />
                 </button>
             </div>
 
             {/* Day names */}
-            <div className="grid grid-cols-7 px-2 pt-2">
+            <div className="grid grid-cols-7 px-3 pt-3 shrink-0">
                 {CAL_DAYS.map(d => (
-                    <div key={d} className="text-center text-[9px] font-bold uppercase text-gray-600 pb-1">{d}</div>
+                    <div key={d} className="text-center text-[10px] font-bold uppercase text-gray-600 pb-1.5">{d}</div>
                 ))}
             </div>
 
-            {/* Cells */}
-            <div className="grid grid-cols-7 px-2 pb-2 gap-y-0.5">
+            {/* Cells — flex-1 + auto-rows-fr so the grid grows to fill whatever height
+                the left column's (now much shorter) content leaves available. */}
+            <div className="grid grid-cols-7 auto-rows-fr px-3 pb-3 gap-1 flex-1 min-h-0">
                 {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
                 {Array.from({ length: totalDays }).map((_, i) => {
                     const day = i + 1;
@@ -63,7 +64,7 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
                     return (
                         <div
                             key={day}
-                            className={["flex items-center justify-center rounded-lg text-[11px] font-semibold h-7 transition-all", isHL ? "bg-red-700 text-white shadow-sm" : "text-gray-500"].join(" ")}
+                            className={["flex items-center justify-center rounded-lg text-[13px] font-semibold transition-all", isHL ? "bg-red-700 text-white shadow-sm" : "text-gray-500"].join(" ")}
                         >
                             {day}
                         </div>
@@ -73,9 +74,9 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
 
             {/* Race date label */}
             {highlightDay && (
-                <div className="px-3 py-2 border-t border-border/60 flex items-center gap-2">
+                <div className="px-4 py-3 border-t border-border/60 flex items-center gap-2 shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                    <span className="text-[10.5px] text-gray-500">Race: {highlightDate}</span>
+                    <span className="text-[11.5px] text-gray-500">Race: {highlightDate}</span>
                 </div>
             )}
         </div>
@@ -107,17 +108,19 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
 
     return (
         <div className="border-t border-border bg-white/[0.02]">
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-0">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_260px] gap-0 items-stretch">
 
                 {/* Left: detail content */}
-                <div className="px-5 pb-5 pt-4 border-r border-border/60">
+                <div className="px-5 pb-5 pt-4 border-r border-border/60 flex flex-col">
 
                     {/* Race Classification */}
                     <div className="mb-4">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Race Classification</p>
                         <div className="flex items-center gap-2 flex-wrap">
                             <RaceTypeBadge type={invite.raceType} />
-                            <span className="text-[12px] text-gray-500">{RACE_TYPE_DESCRIPTIONS[invite.raceType] ?? "No description available."}</span>
+                            {RACE_TYPE_DESCRIPTIONS[invite.raceType] && (
+                                <span className="text-[14px] text-gray-400">{RACE_TYPE_DESCRIPTIONS[invite.raceType]}</span>
+                            )}
                         </div>
                     </div>
 
@@ -137,55 +140,40 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                         ))}
                     </div>
 
-                    {/* Payment */}
-                    <div className="bg-surface border border-border rounded-xl overflow-hidden mb-4">
-                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-white/[0.03]">
-                            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-500">
-                                <CreditCard size={12} className="text-red-500" /> Payment
-                            </div>
-                            <PaymentPill status={invite.paymentStatus} />
-                        </div>
-                        <div className="px-4 py-3 flex flex-col gap-2">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[13px] text-gray-500">Referee Fee</span>
-                                <span className="text-[17px] font-black text-white">{invite.fee.toLocaleString()} ₫</span>
-                            </div>
+                    {/* Payment — fee amount and status pill already shown in the card's
+                        header row above, so only the status-dependent note/action lives here. */}
+                    <div className="mb-4">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Payment</p>
 
-                            {invite.paymentMethod && (
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[13px] text-gray-500">Method</span>
-                                    <span className="text-[13px] font-semibold text-gray-300">{invite.paymentMethod}</span>
-                                </div>
-                            )}
-                            {invite.paymentStatus === "processing" && (
-                                <div className="bg-yellow-500/8 border border-yellow-700/30 rounded-xl px-3 py-2 text-[12px] text-yellow-300/80 mt-1">
-                                    Payment is being processed. Funds typically arrive within 2–3 business days.
-                                </div>
-                            )}
-                            {invite.paymentId && !invite.payeeConfirmed && (
-                                <button
-                                    onClick={handleConfirmClick}
-                                    disabled={confirming}
-                                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 disabled:opacity-50 transition-all duration-150 mt-1"
-                                >
-                                    {confirming ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-                                    Confirm Received
-                                </button>
-                            )}
-                            {invite.paymentId && invite.payeeConfirmed && invite.paymentStatus !== "paid" && (
-                                <p className="text-[11.5px] text-emerald-500 text-center mt-1 flex items-center justify-center gap-1.5">
-                                    <CheckCircle2 size={12} /> You've confirmed receipt — waiting on admin.
-                                </p>
-                            )}
-                            {!invite.paymentId && (
-                                <p className="text-[11.5px] text-gray-600 text-center mt-1">Payment is created once race results are confirmed.</p>
-                            )}
-                        </div>
+                        {invite.paymentStatus === "processing" && (
+                            <p className="text-[12px] text-yellow-400/80">
+                                Payment is being processed. Funds typically arrive within 2–3 business days.
+                            </p>
+                        )}
+                        {invite.paymentId && !invite.payeeConfirmed && (
+                            <button
+                                onClick={handleConfirmClick}
+                                disabled={confirming}
+                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 disabled:opacity-50 transition-all duration-150"
+                            >
+                                {confirming ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                                Confirm Received
+                            </button>
+                        )}
+                        {invite.paymentId && invite.payeeConfirmed && invite.paymentStatus !== "paid" && (
+                            <p className="text-[11.5px] text-emerald-500 mt-2 flex items-center gap-1.5">
+                                <CheckCircle2 size={12} /> You've confirmed receipt — waiting on admin.
+                            </p>
+                        )}
+                        {!invite.paymentId && (
+                            <p className="text-[11.5px] text-gray-600 mt-1.5">Payment is created once race results are confirmed.</p>
+                        )}
                     </div>
 
-                    {/* Accept / Decline */}
+                    {/* Accept / Decline — pinned to the bottom of the column instead of
+                        sitting right under Payment with dead space below it. */}
                     {isPending && (
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 mt-auto pt-4">
                             <button
                                 onClick={() => onDecline(invite.id)}
                                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-border text-[13px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
@@ -202,10 +190,13 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                     )}
                 </div>
 
-                {/* Right: mini calendar */}
-                <div className="px-4 py-4">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Date</p>
-                    <MiniCalendar highlightDate={invite.date} />
+                {/* Right: mini calendar — stretches to fill the row's full height (set by the
+                    left column's content), instead of sitting small with dead space below it. */}
+                <div className="px-4 py-4 flex flex-col">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-3 shrink-0">Race Date</p>
+                    <div className="flex-1 min-h-[220px]">
+                        <MiniCalendar highlightDate={invite.date} />
+                    </div>
                 </div>
             </div>
         </div>
@@ -247,9 +238,6 @@ export function InviteCard({ invite, onAccept, onDecline, onConfirmPayment }: In
                         <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[15px] font-bold text-white">{invite.raceLabel}</span>
                             <RaceTypeBadge type={invite.raceType} />
-                            {invite.isNew && (
-                                <span className="text-[9px] font-bold uppercase tracking-widest bg-red-700 text-white px-1.5 py-0.5 rounded-full">New</span>
-                            )}
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
                             <span className="flex items-center gap-1 text-[12px] text-gray-500">

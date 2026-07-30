@@ -90,6 +90,11 @@ export interface TournamentWithRounds {
     RaceRound?: RaceRoundEntry[];
 }
 
+export interface TournamentNameOption {
+    _id: string;
+    tournamentName: string;
+}
+
 export interface ViolationTypeRecord {
     _id: string;
     violationName: string;
@@ -213,7 +218,12 @@ export const refereeService = {
         }
     },
 
-    /** Returns race rounds assigned to the current referee (paginated). */
+    /**
+     * Returns race rounds assigned to the current referee. Normally paginated
+     * (page/limit); when both `startDate`/`endDate` are given, returns every matching
+     * round in that range unpaginated instead — for the Homepage calendar view, which
+     * needs a whole visible month at once (mirrors adminService.getRaceRounds's `date` mode).
+     */
     getRefereeRaceRounds: async (
         page = 1,
         limit = 10,
@@ -221,11 +231,17 @@ export const refereeService = {
         search?: string,
         sortBy = 'raceDate',
         order: 'asc' | 'desc' = 'desc',
+        tournament_id?: string,
+        startDate?: string,
+        endDate?: string,
     ): Promise<{ code: number; data: { items: RaceRoundData[]; pagination: PaginationMeta }; msg: string }> => {
         try {
             const params: Record<string, unknown> = { page, limit, sortBy, order };
             if (status) params.status = status;
             if (search) params.search = search;
+            if (tournament_id) params.tournament_id = tournament_id;
+            if (startDate) params.startDate = startDate;
+            if (endDate) params.endDate = endDate;
             const response = await api.get('/referee/race-rounds', { params });
             console.log('getRefereeRaceRounds:', response.data);
             return response.data;
@@ -249,6 +265,21 @@ export const refereeService = {
             if (search) params.search = search;
             const response = await api.get('/referee/tournaments', { params });
             console.log('getRefereeTournaments:', response.data);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+        }
+    },
+
+    /**
+     * Lightweight { _id, tournamentName } list for this referee's own tournaments — use
+     * this instead of getRefereeTournaments when only id+name are needed (e.g. a filter
+     * dropdown or name lookup), skipping its nested race-round data. Mirrors
+     * adminService.getTournamentNames.
+     */
+    getTournamentNames: async (): Promise<{ code: number; data: TournamentNameOption[]; msg: string }> => {
+        try {
+            const response = await api.get('/referee/tournaments/names');
             return response.data;
         } catch (error: any) {
             throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };

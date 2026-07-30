@@ -1,3 +1,3 @@
-export type RefereeTab = "Dashboard" | "Tournaments" | "Inbox" | "Management" | "Statistics" | "Profile";
+export type RefereeTab = "Dashboard" | "Inbox" | "Statistics" | "Profile";
 
-export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Tournaments", "Inbox", "Statistics"];
+export const REFEREE_TABS: RefereeTab[] = ["Dashboard", "Inbox", "Statistics"];

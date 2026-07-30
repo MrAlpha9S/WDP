@@ -30,13 +30,13 @@ export default function ViolationTypeManagementPage() {
     const [typeFilter, setTypeFilter] = useState<string>('All');
     const [categoryFilter, setCategoryFilter] = useState<string>('All');
     const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalItem, setModalItem] = useState<ViolationTypeEntity | null>(null);
     const [sortBy, setSortBy] = useState<string>('createdAt');
     const [order, setOrder] = useState<'asc' | 'desc'>('desc');
-    const LIMIT = 10;
-    const totalPages = Math.ceil(totalItems / LIMIT) || 1;
+    const totalPages = Math.ceil(totalItems / limit) || 1;
 
     const handleSort = (field: string) => {
         if (sortBy === field) {
@@ -60,7 +60,7 @@ export default function ViolationTypeManagementPage() {
             setLoading(true);
             setError(null);
             const res = await adminService.getAllViolationTypes(
-                page, LIMIT,
+                page, limit,
                 search || undefined,
                 typeFilter !== 'All' ? typeFilter : undefined,
                 categoryFilter !== 'All' ? categoryFilter : undefined,
@@ -76,9 +76,9 @@ export default function ViolationTypeManagementPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, search, typeFilter, categoryFilter, sortBy, order]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [page, limit, search, typeFilter, categoryFilter, sortBy, order]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => { setPage(1); }, [search, typeFilter, categoryFilter]);
+    useEffect(() => { setPage(1); }, [search, typeFilter, categoryFilter, limit]);
     useEffect(() => { fetchTypes(); }, [fetchTypes]);
 
     const handleSave = async (data: Partial<ViolationTypeEntity>) => {
@@ -177,6 +177,15 @@ export default function ViolationTypeManagementPage() {
                                 <option value="category:asc">Group by Category</option>
                                 <option value="severity:asc">Severity Low–High</option>
                                 <option value="severity:desc">Severity High–Low</option>
+                            </select>
+                            <select
+                                value={limit}
+                                onChange={e => setLimit(Number(e.target.value))}
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            >
+                                {[5, 10, 25, 50, 100].map(n => (
+                                    <option key={n} value={n}>{n} rows</option>
+                                ))}
                             </select>
                         </div>
                     </header>
@@ -287,7 +296,7 @@ export default function ViolationTypeManagementPage() {
                                 </tbody>
                             </table>
                         </div>
-                        <Pagination page={page} totalPages={totalPages} totalItems={totalItems} limit={LIMIT} onPageChange={setPage} />
+                        <Pagination page={page} totalPages={totalPages} totalItems={totalItems} limit={limit} onPageChange={setPage} />
                     </div>
                 </main>
             </div>

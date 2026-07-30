@@ -196,8 +196,10 @@ class HorseOwnerService {
             if (tournament && tournament.status === 'cancelled') {
                 return { code: 400, msg: 'Registrations for cancelled tournaments cannot be approved' };
             }
-            if (reg.registrationStatus == 'cancelled' || reg.registrationStatus == 'rejected') {
-                return { code: 400, msg: 'rejected or cancelled registrations cannot be approved' };
+            // 'verified'/'failed' are the referee's own pre-race-checkup outcomes — approving
+            // over them would silently undo that determination after the fact.
+            if (['cancelled', 'rejected', 'verified', 'failed'].includes(reg.registrationStatus)) {
+                return { code: 400, msg: `Cannot approve a registration that is already "${reg.registrationStatus}".` };
             }
             if (String(reg.horseOwnerId) !== String(ownerId)) {
                 return { code: 403, msg: 'Not authorized to modify this registration' };

@@ -395,8 +395,18 @@ async function fetchMappedData(
     return { mappedInvites, totalPages: fetchedTotalPages };
 }
 
-export default function InvitationsSection({ limit = DEFAULT_LIMIT, onViewAll }: { limit?: number; onViewAll?: () => void }) {
+export default function InvitationsSection({
+    limit: defaultLimit = DEFAULT_LIMIT,
+    onViewAll,
+    allowLimitControl = false,
+}: {
+    limit?: number;
+    onViewAll?: () => void;
+    /** Shows a "rows per page" selector — only meaningful on the full Inbox page, not the compact dashboard preview. */
+    allowLimitControl?: boolean;
+}) {
     const [activeTab, setActiveTab] = useState<"Horse Owner" | "Referee" | "Jockey">("Horse Owner");
+    const [limit, setLimit] = useState(defaultLimit);
 
     const fetcher = useCallback(async (page: number) => {
         const { mappedInvites, totalPages } = await fetchMappedData(page, activeTab, limit);
@@ -407,7 +417,7 @@ export default function InvitationsSection({ limit = DEFAULT_LIMIT, onViewAll }:
     }, [activeTab, limit]);
 
     const { data: invites, loading, error, pagination, page, setPage, mutate, refresh } =
-        usePaginatedFetch<Invitee>(fetcher, activeTab);
+        usePaginatedFetch<Invitee>(fetcher, `${activeTab}:${limit}`);
     const errorMessage = error ? ((error as any)?.msg ?? "Failed to load invitations.") : null;
 
     // Live refetch when an invitation is created or a jockey responds.
@@ -429,25 +439,38 @@ export default function InvitationsSection({ limit = DEFAULT_LIMIT, onViewAll }:
 
     return (
         <div className="rounded-xl border border-border bg-surface p-6 flex flex-col h-full min-w-0">
-            <div className="flex gap-4 mb-2 border-b border-border">
-                <button
-                    onClick={() => { setActiveTab("Horse Owner"); setPage(1); }}
-                    className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Horse Owner" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
-                >
-                    Horse Owners
-                </button>
-                <button
-                    onClick={() => { setActiveTab("Referee"); setPage(1); }}
-                    className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Referee" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
-                >
-                    Referees
-                </button>
-                <button
-                    onClick={() => { setActiveTab("Jockey"); setPage(1); }}
-                    className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Jockey" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
-                >
-                    Jockeys
-                </button>
+            <div className="flex items-center justify-between gap-4 mb-2 border-b border-border">
+                <div className="flex gap-4">
+                    <button
+                        onClick={() => { setActiveTab("Horse Owner"); setPage(1); }}
+                        className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Horse Owner" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                    >
+                        Horse Owners
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab("Referee"); setPage(1); }}
+                        className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Referee" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                    >
+                        Referees
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab("Jockey"); setPage(1); }}
+                        className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Jockey" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                    >
+                        Jockeys
+                    </button>
+                </div>
+                {allowLimitControl && (
+                    <select
+                        value={limit}
+                        onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+                        className="mb-2 w-[110px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                    >
+                        {[5, 10, 25, 50, 100].map((n) => (
+                            <option key={n} value={n}>{n} rows</option>
+                        ))}
+                    </select>
+                )}
             </div>
 
             <InvitationTable

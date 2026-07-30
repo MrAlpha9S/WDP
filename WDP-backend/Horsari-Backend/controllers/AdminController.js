@@ -1,4 +1,5 @@
 const AdminService = require('../services/AdminService');
+const TournamentService = require('../services/TournamentService');
 const https = require('https');
 const http = require('http');
 const cloudinary = require('cloudinary').v2;
@@ -121,6 +122,12 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // Lightweight { _id, tournamentName } list for every tournament (see AdminService.getTournamentNames)
+    async getTournamentNames(req, res) {
+        const response = await AdminService.getTournamentNames();
+        return res.status(response.code).json(response);
+    }
+
     // Update a tournament's status, with race-round guards (block completion
     // while rounds are unfinished; cascade-cancel rounds on cancellation)
     async updateTournamentStatus(req, res) {
@@ -131,14 +138,55 @@ class AdminController {
         return res.status(response.code).json(response);
     }
 
+    // ── Moved from the now-deleted TournamentController ──────────────────────
+    async createTournament(req, res, next) {
+        try {
+            const tournamentData = { ...req.body, createdByAdminId: req.userId };
+            const response = await TournamentService.createTournament(tournamentData);
+            return res.status(response.code).json(response);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async updateTournament(req, res, next) {
+        const { id } = req.params;
+        try {
+            const io = req.app.get('io');
+            const response = await TournamentService.updateTournament(id, req.body, io);
+            return res.status(response.code).json(response);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async deleteTournament(req, res, next) {
+        const { id } = req.params;
+        try {
+            const response = await TournamentService.deleteTournament(id);
+            return res.status(response.code).json(response);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     // Get race rounds
     async getRaceRounds(req, res) {
         const tournament_id = req.query.tournament_id || null;
         const raceRound_id = req.query.raceRound_id || null;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const { status, search, sortBy = 'raceDate', order = 'desc', raceType } = req.query;
-        const response = await AdminService.getRaceRounds(tournament_id, raceRound_id, page, limit, status, search, sortBy, order, raceType || null);
+        const { status, search, sortBy = 'raceDate', order = 'desc', raceType, date } = req.query;
+        const response = await AdminService.getRaceRounds(tournament_id, raceRound_id, page, limit, status, search, sortBy, order, raceType || null, date || null);
+        return res.status(response.code).json(response);
+    }
+
+    // Distinct calendar days that have at least one matching race round — the schedule
+    // Timeline view's day-navigation list (see AdminService.getRaceRoundDates)
+    async getRaceRoundDates(req, res) {
+        const tournament_id = req.query.tournament_id || null;
+        const { status, raceType } = req.query;
+        const response = await AdminService.getRaceRoundDates(tournament_id, status || null, raceType || null);
         return res.status(response.code).json(response);
     }
 

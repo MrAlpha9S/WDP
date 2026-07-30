@@ -7,8 +7,14 @@ class TournamentService {
             if (!createdByAdminId || !tournamentName || !description) {
                 return { code: 400, msg: 'createdByAdminId, tournamentName, and description are required' };
             }
-            const currentDate = new Date();
-            const twoWeekFromNow = new Date(currentDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+            // Normalize to UTC midnight of today so it lines up with how a date-only
+            // string like "2026-07-30" parses (also UTC midnight) — otherwise today's
+            // own date always registers as "before currentDate".
+            const now = new Date();
+            const currentDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            const twoWeekFromNow = new Date(currentDate.getTime() + 13 * 24 * 60 * 60 * 1000);
+
             if (!startDate || !endDate) {
                 return { code: 400, msg: 'startDate and endDate are required' };
             }
@@ -16,8 +22,12 @@ class TournamentService {
                 return { code: 400, msg: 'startDate must be before endDate' };
             }
 
-            if(new Date(startDate) < currentDate || new Date(startDate) > twoWeekFromNow) {
-                return { code: 400, msg: 'startDate must be within the next two weeks' };
+            if (new Date(startDate) < currentDate) {
+                return { code: 400, msg: 'startDate must not be before currentDate' };
+            }
+
+            if (new Date(startDate) < twoWeekFromNow) {
+                return { code: 400, msg: 'startDate must be more than 2 weeks from now' };
             }
 
             const tournament = await tournamentRepository.createTournament(tournamentData);
@@ -34,15 +44,11 @@ class TournamentService {
             if (!tournament) {
                 return { code: 404, msg: 'Tournament not found' };
             }
-            const updated = await tournamentRepository.updateTournament(id, updateData);
-
-            // Emit real-time event if status changed
-            if (io && updateData.status && updateData.status !== tournament.status) {
-                io.emit('tournament:status_changed', {
-                    tournamentId: String(id),
-                    status: updateData.status,
-                });
-            }
+            // Status transitions must go through AdminService.updateTournamentStats, which
+            // enforces race-round safety guards (blocks completion while rounds are still
+            // active, cascades cancellation) — this endpoint never touches status.
+            const { status, ...safeUpdateData } = updateData;
+            const updated = await tournamentRepository.updateTournament(id, safeUpdateData);
 
             return { code: 200, data: updated, msg: 'Tournament updated successfully' };
         } catch (error) {

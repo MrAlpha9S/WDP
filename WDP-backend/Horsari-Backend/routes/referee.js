@@ -22,6 +22,9 @@ router.put('/race-rounds/:raceRoundId/registrations/:registrationId/verify', aut
 router.put('/race-rounds/:raceRoundId/registrations/:registrationId/cancel', authMiddleware, authReferee, RefereeController.cancelRegistration);
 router.post('/race-rounds/:id/finalize', authMiddleware, authReferee, RefereeController.finalizeRaceRound);
 router.get('/tournaments', authMiddleware, authReferee, RefereeController.getRefereeTournaments);
+// Lightweight { _id, tournamentName } list for this referee's tournaments — for the
+// Homepage filter dropdown / name lookup, without getRefereeTournaments's nested race-round data.
+router.get('/tournaments/names', authMiddleware, authReferee, RefereeController.getTournamentNames);
 router.get('/invitations', authMiddleware, authReferee, RefereeController.getRefereeInvitations);
 router.put('/invitations/:id/accept', authMiddleware, authReferee, RefereeController.acceptInvitation);
 router.put('/invitations/:id/reject', authMiddleware, authReferee, RefereeController.rejectInvitation);

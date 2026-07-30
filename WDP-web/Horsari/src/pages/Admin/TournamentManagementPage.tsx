@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Search, Plus, List, Calendar as CalendarIcon, Edit, Trash2, ArrowRight, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, Plus, List, Calendar as CalendarIcon, Trash2, ArrowRight, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
 import { type AdminTab } from "./AdminComponents/NavBar";
 import type { Tournament } from "../../shared/types/TournamentTypes";
@@ -12,7 +12,7 @@ import { ErrorState } from "../../components/ErrorState";
 
 type AdminViewMode = "table" | "calendar";
 
-const TOURNAMENT_LIMIT_OPTIONS = [10, 25, 50, 100];
+const TOURNAMENT_LIMIT_OPTIONS = [5, 10, 25, 50, 100];
 
 interface Props {
     setActiveTab: (tab: AdminTab) => void;
@@ -361,12 +361,6 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                                             Manage Races <ArrowRight size={12} />
                                                         </button>
                                                         <button
-                                                            onClick={(e) => { e.stopPropagation(); openModal(t); }}
-                                                            className="p-1.5 text-gray-500 hover:text-white hover:bg-white/5 rounded transition-colors"
-                                                        >
-                                                            <Edit size={14} />
-                                                        </button>
-                                                        <button
                                                             onClick={(e) => { e.stopPropagation(); openDeleteModal(t); }}
                                                             className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                                                         >
@@ -468,6 +462,10 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                             selectedTournamentId={selectedTournamentId}
                             onRefresh={() => { fetchTournaments(); fetchStats(); fetchCalendarTournaments(); }}
                             onClose={() => setSelectedTournamentId(null)}
+                            onEdit={() => {
+                                const found = tournaments.find(x => x.id === selectedTournamentId);
+                                if (found) openModal(found);
+                            }}
                         />
                     </div>
                 )}

@@ -9,6 +9,7 @@ import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { useSocket } from "../../providers/SocketProvider";
 import { RefetchButton } from "../../components/RefetchButton";
 import { ErrorState } from "../../components/ErrorState";
+import PaymentsPanel from "../../components/PaymentsPanel";
 
 // ── Tab type ──────────────────────────────────────────────────────────────────
 
@@ -35,7 +36,6 @@ function mapInvitation(inv: any): RaceInvite {
     if (inv.status === 'rejected') mappedStatus = 'declined';
     return {
         id: inv._id,
-        race: round.roundName || "Unknown Race",
         raceLabel: round.roundName || "Unknown Race",
         tournamentName: round.tournamentId?.tournamentName || "Non-tournament",
         date: dateObj.toLocaleDateString(),
@@ -47,7 +47,6 @@ function mapInvitation(inv: any): RaceInvite {
         fee: inv.fee ?? 0,
         expectedPayment: inv.expectedPayment ?? 0,
         sentAt: new Date(inv.assignedAt).toLocaleDateString(),
-        isNew: false,
         raceType: round.eligibilityRuleId?.raceType || "Flat",
         distance: (round.trackLength || 1000) + "m",
         track: round.raceGround || "Turf",
@@ -95,7 +94,7 @@ export default function InboxPage() {
         try {
             const res = await refereeService.acceptInvitation(id);
             if (res.code === 200) {
-                mutate(prev => prev.map(i => i.id === id ? { ...i, status: "accepted" as InviteStatus, isNew: false } : i));
+                mutate(prev => prev.map(i => i.id === id ? { ...i, status: "accepted" as InviteStatus } : i));
             }
         } catch (error) {
             console.error("Failed to accept invitation:", error);
@@ -106,7 +105,7 @@ export default function InboxPage() {
         try {
             const res = await refereeService.rejectInvitation(id);
             if (res.code === 200) {
-                mutate(prev => prev.map(i => i.id === id ? { ...i, status: "declined" as InviteStatus, isNew: false } : i));
+                mutate(prev => prev.map(i => i.id === id ? { ...i, status: "declined" as InviteStatus } : i));
             }
         } catch (error) {
             console.error("Failed to decline invitation:", error);
@@ -226,6 +225,18 @@ export default function InboxPage() {
                         </span>
                     </div>
                 )}
+
+                {/* Payments awaiting referee confirmation (referee fee) */}
+                <div className="mt-6">
+                    <PaymentsPanel
+                        title="Payments Awaiting Your Confirmation"
+                        fetchPayments={(page, limit, sortBy, order) => refereeService.getPayments(page, limit, undefined, 'payee', sortBy, order)}
+                        onConfirm={refereeService.confirmPaymentReceived}
+                        myRoleSide="payee"
+                        confirmLabel="Confirm Received"
+                        cacheKey="referee-payments-payee"
+                    />
+                </div>
             </div>
         </div>
     );
