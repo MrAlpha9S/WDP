@@ -674,7 +674,6 @@ export default function HorsesPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All Statuses" | HorseStatus>("All Statuses");
-  const [classFilter, setClassFilter] = useState("All Classes");
   const [userHorse, setUserHorse] = useState<Horse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
