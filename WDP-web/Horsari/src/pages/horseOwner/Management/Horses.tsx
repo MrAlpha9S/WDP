@@ -851,8 +851,9 @@ export default function HorsesPage() {
             </select>
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           </div>
-        </header>
-        <div className="flex-1 pt-5">
+        </div>
+      </header>
+      <div className="flex-1 pt-5">
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24 text-gray-600">
@@ -893,6 +894,7 @@ export default function HorsesPage() {
         </>
       )}
       </div>
+    </div>
     </>
   );
 }

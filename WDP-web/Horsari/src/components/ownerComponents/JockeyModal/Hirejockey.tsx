@@ -20,7 +20,6 @@ interface Race {
   name: string;
   date: string;
   venue: string;
-  grade: string;
   ruleId: string;
   raceType: string;
   eligibleHorseIds: string[];
@@ -64,7 +63,6 @@ function mapRace(raw: any, i: number): Race {
     name: raw.raceRound?.roundName ?? raw.name ?? "Unnamed Race",
     date: raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
     venue: raw.raceRound?.location ?? raw.location ?? "TBA",
-    grade: raw.grade ?? "TBA",
     ruleId: raw.raceRound?.eligibilityRuleId?._id ?? raw.eligibilityRuleId?._id ?? raw.raceRound?.eligibilityRuleId ?? raw.eligibilityRuleId ?? "",
     raceType: raw.raceRound?.eligibilityRuleId?.raceType ?? raw.eligibilityRuleId?.raceType ?? "",
     eligibleHorseIds: Array.isArray(raw.eligibleHorseIds) ? raw.eligibleHorseIds : [],
@@ -222,9 +220,12 @@ export default function HireJockeyModal({
         if (cancelled) return;
 
         const list: unknown[] = data?.data?.items ?? [];
-        const approved = list.filter((r: any) =>
-          ["approved", "verified"].includes(r?.registration?.registrationStatus ?? "")
-        );
+        const approved = list.filter((r: any) => {
+          const registrationStatus = r?.registration?.registrationStatus ?? "";
+          const roundStatus = (r?.raceRound?.status ?? "").toLowerCase();
+          return ["approved", "verified"].includes(registrationStatus)
+            && !["completed", "cancelled"].includes(roundStatus);
+        });
         setRaces(approved.map((r: any, i) => mapRace(r, i)));
       } catch {
         if (!cancelled) setErrorRaces("Failed to load races.");
@@ -447,9 +448,6 @@ export default function HireJockeyModal({
                   <div className="flex items-center gap-2 mb-1">
                     <Trophy size={11} className="text-yellow-500 shrink-0" />
                     <span className="text-[13px] font-bold text-white truncate">{race.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-border text-gray-500 font-semibold shrink-0">
-                      {race.grade}
-                    </span>
                   </div>
                   <div className="flex items-center gap-3 text-[11px] text-gray-600">
                     <span>{race.date}</span>
