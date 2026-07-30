@@ -7,7 +7,10 @@ import { ErrorState } from "../../../components/ErrorState";
 import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type HorseStatus = "Racing" | "Training" | "Resting" | "Injured";
+// Mirrors the backend enums: Horse.status ('active'|'inactive'|'retired') and
+// Horse.healthStatus ('healthy'|'injured'|'sick'). A non-healthy healthStatus
+// takes priority over the lifecycle status for display purposes.
+type HorseStatus = "active" | "inactive" | "retired" | "injured" | "sick";
 
 interface HorseCard {
   id: string;
@@ -22,6 +25,22 @@ interface HorseCard {
   statusNote?: string;
 }
 
+// ── Status metadata ───────────────────────────────────────────────────────────
+const STATUS_META: Record<HorseStatus, { label: string; dot: string; text: string }> = {
+  active: { label: "Active", dot: "bg-green-400", text: "text-green-400" },
+  inactive: { label: "Inactive", dot: "bg-gray-400", text: "text-gray-400" },
+  retired: { label: "Retired", dot: "bg-blue-400", text: "text-blue-400" },
+  injured: { label: "Injured", dot: "bg-red-400", text: "text-red-400" },
+  sick: { label: "Sick", dot: "bg-yellow-400", text: "text-yellow-400" },
+};
+
+const STATUS_NOTES: Partial<Record<HorseStatus, string>> = {
+  injured: "Medical Review",
+  sick: "Under Treatment",
+  retired: "Retired",
+  inactive: "Inactive",
+};
+
 // ── Mapper ────────────────────────────────────────────────────────────────────
 function mapHorseToCard(h: Horse): HorseCard {
   const age = Math.floor(
@@ -29,9 +48,11 @@ function mapHorseToCard(h: Horse): HorseCard {
   );
 
   const mapStatus = (): HorseStatus => {
-    if (h.healthStatus !== "healthy") return "Injured";
-    if (h.status === "active") return "Racing";
-    return "Resting";
+    if (h.healthStatus === "injured") return "injured";
+    if (h.healthStatus === "sick") return "sick";
+    if (h.status === "inactive") return "inactive";
+    if (h.status === "retired") return "retired";
+    return "active";
   };
 
   const status = mapStatus();
@@ -46,9 +67,9 @@ function mapHorseToCard(h: Horse): HorseCard {
     status,
     image: (h as Horse & { img?: string }).img ?? "/jumping-horse-silhouette-facing-left-side-view.png",
     // Populate contextual fields based on mapped status
-    ...((status === "Resting" || status === "Injured") && {
-      returnEst: "TBD",
-      statusNote: status === "Injured" ? "Medical Review" : "Post-Race Rest",
+    ...(status !== "active" && {
+      returnEst: status === "injured" || status === "sick" ? "TBD" : "—",
+      statusNote: STATUS_NOTES[status],
     }),
   };
 }
@@ -56,33 +77,21 @@ function mapHorseToCard(h: Horse): HorseCard {
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUSES: ("All Statuses" | HorseStatus)[] = [
   "All Statuses",
-  "Racing",
-  "Training",
-  "Resting",
-  "Injured",
+  "active",
+  "inactive",
+  "retired",
+  "injured",
+  "sick",
 ];
 
-const CLASSES = ["All Classes", "Grade 1", "Grade 2", "Grade 3", "Listed"];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function statusDot(status: HorseStatus) {
-  const colors: Record<HorseStatus, string> = {
-    Racing: "bg-green-400",
-    Training: "bg-yellow-400",
-    Resting: "bg-gray-400",
-    Injured: "bg-red-400",
-  };
-  return colors[status];
+  return STATUS_META[status].dot;
 }
 
 function statusLabel(status: HorseStatus) {
-  const styles: Record<HorseStatus, string> = {
-    Racing: "text-green-400",
-    Training: "text-yellow-400",
-    Resting: "text-gray-400",
-    Injured: "text-red-400",
-  };
-  return styles[status];
+  return STATUS_META[status].text;
 }
 
 // ── Info grid cell ────────────────────────────────────────────────────────────
@@ -131,7 +140,7 @@ function HorseCardItem({
         <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-border">
           <span className={`w-1.5 h-1.5 rounded-full ${statusDot(horse.status)}`} />
           <span className={`text-[11px] font-semibold tracking-wide ${statusLabel(horse.status)}`}>
-            {horse.status.toUpperCase()}
+            {STATUS_META[horse.status].label.toUpperCase()}
           </span>
         </div>
       </div>
@@ -148,7 +157,7 @@ function HorseCardItem({
           </p>
         </div>
 
-        {(horse.status === "Resting" || horse.status === "Injured") &&
+        {horse.status !== "active" &&
           horse.returnEst && horse.statusNote && (
             <div className="grid grid-cols-2 gap-2">
               <InfoCell label="Return Est." value={horse.returnEst} />
@@ -278,8 +287,8 @@ function EditHorseModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.horseName.trim()) { setError("Horse name is required."); return; }
-    if (!form.breed.trim())     { setError("Breed is required."); return; }
-    if (!form.gender)           { setError("Please select a gender."); return; }
+    if (!form.breed.trim()) { setError("Breed is required."); return; }
+    if (!form.gender) { setError("Please select a gender."); return; }
 
     setSubmitting(true);
     setError(null);
@@ -312,15 +321,15 @@ function EditHorseModal({
   const idle = "text-gray-600 border-border bg-transparent hover:border-white/20 hover:text-gray-400";
 
   const statusOptions: { label: string; value: 'active' | 'inactive' | 'retired'; active: string }[] = [
-    { label: "Active",   value: "active",   active: "text-green-400 border-green-500/50 bg-green-500/10" },
+    { label: "Active", value: "active", active: "text-green-400 border-green-500/50 bg-green-500/10" },
     { label: "Inactive", value: "inactive", active: "text-gray-300 border-gray-500/50 bg-gray-500/10" },
-    { label: "Retired",  value: "retired",  active: "text-blue-400 border-blue-500/50 bg-blue-500/10" },
+    { label: "Retired", value: "retired", active: "text-blue-400 border-blue-500/50 bg-blue-500/10" },
   ];
 
   const healthOptions: { label: string; value: 'healthy' | 'injured' | 'sick'; active: string }[] = [
     { label: "Healthy", value: "healthy", active: "text-green-400 border-green-500/50 bg-green-500/10" },
     { label: "Injured", value: "injured", active: "text-red-400 border-red-500/50 bg-red-500/10" },
-    { label: "Sick",    value: "sick",    active: "text-yellow-400 border-yellow-500/50 bg-yellow-500/10" },
+    { label: "Sick", value: "sick", active: "text-yellow-400 border-yellow-500/50 bg-yellow-500/10" },
   ];
 
   const displayImg = imagePreview ?? currentImg;
@@ -524,9 +533,9 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.horseName.trim()) { setError("Horse name is required."); return; }
-    if (!form.breed.trim())     { setError("Breed is required."); return; }
-    if (!form.gender)           { setError("Please select a gender."); return; }
-    if (!form.dateOfBirth)      { setError("Date of birth is required."); return; }
+    if (!form.breed.trim()) { setError("Breed is required."); return; }
+    if (!form.gender) { setError("Please select a gender."); return; }
+    if (!form.dateOfBirth) { setError("Date of birth is required."); return; }
 
     setSubmitting(true);
     setError(null);
@@ -720,7 +729,6 @@ export default function HorsesPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All Statuses" | HorseStatus>("All Statuses");
-  const [classFilter, setClassFilter] = useState("All Classes");
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [userHorse, setUserHorse] = useState<Horse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -776,8 +784,7 @@ export default function HorsesPage() {
   // Status + class filters are client-side (enum fields, small dataset per page)
   const filtered = horses.filter((h) => {
     const matchStatus = statusFilter === "All Statuses" || h.status === statusFilter;
-    const matchClass = classFilter === "All Classes" || h.grade === classFilter;
-    return matchStatus && matchClass;
+    return matchStatus
   });
 
   return (
@@ -844,21 +851,8 @@ export default function HorsesPage() {
             </select>
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           </div>
-          <div className="relative">
-            <select
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              className="appearance-none bg-surface border border-border rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
-            >
-              {CLASSES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-          </div>
-        </div>
-      </header>
-      <div className="flex-1 pt-5">
+        </header>
+        <div className="flex-1 pt-5">
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-24 text-gray-600">
@@ -899,7 +893,6 @@ export default function HorsesPage() {
         </>
       )}
       </div>
-    </div>
     </>
   );
 }

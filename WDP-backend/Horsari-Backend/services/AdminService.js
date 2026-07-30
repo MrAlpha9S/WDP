@@ -1450,10 +1450,6 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
         if (!raceRound) {
             return { code: 404, msg: 'Race round not found.' };
         }
-        if (raceRound.status !== 'prepared') {
-            return { code: 422, msg: `Race is currently "${raceRound.status}". Only "prepared" races can be started or cancelled by admin.` };
-        }
-
         if (newStatus === 'running' && !raceRound.muxLiveStreamId) {
             return { code: 422, msg: 'A stream key must be created before starting the race. Use the "Create Stream Key" button first.' };
         }
