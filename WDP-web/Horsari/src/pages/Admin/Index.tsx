@@ -116,18 +116,11 @@ export default function AdminDashboardPage() {
         }
     }, [navigate]);
 
-    // Support matching both navbar tabs and sidebar tabs from URL
+    // Support matching both navbar tabs and sidebar tabs from URL.
+    // Derived from the sidebar itself so newly added tabs can never fall out of sync.
     const allTabs = [
         ...ADMIN_TABS,
-        "Inbox",
-        "Home",
-        "Roles & Permissions",
-        "Horses",
-        "Rules Managment",
-        "Activity Logs",
-        "Violations",
-        "Violation Types",
-        "Statistics",
+        ...SIDEBAR_GROUPS.flatMap(g => g.items.map(item => item.key)),
         "Profile",
     ] as AdminTab[];
 
@@ -146,6 +139,10 @@ export default function AdminDashboardPage() {
         }
     }, [tabs]);
 
+    const handleTabChange = (tab: AdminTab) => {
+        navigate(`/admin/${encodeURIComponent(tab)}`);
+    };
+
     return (
         <div className="h-screen bg-bg text-text flex flex-col overflow-hidden font-sans">
             <TopBar onProfileClick={() => navigate("/admin/profile")} />
@@ -156,10 +153,10 @@ export default function AdminDashboardPage() {
                     subtitle="Admin Tools"
                     groups={SIDEBAR_GROUPS}
                     activeKey={activeTab}
-                    onSelect={setActiveTab}
+                    onSelect={handleTabChange}
                 />
                 <div className="flex-1 min-h-0 overflow-auto">
-                    <ActiveView tab={activeTab} setActiveTab={setActiveTab} />
+                    <ActiveView tab={activeTab} setActiveTab={handleTabChange} />
                 </div>
             </div>
         </div>

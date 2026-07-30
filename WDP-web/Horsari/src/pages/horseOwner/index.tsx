@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { LayoutDashboard, House, Users, Wallet, Flag, Mail } from "lucide-react";
 import TopBar from "../../components/ui/TopBar";
 import Sidebar, { type SidebarGroup } from "../../components/ui/Sidebar";
@@ -59,10 +60,35 @@ const SIDEBAR_GROUPS: SidebarGroup<OwnerNavKey>[] = [
   },
 ];
 
+const ALL_OWNER_TABS: OwnerNavKey[] = [
+  "Dashboard",
+  "Horses",
+  "Jockeys",
+  "Financials",
+  "Races",
+  "Invitations",
+  "Profile",
+];
+
 // ── Dashboard Page ─────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<OwnerNavKey>("Dashboard");
+  const { tabs } = useParams<{ tabs: string }>();
+  const navigate = useNavigate();
+
+  const initialTab =
+    ALL_OWNER_TABS.find((t) => t.toLowerCase() === tabs?.toLowerCase()) ?? "Dashboard";
+
+  const [activeTab, setActiveTab] = useState<OwnerNavKey>(initialTab);
   const [pendingInvitations, setPendingInvitations] = useState(2);
+
+  useEffect(() => {
+    const matchingTab = ALL_OWNER_TABS.find((t) => t.toLowerCase() === tabs?.toLowerCase());
+    if (matchingTab) setActiveTab(matchingTab);
+  }, [tabs]);
+
+  const handleTabChange = (tab: OwnerNavKey) => {
+    navigate(`/owner/${encodeURIComponent(tab)}`);
+  };
 
   const groups = SIDEBAR_GROUPS.map((g) =>
     g.label === "Racing"
@@ -77,7 +103,7 @@ export default function DashboardPage() {
 
   return (
     <div className="h-screen bg-bg text-text flex flex-col overflow-hidden font-sans">
-      <TopBar onProfileClick={() => setActiveTab("Profile")} />
+      <TopBar onProfileClick={() => navigate("/owner/profile")} />
 
       <div className="flex-1 flex min-h-0">
         <Sidebar
@@ -85,12 +111,12 @@ export default function DashboardPage() {
           subtitle="Owner Tools"
           groups={groups}
           activeKey={activeTab}
-          onSelect={setActiveTab}
+          onSelect={handleTabChange}
         />
         <div className="flex-1 min-h-0 overflow-auto">
           <ActiveView
             tab={activeTab}
-            onNavigate={setActiveTab}
+            onNavigate={handleTabChange}
             onPendingChange={setPendingInvitations}
           />
         </div>

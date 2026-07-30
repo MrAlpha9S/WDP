@@ -67,6 +67,10 @@ export default function RefereeDashboardPage() {
         if (matchingTab) setActiveTab(matchingTab);
     }, [tabs]);
 
+    const handleTabChange = (tab: RefereeTab) => {
+        navigate(`/referee/${encodeURIComponent(tab)}`);
+    };
+
     return (
         <div className="h-screen bg-bg text-text flex flex-col overflow-hidden font-sans">
             <TopBar onProfileClick={() => navigate("/referee/profile")} />
@@ -77,7 +81,7 @@ export default function RefereeDashboardPage() {
                     subtitle="Referee Tools"
                     groups={SIDEBAR_GROUPS}
                     activeKey={activeTab}
-                    onSelect={setActiveTab}
+                    onSelect={handleTabChange}
                 />
                 <div className="flex-1 min-h-0 overflow-auto">
                     <ActiveView tab={activeTab} />

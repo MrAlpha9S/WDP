@@ -99,6 +99,14 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/owner/:tabs"
+            element={
+              <ProtectedRoute allowedRoles={["horseowner", "admin"]}>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

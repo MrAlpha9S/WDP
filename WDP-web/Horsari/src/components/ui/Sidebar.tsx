@@ -57,7 +57,7 @@ export default function Sidebar<T extends string>({
                                             }`}
                                     >
                                         <span className={isActive ? "text-[#AB3030]" : "text-text-muted"}>{icon}</span>
-                                        <span className="flex-1">{label}</span>
+                                        <span className="flex-1 truncate">{label}</span>
                                         {badge != null && badge > 0 && (
                                             <span className="ml-auto w-4 h-4 bg-red rounded-full text-[9px] font-bold text-white flex items-center justify-center shrink-0">
                                                 {badge}
