@@ -11,7 +11,7 @@ class TokenUtil {
     // Verify JWT token
     verifyToken(token) {
         try {
-            return jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+            return jwt.verify(token, process.env.JWT_SECRET);
         } catch (error) {
             return null;
         }
