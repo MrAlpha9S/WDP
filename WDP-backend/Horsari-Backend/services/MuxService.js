@@ -20,22 +20,32 @@ function client() {
 // { liveStreamId, streamKey, livePlaybackId, vodPlaybackId }
 const cache = new Map();
 
+// TEMP: Mux Live Streams require a paid plan. Until upgraded, "creating a
+// stream" just points the race round at this fixed pre-uploaded playback
+// instead of provisioning a real live stream. Every race will show the same
+// video. Revert to the commented-out block below once Live Streams are available.
+const FIXED_PLAYBACK_ID = 'QPyH01vERrIoRJtH3z3n883GQqQ5t01x2fef9CpkfBllw';
+
 // ── Create a Mux live stream and persist the IDs to the race round ─────────────
 async function createLiveStream(raceRoundId) {
-    const mux = client();
+    // const mux = client();
+    //
+    // const liveStream = await mux.video.liveStreams.create({
+    //     playback_policy: ['public'],
+    //     new_asset_settings: {
+    //         playback_policy: ['public'],
+    //         mp4_support: 'capped-1080p',
+    //     },
+    //     reconnect_window: 60,
+    // });
+    //
+    // const liveStreamId   = liveStream.id;
+    // const streamKey      = liveStream.stream_key;
+    // const livePlaybackId = liveStream.playback_ids?.[0]?.id ?? null;
 
-    const liveStream = await mux.video.liveStreams.create({
-        playback_policy: ['public'],
-        new_asset_settings: {
-            playback_policy: ['public'],
-            mp4_support: 'capped-1080p',
-        },
-        reconnect_window: 60,
-    });
-
-    const liveStreamId   = liveStream.id;
-    const streamKey      = liveStream.stream_key;
-    const livePlaybackId = liveStream.playback_ids?.[0]?.id ?? null;
+    const liveStreamId   = FIXED_PLAYBACK_ID;
+    const streamKey      = null;
+    const livePlaybackId = FIXED_PLAYBACK_ID;
 
     const info = { liveStreamId, streamKey, livePlaybackId, vodPlaybackId: null };
     cache.set(raceRoundId, info);
@@ -98,6 +108,18 @@ async function getVOD(raceRoundId) {
         liveStreamId = rr?.muxLiveStreamId;
     }
     if (!liveStreamId) return null;
+
+    // TEMP: while Live Streams are faked (see createLiveStream), liveStreamId
+    // is actually the pre-uploaded FIXED_PLAYBACK_ID, not a real Mux Live
+    // Stream ID — calling liveStreams.retrieve() with it 400s. Just reuse it
+    // as the VOD playback ID directly. Revert once real Live Streams are back.
+    if (liveStreamId === FIXED_PLAYBACK_ID) {
+        const vodPlaybackId = FIXED_PLAYBACK_ID;
+        if (cached) cached.vodPlaybackId = vodPlaybackId;
+        const RaceRound = require('../entities/RaceRound');
+        await RaceRound.findByIdAndUpdate(raceRoundId, { muxVodPlaybackId: vodPlaybackId });
+        return { vodPlaybackId };
+    }
 
     const mux        = client();
     const liveStream = await mux.video.liveStreams.retrieve(liveStreamId);

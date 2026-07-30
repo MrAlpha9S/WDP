@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+﻿import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 function getPageRange(current: number, total: number): (number | "...")[] {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -30,7 +30,7 @@ export function Pagination({ page, totalPages, totalItems, limit, onPageChange }
     const btnBase =
         "h-[30px] min-w-[30px] px-1.5 rounded border text-[12px] font-medium transition-colors flex items-center justify-center";
     const btnDefault =
-        "bg-[#1a1a1a] border-white/10 text-gray-400 hover:text-white hover:bg-[#252525]";
+        "bg-surface border-border text-gray-400 hover:text-white hover:bg-[#252525]";
     const btnActive = "bg-[#ab3030] border-red-700/40 text-white";
     const btnDisabled = "opacity-40 cursor-not-allowed pointer-events-none";
 

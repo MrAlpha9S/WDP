@@ -62,8 +62,8 @@ export default function AdminRuleManagementPage() {
     const SortIcon = ({ field }: { field: string }) => {
         if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
         return order === 'asc'
-            ? <ArrowUp size={11} className="text-[#f3b2a5] ml-1 inline" />
-            : <ArrowDown size={11} className="text-[#f3b2a5] ml-1 inline" />;
+            ? <ArrowUp size={11} className="text-gold ml-1 inline" />
+            : <ArrowDown size={11} className="text-gold ml-1 inline" />;
     };
 
     useEffect(() => { setPage(1); }, [search]);
@@ -125,12 +125,12 @@ export default function AdminRuleManagementPage() {
     const panelOpen = selectedRule !== null;
 
     return (
-        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? "flex-[0_0_50%]" : "flex-1"}`}>
 
                     {/* Header */}
-                    <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+                    <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
                         {/* Row 1 */}
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
@@ -138,7 +138,7 @@ export default function AdminRuleManagementPage() {
                                     Eligibility Rules
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                                         All Rules
                                     </span>
                                     <span className="text-[12px] text-gray-500 truncate">· {totalItems} rule{totalItems !== 1 ? "s" : ""}</span>
@@ -158,13 +158,13 @@ export default function AdminRuleManagementPage() {
                                     placeholder="Search type or breed…"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px] transition-colors"
+                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px] transition-colors"
                                 />
                             </div>
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                                className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Statuses</option>
                                 <option value="active">Active</option>
@@ -178,7 +178,7 @@ export default function AdminRuleManagementPage() {
                                     setOrder(dir as 'asc' | 'desc');
                                     setPage(1);
                                 }}
-                                className="w-[175px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="createdAt:desc">Newest First</option>
                                 <option value="createdAt:asc">Oldest First</option>
@@ -194,10 +194,10 @@ export default function AdminRuleManagementPage() {
 
                     {/* Table Area */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar pt-6">
-                        <div className="w-full rounded-xl border border-white/[0.07] bg-[#141414] overflow-hidden">
+                        <div className="w-full rounded-xl border border-border bg-surface overflow-hidden">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-[#1a1a1a] border-b border-white/5">
+                                    <tr className="bg-surface border-b border-border/60">
                                         <th onClick={() => handleSort('raceType')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
                                             Race Type <SortIcon field="raceType" />
                                         </th>
@@ -229,7 +229,7 @@ export default function AdminRuleManagementPage() {
                                             >
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-2.5 min-w-0">
-                                                        <div className="w-8 h-8 rounded bg-white/5 border border-white/10 flex items-center justify-center text-gray-400">
+                                                        <div className="w-8 h-8 rounded bg-white/5 border border-border flex items-center justify-center text-gray-400">
                                                             <ScrollText size={14} />
                                                         </div>
                                                         <div className="min-w-0">

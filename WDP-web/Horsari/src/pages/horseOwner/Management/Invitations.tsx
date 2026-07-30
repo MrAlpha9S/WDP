@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   Calendar, MapPin, Flag, Check, X,
   Info, Ruler, Loader2, Users, Trophy, ChevronLeft, ChevronRight, Search,
@@ -13,11 +13,11 @@ const INVITE_STATUS_CFG: Record<InviteStatus | InviteJockeyStatus, { text: strin
   pending: { text: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
   approved: { text: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
   accepted: { text: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
-  declined: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
-  rejected: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
-  verified: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
-  failed: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
-  cancelled: { text: "text-gray-500", bg: "bg-white/5", border: "border-white/10" },
+  declined: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
+  rejected: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
+  verified: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
+  failed: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
+  cancelled: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
 };
 
 function formatDate(isoString: string): string {
@@ -125,9 +125,9 @@ function InvitationDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 font-sans">
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-xl bg-surface border border-border rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[90vh]">
 
-        <div className="relative h-52 shrink-0 overflow-hidden bg-[#111] flex items-center justify-center">
+        <div className="relative h-52 shrink-0 overflow-hidden bg-bg flex items-center justify-center">
           <img src={inv.image} alt={inv.name} className={`h-28 w-28 object-contain ${!isPending ? "opacity-15" : "opacity-25"}`} />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/20 to-transparent" />
           <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/60 border border-white/15 flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/80 transition-colors duration-150">
@@ -150,7 +150,7 @@ function InvitationDetailModal({
               { icon: <MapPin size={13} className="text-blue-400" />, label: "Venue", value: inv.venue },
               { icon: <Ruler size={13} className="text-green-400" />, label: "Distance", value: inv.distance },
             ].map((item) => (
-              <div key={item.label} className="bg-[#141414] rounded-xl px-4 py-3 border border-white/6 flex items-start gap-3">
+              <div key={item.label} className="bg-surface rounded-xl px-4 py-3 border border-border/60 flex items-start gap-3">
                 <div className="mt-0.5 shrink-0">{item.icon}</div>
                 <div>
                   <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">{item.label}</p>
@@ -162,8 +162,8 @@ function InvitationDetailModal({
 
           {/* Prize breakdown */}
           {(inv.prize1st != null || inv.prize2nd != null || inv.prize3rd != null) && (
-            <div className="bg-[#141414] rounded-xl border border-white/6 overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/6">
+            <div className="bg-surface rounded-xl border border-border/60 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/60">
                 <Trophy size={13} className="text-yellow-500" />
                 <p className="text-[10px] font-semibold tracking-widest text-gray-500 uppercase">Prize Pool</p>
               </div>
@@ -185,7 +185,7 @@ function InvitationDetailModal({
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-white/8 bg-[#1a1a1a] shrink-0 flex gap-3">
+        <div className="px-6 py-4 border-t border-border bg-surface shrink-0 flex gap-3">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-white/12 text-gray-400 text-[13px] font-semibold hover:border-white/25 hover:text-white transition-all duration-150">
             Close
           </button>
@@ -218,16 +218,16 @@ function InvitationCard({
   const isPending = inv.status === "pending";
 
   return (
-    <div className={`bg-[#1a1a1a] rounded-2xl border overflow-hidden transition-all duration-200 ${isPending ? "border-white/8 hover:border-white/15" : "border-white/5 opacity-75"}`}>
+    <div className={`bg-surface rounded-2xl border overflow-hidden transition-all duration-200 ${isPending ? "border-border hover:border-white/15" : "border-border/60 opacity-75"}`}>
       <div className="flex">
-        <div className="relative w-28 shrink-0 overflow-hidden bg-[#111] flex items-center justify-center">
+        <div className="relative w-28 shrink-0 overflow-hidden bg-bg flex items-center justify-center">
           <img src={inv.image} alt={inv.name} className={`w-16 h-16 object-contain ${!isPending ? "opacity-15" : "opacity-25"}`} />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#1a1a1a]" />
         </div>
         <div className="flex-1 px-5 py-4 flex flex-col gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase px-2 py-0.5 rounded bg-white/5 border border-white/8">{inv.type}</span>
+              <span className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase px-2 py-0.5 rounded bg-white/5 border border-border">{inv.type}</span>
               <span className={`text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded border ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
             </div>
             <h3 className="text-[16px] font-bold text-white font-serif">{inv.name}</h3>
@@ -239,7 +239,7 @@ function InvitationCard({
               { icon: <Calendar size={11} />, label: "Date", value: inv.date },
               { icon: <MapPin size={11} />, label: "Venue", value: inv.venue },
             ].map((item) => (
-              <div key={item.label} className="bg-[#141414] rounded-lg px-3 py-2 border border-white/6">
+              <div key={item.label} className="bg-surface rounded-lg px-3 py-2 border border-border/60">
                 <div className="flex items-center gap-1 text-gray-600 mb-1">
                   {item.icon}
                   <span className="text-[9.5px] font-semibold tracking-widest uppercase">{item.label}</span>
@@ -299,13 +299,13 @@ function JockeyInvitationCard({
   const isPending = inv.status === "pending";
 
   return (
-    <div className={`bg-[#1a1a1a] rounded-2xl border overflow-hidden transition-all duration-200 ${isPending ? "border-white/8 hover:border-white/15" : "border-white/5 opacity-75"}`}>
+    <div className={`bg-surface rounded-2xl border overflow-hidden transition-all duration-200 ${isPending ? "border-border hover:border-white/15" : "border-border/60 opacity-75"}`}>
       <div className="flex">
-        <div className="relative w-36 shrink-0 overflow-hidden bg-[#111] flex items-center justify-center">
+        <div className="relative w-36 shrink-0 overflow-hidden bg-bg flex items-center justify-center">
           {inv.jockeyImage ? (
             <img src={inv.jockeyImage} alt={inv.jockeyName} className={`w-full h-full object-cover object-top ${!isPending ? "grayscale brightness-40" : "brightness-75"}`} />
           ) : (
-            <div className="w-14 h-14 rounded-full bg-[#2a2a2a] border border-white/10 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-[#2a2a2a] border border-border flex items-center justify-center">
               <Users size={22} className="text-gray-600" />
             </div>
           )}
@@ -315,7 +315,7 @@ function JockeyInvitationCard({
         <div className="flex-1 px-5 py-4 flex flex-col gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase px-2 py-0.5 rounded bg-white/5 border border-white/8">Jockey</span>
+              <span className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase px-2 py-0.5 rounded bg-white/5 border border-border">Jockey</span>
               <span className={`text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded border ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -335,7 +335,7 @@ function JockeyInvitationCard({
               { icon: <Calendar size={11} />, label: "Date", value: inv.raceDate },
               { icon: <MapPin size={11} />, label: "Venue", value: inv.venue },
             ].map((item) => (
-              <div key={item.label} className="bg-[#141414] rounded-lg px-3 py-2 border border-white/6">
+              <div key={item.label} className="bg-surface rounded-lg px-3 py-2 border border-border/60">
                 <div className="flex items-center gap-1 text-gray-600 mb-1">
                   {item.icon}
                   <span className="text-[9.5px] font-semibold tracking-widest uppercase">{item.label}</span>
@@ -375,7 +375,7 @@ function JockeyInvitationCard({
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function InvitationSkeleton() {
   return (
-    <div className="bg-[#1a1a1a] rounded-2xl border border-white/5 overflow-hidden animate-pulse">
+    <div className="bg-surface rounded-2xl border border-border/60 overflow-hidden animate-pulse">
       <div className="flex">
         <div className="w-36 h-32 shrink-0 bg-white/5" />
         <div className="flex-1 px-5 py-4 flex flex-col gap-3">
@@ -400,12 +400,12 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
   return (
     <div className="flex items-center justify-center gap-4 mt-6">
       <button onClick={onPrev} disabled={page === 1}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
         <ChevronLeft size={13} /> Prev
       </button>
       <span className="text-[12px] text-gray-500 font-medium">Page {page} of {totalPages}</span>
       <button onClick={onNext} disabled={page === totalPages}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
         Next <ChevronRight size={13} />
       </button>
     </div>
@@ -592,7 +592,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   const pagedJockeyInvs = jockeyInvs;
 
   return (
-    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col font-sans">
+    <div className="flex-1 px-8 py-8 min-h-screen bg-bg flex flex-col font-sans">
 
       {selectedLive && (
         <InvitationDetailModal
@@ -603,14 +603,14 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
         />
       )}
 
-      <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+      <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
               Invitations
             </h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                 Race Management
               </span>
               <span className="text-[12px] text-gray-500 truncate">
@@ -622,7 +622,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
           </div>
           <RefetchButton onRefetch={() => setRefreshTick((t) => t + 1)} lastUpdated={lastUpdated} />
         </div>
-        <div className="flex items-center gap-1 p-1 bg-[#1a1a1a] border border-white/8 rounded-xl w-fit">
+        <div className="flex items-center gap-1 p-1 bg-surface border border-border rounded-xl w-fit">
           <TabButton active={activeTab === "race"} label="Race Invitations" count={racePendingCount} onClick={() => { setActiveTab("race"); setRacePage(1); setRaceSearch(""); setRaceSearchInput(""); }} />
           <TabButton active={activeTab === "jockey"} label="Jockey Invitations" count={jockeyPendingCount} onClick={() => { setActiveTab("jockey"); setJockeyPage(1); setJockeySearch(""); setJockeySearchInput(""); }} />
         </div>
@@ -640,7 +640,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
                 value={raceSearchInput}
                 onChange={(e) => setRaceSearchInput(e.target.value)}
                 placeholder="Search by race name…"
-                className="w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-[13px] text-white placeholder-gray-600 focus:outline-none focus:border-white/25 transition-colors duration-150"
+                className="w-full max-w-sm bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-[13px] text-white placeholder-gray-600 focus:outline-none focus:border-white/25 transition-colors duration-150"
               />
             </div>
 
@@ -654,7 +654,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
               <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorRace}</div>
             )}
             {!loadingRace && !errorRace && invitations.length === 0 && (
-              <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
+              <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
                 {raceSearch ? `No results for "${raceSearch}".` : "No race invitations found."}
               </div>
             )}
@@ -687,7 +687,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
                 value={jockeySearchInput}
                 onChange={(e) => setJockeySearchInput(e.target.value)}
                 placeholder="Search by jockey or horse name…"
-                className="w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-[13px] text-white placeholder-gray-600 focus:outline-none focus:border-white/25 transition-colors duration-150"
+                className="w-full max-w-sm bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-[13px] text-white placeholder-gray-600 focus:outline-none focus:border-white/25 transition-colors duration-150"
               />
             </div>
 
@@ -701,7 +701,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
               <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorJockey}</div>
             )}
             {!loadingJockey && !errorJockey && jockeyInvs.length === 0 && (
-              <div className="rounded-xl border border-white/8 bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
+              <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
                 {jockeySearch ? `No results for "${jockeySearch}".` : "No jockey invitations found."}
               </div>
             )}

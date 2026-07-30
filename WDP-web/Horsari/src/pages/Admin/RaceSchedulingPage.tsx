@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LayoutGrid, List, Plus, Loader2 } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
 import type { ViewMode } from "../../shared/types/RaceTypes";
@@ -33,9 +33,20 @@ export default function RaceSchedulingPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const timelineScrollRef = useRef<HTMLDivElement>(null);
 
 
-    const TIME_SLOTS = ["14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"];
+    // Full-day axis (00:00 -> 23:59). Ticks are shown every 2h so labels don't
+    // crowd the header; race positioning below still derives from the full
+    // 24h range so a race's left offset stays accurate to the minute.
+    const TIMELINE_TOTAL_HOURS = 24;
+    const TIME_SLOTS = Array.from({ length: TIMELINE_TOTAL_HOURS / 2 }, (_, i) => `${String(i * 2).padStart(2, '0')}:00`);
+    // Each 2h slot gets a fixed pixel width (the timeline area scrolls
+    // horizontally, so we don't need to squeeze columns to fit the viewport)
+    // and a race block spans a full slot's width so its title/time don't clip.
+    const TIMELINE_COLUMN_WIDTH = 220;
+    const TIMELINE_LABEL_WIDTH = 200;
+    const TIMELINE_CONTENT_WIDTH = TIMELINE_LABEL_WIDTH + TIME_SLOTS.length * TIMELINE_COLUMN_WIDTH;
 
     const fetchData = async () => {
         setLoading(true);
@@ -114,13 +125,12 @@ export default function RaceSchedulingPage() {
         if (isNaN(d.getTime())) return { leftPercent: "0%", widthPercent: "15%" };
 
         const hours = d.getHours() + d.getMinutes() / 60;
-        // Base 09:00 = 0%, 17:00 = 100%
-        const totalHours = 8; // 17 - 9
-        const offset = Math.max(0, Math.min(hours - 9, totalHours));
-        const leftPercent = (offset / totalHours) * 100;
+        // Base 00:00 = 0%, 24:00 = 100% — same range as TIME_SLOTS above.
+        const offset = Math.max(0, Math.min(hours, TIMELINE_TOTAL_HOURS));
+        const leftPercent = (offset / TIMELINE_TOTAL_HOURS) * 100;
         return {
             leftPercent: `${leftPercent}%`,
-            widthPercent: "12.5%" // fixed 1-hour duration for visual
+            widthPercent: `${(2 / TIMELINE_TOTAL_HOURS) * 100}%` // fixed 2-hour duration for visual — matches one timeline column's width
         };
     };
 
@@ -202,8 +212,22 @@ export default function RaceSchedulingPage() {
         }
     };
 
+    // Whenever the visible day (or a filter narrowing its races) changes,
+    // snap the horizontal scroll so the day's earliest race is right next to
+    // the sticky track-label column, instead of leaving the user to hunt for
+    // it by scrolling right themselves.
+    useEffect(() => {
+        const container = timelineScrollRef.current;
+        if (!container || viewMode !== "timeline" || filteredRaces.length === 0) return;
+        const earliest = filteredRaces.reduce((min, r) => r.rawDate.getTime() < min.rawDate.getTime() ? r : min);
+        const offsetWithinTimeline = (parseFloat(earliest.leftPercent) / 100) * (TIME_SLOTS.length * TIMELINE_COLUMN_WIDTH);
+        const SCROLL_PADDING = 24;
+        container.scrollLeft = Math.max(0, offsetWithinTimeline - SCROLL_PADDING);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedDate, viewMode, selectedTournament, selectedStatus, selectedRaceType]);
+
     return (
-        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
 
 
             {/* ── Top Content Area ── */}
@@ -212,7 +236,7 @@ export default function RaceSchedulingPage() {
                 {/* ── Main Timeline Area ── */}
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${selectedRaceId ? "flex-[0_0_55%]" : "flex-1"}`}>
                     {/* Header — row 1: title + actions, row 2: view toggle + filters */}
-                    <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+                    <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
                         {/* Row 1 */}
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
@@ -220,7 +244,7 @@ export default function RaceSchedulingPage() {
                                     Master Race Schedule
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                                         All Scheduled Races
                                     </span>
                                     <span className="text-[12px] text-gray-500 truncate">· {selectedTournament === "All" ? "Across All Tournaments" : selectedTournament}</span>
@@ -237,7 +261,7 @@ export default function RaceSchedulingPage() {
                         {/* Row 2 */}
                         <div className="flex items-center gap-3 flex-wrap">
                             {/* View Mode Toggle */}
-                            <div className="flex bg-[#1a1a1a] p-1 rounded-lg border border-white/5 shrink-0">
+                            <div className="flex bg-surface p-1 rounded-lg border border-border/60 shrink-0">
                                 <button
                                     onClick={() => setViewMode("timeline")}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "timeline" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
@@ -255,7 +279,7 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={selectedTournament}
                                 onChange={(e) => setSelectedTournament(e.target.value)}
-                                className="flex-1 min-w-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                className="flex-1 min-w-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Tournaments</option>
                                 {tournaments.map(t => (
@@ -266,7 +290,7 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={selectedStatus}
                                 onChange={(e) => setSelectedStatus(e.target.value)}
-                                className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer capitalize"
+                                className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer capitalize"
                             >
                                 <option value="All">All Statuses</option>
                                 {RACE_STATUSES.map(status => (
@@ -277,7 +301,7 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={selectedRaceType}
                                 onChange={(e) => setSelectedRaceType(e.target.value)}
-                                className="w-[150px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Race Types</option>
                                 {raceTypes.map(type => (
@@ -288,7 +312,7 @@ export default function RaceSchedulingPage() {
                             <button
                                 onClick={() => setRaceTypesActiveOnly(v => !v)}
                                 title="Toggle whether the race-type list includes retired (inactive) eligibility rules"
-                                className={`shrink-0 px-3 h-[32px] rounded-md text-[11px] font-medium border transition-colors ${raceTypesActiveOnly ? "bg-white/10 border-white/10 text-white" : "bg-[#1a1a1a] border-white/10 text-gray-500 hover:text-gray-300"}`}
+                                className={`shrink-0 px-3 h-[32px] rounded-md text-[11px] font-medium border transition-colors ${raceTypesActiveOnly ? "bg-white/10 border-border text-white" : "bg-surface border-border text-gray-500 hover:text-gray-300"}`}
                             >
                                 Active rules only
                             </button>
@@ -296,7 +320,7 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={raceRoundsLimit}
                                 onChange={(e) => setRaceRoundsLimit(Number(e.target.value))}
-                                className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 {RACE_ROUNDS_LIMIT_OPTIONS.map(n => (
                                     <option key={n} value={n}>{n} rows</option>
@@ -306,23 +330,23 @@ export default function RaceSchedulingPage() {
                     </header>
 
                     {/* Main Content Area (Timeline or Table) */}
-                    <div className="flex-1 relative mt-6 rounded-xl border border-white/5 overflow-hidden min-h-0">
+                    <div className="flex-1 relative mt-6 rounded-xl border border-border/60 overflow-hidden min-h-0">
                         {loading && (
-                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#141414]/80 backdrop-blur-sm">
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface/80 backdrop-blur-sm">
                                 <Loader2 className="animate-spin text-red-500" size={32} />
                             </div>
                         )}
                         {!loading && error ? (
-                            <div className="h-full w-full flex items-center justify-center bg-[#141414] p-6">
+                            <div className="h-full w-full flex items-center justify-center bg-surface p-6">
                                 <ErrorState message={error} onRetry={fetchData} className="max-w-md" />
                             </div>
                         ) : (
-                            <div className="h-full w-full overflow-auto bg-[#141414] custom-scrollbar">
+                            <div ref={timelineScrollRef} className="h-full w-full overflow-auto bg-surface custom-scrollbar">
                                 {viewMode === "timeline" ? (
-                                    <div className="min-w-[1600px] border border-white/5 rounded-lg bg-[#161616]">
+                                    <div style={{ minWidth: TIMELINE_CONTENT_WIDTH }} className="border border-border/60 rounded-lg bg-surface">
                                         {/* Time Headers */}
-                                        <div className="sticky top-0 z-40 flex border-b border-white/5 bg-[#1a1a1a]">
-                                            <div className="sticky left-0 z-50 w-[200px] shrink-0 border-r border-white/5 px-2 py-3 flex items-center justify-between bg-[#151515] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                                        <div className="sticky top-0 z-40 flex border-b border-border/60 bg-surface">
+                                            <div className="sticky left-0 z-50 w-[200px] shrink-0 border-r border-border/60 px-2 py-3 flex items-center justify-between bg-bg shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                                                 <button
                                                     onClick={handlePrevDate}
                                                     disabled={!uniqueDates.length || selectedDate === uniqueDates[0]}
@@ -341,10 +365,13 @@ export default function RaceSchedulingPage() {
                                                     &rarr;
                                                 </button>
                                             </div>
-                                            <div className="flex-1 flex">
+                                            <div className="flex">
                                                 {TIME_SLOTS.map((time, idx) => (
-                                                    <div key={idx} className="flex-1 border-r border-white/5 last:border-r-0 py-4 flex justify-center">
-                                                        <span className="text-[11px] font-medium text-gray-400 font-mono">{time}</span>
+                                                    <div key={idx} style={{ width: TIMELINE_COLUMN_WIDTH }} className="relative shrink-0 py-4">
+                                                        {/* Tick mark + label sit at the left edge — this is the 00:00/02:00/... instant,
+                                                            not a label for the whole column, which would read as a duration. */}
+                                                        <div className="absolute left-0 top-0 bottom-0 w-px bg-border/70" />
+                                                        <span className="absolute left-0 -translate-x-1/2 bg-surface px-1 text-[11px] font-medium text-gray-400 font-mono">{time}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -356,19 +383,21 @@ export default function RaceSchedulingPage() {
                                                 <div className="p-8 text-center text-gray-500 text-[13px]">No races scheduled for this date.</div>
                                             )}
                                             {TRACKS_DYNAMIC.map(track => (
-                                                <div key={track.id} className="flex border-b border-white/5 last:border-b-0 min-h-[120px]">
+                                                <div key={track.id} className="flex border-b border-border/60 last:border-b-0 min-h-[120px]">
 
                                                     {/* Track Info (Y-axis label) */}
-                                                    <div className="sticky left-0 z-30 w-[200px] shrink-0 border-r border-white/5 p-5 bg-[#181818] flex flex-col justify-center gap-1 shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                                                    <div className="sticky left-0 z-30 w-[200px] shrink-0 border-r border-border/60 p-5 bg-surface flex flex-col justify-center gap-1 shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                                                         <span className="text-[14px] font-semibold text-white truncate">{track.name}</span>
                                                         <span className="text-[12px] text-gray-500">{track.surface}</span>
                                                     </div>
 
                                                     {/* Timeline area for this track */}
-                                                    <div className="flex-1 relative flex">
-                                                        {/* Background Grid Lines (1 line per time slot) */}
+                                                    <div style={{ width: TIME_SLOTS.length * TIMELINE_COLUMN_WIDTH }} className="shrink-0 relative flex">
+                                                        {/* Background Grid Lines — one at each tick's exact position (its left
+                                                            edge), matching the header ticks above rather than boxing each
+                                                            2h span as if it were a single labeled cell. */}
                                                         {TIME_SLOTS.map((_, idx) => (
-                                                            <div key={idx} className="flex-1 border-r border-white/5 last:border-r-0" />
+                                                            <div key={idx} style={{ width: TIMELINE_COLUMN_WIDTH }} className="shrink-0 border-l border-border/60" />
                                                         ))}
 
                                                         {/* Placed Races */}
@@ -379,12 +408,12 @@ export default function RaceSchedulingPage() {
                                                                     key={race.id}
                                                                     onClick={() => setSelectedRaceId(isSelected ? null : race.id)}
                                                                     className={`absolute top-1/2 -translate-y-1/2 h-[70px] border rounded-md p-3 shadow-lg shadow-black/40 transition-all cursor-pointer flex flex-col justify-between ${race.status === 'cancelled' ? 'bg-[#161111] border-red-900/30 opacity-60 z-0' : 'bg-[#1f1a1a] z-10'
-                                                                        } ${isSelected ? "border-red-500 ring-1 ring-red-500/50 !z-20" : "border-[#f3b2a5]/30 hover:border-[#f3b2a5]/60"}`}
+                                                                        } ${isSelected ? "border-red-500 ring-1 ring-red-500/50 !z-20" : "border-gold/30 hover:border-gold/60"}`}
                                                                     style={{ left: race.leftPercent, width: race.widthPercent }}
                                                                 >
                                                                     <div className="flex justify-between items-start">
                                                                         <span className={`text-[13px] font-semibold truncate pr-2 ${race.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-white'}`}>{race.title}</span>
-                                                                        <span className="text-[12px] font-medium text-[#f3b2a5] shrink-0">{race.time}</span>
+                                                                        <span className="text-[12px] font-medium text-gold shrink-0">{race.time}</span>
                                                                     </div>
                                                                     <div className="flex items-center justify-between mt-auto">
                                                                         <div className="flex gap-1 items-center">
@@ -410,7 +439,7 @@ export default function RaceSchedulingPage() {
                                     <div className="w-full">
                                         <table className="w-full text-left border-collapse">
                                             <thead>
-                                                <tr className="bg-[#1a1a1a] border-b border-white/5">
+                                                <tr className="bg-surface border-b border-border/60">
                                                     <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Race Name</th>
                                                     <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Track</th>
                                                     <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Tournament</th>

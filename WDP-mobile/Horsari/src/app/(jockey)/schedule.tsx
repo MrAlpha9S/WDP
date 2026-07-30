@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,19 +13,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getMyRaceSchedule, ScheduleItem } from '../../api/jockeyApi';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
+import { Badge } from '@/components/ui/Badge';
 
 const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
+  ...SharedPalette,
   redLight: '#E8828A',
-  gold: '#C9A24B',
 } as const;
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -212,9 +206,7 @@ export default function ScheduleScreen() {
                               {horse.toUpperCase()}
                             </Text>
                           </View>
-                          <View style={styles.tagConfirmed}>
-                            <Text style={styles.tagConfirmedText}>CONFIRMED</Text>
-                          </View>
+                          <Badge label="CONFIRMED" tone="green" />
                           {item.isBackup && (
                             <View style={styles.tagBackup}>
                               <Text style={styles.tagBackupText}>BACKUP</Text>
@@ -392,21 +384,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     color: Palette.redLight,
-  },
-  tagConfirmed: {
-    backgroundColor: '#1A2A1A',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#2A4A2A',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  tagConfirmedText: {
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    color: '#6CBA7A',
   },
   tagBackup: {
     backgroundColor: '#1A1A2A',

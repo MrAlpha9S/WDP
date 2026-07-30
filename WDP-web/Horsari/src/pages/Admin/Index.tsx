@@ -1,6 +1,18 @@
 import { useState, useEffect } from "react";
-import AdminNavBar, { ADMIN_TABS, type AdminTab } from "./AdminComponents/NavBar";
-import AdminSidebar from "./AdminComponents/SideBar";
+import {
+    House,
+    FileText,
+    ChessKnight,
+    User,
+    AlertTriangle,
+    ShieldAlert,
+    ChartColumn,
+    Wallet,
+    Inbox,
+} from "lucide-react";
+import { ADMIN_TABS, type AdminTab } from "./AdminComponents/NavBar";
+import TopBar from "../../components/ui/TopBar";
+import Sidebar, { type SidebarGroup } from "../../components/ui/Sidebar";
 import SystemDashboardPage from "./SystemDashBoardPage";
 import AdminStatisticsPage from "./AdminStatisticsPage";
 import RaceSchedulingPage from "./RaceSchedulingPage";
@@ -63,6 +75,35 @@ function ActiveView({ tab, setActiveTab }: { tab: AdminTab, setActiveTab: (tab: 
     }
 }
 
+// ── Sidebar items ──────────────────────────────────────────────────────────────
+const SIDEBAR_GROUPS: SidebarGroup<AdminTab>[] = [
+    {
+        items: [
+            { key: "Dashboard", label: "Dashboard", icon: <House size={17} /> },
+            { key: "Statistics", label: "Statistics", icon: <ChartColumn size={17} /> },
+        ],
+    },
+    {
+        label: "Management",
+        items: [
+            { key: "Horses", label: "Horses", icon: <ChessKnight size={17} /> },
+            { key: "Users", label: "Users", icon: <User size={17} /> },
+            { key: "Rules Managment", label: "Rules Managment", icon: <FileText size={17} /> },
+            { key: "Tournaments", label: "Tournaments", icon: <FileText size={17} /> },
+            { key: "Races", label: "Races", icon: <FileText size={17} /> },
+        ],
+    },
+    {
+        label: "Operations",
+        items: [
+            { key: "Inbox", label: "Inbox", icon: <Inbox size={17} /> },
+            { key: "Financial", label: "Financial", icon: <Wallet size={17} /> },
+            { key: "Violations", label: "Violations", icon: <AlertTriangle size={17} /> },
+            { key: "Violation Types", label: "Violation Types", icon: <ShieldAlert size={17} /> },
+        ],
+    },
+];
+
 // ── Dashboard Page ─────────────────────────────────────────────────────────────
 export default function AdminDashboardPage() {
     const { tabs } = useParams<{ tabs: string }>();
@@ -75,18 +116,11 @@ export default function AdminDashboardPage() {
         }
     }, [navigate]);
 
-    // Support matching both navbar tabs and sidebar tabs from URL
+    // Support matching both navbar tabs and sidebar tabs from URL.
+    // Derived from the sidebar itself so newly added tabs can never fall out of sync.
     const allTabs = [
         ...ADMIN_TABS,
-        "Inbox",
-        "Home",
-        "Roles & Permissions",
-        "Horses",
-        "Rules Managment",
-        "Activity Logs",
-        "Violations",
-        "Violation Types",
-        "Statistics",
+        ...SIDEBAR_GROUPS.flatMap(g => g.items.map(item => item.key)),
         "Profile",
     ] as AdminTab[];
 
@@ -105,16 +139,24 @@ export default function AdminDashboardPage() {
         }
     }, [tabs]);
 
+    const handleTabChange = (tab: AdminTab) => {
+        navigate(`/admin/${encodeURIComponent(tab)}`);
+    };
+
     return (
-        <div
-            className="h-screen bg-[#111111] text-white flex flex-col overflow-hidden font-sans"
-        >
-            <AdminNavBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="h-screen bg-bg text-text flex flex-col overflow-hidden font-sans">
+            <TopBar onProfileClick={() => navigate("/admin/profile")} />
 
             <div className="flex-1 flex min-h-0">
-                <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+                <Sidebar
+                    title="Management"
+                    subtitle="Admin Tools"
+                    groups={SIDEBAR_GROUPS}
+                    activeKey={activeTab}
+                    onSelect={handleTabChange}
+                />
                 <div className="flex-1 min-h-0 overflow-auto">
-                    <ActiveView tab={activeTab} setActiveTab={setActiveTab} />
+                    <ActiveView tab={activeTab} setActiveTab={handleTabChange} />
                 </div>
             </div>
         </div>

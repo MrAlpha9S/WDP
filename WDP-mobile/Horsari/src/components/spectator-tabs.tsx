@@ -1,97 +1,17 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-
-import { Fonts } from '@/constants/theme';
-
-const Palette = {
-  card: '#161618',
-  cardBorder: '#262629',
-  gold: '#C9A24B',
-  textMuted: '#9A9AA0',
-} as const;
+import { Palette } from '@/constants/theme';
+import { RoleTabs } from './RoleTabs';
 
 export default function SpectatorTabs() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: Palette.card,
-          borderTopColor: Palette.cardBorder,
-          borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 80 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-        },
-        tabBarActiveTintColor: Palette.gold,
-        tabBarInactiveTintColor: Palette.textMuted,
-        tabBarLabelStyle: {
-          fontFamily: Fonts.mono,
-          fontSize: 10,
-          fontWeight: '700',
-          letterSpacing: 1,
-        },
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'HOME',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="wallet"
-        options={{
-          title: 'WALLET',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="predictions"
-        options={{
-          title: 'PREDICTIONS',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="stats-chart-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'PROFILE',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      {/* Live race detail screen — hidden from tab bar, navigated programmatically */}
-      <Tabs.Screen
-        name="race/[id]"
-        options={{
-          href: null,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      {/* Full transaction history — hidden from tab bar, pushed from Wallet */}
-      <Tabs.Screen
-        name="transactions"
-        options={{
-          href: null,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      {/* Prediction/rewards statistics — hidden from tab bar, pushed from Profile */}
-      <Tabs.Screen
-        name="statistics"
-        options={{
-          href: null,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-    </Tabs>
+    <RoleTabs
+      accentColor={Palette.gold}
+      items={[
+        { name: 'index', title: 'HOME', icon: 'home-outline' },
+        { name: 'wallet', title: 'WALLET', icon: 'wallet-outline' },
+        { name: 'predictions', title: 'PREDICTIONS', icon: 'stats-chart-outline' },
+        { name: 'profile', title: 'PROFILE', icon: 'person-outline' },
+      ]}
+      hidden={['race/[id]', 'transactions', 'statistics', 'edit-profile']}
+    />
   );
 }

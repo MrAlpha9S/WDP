@@ -44,7 +44,7 @@ function StatCard({ label, value, sub, subColor = "text-gray-500", icon, highlig
     label: string; value: string; sub: string; subColor?: string; icon: React.ReactNode; highlight?: boolean;
 }) {
     return (
-        <div className={`rounded-xl p-5 flex flex-col gap-3 border ${highlight ? "border-red-600/40 bg-[#1a0f0f]" : "border-white/[0.07] bg-[#141414]"}`}>
+        <div className={`rounded-xl p-5 flex flex-col gap-3 border ${highlight ? "border-red-600/40 bg-[#1a0f0f]" : "border-border bg-surface"}`}>
             <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">{label}</p>
                 <span className="text-gray-600">{icon}</span>
@@ -57,7 +57,7 @@ function StatCard({ label, value, sub, subColor = "text-gray-500", icon, highlig
 
 /** Skeleton shimmer card */
 function Skeleton({ h = "h-32" }: { h?: string }) {
-    return <div className={`rounded-xl border border-white/[0.07] bg-[#141414] ${h} animate-pulse`} />;
+    return <div className={`rounded-xl border border-border bg-surface ${h} animate-pulse`} />;
 }
 
 /** Generic ranked list card — numbers first, no chart */
@@ -69,7 +69,7 @@ function RankedListCard<T>({
 }) {
     if (loading) return <Skeleton h="h-56" />;
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5 flex flex-col gap-4">
+        <div className="rounded-xl border border-border bg-surface p-5 flex flex-col gap-4">
             <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">{title}</p>
             {items.length === 0
                 ? <p className="text-[13px] text-gray-600 py-4 text-center">{emptyText}</p>
@@ -109,7 +109,7 @@ function HouseEarningsChart({ data, groupBy, onGroupByChange, loading }: {
     const hovered = hoveredIdx !== null ? series[hoveredIdx] : null;
 
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5 flex flex-col gap-4">
+        <div className="rounded-xl border border-border bg-surface p-5 flex flex-col gap-4">
             <div className="flex items-start justify-between">
                 <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">House Earnings from Predictions</p>
                 <div className="flex gap-1">
@@ -177,7 +177,7 @@ function HouseEarningsChart({ data, groupBy, onGroupByChange, loading }: {
                     </svg>
                     {hovered && hoveredIdx !== null && (
                         <div 
-                            className="absolute bg-[#1e1e1e] border border-white/10 rounded-lg px-3 py-2 text-[11px] text-gray-300 whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
+                            className="absolute bg-surface-raised border border-border rounded-lg px-3 py-2 text-[11px] text-gray-300 whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
                             style={{ 
                                 left: `${(toX(hoveredIdx) / W) * 100}%`,
                                 top: '5%',
@@ -210,7 +210,7 @@ function HouseEarningsChart({ data, groupBy, onGroupByChange, loading }: {
                         { label: "Paid to Winners", value: data?.totalPayoutToWinners ?? 0, color: "text-blue-400" },
                         { label: "Gross Pool", value: data?.totalGrossPool ?? 0, color: "text-white" },
                     ].map(({ label, value, color }) => (
-                        <div key={label} className="bg-[#1a1a1a] rounded-lg px-4 py-3 border border-white/[0.03]">
+                        <div key={label} className="bg-surface rounded-lg px-4 py-3 border border-white/[0.03]">
                             <p className="text-[11px] text-gray-500 mb-1">{label}</p>
                             <p className={`text-[16px] font-bold ${color} leading-tight`}>
                                 {fmt(value)} <span className="text-[10px] font-normal text-gray-500">₫</span>
@@ -233,11 +233,11 @@ function PredictionMethodBreakdown({ data, loading }: { data: DashboardPredictio
         tournament_champion: "bg-amber-900/50 text-amber-300 border-amber-700/40",
     };
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5 flex flex-col gap-3">
+        <div className="rounded-xl border border-border bg-surface p-5 flex flex-col gap-3">
             <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">🔮 Prediction Methods</p>
             <div className="flex flex-wrap gap-2">
                 {Object.entries(methods).map(([type, v]) => (
-                    <span key={type} className={`border rounded-full px-3 py-1 text-[11px] font-semibold ${colors[type] ?? "bg-white/5 text-gray-300 border-white/10"}`}>
+                    <span key={type} className={`border rounded-full px-3 py-1 text-[11px] font-semibold ${colors[type] ?? "bg-white/5 text-gray-300 border-border"}`}>
                         {type.replace(/_/g, " ")}  {v.pct}%  ({v.count})
                     </span>
                 ))}
@@ -253,7 +253,7 @@ function PredictionMethodBreakdown({ data, loading }: { data: DashboardPredictio
 function SpectatorLeaderboard({ entries, loading }: { entries: SpectatorLeaderboardEntry[]; loading: boolean; }) {
     if (loading) return <Skeleton h="h-64" />;
     return (
-        <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5">
+        <div className="rounded-xl border border-border bg-surface p-5">
             <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase mb-4">Spectator Prediction Leaderboard</p>
             {entries.length === 0 ? (
                 <p className="text-[13px] text-gray-600 text-center py-6">No prediction data yet.</p>
@@ -261,7 +261,7 @@ function SpectatorLeaderboard({ entries, loading }: { entries: SpectatorLeaderbo
                 <div className="overflow-x-auto">
                     <table className="w-full text-[13px]">
                         <thead>
-                            <tr className="text-left text-[10px] tracking-widest text-gray-600 uppercase border-b border-white/[0.06]">
+                            <tr className="text-left text-[10px] tracking-widest text-gray-600 uppercase border-b border-border/60">
                                 <th className="pb-2 pr-4">#</th>
                                 <th className="pb-2 pr-4">Spectator</th>
                                 <th className="pb-2 pr-4 text-right">Total</th>

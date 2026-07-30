@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Loader2, Wallet } from "lucide-react";
 import type { RecentInvite, InviteStatus } from "../../shared/types/HomepageTypes";
 import HomeCalendar from "./RefereeComponents/HomeCalendar";
@@ -125,7 +125,7 @@ export default function HomePage() {
                 {/* Main grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center min-h-[400px] bg-[#1a1a1a] rounded-xl border border-white/8">
+                        <div className="flex flex-col items-center justify-center min-h-[400px] bg-surface rounded-xl border border-border">
                             <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-4" />
                             <span className="text-[13px] font-medium text-gray-400">Loading schedule...</span>
                         </div>
@@ -138,7 +138,7 @@ export default function HomePage() {
                 {/* Payments awaiting referee confirmation (referee fee) */}
                 <div className="mt-6">
                     {walletInfo && (
-                        <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 mb-4 w-fit">
+                        <div className="flex items-center gap-2 bg-surface border border-border rounded-lg px-4 py-2.5 mb-4 w-fit">
                             <Wallet size={15} className="text-emerald-500" />
                             <div>
                                 <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Wallet</p>

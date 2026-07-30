@@ -62,15 +62,15 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
     };
 
     return (
-        <div className="h-full bg-[#161616] border border-white/[0.05] rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20"
+        <div className="h-full bg-surface border border-border/60 rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20"
             style={{ animation: 'panelIn 0.18s ease-out' }}>
             <style>{`@keyframes panelIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }`}</style>
 
             {/* Header */}
-            <div className="px-5 py-4 shrink-0 border-b border-white/[0.05] bg-[#1a1a1a] flex items-start justify-between gap-4">
+            <div className="px-5 py-4 shrink-0 border-b border-border/60 bg-surface flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-1.5 min-w-0">
                     <div className="flex items-center gap-2">
-                        <AlertTriangle size={15} className="text-[#f3b2a5] shrink-0" />
+                        <AlertTriangle size={15} className="text-gold shrink-0" />
                         <h2 className="text-[16px] font-bold text-white truncate">
                             {vt?.violationName ?? 'Violation'}
                         </h2>
@@ -93,7 +93,7 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-white/10 transition-colors shrink-0"
+                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors shrink-0"
                 >
                     <X size={14} />
                 </button>
@@ -104,7 +104,7 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
 
                 {/* Race Round */}
                 {round && (
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-4 flex flex-col gap-2">
+                    <div className="bg-surface rounded-xl border border-border/60 p-4 flex flex-col gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Race Round</span>
                         <div className="flex items-center gap-2 text-[13px] text-white font-semibold">
                             <Flag size={13} className="text-gray-500 shrink-0" />
@@ -119,7 +119,7 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
 
                 {/* Severity + Steward Action */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-4 flex flex-col gap-1">
+                    <div className="bg-surface rounded-xl border border-border/60 p-4 flex flex-col gap-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Severity</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
                             {Array.from({ length: 5 }).map((_, i) => (
@@ -130,7 +130,7 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
                             </span>
                         </div>
                     </div>
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-4 flex flex-col gap-1">
+                    <div className="bg-surface rounded-xl border border-border/60 p-4 flex flex-col gap-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Steward Action</span>
                         <span className={`text-[13px] font-semibold mt-0.5 capitalize ${STEWARD_STYLES[violation.stewardAction] ?? 'text-gray-300'}`}>
                             {violation.stewardAction ? violation.stewardAction.replace(/-/g, ' ') : '—'}
@@ -139,7 +139,7 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
                 </div>
 
                 {/* Details */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-4 flex flex-col gap-4">
+                <div className="bg-surface rounded-xl border border-border/60 p-4 flex flex-col gap-4">
                     {violation.description && (
                         <Field label="Description">
                             <p className="text-[12px] text-gray-400 leading-relaxed">{violation.description}</p>
@@ -158,7 +158,7 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
                 </div>
 
                 {/* Meta */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/5 p-4 flex flex-col gap-3">
+                <div className="bg-surface rounded-xl border border-border/60 p-4 flex flex-col gap-3">
                     <Field label="Logged At">
                         <div className="flex items-center gap-1.5 text-[12px] text-gray-400">
                             <Calendar size={12} className="text-gray-500" />

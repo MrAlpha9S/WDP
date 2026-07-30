@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   X, Trophy, Flag, ChevronDown, Check,
   Loader2, AlertCircle, Shield, Repeat2,
@@ -61,9 +61,9 @@ function formatDate(iso: string): string {
 function mapRace(raw: any, i: number): Race {
   return {
     id: raw.registration._id ?? String(i),
-    name: raw.raceRound.roundName ?? raw.name ?? "Unnamed Race",
-    date: raw.raceRound.raceDate ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
-    venue: raw.raceRound.location ?? raw.location ?? "TBA",
+    name: raw.raceRound?.roundName ?? raw.name ?? "Unnamed Race",
+    date: raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
+    venue: raw.raceRound?.location ?? raw.location ?? "TBA",
     grade: raw.grade ?? "TBA",
     ruleId: raw.raceRound?.eligibilityRuleId?._id ?? raw.eligibilityRuleId?._id ?? raw.raceRound?.eligibilityRuleId ?? raw.eligibilityRuleId ?? "",
     raceType: raw.raceRound?.eligibilityRuleId?.raceType ?? raw.eligibilityRuleId?.raceType ?? "",
@@ -102,7 +102,7 @@ function SelectCard<T extends { id: string }>({
       onClick={onSelect}
       className={`w-full text-left rounded-xl border px-4 py-3 transition-all duration-150 ${selected
         ? "border-red-600/60 bg-red-900/10"
-        : "border-white/8 bg-[#141414] hover:border-white/18 hover:bg-[#1c1c1c]"
+        : "border-border bg-surface hover:border-white/18 hover:bg-surface-raised"
         }`}
     >
       <div className="flex items-center justify-between gap-3">
@@ -126,8 +126,8 @@ function StepDot({ step, current, label }: { step: number; current: number; labe
     <div className="flex flex-col items-center gap-1">
       <div
         className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all duration-200 ${done ? "bg-red-700 border-red-600 text-white"
-          : active ? "bg-[#1a1a1a] border-red-500 text-red-400"
-            : "bg-[#141414] border-white/10 text-gray-600"
+          : active ? "bg-surface border-red-500 text-red-400"
+            : "bg-surface border-border text-gray-600"
           }`}
       >
         {done ? <Check size={11} strokeWidth={3} /> : step}
@@ -369,13 +369,13 @@ export default function HireJockeyModal({
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg bg-[#111] border border-white/10 rounded-2xl shadow-2xl shadow-black/90 flex flex-col max-h-[90vh] overflow-hidden">
+      <div className="relative w-full max-w-lg bg-bg border border-border rounded-2xl shadow-2xl shadow-black/90 flex flex-col max-h-[90vh] overflow-hidden">
 
         {/* Header */}
-        <div className="px-6 pt-6 pb-5 border-b border-white/8 shrink-0">
+        <div className="px-6 pt-6 pb-5 border-b border-border shrink-0">
           <div className="flex items-start justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-[#1a1a1a] border border-white/10 shrink-0">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-surface border border-border shrink-0">
                 {jockey.image
                   ? <img src={jockey.image} alt={jockey.name} className="w-full h-full object-cover object-top" />
                   : <div className="w-full h-full bg-[#222]" />
@@ -390,7 +390,7 @@ export default function HireJockeyModal({
             </div>
             <button
               onClick={onClose}
-              className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all duration-150"
+              className="w-7 h-7 rounded-full bg-white/5 border border-border flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all duration-150"
             >
               <X size={13} />
             </button>
@@ -447,7 +447,7 @@ export default function HireJockeyModal({
                   <div className="flex items-center gap-2 mb-1">
                     <Trophy size={11} className="text-yellow-500 shrink-0" />
                     <span className="text-[13px] font-bold text-white truncate">{race.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/8 text-gray-500 font-semibold shrink-0">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-border text-gray-500 font-semibold shrink-0">
                       {race.grade}
                     </span>
                   </div>
@@ -508,7 +508,7 @@ export default function HireJockeyModal({
                 <p className="text-[11px] font-bold tracking-[0.18em] text-gray-600 uppercase mb-3">
                   Payout Percentage
                 </p>
-                <div className="flex items-center gap-3 bg-[#141414] rounded-xl border border-white/8 px-4 py-3">
+                <div className="flex items-center gap-3 bg-surface rounded-xl border border-border px-4 py-3">
                   <input
                     type="number"
                     min={1}
@@ -528,7 +528,7 @@ export default function HireJockeyModal({
                 <p className="text-[11px] font-bold tracking-[0.18em] text-gray-600 uppercase mb-3">
                   Booking Fee
                 </p>
-                <div className="flex items-center gap-3 bg-[#141414] rounded-xl border border-white/8 px-4 py-3">
+                <div className="flex items-center gap-3 bg-surface rounded-xl border border-border px-4 py-3">
                   <span className="text-[13px] font-semibold text-gray-500">₫</span>
                   <input
                     type="number"
@@ -634,7 +634,7 @@ export default function HireJockeyModal({
 
         {/* Summary bar (steps 2+) */}
         {step > 1 && selectedRace && (
-          <div className="px-6 py-3 border-t border-white/6 bg-[#0e0e0e] shrink-0">
+          <div className="px-6 py-3 border-t border-border/60 bg-[#0e0e0e] shrink-0">
             <div className="flex items-center gap-4 text-[11px] text-gray-600">
               <div className="flex items-center gap-1.5">
                 <Trophy size={10} className="text-yellow-500" />
@@ -657,7 +657,7 @@ export default function HireJockeyModal({
         )}
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/8 bg-[#111] shrink-0 flex gap-3">
+        <div className="px-6 py-4 border-t border-border bg-bg shrink-0 flex gap-3">
           {step > 1 ? (
             <button
               onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
@@ -680,7 +680,7 @@ export default function HireJockeyModal({
               disabled={!canNext}
               className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${canNext
                 ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
-                : "bg-[#1a1a1a] border border-white/8 text-gray-600 cursor-not-allowed"
+                : "bg-surface border border-border text-gray-600 cursor-not-allowed"
                 }`}
             >
               Next <ChevronDown size={13} className="-rotate-90" />
@@ -691,7 +691,7 @@ export default function HireJockeyModal({
               disabled={!selectedHorse || submitting}
               className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${selectedHorse && !submitting
                 ? "bg-green-700 hover:bg-green-600 text-white shadow-lg shadow-green-900/30"
-                : "bg-[#1a1a1a] border border-white/8 text-gray-600 cursor-not-allowed"
+                : "bg-surface border border-border text-gray-600 cursor-not-allowed"
                 }`}
             >
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}

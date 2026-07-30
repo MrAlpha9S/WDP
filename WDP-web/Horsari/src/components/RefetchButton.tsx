@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { formatAgo } from "../utils/formatAgo";
 
@@ -42,7 +42,7 @@ export function RefetchButton({ onRefetch, lastUpdated, loading, className }: Re
             disabled={isLoading}
             className={[
                 "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11.5px] font-medium transition-colors",
-                "bg-[#1a1a1a] border-white/10 text-gray-400 hover:text-white hover:bg-[#252525]",
+                "bg-surface border-border text-gray-400 hover:text-white hover:bg-[#252525]",
                 isLoading ? "opacity-60 cursor-not-allowed" : "",
                 className ?? "",
             ].join(" ")}

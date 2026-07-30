@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
     ChevronRight,
     Clock, MapPin, Trophy, Users, X,
@@ -27,13 +27,13 @@ export function DayPopup({ iso, tournaments, allRaces, onSelectTournament, onOpe
 
 
     return (
-        <div className="bg-[#1a1a1a] rounded-xl border border-white/10 overflow-hidden">
-            <div className="px-4 py-3 border-b border-white/8">
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div className="px-4 py-3 border-b border-border">
                 <p className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">{label}</p>
             </div>
 
             {tournamentsOnDay.length > 0 && (
-                <div className="px-4 py-3 flex flex-col gap-2 border-b border-white/6">
+                <div className="px-4 py-3 flex flex-col gap-2 border-b border-border/60">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">Tournaments Active</p>
                     {tournamentsOnDay.map(t => {
                         const c = T_COLOR[t.color ?? "gray"];
@@ -118,7 +118,7 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
 
     return (
         <div className="flex flex-col gap-5">
-            <div className="bg-white/[0.03] rounded-xl border border-white/8 px-5 py-4">
+            <div className="bg-white/[0.03] rounded-xl border border-border px-5 py-4">
                 <p className="text-[12.5px] text-gray-400 leading-relaxed mb-4">{t.description}</p>
                 <div className="flex items-center gap-x-5 gap-y-1.5 flex-wrap text-[12px] text-gray-500">
                     <span>{t.startDate} – {t.endDate}</span>
@@ -144,7 +144,7 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
                     { label: "Violations Filed", value: `${violations}`, sub: "this series", subColor: violations > 0 ? "text-yellow-400" : "text-gray-500" },
                     { label: "Total Earnings", value: `${totalEarnings.toLocaleString()} ₫`, sub: "series total", subColor: "text-green-400" },
                 ].map(card => (
-                    <div key={card.label} className="bg-white/[0.03] rounded-xl border border-white/8 px-4 py-3.5">
+                    <div key={card.label} className="bg-white/[0.03] rounded-xl border border-border px-4 py-3.5">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1.5">{card.label}</p>
                         <p className="text-[26px] font-bold text-white leading-none font-sans">{card.value}</p>
                         <p className={`text-[11px] mt-1.5 font-medium ${card.subColor}`}>{card.sub}</p>
@@ -152,7 +152,7 @@ function OverviewTab({ t, allRaces }: { t: Tournament; allRaces: RaceRound[] }) 
                 ))}
             </div>
 
-            <div className="bg-white/[0.03] rounded-xl border border-white/8 overflow-hidden">
+            <div className="bg-white/[0.03] rounded-xl border border-border overflow-hidden">
                 <button
                     onClick={() => { }}
                     className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.02] transition-colors"
@@ -197,7 +197,7 @@ function RacesTab({ t, allRaces, onOpenRaceMonitor }: { t: Tournament; allRaces:
                                     ? "bg-red-500/5 border-red-800/40 hover:bg-red-500/10 hover:border-red-700/60"
                                     : isPrepared
                                         ? "bg-violet-500/5 border-violet-800/40 hover:bg-violet-500/10 hover:border-violet-700/60"
-                                        : "bg-white/[0.02] border-white/6 hover:bg-white/[0.04] hover:border-white/10",
+                                        : "bg-white/[0.02] border-border/60 hover:bg-white/[0.04] hover:border-border",
                             ].join(" ")}
                         >
                             {isLive && <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${c.dot} rounded-l-xl`} />}
@@ -257,7 +257,7 @@ export function TournamentModal({ tournament: t, allRaces, onClose, onOpenRaceMo
             onClick={e => { if (e.target === e.currentTarget) onClose(); }}
         >
             <div
-                className="w-full sm:max-w-2xl bg-[#1a1a1a] rounded-t-2xl sm:rounded-2xl border border-white/10 flex flex-col overflow-hidden"
+                className="w-full sm:max-w-2xl bg-surface rounded-t-2xl sm:rounded-2xl border border-border flex flex-col overflow-hidden"
                 style={{ maxHeight: "90vh" }}
                 onClick={e => e.stopPropagation()}
             >
@@ -279,7 +279,7 @@ export function TournamentModal({ tournament: t, allRaces, onClose, onOpenRaceMo
                                 </h2>
                             </div>
                         </div>
-                        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl border border-white/10 text-gray-500 hover:text-gray-200 hover:border-white/20 transition-all shrink-0">
+                        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl border border-border text-gray-500 hover:text-gray-200 hover:border-white/20 transition-all shrink-0">
                             <X size={15} />
                         </button>
                     </div>

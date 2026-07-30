@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+﻿import { useState, useCallback, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 import type { InviteStatus } from "../../shared/types/InboxTypes";
 import type { RaceInvite } from "../../shared/types/InboxTypes";
@@ -145,7 +145,7 @@ export default function InboxPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="bg-[#1a1a1a] border border-white/8 rounded-xl px-2 py-2 mb-5 flex gap-1">
+                <div className="bg-surface border border-border rounded-xl px-2 py-2 mb-5 flex gap-1">
                     {TABS.map(({ key, label }) => (
                         <button
                             key={key}
@@ -169,14 +169,14 @@ export default function InboxPage() {
 
                 {/* List */}
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-[#1a1a1a] rounded-xl border border-white/8">
+                    <div className="flex flex-col items-center justify-center py-20 bg-surface rounded-xl border border-border">
                         <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-4" />
                         <span className="text-[13px] font-medium text-gray-400">Loading invitations...</span>
                     </div>
                 ) : error ? (
                     <ErrorState message={(error as any)?.msg ?? "Failed to load invitations."} onRetry={refresh} />
                 ) : invites.length === 0 ? (
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/8 px-5 py-14 text-center">
+                    <div className="bg-surface rounded-xl border border-border px-5 py-14 text-center">
                         <p className="text-[13px] text-gray-600">No invitations in this category.</p>
                     </div>
                 ) : (

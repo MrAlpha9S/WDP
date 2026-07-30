@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { updateMyProfile } from '../api/jockeyApi';
 import { useAuth } from '../auth/AuthContext';
 import { Fonts } from '@/constants/theme';
+import { DateOfBirthField } from '@/components/ui/DateOfBirthField';
 
 const Palette = {
   background: '#0A0A0B',
@@ -193,18 +194,11 @@ export default function CompleteJockeyProfileScreen() {
             </View>
 
             <Text style={styles.fieldLabel}>Date of Birth</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="calendar-outline" size={18} color={Palette.textMuted} />
-              <TextInput
-                style={styles.input}
-                value={dateOfBirth}
-                onChangeText={(v) => { setDateOfBirth(v); setErrorMsg(null); }}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={Palette.textPlaceholder}
-                keyboardType="numbers-and-punctuation"
-                maxLength={10}
-              />
-            </View>
+            <DateOfBirthField
+              value={dateOfBirth}
+              onChange={(v) => { setDateOfBirth(v); setErrorMsg(null); }}
+              accentColor={Palette.red}
+            />
 
             <Pressable
               style={[styles.submitBtn, isSubmitting && styles.submitDisabled]}
@@ -308,7 +302,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     height: '100%',
   },
-
   submitBtn: {
     height: 54,
     borderRadius: 12,

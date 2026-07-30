@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -24,20 +23,16 @@ import {
 import { useAuth } from '../../auth/AuthContext';
 import { useSocket } from '../../socket/SocketContext';
 import { isNetworkError } from '../../api/axios';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
+import { Badge, BadgeTone } from '@/components/ui/Badge';
+import { Chip } from '@/components/ui/Chip';
 
+// `redLight` (hero-card accent) isn't part of the shared token set yet — extend locally.
 const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
+  ...SharedPalette,
   redLight: '#E8828A',
-  gold: '#C9A24B',
-  amber: '#E07B3A',
 } as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -158,17 +153,17 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
 
 // ─── All-Races Card (read-only browse — jockeys don't drill into a race) ─────
 
-function statusLabel(s: string): { label: string; color: string } {
-  if (s === 'running')              return { label: 'Running',              color: Palette.red };
-  if (s === 'prepared')             return { label: 'Preparing',            color: Palette.amber };
-  if (s === 'scheduled')            return { label: 'Upcoming',             color: Palette.gold };
-  if (s === 'completed')            return { label: 'Completed',            color: Palette.textMuted };
-  if (s === 'awaitingConfirmation') return { label: 'Awaiting Confirmation', color: Palette.amber };
-  return { label: s, color: Palette.textMuted };
+function statusLabel(s: string): { label: string; tone: BadgeTone } {
+  if (s === 'running')              return { label: 'Running',              tone: 'red' };
+  if (s === 'prepared')             return { label: 'Preparing',            tone: 'amber' };
+  if (s === 'scheduled')            return { label: 'Upcoming',             tone: 'gold' };
+  if (s === 'completed')            return { label: 'Completed',            tone: 'muted' };
+  if (s === 'awaitingConfirmation') return { label: 'Awaiting Confirmation', tone: 'amber' };
+  return { label: s, tone: 'muted' };
 }
 
 function AllRaceCard({ item }: { item: RaceScheduleItem }) {
-  const { label, color } = statusLabel(item.status);
+  const { label, tone } = statusLabel(item.status);
 
   return (
     <View style={[
@@ -186,12 +181,11 @@ function AllRaceCard({ item }: { item: RaceScheduleItem }) {
             </Text>
           )}
         </View>
-        <View style={[styles.statusBadge, { borderColor: `${color}55`, backgroundColor: `${color}18` }]}>
-          {(item.status === 'running' || item.status === 'prepared' || item.status === 'awaitingConfirmation') && (
-            <View style={[styles.runningDot, { backgroundColor: color }]} />
-          )}
-          <Text style={[styles.statusBadgeText, { color }]}>{label.toUpperCase()}</Text>
-        </View>
+        <Badge
+          label={label.toUpperCase()}
+          tone={tone}
+          dot={item.status === 'running' || item.status === 'prepared' || item.status === 'awaitingConfirmation'}
+        />
       </View>
 
       <View style={styles.raceCardDivider} />
@@ -473,22 +467,15 @@ export default function DashboardScreen() {
           </View>
 
           <View style={styles.filterBar}>
-            {ALL_RACES_FILTERS.map(({ key, label, color }) => {
-              const active = allRacesFilter === key;
-              return (
-                <Pressable
-                  key={key}
-                  style={[
-                    styles.filterPill,
-                    active && { borderColor: color, backgroundColor: `${color}1A` },
-                  ]}
-                  onPress={() => onAllRacesFilterChange(key)}>
-                  <Text style={[styles.filterPillText, active && { color }]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {ALL_RACES_FILTERS.map(({ key, label, color }) => (
+              <Chip
+                key={key}
+                label={label}
+                active={allRacesFilter === key}
+                accentColor={color}
+                onPress={() => onAllRacesFilterChange(key)}
+              />
+            ))}
           </View>
 
           {isLoadingAllRaces ? (
@@ -762,23 +749,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
-  filterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Palette.cardBorder,
-  },
-  filterPillText: {
-    fontFamily: Fonts.mono,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    color: Palette.textMuted,
-  },
-
   allRacesEmpty: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -816,22 +786,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Palette.textMuted,
     letterSpacing: 0.3,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  runningDot: { width: 6, height: 6, borderRadius: 3 },
-  statusBadgeText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
   raceCardDivider: { height: 1, backgroundColor: Palette.cardBorder },
   metaGrid: { gap: 8 },

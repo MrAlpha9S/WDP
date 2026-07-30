@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { AlertCircle, ChevronLeft, ChevronRight, Flag, Search, User } from "lucide-react";
 import { INCIDENTS, JOCKEYS, STATUSES, type ViolationStatus } from "../../shared/data/ManagementData";
 
@@ -8,7 +8,7 @@ function StatusBadge({ status }: { status: ViolationStatus }) {
     const styles: Record<ViolationStatus, string> = {
         "Confirmed": "border-red-800/60 text-red-400 bg-red-500/10",
         "Pending Review": "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
-        "Dismissed": "border-white/10 text-gray-600 bg-transparent",
+        "Dismissed": "border-border text-gray-600 bg-transparent",
     };
     const dot: Record<ViolationStatus, string> = {
         "Confirmed": "bg-red-500",
@@ -38,8 +38,8 @@ export default function ViolationManagementPage() {
         return matchSearch && matchJockey && matchStatus;
     });
 
-    const inputCls = "w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[13px] text-gray-300 placeholder-gray-600 outline-none focus:border-white/25 focus:bg-white/8 transition-all";
-    const selectCls = "bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[13px] text-gray-300 outline-none focus:border-white/25 transition-all appearance-none cursor-pointer w-full";
+    const inputCls = "w-full bg-white/5 border border-border rounded-lg px-3 py-2 text-[13px] text-gray-300 placeholder-gray-600 outline-none focus:border-white/25 focus:bg-white/8 transition-all";
+    const selectCls = "bg-white/5 border border-border rounded-lg px-3 py-2 text-[13px] text-gray-300 outline-none focus:border-white/25 transition-all appearance-none cursor-pointer w-full";
 
     return (
         <div className="min-h-screen font-sans">
@@ -62,7 +62,7 @@ export default function ViolationManagementPage() {
                 </div>
 
                 {/* Filters */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 px-5 py-4 mb-5">
+                <div className="bg-surface rounded-xl border border-border px-5 py-4 mb-5">
                     <div className="flex flex-wrap gap-3 items-end">
 
                         {/* Search */}
@@ -84,7 +84,7 @@ export default function ViolationManagementPage() {
                         <div className="flex flex-col gap-1.5 min-w-[160px]">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Jockey</label>
                             <select value={jockey} onChange={e => setJockey(e.target.value)} className={selectCls}>
-                                {JOCKEYS.map(j => <option key={j} className="bg-[#1a1a1a]">{j}</option>)}
+                                {JOCKEYS.map(j => <option key={j} className="bg-surface">{j}</option>)}
                             </select>
                         </div>
 
@@ -92,15 +92,15 @@ export default function ViolationManagementPage() {
                         <div className="flex flex-col gap-1.5 min-w-[160px]">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Status</label>
                             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={selectCls}>
-                                <option className="bg-[#1a1a1a]">All Statuses</option>
-                                {STATUSES.map(s => <option key={s} className="bg-[#1a1a1a]">{s}</option>)}
+                                <option className="bg-surface">All Statuses</option>
+                                {STATUSES.map(s => <option key={s} className="bg-surface">{s}</option>)}
                             </select>
                         </div>
 
                         {/* Clear */}
                         <button
                             onClick={() => { setSearch(""); setJockey("All Jockeys"); setStatusFilter("All Statuses"); }}
-                            className="px-4 py-2 rounded-lg border border-white/10 text-[13px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150 self-end"
+                            className="px-4 py-2 rounded-lg border border-border text-[13px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150 self-end"
                         >
                             Clear Filters
                         </button>
@@ -108,10 +108,10 @@ export default function ViolationManagementPage() {
                 </div>
 
                 {/* Table */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
 
                     {/* Table head */}
-                    <div className="grid grid-cols-[110px_170px_180px_160px_1fr_140px_80px] gap-0 border-b border-white/8 px-5 py-2.5">
+                    <div className="grid grid-cols-[110px_170px_180px_160px_1fr_140px_80px] gap-0 border-b border-border px-5 py-2.5">
                         {["Incident ID", "Timestamp", "Race", "Offender", "Violation Type", "Status", "Actions"].map(col => (
                             <span key={col} className="text-[10px] font-bold uppercase tracking-widest text-gray-600">{col}</span>
                         ))}
@@ -126,7 +126,7 @@ export default function ViolationManagementPage() {
                                 key={inc.id}
                                 className={[
                                     "grid grid-cols-[110px_170px_180px_160px_1fr_140px_80px] gap-0 px-5 py-3.5 items-center transition-colors duration-150 hover:bg-white/[0.02]",
-                                    i !== filtered.length - 1 ? "border-b border-white/5" : "",
+                                    i !== filtered.length - 1 ? "border-b border-border/60" : "",
                                 ].join(" ")}
                             >
                                 <span className="text-[13px] font-bold text-white">{inc.id}</span>
@@ -151,13 +151,13 @@ export default function ViolationManagementPage() {
                     )}
 
                     {/* Pagination */}
-                    <div className="flex items-center justify-between px-5 py-3 border-t border-white/8">
+                    <div className="flex items-center justify-between px-5 py-3 border-t border-border">
                         <span className="text-[12px] text-gray-600">Showing 1 to {filtered.length} of 124 incidents</span>
                         <div className="flex items-center gap-1">
-                            <button className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all">
+                            <button className="w-7 h-7 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all">
                                 <ChevronLeft size={13} />
                             </button>
-                            <button className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all">
+                            <button className="w-7 h-7 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all">
                                 <ChevronRight size={13} />
                             </button>
                         </div>
@@ -168,7 +168,7 @@ export default function ViolationManagementPage() {
             {/* Record Incident Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/10 w-full max-w-md p-6 shadow-2xl">
+                    <div className="bg-surface rounded-xl border border-border w-full max-w-md p-6 shadow-2xl">
                         <h2 className="text-[20px] font-bold text-white mb-1 font-serif">
                             Record Incident
                         </h2>
@@ -189,7 +189,7 @@ export default function ViolationManagementPage() {
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[12px] font-semibold text-gray-400">Status</label>
                                 <select className={selectCls}>
-                                    {STATUSES.map(s => <option key={s} className="bg-[#1a1a1a]">{s}</option>)}
+                                    {STATUSES.map(s => <option key={s} className="bg-surface">{s}</option>)}
                                 </select>
                             </div>
                         </div>
@@ -197,7 +197,7 @@ export default function ViolationManagementPage() {
                         <div className="flex items-center gap-3 mt-6">
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="flex-1 py-2.5 rounded-xl border border-white/10 text-[13px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all"
+                                className="flex-1 py-2.5 rounded-xl border border-border text-[13px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all"
                             >
                                 Cancel
                             </button>

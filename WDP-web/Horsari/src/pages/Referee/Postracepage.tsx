@@ -114,7 +114,7 @@ export default function PostRacePage() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] bg-[#1a1a1a] rounded-xl border border-white/8">
+            <div className="flex flex-col items-center justify-center min-h-[400px] bg-surface rounded-xl border border-border">
                 <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-4" />
                 <span className="text-[13px] font-medium text-gray-400">Loading race results...</span>
             </div>
@@ -141,8 +141,8 @@ export default function PostRacePage() {
             <div className="flex flex-col gap-5">
 
                 {/* Finish order */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                    <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/8">
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
                         <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
                             <Medal size={14} className="text-yellow-500" /> Official Finish Order
                         </h2>
@@ -153,7 +153,7 @@ export default function PostRacePage() {
                                 </span>
                             )}
                             <RefetchButton onRefetch={fetchData} lastUpdated={lastUpdated} />
-                            <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
+                            <div className="flex items-center gap-0.5 bg-white/5 border border-border rounded-lg p-0.5">
                                 {(['lengths', 'metres'] as DistUnit[]).map(u => (
                                     <button key={u} onClick={() => setDistUnit(u)}
                                         className={["text-[10px] font-bold font-mono px-2 py-1 rounded-md transition-all", distUnit === u ? "bg-white/15 text-white" : "text-gray-600 hover:text-gray-400"].join(" ")}>
@@ -184,8 +184,8 @@ export default function PostRacePage() {
                             return (
                                 <div key={reg._id} className={["rounded-xl border px-4 py-3 flex items-center gap-3",
                                     hasHorseObjection && !objectionResolved ? "border-red-800/60 bg-red-500/5"
-                                        : pos > 0 && pos <= 3 ? "border-white/10 bg-white/[0.03]"
-                                            : "border-white/6 bg-white/[0.02]"].join(" ")}
+                                        : pos > 0 && pos <= 3 ? "border-border bg-white/[0.03]"
+                                            : "border-border/60 bg-white/[0.02]"].join(" ")}
                                 >
                                     <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 text-white ${posBg}`}>{pos || "-"}</span>
                                     <span className="w-6 h-6 rounded-full bg-white/8 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">{horse.horseNumber || "?"}</span>
@@ -215,8 +215,8 @@ export default function PostRacePage() {
                 </div>
 
                 {/* Incident review */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                    <div className="px-5 py-3.5 border-b border-white/8">
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-border">
                         <h2 className="text-[13px] font-bold text-white font-serif">Incident Review</h2>
                     </div>
                     <div className="p-3 flex flex-col gap-2">
@@ -226,7 +226,7 @@ export default function PostRacePage() {
                             const horseName = reg?.Horse?.horseName || "Unknown Horse";
 
                             return (
-                                <div key={inc._id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/6">
+                                <div key={inc._id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-border/60">
                                     <AlertTriangle size={13} className="text-red-500 shrink-0" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[13px] font-semibold text-white">{inc.violationTypeId?.violationName || "Unknown Violation"}</p>
@@ -256,8 +256,8 @@ export default function PostRacePage() {
             <div className="flex flex-col gap-5">
 
                 {/* Finish photo */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-white/8">
+                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border">
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 flex items-center gap-2">
                             <Camera size={13} className="text-green-500" /> Finish Photo
                         </h2>
@@ -271,7 +271,7 @@ export default function PostRacePage() {
                 </div>
 
                 {/* Summary */}
-                <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
+                <div className="bg-surface rounded-xl border border-border p-4">
                     <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Summary</h2>
                     {[
                         { label: "Winner", value: sorted.length > 0 && sorted[0].RaceResult?.finishPosition === 1 ? sorted[0].Horse?.horseName : "Pending" },
@@ -280,7 +280,7 @@ export default function PostRacePage() {
                         { label: "Incidents", value: `${violations.length}` },
                         { label: "Objections", value: objectionResolved ? `${violations.length} (resolved)` : `${violations.filter(v => v.violationStatus === 'pending').length} (pending)` },
                     ].map(item => (
-                        <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                        <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
                             <span className="text-[12px] text-gray-500">{item.label}</span>
                             <span className="text-[12px] font-semibold text-white">{item.value}</span>
                         </div>
@@ -289,7 +289,7 @@ export default function PostRacePage() {
 
                 {/* Publish */}
                 <div className="flex flex-col gap-2.5">
-                    <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-gray-400 text-[13px] font-semibold hover:border-white/20 hover:text-gray-200 transition-all duration-150">
+                    <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-gray-400 text-[13px] font-semibold hover:border-white/20 hover:text-gray-200 transition-all duration-150">
                         <Camera size={14} /> Review Finish Photo
                     </button>
                     <button
@@ -297,7 +297,7 @@ export default function PostRacePage() {
                         disabled={hasObjection || isAlreadyPublished || isPublishing || !canPublish}
                         className={["w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
                             isAlreadyPublished ? "bg-green-700 text-white cursor-default"
-                                : hasObjection || !canPublish ? "bg-white/5 border border-white/8 text-gray-600 cursor-not-allowed"
+                                : hasObjection || !canPublish ? "bg-white/5 border border-border text-gray-600 cursor-not-allowed"
                                     : "bg-green-700 text-white hover:bg-green-600 shadow-lg shadow-green-900/30",
                         ].join(" ")}
                     >

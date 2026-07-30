@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+﻿import { useEffect, useState, useRef } from "react";
 import { Search, ChevronDown, Plus, MoreVertical, ChevronLeft, ChevronRight, X, Loader2, ImagePlus } from "lucide-react";
 import { horseOwnerService, type Horse } from "../../../api/horseOwnerService";
 import HorseProfile from "./HorseProfile";
 import { RefetchButton } from "../../../components/RefetchButton";
 import { ErrorState } from "../../../components/ErrorState";
+import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 // Mirrors the backend enums: Horse.status ('active'|'inactive'|'retired') and
@@ -96,7 +97,7 @@ function statusLabel(status: HorseStatus) {
 // ── Info grid cell ────────────────────────────────────────────────────────────
 function InfoCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-[#1e1e1e] rounded-lg px-3 py-2.5 border border-white/6">
+    <div className="bg-[#1e1e1e] rounded-lg px-3 py-2.5 border border-border/60">
       <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-1">
         {label}
       </p>
@@ -120,8 +121,8 @@ function HorseCardItem({
   );
 
   return (
-    <div className="bg-[#1a1a1a] rounded-2xl border border-white/8 overflow-hidden flex flex-col group hover:border-white/15 transition-colors duration-200">
-      <div className="relative h-40 overflow-hidden bg-[#111] flex items-center justify-center">
+    <div className="bg-surface rounded-2xl border border-border overflow-hidden flex flex-col group hover:border-white/15 transition-colors duration-200">
+      <div className="relative h-28 overflow-hidden bg-bg flex items-center justify-center">
         <img
           src={horse.image}
           alt={horse.name}
@@ -131,12 +132,12 @@ function HorseCardItem({
           }}
           className={
             isPlaceholder
-              ? "h-20 w-20 object-contain opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+              ? "h-16 w-16 object-contain opacity-20 group-hover:opacity-30 transition-opacity duration-500"
               : "absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-65 transition-opacity duration-500"
           }
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/30 to-transparent" />
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/10">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-full border border-border">
           <span className={`w-1.5 h-1.5 rounded-full ${statusDot(horse.status)}`} />
           <span className={`text-[11px] font-semibold tracking-wide ${statusLabel(horse.status)}`}>
             {STATUS_META[horse.status].label.toUpperCase()}
@@ -144,10 +145,10 @@ function HorseCardItem({
         </div>
       </div>
 
-      <div className="px-5 pt-4 pb-5 flex flex-col gap-4 flex-1">
+      <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
         <div>
           <h3
-            className="text-[18px] font-bold text-white leading-tight font-serif"
+            className="text-[16px] font-bold text-white leading-tight font-serif"
           >
             {horse.name}
           </h3>
@@ -173,12 +174,66 @@ function HorseCardItem({
           </button>
           <button
             onClick={onOpenUpdate}
-            className="w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150 shrink-0"
+            className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150 shrink-0"
           >
             <MoreVertical size={15} />
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Horse Table ───────────────────────────────────────────────────────────────
+function HorseTable({ horses, onViewProfile, onOpenUpdate }: {
+  horses: HorseCard[];
+  onViewProfile: (id: string) => void;
+  onOpenUpdate: (id: string) => void;
+}) {
+  return (
+    <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-surface border-b border-border/60">
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Name</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Age / Breed / Sex</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Grade</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/5">
+          {horses.map((horse) => (
+            <tr key={horse.id} className="hover:bg-white/[0.02] transition-colors">
+              <td className="p-4 text-[13px] font-semibold text-white">{horse.name}</td>
+              <td className="p-4 text-[12.5px] text-gray-400">{horse.age}YO {horse.color} {horse.sex}</td>
+              <td className="p-4 text-[12.5px] text-gray-400">{horse.grade}</td>
+              <td className="p-4">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-black/40 text-[10.5px] font-semibold tracking-wide">
+                  <span className={`w-1.5 h-1.5 rounded-full ${statusDot(horse.status)}`} />
+                  <span className={statusLabel(horse.status)}>{horse.status.toUpperCase()}</span>
+                </span>
+              </td>
+              <td className="p-4 text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => onViewProfile(horse.id)}
+                    className="px-3.5 py-1.5 rounded-lg border border-red-700/60 text-red-400 text-[11px] font-semibold hover:bg-red-700/10 hover:border-red-600 transition-all duration-150"
+                  >
+                    View Profile
+                  </button>
+                  <button
+                    onClick={() => onOpenUpdate(horse.id)}
+                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150"
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -261,9 +316,9 @@ function EditHorseModal({
     }
   }
 
-  const inputCls = "w-full bg-[#1e1e1e] border border-white/10 rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
+  const inputCls = "w-full bg-[#1e1e1e] border border-border rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
   const labelCls = "block text-[10.5px] font-bold tracking-widest text-gray-500 uppercase mb-1.5";
-  const idle = "text-gray-600 border-white/8 bg-transparent hover:border-white/20 hover:text-gray-400";
+  const idle = "text-gray-600 border-border bg-transparent hover:border-white/20 hover:text-gray-400";
 
   const statusOptions: { label: string; value: 'active' | 'inactive' | 'retired'; active: string }[] = [
     { label: "Active", value: "active", active: "text-green-400 border-green-500/50 bg-green-500/10" },
@@ -282,11 +337,11 @@ function EditHorseModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col font-sans"
+        className="w-full max-w-md bg-bg rounded-2xl border border-border shadow-2xl overflow-hidden max-h-[90vh] flex flex-col font-sans"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div>
             <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">Edit Horse</p>
             <h2 className="text-[17px] font-bold text-white mt-0.5 font-serif">
@@ -295,7 +350,7 @@ function EditHorseModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
           >
             <X size={14} />
           </button>
@@ -309,7 +364,7 @@ function EditHorseModal({
             <p className={labelCls}>Photo</p>
             <div
               onClick={() => fileRef.current?.click()}
-              className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-[#1a1a1a] flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group overflow-hidden relative"
+              className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-surface flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group overflow-hidden relative"
             >
               {displayImg && (
                 <img
@@ -427,7 +482,7 @@ function EditHorseModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-white/10 text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
+              className="flex-1 py-2.5 rounded-lg border border-border text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
             >
               Cancel
             </button>
@@ -507,17 +562,17 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
     }
   }
 
-  const inputCls = "w-full bg-[#1e1e1e] border border-white/10 rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
+  const inputCls = "w-full bg-[#1e1e1e] border border-border rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
   const labelCls = "block text-[10.5px] font-bold tracking-widest text-gray-500 uppercase mb-1.5";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-[#111111] rounded-2xl border border-white/10 shadow-2xl overflow-hidden font-sans"
+        className="w-full max-w-md bg-bg rounded-2xl border border-border shadow-2xl overflow-hidden font-sans"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
             <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">New Registration</p>
             <h2 className="text-[17px] font-bold text-white mt-0.5 font-serif">
@@ -526,7 +581,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
           >
             <X size={14} />
           </button>
@@ -538,7 +593,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
           {/* Image upload */}
           <div
             onClick={() => fileRef.current?.click()}
-            className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-[#1a1a1a] flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group"
+            className="w-full h-28 rounded-xl border-2 border-dashed border-white/12 bg-surface flex items-center justify-center gap-3 cursor-pointer hover:border-white/25 transition-colors duration-150 group"
           >
             {imagePreview ? (
               <img src={imagePreview} className="h-20 object-contain rounded-lg" alt="preview" />
@@ -623,7 +678,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-white/10 text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
+              className="flex-1 py-2.5 rounded-lg border border-border text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
             >
               Cancel
             </button>
@@ -653,7 +708,7 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
       <button
         onClick={onPrev}
         disabled={page === 1}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
       >
         <ChevronLeft size={13} /> Prev
       </button>
@@ -661,7 +716,7 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
       <button
         onClick={onNext}
         disabled={page === totalPages}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
       >
         Next <ChevronRight size={13} />
       </button>
@@ -674,6 +729,7 @@ export default function HorsesPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All Statuses" | HorseStatus>("All Statuses");
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [userHorse, setUserHorse] = useState<Horse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -733,103 +789,109 @@ export default function HorsesPage() {
 
   return (
     <>
-      <HorseProfile horseId={profileHorseId} onClose={() => setProfileHorseId(null)} />
-      {showRegister && (
-        <RegisterHorseModal
-          onClose={() => setShowRegister(false)}
-          onCreated={() => { setShowRegister(false); setPage(1); setRefreshSeed(s => s + 1); }}
-        />
-      )}
-      {editTarget && (
-        <EditHorseModal
-          horse={editTarget}
-          onClose={() => setEditTarget(null)}
-          onSaved={() => { setEditTarget(null); setRefreshSeed(s => s + 1); }}
-        />
-      )}
-      <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] flex flex-col font-sans">
-        <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
-                Active Roster
-              </h1>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
-                  Horse Management
-                </span>
-                <span className="text-[12px] text-gray-500 truncate">· {filtered.length} horse{filtered.length !== 1 ? "s" : ""}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <RefetchButton onRefetch={() => setRefreshSeed((s) => s + 1)} lastUpdated={lastUpdated} />
-              <button
-                onClick={() => setShowRegister(true)}
-                className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
-              >
-                <Plus size={13} /> Register New Horse
-              </button>
+    <HorseProfile horseId={profileHorseId} onClose={() => setProfileHorseId(null)} />
+    {showRegister && (
+      <RegisterHorseModal
+        onClose={() => setShowRegister(false)}
+        onCreated={() => { setShowRegister(false); setPage(1); setRefreshSeed(s => s + 1); }}
+      />
+    )}
+    {editTarget && (
+      <EditHorseModal
+        horse={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={() => { setEditTarget(null); setRefreshSeed(s => s + 1); }}
+      />
+    )}
+    <div className="flex-1 px-8 py-8 min-h-screen bg-bg flex flex-col font-sans">
+      <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
+              Active Roster
+            </h1>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
+                Horse Management
+              </span>
+              <span className="text-[12px] text-gray-500 truncate">· {filtered.length} horse{filtered.length !== 1 ? "s" : ""}</span>
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative flex-1 max-w-xs">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
-              <input
-                type="text"
-                placeholder="Search horses..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-9 pr-4 text-[11px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 h-[32px] transition-colors duration-150"
-              />
-            </div>
-            <div className="relative">
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1); }}
-                className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>{s === "All Statuses" ? s : STATUS_META[s].label}</option>
-                ))}
-              </select>
-              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-            </div>
-
+          <div className="flex items-center gap-2 shrink-0">
+            <ViewToggle value={viewMode} onChange={setViewMode} />
+            <RefetchButton onRefetch={() => setRefreshSeed((s) => s + 1)} lastUpdated={lastUpdated} />
+            <button
+              onClick={() => setShowRegister(true)}
+              className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
+            >
+              <Plus size={13} /> Register New Horse
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 max-w-xs">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+            <input
+              type="text"
+              placeholder="Search horses..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-surface border border-border rounded-md pl-9 pr-4 text-[11px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 h-[32px] transition-colors duration-150"
+            />
+          </div>
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1); }}
+              className="appearance-none bg-surface border border-border rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           </div>
         </header>
         <div className="flex-1 pt-5">
 
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 text-gray-600">
-              <p className="text-[15px] font-medium">Loading horses...</p>
-            </div>
-          ) : error ? (
-            <ErrorState message={error} onRetry={() => setRefreshSeed((s) => s + 1)} />
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-gray-600">
-              <p className="text-[15px] font-medium">No horses match your filters.</p>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24 text-gray-600">
+          <p className="text-[15px] font-medium">Loading horses...</p>
+        </div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => setRefreshSeed((s) => s + 1)} />
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-gray-600">
+          <p className="text-[15px] font-medium">No horses match your filters.</p>
+        </div>
+      ) : (
+        <>
+          {viewMode === "card" ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filtered.map((horse) => (
+                <HorseCardItem
+                  key={horse.id}
+                  horse={horse}
+                  onViewProfile={() => setProfileHorseId(horse.id)}
+                  onOpenUpdate={() => handleOpenEdit(horse.id)}
+                />
+              ))}
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filtered.map((horse) => (
-                  <HorseCardItem
-                    key={horse.id}
-                    horse={horse}
-                    onViewProfile={() => setProfileHorseId(horse.id)}
-                    onOpenUpdate={() => handleOpenEdit(horse.id)}
-                  />
-                ))}
-              </div>
-              <PaginationBar
-                page={page}
-                totalPages={totalPages}
-                onPrev={() => setPage(p => p - 1)}
-                onNext={() => setPage(p => p + 1)}
-              />
-            </>
+            <HorseTable
+              horses={filtered}
+              onViewProfile={setProfileHorseId}
+              onOpenUpdate={handleOpenEdit}
+            />
           )}
-        </div>
+          <PaginationBar
+            page={page}
+            totalPages={totalPages}
+            onPrev={() => setPage(p => p - 1)}
+            onNext={() => setPage(p => p + 1)}
+          />
+        </>
+      )}
       </div>
     </>
   );

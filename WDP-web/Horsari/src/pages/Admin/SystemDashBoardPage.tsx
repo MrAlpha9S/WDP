@@ -39,7 +39,7 @@ function StatCard({
         <div
             className={`rounded-xl p-5 flex flex-col gap-3 border ${highlight
                 ? "border-red-600/40 bg-[#1a0f0f]"
-                : "border-white/[0.07] bg-[#141414]"
+                : "border-border bg-surface"
                 }`}
         >
             <div className="flex items-center justify-between">
@@ -224,7 +224,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                     <InvitationsSection onViewAll={() => setActiveTab("Inbox")} />
 
                     {/* Active Races */}
-                    <div className="rounded-xl border border-white/[0.07] bg-[#141414] p-5 min-w-0">
+                    <div className="rounded-xl border border-border bg-surface p-5 min-w-0">
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-[15px] font-semibold text-white">
                                 Active Races
@@ -241,7 +241,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                                 activeRaces.map((race) => (
                                     <div
                                         key={race.id}
-                                        className="rounded-lg bg-[#1a1a1a] border border-white/[0.05] px-4 py-3 flex items-center justify-between gap-2"
+                                        className="rounded-lg bg-surface border border-border/60 px-4 py-3 flex items-center justify-between gap-2"
                                     >
                                         <div className="min-w-0">
                                             <RaceStatusBadge status={race.status} />

@@ -83,10 +83,10 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style={{ animation: "fadeIn 0.15s ease-out" }}>
             <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
 
-            <div className="w-full max-w-2xl bg-[#141414] border border-white/[0.07] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="w-full max-w-2xl bg-surface border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.07] shrink-0">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
                     <h2 className="text-[18px] font-semibold text-white">
                         {rule ? "Edit Eligibility Rule" : "Create Eligibility Rule"}
                     </h2>
@@ -107,12 +107,12 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                                 value={formData.raceType}
                                 onChange={e => setFormData({ ...formData, raceType: e.target.value })}
                                 placeholder="e.g., Stakes, Claiming, Maiden (Optional)"
-                                className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                     </div>
 
-                    <hr className="border-white/5" />
+                    <hr className="border-border/60" />
 
                     {/* Age Limits */}
                     <div className="grid grid-cols-2 gap-4">
@@ -124,7 +124,7 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                                 value={formData.minAge}
                                 onChange={e => setFormData({ ...formData, minAge: e.target.value })}
                                 placeholder="Any"
-                                className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                         <div>
@@ -135,12 +135,12 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                                 value={formData.maxAge}
                                 onChange={e => setFormData({ ...formData, maxAge: e.target.value })}
                                 placeholder="Any"
-                                className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                     </div>
 
-                    <hr className="border-white/5" />
+                    <hr className="border-border/60" />
 
                     {/* Experience */}
                     <div className="grid grid-cols-2 gap-4">
@@ -152,7 +152,7 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                                 required
                                 value={formData.minRacesRun}
                                 onChange={e => setFormData({ ...formData, minRacesRun: parseInt(e.target.value) || 0 })}
-                                className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                         <div>
@@ -163,12 +163,12 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                                 required
                                 value={formData.minRacesWon}
                                 onChange={e => setFormData({ ...formData, minRacesWon: parseInt(e.target.value) || 0 })}
-                                className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                     </div>
 
-                    <hr className="border-white/5" />
+                    <hr className="border-border/60" />
 
                     {/* Traits */}
                     <div className="grid grid-cols-2 gap-4">
@@ -177,7 +177,7 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                             <select
                                 value={formData.requiredGender}
                                 onChange={e => setFormData({ ...formData, requiredGender: e.target.value })}
-                                className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-white/20 transition-colors appearance-none"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-white/20 transition-colors appearance-none"
                             >
                                 <option value="any">Any Gender</option>
                                 <option value="male">Male</option>
@@ -191,15 +191,15 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                                 value={formData.requiredBreed}
                                 onChange={e => setFormData({ ...formData, requiredBreed: e.target.value })}
                                 placeholder="e.g., Thoroughbred (Optional)"
-                                className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                     </div>
 
-                    <hr className="border-white/5" />
+                    <hr className="border-border/60" />
 
                     {/* Requirements */}
-                    <div className="bg-white/[0.02] p-4 rounded-xl border border-white/[0.05]">
+                    <div className="bg-white/[0.02] p-4 rounded-xl border border-border/60">
                         <label className="flex items-center gap-3 cursor-pointer">
                             <input
                                 type="checkbox"
@@ -235,7 +235,7 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                 </form>
 
                 {/* Footer */}
-                <div className="px-6 py-4 border-t border-white/[0.07] shrink-0 flex justify-end gap-3 bg-[#111111]">
+                <div className="px-6 py-4 border-t border-border shrink-0 flex justify-end gap-3 bg-bg">
                     <button
                         type="button"
                         onClick={onClose}

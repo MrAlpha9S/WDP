@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+﻿import { useState, useEffect, useRef, useCallback } from "react";
 import {
   TrendingUp, TrendingDown, Minus, Trophy,
   BarChart2, Search,
@@ -50,7 +50,7 @@ function StatCard({ icon, label, value, sub, subColor, loading }: {
   icon: React.ReactNode; label: string; value: string; sub: string; subColor: string; loading?: boolean;
 }) {
   return (
-    <div className="bg-[#1a1a1a] border border-white/8 rounded-xl px-5 py-4 flex flex-col gap-2 relative overflow-hidden group">
+    <div className="bg-surface border border-border rounded-xl px-5 py-4 flex flex-col gap-2 relative overflow-hidden group">
       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
         {icon}
       </div>
@@ -91,12 +91,12 @@ function EarningsChart() {
     const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
     return (
-        <div className="bg-[#1a1a1a] border border-white/8 rounded-xl p-5 flex flex-col xl:col-span-2 h-[420px]">
+        <div className="bg-surface border border-border rounded-xl p-5 flex flex-col xl:col-span-2 h-[420px]">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-[13px] font-semibold text-white flex items-center gap-2">
                     <BarChart2 size={15} className="text-emerald-500" /> Gross Earnings Trend
                 </h3>
-                <div className="flex items-center bg-[#111] rounded-lg p-1 border border-white/10">
+                <div className="flex items-center bg-bg rounded-lg p-1 border border-border">
                     {(['day', 'week', 'month', 'year'] as const).map(g => (
                         <button key={g} onClick={() => setGroupBy(g)} className={`px-3 py-1 text-[11px] font-bold uppercase rounded-md transition-colors ${groupBy === g ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-white'}`}>
                             {g}
@@ -150,7 +150,7 @@ function EarningsChart() {
                     {/* Tooltip */}
                     {hoveredIdx !== null && (
                         <div 
-                            className="absolute bg-[#1e1e1e] border border-white/10 rounded-lg px-3 py-2 text-[11px] text-gray-300 whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
+                            className="absolute bg-[#1e1e1e] border border-border rounded-lg px-3 py-2 text-[11px] text-gray-300 whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
                             style={{ 
                                 left: `${(toX(hoveredIdx) / W) * 100}%`,
                                 top: '5%',
@@ -177,7 +177,7 @@ function TopPerformers() {
     }, []);
 
     return (
-        <div className="bg-[#1a1a1a] border border-white/8 rounded-xl p-5 flex flex-col xl:col-span-1 h-[420px]">
+        <div className="bg-surface border border-border rounded-xl p-5 flex flex-col xl:col-span-1 h-[420px]">
             <h3 className="text-[13px] font-semibold text-white flex items-center gap-2 mb-4">
                 <Medal size={15} className="text-yellow-500" /> Top Earning Horses
             </h3>
@@ -190,9 +190,9 @@ function TopPerformers() {
             ) : (
                 <div className="flex flex-col gap-3">
                     {performers.map((p, i) => (
-                        <div key={p.id} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-lg hover:bg-white/[0.04] transition-colors">
+                        <div key={p.id} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-border/60 rounded-lg hover:bg-white/[0.04] transition-colors">
                             <span className="text-[16px] font-black text-gray-600 w-4">{i + 1}</span>
-                            <div className="w-10 h-10 rounded-md bg-[#222] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-md bg-[#222] border border-border overflow-hidden shrink-0 flex items-center justify-center">
                                 {p.img ? (
                                     <img 
                                         src={p.img} 
@@ -328,7 +328,7 @@ export default function FinancialsPage() {
   const s = summary;
 
   return (
-    <div className="flex-1 px-8 py-8 min-h-screen bg-[#111111] text-white font-sans">
+    <div className="flex-1 px-8 py-8 min-h-screen bg-bg text-white font-sans">
 
       {/* ── Top header ───────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-8">
@@ -341,7 +341,7 @@ export default function FinancialsPage() {
         </div>
         <div className="flex items-center gap-3 mt-1">
           <RefetchButton onRefetch={refetchAll} lastUpdated={lastUpdated} />
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl px-5 py-3 text-center">
+          <div className="bg-surface border border-border rounded-xl px-5 py-3 text-center">
             <p className="text-[9.5px] font-bold tracking-widest text-gray-500 uppercase mb-1">Net Profit</p>
             <p className="text-[18px] font-black text-white font-sans">
               {summaryLoading ? "…" : fmt(s?.netProfit ?? 0)}
@@ -407,8 +407,8 @@ export default function FinancialsPage() {
       </div>
 
       {/* ── Race Activity ─────────────────────────────────────────────────── */}
-      <div className="bg-[#1a1a1a] border border-white/8 rounded-xl overflow-hidden mb-6">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 bg-[#1f1f1f]">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden mb-6">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-[#1f1f1f]">
           <p className="text-[14px] font-bold text-white">Race Activity & Ledger</p>
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -417,13 +417,13 @@ export default function FinancialsPage() {
               placeholder="Search races or horses..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="bg-[#111] border border-white/10 rounded-lg pl-8 pr-4 py-1.5 text-[12px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 transition-colors duration-150 w-64"
+              className="bg-bg border border-border rounded-lg pl-8 pr-4 py-1.5 text-[12px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 transition-colors duration-150 w-64"
             />
           </div>
         </div>
 
         {/* Column headers */}
-        <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.5fr_1.5fr_1fr] px-6 py-3 border-b border-white/5 bg-[#171717]">
+        <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.5fr_1.5fr_1fr] px-6 py-3 border-b border-border/60 bg-[#171717]">
           {["Race", "Horse", "Jockey", "Position", "Gross Prize", "Jockey Pay", "Violations"].map(h => (
             <span key={h} className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">{h}</span>
           ))}
@@ -450,10 +450,10 @@ export default function FinancialsPage() {
         {!rowsLoading && !rowsError && rows.map((row, i) => (
           <div
             key={String(row.registrationId)}
-            className={`grid grid-cols-[2fr_1.5fr_1fr_1fr_1.5fr_1.5fr_1fr] px-6 py-4 items-center hover:bg-white/[0.03] transition-colors duration-150 ${i !== rows.length - 1 ? "border-b border-white/5" : ""}`}
+            className={`grid grid-cols-[2fr_1.5fr_1fr_1fr_1.5fr_1.5fr_1fr] px-6 py-4 items-center hover:bg-white/[0.03] transition-colors duration-150 ${i !== rows.length - 1 ? "border-b border-border/60" : ""}`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${row.finishPosition === 1 ? "bg-emerald-900/40 border border-emerald-500/20" : "bg-white/5 border border-white/10"}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${row.finishPosition === 1 ? "bg-emerald-900/40 border border-emerald-500/20" : "bg-white/5 border border-border"}`}>
                 <Trophy size={14} className={row.finishPosition === 1 ? "text-emerald-400" : "text-gray-500"} />
               </div>
               <div className="min-w-0">
@@ -482,7 +482,7 @@ export default function FinancialsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && !rowsLoading && (
-          <div className="px-6 py-4 border-t border-white/8 flex items-center justify-between bg-[#171717]">
+          <div className="px-6 py-4 border-t border-border flex items-center justify-between bg-[#171717]">
             <button
               disabled={page === 1}
               onClick={() => setPage(p => p - 1)}

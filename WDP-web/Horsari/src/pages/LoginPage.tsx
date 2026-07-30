@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 import { useAuth } from "../providers/AuthProvider";
@@ -30,7 +30,7 @@ function InputField({ label, type = "text", placeholder, value, onChange, icon, 
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={required}
-          className="w-full bg-[#1a1a1a] border border-white/8 rounded-lg pl-9 pr-10 py-2.5 text-sm text-gray-100 placeholder-gray-600 outline-none focus:border-red-800/60 focus:bg-[#1f1f1f] focus:ring-1 focus:ring-red-900/40 transition-all duration-150"
+          className="w-full bg-surface border border-border rounded-lg pl-9 pr-10 py-2.5 text-sm text-gray-100 placeholder-gray-600 outline-none focus:border-red-800/60 focus:bg-[#1f1f1f] focus:ring-1 focus:ring-red-900/40 transition-all duration-150"
         />
         {rightElement && <span className="absolute right-3 flex items-center">{rightElement}</span>}
       </div>
@@ -152,7 +152,7 @@ export default function LoginPage() {
         style={{ background: "radial-gradient(circle, #7f1d1d 0%, transparent 70%)" }}
       />
 
-      <div className="relative w-full max-w-[420px] bg-[#141414] border border-white/8 rounded-2xl shadow-2xl shadow-black/60 px-8 pt-8 pb-9">
+      <div className="relative w-full max-w-[420px] bg-surface border border-border rounded-2xl shadow-2xl shadow-black/60 px-8 pt-8 pb-9">
 
         {/* Logo */}
         <div className="flex justify-center mb-6">
@@ -160,7 +160,7 @@ export default function LoginPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-[#1a1a1a] rounded-xl p-1 mb-7 gap-1">
+        <div className="flex bg-surface rounded-xl p-1 mb-7 gap-1">
           {(["login", "signup"] as Tab[]).map((t) => (
             <button key={t} type="button" onClick={() => switchTab(t)}
               className={[

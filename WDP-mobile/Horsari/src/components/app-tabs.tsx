@@ -1,98 +1,18 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-
-import { Fonts } from '@/constants/theme';
-
-const Palette = {
-  card: '#161618',
-  cardBorder: '#262629',
-  red: '#C81E2E',
-  textMuted: '#9A9AA0',
-} as const;
+import { Palette } from '@/constants/theme';
+import { RoleTabs } from './RoleTabs';
 
 export default function AppTabs() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: Palette.card,
-          borderTopColor: Palette.cardBorder,
-          borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 80 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-        },
-        tabBarActiveTintColor: Palette.red,
-        tabBarInactiveTintColor: Palette.textMuted,
-        tabBarLabelStyle: {
-          fontFamily: Fonts.mono,
-          fontSize: 10,
-          fontWeight: '700',
-          letterSpacing: 1,
-        },
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'DASHBOARD',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="schedule"
-        options={{
-          title: 'SCHEDULE',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="invites"
-        options={{
-          title: 'INVITES',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="mail-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="payments"
-        options={{
-          title: 'PAYMENTS',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cash-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'PROFILE',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      {/* Edit profile — hidden from tab bar, pushed from Profile */}
-      <Tabs.Screen
-        name="edit-profile"
-        options={{
-          href: null,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      {/* Payout/win-rate statistics — hidden from tab bar, pushed from Profile */}
-      <Tabs.Screen
-        name="statistics"
-        options={{
-          href: null,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-    </Tabs>
+    <RoleTabs
+      accentColor={Palette.red}
+      items={[
+        { name: 'index', title: 'DASHBOARD', icon: 'grid-outline' },
+        { name: 'schedule', title: 'SCHEDULE', icon: 'calendar-outline' },
+        { name: 'invites', title: 'INVITES', icon: 'mail-outline' },
+        { name: 'payments', title: 'PAYMENTS', icon: 'cash-outline' },
+        { name: 'profile', title: 'PROFILE', icon: 'person-outline' },
+      ]}
+      hidden={['edit-profile', 'statistics']}
+    />
   );
 }

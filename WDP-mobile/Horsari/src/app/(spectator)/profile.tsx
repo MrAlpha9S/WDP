@@ -23,22 +23,9 @@ import {
   WalletInfo,
 } from '../../api/spectatorApi';
 import { isNetworkError } from '../../api/axios';
-import { Fonts } from '@/constants/theme';
+import { Fonts, Palette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
-
-const Palette = {
-  background: '#0A0A0B',
-  card: '#161618',
-  cardBorder: '#262629',
-  text: '#FFFFFF',
-  textMuted: '#9A9AA0',
-  red: '#C81E2E',
-  redDark: '#8C1620',
-  gold: '#C9A24B',
-  goldDark: '#1E1A0A',
-  green: '#22C55E',
-} as const;
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
@@ -78,7 +65,12 @@ function SettingsRow({
   onPress?: () => void;
 }) {
   return (
-    <Pressable style={styles.settingsRow} onPress={onPress} disabled={!onPress}>
+    <Pressable
+      style={styles.settingsRow}
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={value ? `${label}: ${value}` : label}>
       <Ionicons name={icon as any} size={18} color={Palette.textMuted} />
       <Text style={styles.settingsLabel}>{label}</Text>
       <View style={styles.settingsRight}>
@@ -206,7 +198,9 @@ export default function SpectatorProfileScreen() {
                 </View>
                 <Pressable
                   style={styles.btnEditProfile}
-                  onPress={() => router.push('/(spectator)/edit-profile' as any)}>
+                  onPress={() => router.push('/(spectator)/edit-profile' as any)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit profile">
                   <Text style={styles.btnEditProfileText}>EDIT PROFILE</Text>
                 </Pressable>
               </View>
@@ -259,7 +253,9 @@ export default function SpectatorProfileScreen() {
                 </View>
                 <Pressable
                   style={styles.statsLinkRow}
-                  onPress={() => router.push('/(spectator)/statistics' as any)}>
+                  onPress={() => router.push('/(spectator)/statistics' as any)}
+                  accessibilityRole="button"
+                  accessibilityLabel="View detailed statistics">
                   <Text style={styles.statsLinkText}>View detailed statistics</Text>
                   <Ionicons name="chevron-forward" size={14} color={Palette.gold} />
                 </Pressable>
@@ -297,13 +293,17 @@ export default function SpectatorProfileScreen() {
                   <View style={styles.walletActions}>
                     <Pressable
                       style={styles.walletBtnDeposit}
-                      onPress={() => router.push('/(spectator)/wallet' as any)}>
+                      onPress={() => router.push('/(spectator)/wallet' as any)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Deposit points">
                       <Ionicons name="add-circle-outline" size={15} color={Palette.gold} />
                       <Text style={styles.walletBtnDepositText}>DEPOSIT</Text>
                     </Pressable>
                     <Pressable
                       style={styles.walletBtnWithdraw}
-                      onPress={() => router.push('/(spectator)/wallet' as any)}>
+                      onPress={() => router.push('/(spectator)/wallet' as any)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Withdraw points">
                       <Ionicons name="arrow-down-circle-outline" size={15} color={Palette.textMuted} />
                       <Text style={styles.walletBtnWithdrawText}>WITHDRAW</Text>
                     </Pressable>
@@ -338,7 +338,11 @@ export default function SpectatorProfileScreen() {
             )}
 
             {/* ─── Logout ─── */}
-            <Pressable style={styles.logoutBtn} onPress={logout}>
+            <Pressable
+              style={styles.logoutBtn}
+              onPress={logout}
+              accessibilityRole="button"
+              accessibilityLabel="Log out">
               <Ionicons name="log-out-outline" size={16} color={Palette.red} />
               <Text style={styles.logoutText}>LOG OUT</Text>
             </Pressable>
@@ -429,7 +433,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: Palette.goldDark,
+    backgroundColor: Palette.goldTint,
     borderWidth: 1,
     borderColor: Palette.gold,
     alignItems: 'center',
@@ -441,7 +445,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Palette.goldDark,
+    backgroundColor: Palette.goldTint,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#3A3010',
@@ -458,7 +462,7 @@ const styles = StyleSheet.create({
   btnEditProfile: {
     height: 40,
     alignSelf: 'stretch',
-    backgroundColor: Palette.goldDark,
+    backgroundColor: Palette.goldTint,
     borderWidth: 1,
     borderColor: '#3A3010',
     borderRadius: 10,
@@ -571,7 +575,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     height: 42,
-    backgroundColor: Palette.goldDark,
+    backgroundColor: Palette.goldTint,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#3A3010',

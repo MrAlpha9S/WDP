@@ -59,7 +59,7 @@ function TrackView({
 
     if (horses.length === 0) {
         return (
-            <div className="bg-[#0f0f0f] rounded-xl border border-white/8 p-4 text-center text-[12px] text-gray-600">
+            <div className="bg-bg rounded-xl border border-border p-4 text-center text-[12px] text-gray-600">
                 Awaiting race start…
             </div>
         );
@@ -90,7 +90,7 @@ function TrackView({
     const containerH = horses.length * LANE_H + 52;
 
     return (
-        <div className="bg-[#0f0f0f] rounded-xl border border-white/8 p-4">
+        <div className="bg-bg rounded-xl border border-border p-4">
             <div className="flex items-center justify-between mb-3">
                 <h2 className="text-[11px] font-black uppercase tracking-widest text-gray-500">Track Position</h2>
                 <span className="text-[10px] text-gray-600 font-mono">
@@ -100,7 +100,7 @@ function TrackView({
 
             <div
                 ref={containerRef}
-                className="relative bg-white/[0.03] rounded-xl border border-white/6 overflow-visible"
+                className="relative bg-white/[0.03] rounded-xl border border-border/60 overflow-visible"
                 style={{ height: containerH }}
             >
                 {/* Lane guides + labels */}
@@ -208,7 +208,7 @@ function HorseRow({
     const pct = trackLength > 0 ? (horse.currentDistance / trackLength) * 100 : 0;
 
     return (
-        <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all ${isOwner ? "border-yellow-600/30 bg-yellow-500/5 border-l-2 border-l-yellow-400" : "border-white/6 bg-white/[0.02]"}`}>
+        <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all ${isOwner ? "border-yellow-600/30 bg-yellow-500/5 border-l-2 border-l-yellow-400" : "border-border/60 bg-white/[0.02]"}`}>
             {/* Rank */}
             <span className="text-[13px] shrink-0 w-7 text-center">{rankSuffix(rank)}</span>
 
@@ -281,7 +281,7 @@ function MyHorsePanel({
     const hasOfficialResult = ownerResult && !isDisqualified;
 
     return (
-        <div className="bg-[#1a1a1a] rounded-xl border border-yellow-600/30 overflow-hidden">
+        <div className="bg-surface rounded-xl border border-yellow-600/30 overflow-hidden">
             <button
                 onClick={onToggle}
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
@@ -296,7 +296,7 @@ function MyHorsePanel({
             </button>
 
             {!collapsed && (
-                <div className="px-4 pb-4 border-t border-white/8 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
+                <div className="px-4 pb-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
                     {horse && (
                         <div>
                             <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Horse</p>
@@ -383,8 +383,8 @@ function ViolationsPanel({
     if (violations.length === 0) return null;
 
     return (
-        <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <h2 className="text-[12px] font-bold text-white flex items-center gap-2">
                     <ShieldAlert size={13} className="text-red-500" /> Violations
                 </h2>
@@ -399,7 +399,7 @@ function ViolationsPanel({
                     return (
                         <div
                             key={v._id}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red-500/8 " : "border-white/8 bg-white/[0.02]"}`}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red-500/8 " : "border-border bg-white/[0.02]"}`}
                         >
                             <span className={`w-2 h-2 rounded-full shrink-0 ${severityDot(severity)}`} />
                             <span className={`flex-1 ${isOwnerReg ? "text-red-400 font-semibold" : "text-gray-400"}`}>{vtName}</span>
@@ -420,7 +420,7 @@ function FinishedBanner({ raceFinished }: { raceFinished: any }) {
     const top3 = results.slice(0, 3);
 
     return (
-        <div className="bg-[#1a1a1a] rounded-xl border border-yellow-600/30 p-4 flex flex-col gap-3">
+        <div className="bg-surface rounded-xl border border-yellow-600/30 p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2">
                 <Trophy size={20} className="text-yellow-400" />
                 <h2 className="text-[15px] font-bold text-white font-serif">Race Finished</h2>
@@ -538,8 +538,8 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
             {raceFinished && <FinishedBanner raceFinished={raceFinished} />}
 
             {/* Stream */}
-            <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8">
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                     <div className="flex items-center gap-2 flex-wrap">
                         {showMux ? (
                             <span className="flex items-center gap-1.5 text-[11px] font-bold text-red-400">
@@ -594,7 +594,7 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                         </span>
                     </div>
 
-                    <div className="absolute bottom-2.5 left-2.5 bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-3">
+                    <div className="absolute bottom-2.5 left-2.5 bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg border border-border flex items-center gap-3">
                         <div>
                             <p className="text-[8px] text-gray-400 uppercase tracking-wider">Pace</p>
                             <p className="text-[11px] font-bold text-white">{paceMps}</p>
@@ -621,7 +621,7 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-4">
                 {/* Horse standings */}
                 {sortedHorses.length > 0 && (
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
+                    <div className="bg-surface rounded-xl border border-border p-4">
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-500 mb-3">Standings</h2>
                         <div className="flex flex-col gap-1.5">
                             {sortedHorses.map((h, i) => (
@@ -640,7 +640,7 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
 
                 {/* Race stats + violations */}
                 <div className="flex flex-col gap-4">
-                    <div className="bg-[#1a1a1a] rounded-xl border border-white/8 p-4">
+                    <div className="bg-surface rounded-xl border border-border p-4">
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Stats</h2>
                         {[
                             { label: "Race Type", value: raceRound?.RaceType?.raceType ?? "-" },
@@ -650,7 +650,7 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                             { label: "Track",     value: `${trackLength} m` },
                             { label: "Incidents", value: `${violations.length}` },
                         ].map(item => (
-                            <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                            <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
                                 <span className="text-[12px] text-gray-500">{item.label}</span>
                                 <span className="text-[12px] font-semibold text-white">{item.value}</span>
                             </div>

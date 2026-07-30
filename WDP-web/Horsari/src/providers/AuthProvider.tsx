@@ -54,6 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Server unreachable — keep the local session intact, this is not
           // a real auth failure. Surface a banner instead of ejecting the user.
           setServerUnreachable(true);
+          const cached = localStorage.getItem(STORAGE_KEY);
+          if (cached) setUser(JSON.parse(cached));
         } else {
           // Genuine auth failure (e.g. 401 from an expired/invalid token).
           localStorage.removeItem(STORAGE_KEY);

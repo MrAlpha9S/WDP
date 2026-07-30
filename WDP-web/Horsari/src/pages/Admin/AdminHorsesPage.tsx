@@ -66,7 +66,7 @@ interface HorseDetail {
 const STATUS_CFG: Record<HorseStatus, { icon: React.ReactNode; label: string; color: string; bg: string; border: string }> = {
     active:   { icon: <CheckCircle size={12} />, label: "Active",    color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
     inactive: { icon: <Clock       size={12} />, label: "Suspended", color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/20"   },
-    retired:  { icon: <XCircle     size={12} />, label: "Retired",   color: "text-gray-500",    bg: "bg-white/[0.05]",   border: "border-white/10"        },
+    retired:  { icon: <XCircle     size={12} />, label: "Retired",   color: "text-gray-500",    bg: "bg-white/[0.05]",   border: "border-border"        },
 };
 
 const HEALTH_CFG: Record<HorseHealth, { color: string; label: string }> = {
@@ -106,7 +106,7 @@ function fmtDate(d: string | null) {
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
     return (
-        <div className="flex items-center justify-between gap-4 py-2.5 border-b border-white/[0.05] last:border-0">
+        <div className="flex items-center justify-between gap-4 py-2.5 border-b border-border/60 last:border-0">
             <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium flex-shrink-0">{label}</span>
             <span className="text-[12px] text-gray-200 text-right">{value ?? "—"}</span>
         </div>
@@ -132,7 +132,7 @@ function HorseImageBanner({ href, name }: { href: string | null; name: string })
 
     if (isPlaceholder) {
         return (
-            <div className="w-full h-28 flex items-center justify-center border-b border-white/[0.05] bg-[#111]">
+            <div className="w-full h-28 flex items-center justify-center border-b border-border/60 bg-bg">
                 <img src={HORSE_PLACEHOLDER} alt={name} className="h-16 w-16 object-contain opacity-25" />
             </div>
         );
@@ -140,7 +140,7 @@ function HorseImageBanner({ href, name }: { href: string | null; name: string })
 
     return (
         <>
-            <div className="relative w-full h-28 overflow-hidden border-b border-white/[0.05] cursor-pointer group flex-shrink-0" onClick={() => setExpanded(true)}>
+            <div className="relative w-full h-28 overflow-hidden border-b border-border/60 cursor-pointer group flex-shrink-0" onClick={() => setExpanded(true)}>
                 <img src={href} alt={name} onError={() => setErrored(true)} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 text-[11px] font-semibold text-white bg-black/50 px-2.5 py-1 rounded-full">
@@ -151,10 +151,10 @@ function HorseImageBanner({ href, name }: { href: string | null; name: string })
             {expanded && (
                 <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setExpanded(false)}>
                     <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => setExpanded(false)} className="absolute -top-3 -right-3 z-10 w-7 h-7 rounded-full bg-[#1a1a1a] border border-white/[0.1] flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+                        <button onClick={() => setExpanded(false)} className="absolute -top-3 -right-3 z-10 w-7 h-7 rounded-full bg-surface border border-border flex items-center justify-center text-gray-400 hover:text-white transition-colors">
                             <X size={13} />
                         </button>
-                        <img src={href} alt={name} className="w-full rounded-xl border border-white/[0.1] shadow-2xl" />
+                        <img src={href} alt={name} className="w-full rounded-xl border border-border shadow-2xl" />
                         <p className="text-center text-[12px] text-gray-500 mt-3">{name}</p>
                     </div>
                 </div>
@@ -227,11 +227,11 @@ function HorseDetailPanel({
     ];
 
     return (
-        <div className="flex flex-col bg-[#141414] border border-white/[0.07] rounded-xl overflow-hidden h-full" style={{ animation: "panelIn 0.18s ease-out" }}>
+        <div className="flex flex-col bg-surface border border-border rounded-xl overflow-hidden h-full" style={{ animation: "panelIn 0.18s ease-out" }}>
             <style>{`@keyframes panelIn { from { opacity:0; transform:translateX(10px) } to { opacity:1; transform:translateX(0) } }`}</style>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.07] flex-shrink-0">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
                 <div className="flex items-center gap-2">
                     <div className="w-1 h-4 rounded-full bg-amber-400" />
                     <p className="text-[13px] font-semibold text-white">Horse Detail</p>
@@ -245,7 +245,7 @@ function HorseDetailPanel({
             <HorseImageBanner href={horse.img} name={horse.horseName} />
 
             {/* Identity */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-white/[0.05] flex-shrink-0">
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-border/60 flex-shrink-0">
                 <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-white">{horse.horseName}</p>
                     <p className="text-[11px] text-gray-500">{horse.breed ?? "Unknown breed"} · {horse.gender ?? "—"}</p>
@@ -259,7 +259,7 @@ function HorseDetailPanel({
             </div>
 
             {/* Tabs */}
-            <div className="flex px-5 gap-1 pt-2 pb-0 border-b border-white/[0.07] flex-shrink-0">
+            <div className="flex px-5 gap-1 pt-2 pb-0 border-b border-border flex-shrink-0">
                 {TABS.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium transition-colors relative ${activeTab === tab.id ? "text-white" : "text-gray-500 hover:text-gray-300"}`}>
@@ -291,7 +291,7 @@ function HorseDetailPanel({
                                 { label: "Wins",   value: wins,                         color: "text-amber-400" },
                                 { label: "Prize",  value: `$${totalPrize.toLocaleString()}`, color: "text-emerald-400" },
                             ].map(s => (
-                                <div key={s.label} className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-center">
+                                <div key={s.label} className="rounded-lg bg-white/[0.03] border border-border/60 px-3 py-2 text-center">
                                     <p className={`text-[15px] font-bold ${s.color}`}>{s.value}</p>
                                     <p className="text-[10px] text-gray-600 uppercase tracking-wider mt-0.5">{s.label}</p>
                                 </div>
@@ -301,7 +301,7 @@ function HorseDetailPanel({
                         {/* Horse info */}
                         <div>
                             <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-2">Horse</p>
-                            <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-3 flex flex-col">
+                            <div className="rounded-lg bg-white/[0.02] border border-border/60 px-3 flex flex-col">
                                 <DetailRow label="Born"       value={<span className="flex items-center gap-1"><Calendar size={10} className="text-gray-600" />{fmtDate(horse.dateOfBirth)}</span>} />
                                 <DetailRow label="Registered" value={<span className="flex items-center gap-1"><ShieldCheck size={10} className="text-gray-600" />{fmtDate(horse.registrationDate)}</span>} />
                                 <DetailRow label="Health"     value={<span className={`font-semibold ${health.color}`}>{health.label}</span>} />
@@ -317,7 +317,7 @@ function HorseDetailPanel({
                         {/* Owner info */}
                         <div>
                             <p className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-2">Owner</p>
-                            <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-3 flex flex-col">
+                            <div className="rounded-lg bg-white/[0.02] border border-border/60 px-3 flex flex-col">
                                 <DetailRow label="Name"  value={<span className="flex items-center gap-1"><User size={10} className="text-gray-600" />{detail?.owner.fullName ?? horse.ownerName ?? "—"}</span>} />
                                 <DetailRow label="Email" value={<span className="text-gray-400">{detail?.owner.email ?? "—"}</span>} />
                                 <DetailRow label="ID"    value={<span className="text-gray-500 font-mono text-[11px]">{horse.ownerId}</span>} />
@@ -330,7 +330,7 @@ function HorseDetailPanel({
                     <div className="flex flex-col gap-2">
                         {raceHistory.length > 0 && (
                             <div className="flex justify-end">
-                                <div className="flex items-center gap-0.5 bg-white/5 border border-white/8 rounded-lg p-0.5">
+                                <div className="flex items-center gap-0.5 bg-white/5 border border-border rounded-lg p-0.5">
                                     {(['lengths', 'metres'] as const).map(u => (
                                         <button key={u} onClick={() => setDistUnit(u)}
                                             className={["text-[10px] font-bold font-mono px-2 py-1 rounded-md transition-all", distUnit === u ? "bg-white/15 text-white" : "text-gray-600 hover:text-gray-400"].join(" ")}>
@@ -346,7 +346,7 @@ function HorseDetailPanel({
                                 <p className="text-[12px] text-gray-600">No race history.</p>
                             </div>
                         ) : raceHistory.map(r => (
-                            <div key={r.registrationId} className="rounded-lg bg-white/[0.02] border border-white/[0.06] px-4 py-3 flex flex-col gap-2">
+                            <div key={r.registrationId} className="rounded-lg bg-white/[0.02] border border-border/60 px-4 py-3 flex flex-col gap-2">
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                         <p className="text-[12.5px] font-semibold text-white truncate">{r.roundName ?? "Unknown Race"}</p>
@@ -361,7 +361,7 @@ function HorseDetailPanel({
                                         </span>
                                     )}
                                 </div>
-                                <div className="grid grid-cols-4 gap-2 pt-1 border-t border-white/[0.05]">
+                                <div className="grid grid-cols-4 gap-2 pt-1 border-t border-border/60">
                                     <div>
                                         <p className="text-[10px] text-gray-600 uppercase tracking-wider">Position</p>
                                         <p className={`text-[13px] font-bold mt-0.5 ${POSITION_COLOR[r.finishPosition ?? 0] ?? "text-gray-500"}`}>
@@ -384,7 +384,7 @@ function HorseDetailPanel({
                                     </div>
                                 </div>
                                 {r.violations.length > 0 && (
-                                    <div className="pt-1 border-t border-white/[0.05]">
+                                    <div className="pt-1 border-t border-border/60">
                                         <p className="text-[10px] text-red-400/80 font-semibold uppercase tracking-wider mb-1 flex items-center gap-1">
                                             <AlertTriangle size={9} /> {r.violations.length} violation{r.violations.length > 1 ? "s" : ""}
                                         </p>
@@ -429,7 +429,7 @@ function HorseDetailPanel({
             </div>
 
             {/* Footer — status actions */}
-            <div className="flex gap-2 px-5 py-3 border-t border-white/[0.07] flex-shrink-0">
+            <div className="flex gap-2 px-5 py-3 border-t border-border flex-shrink-0">
                 {horse.status === "active" && <>
                     <button onClick={() => onStatusChange("inactive")} disabled={statusLoading}
                         className="flex-1 text-[12px] font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 py-2 rounded-lg transition-colors border border-amber-500/20 disabled:opacity-40">
@@ -494,8 +494,8 @@ export default function AdminHorsesPage() {
     const SortIcon = ({ field }: { field: string }) => {
         if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
         return order === 'asc'
-            ? <ArrowUp size={11} className="text-[#f3b2a5] ml-1 inline" />
-            : <ArrowDown size={11} className="text-[#f3b2a5] ml-1 inline" />;
+            ? <ArrowUp size={11} className="text-gold ml-1 inline" />
+            : <ArrowDown size={11} className="text-gold ml-1 inline" />;
     };
 
     // Fetch list
@@ -548,14 +548,14 @@ export default function AdminHorsesPage() {
     const panelOpen = selectedHorse !== null;
 
     return (
-        <div className="flex flex-col h-full bg-[#111111] text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
 
                 {/* ── List ── */}
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? "flex-[0_0_52%]" : "flex-1"}`}>
 
                     {/* Header */}
-                    <header className="pb-5 flex flex-col gap-3 border-b border-white/5 shrink-0">
+                    <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
                         {/* Row 1 */}
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
@@ -563,7 +563,7 @@ export default function AdminHorsesPage() {
                                     Horses
                                 </h1>
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase whitespace-nowrap">
+                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                                         All Registered
                                     </span>
                                     <span className="text-[12px] text-gray-500 truncate">· {totalItems} total</span>
@@ -578,11 +578,11 @@ export default function AdminHorsesPage() {
                                 <input
                                     type="text" placeholder="Search name or breed…" value={search}
                                     onChange={e => handleSearch(e.target.value)}
-                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px]"
+                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px]"
                                 />
                             </div>
                             <select value={statusFilter} onChange={e => handleStatus(e.target.value)}
-                                className="w-[130px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer">
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer">
                                 <option value="">All Statuses</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Suspended</option>
@@ -596,7 +596,7 @@ export default function AdminHorsesPage() {
                                     setOrder(dir as 'asc' | 'desc');
                                     setPage(1);
                                 }}
-                                className="w-[175px] shrink-0 bg-[#1a1a1a] border border-white/10 rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer"
+                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="createdAt:desc">Newest First</option>
                                 <option value="createdAt:asc">Oldest First</option>
@@ -610,10 +610,10 @@ export default function AdminHorsesPage() {
 
                     {/* Table */}
                     <div className="flex-1 overflow-y-auto pt-6 flex flex-col">
-                        <div className="w-full rounded-xl border border-white/[0.07] bg-[#141414] overflow-hidden">
+                        <div className="w-full rounded-xl border border-border bg-surface overflow-hidden">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-[#1a1a1a] border-b border-white/5">
+                                    <tr className="bg-surface border-b border-border/60">
                                         <th onClick={() => handleSort('horseName')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
                                             Horse <SortIcon field="horseName" />
                                         </th>

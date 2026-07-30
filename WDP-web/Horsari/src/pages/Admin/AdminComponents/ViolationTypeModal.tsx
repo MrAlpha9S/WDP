@@ -54,14 +54,14 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <div className="w-full max-w-[520px] bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="w-full max-w-[520px] bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border/60">
                     <h2 className="text-[16px] font-bold text-white font-serif">
                         {item ? 'Edit Violation Type' : 'Create Violation Type'}
                     </h2>
-                    <button onClick={onClose} className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-white/10 transition-colors">
+                    <button onClick={onClose} className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors">
                         <X size={14} />
                     </button>
                 </div>
@@ -76,7 +76,7 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
                             value={form.violationName ?? ''}
                             onChange={e => set('violationName', e.target.value)}
                             placeholder="e.g. False Start"
-                            className="bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
+                            className="bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
                         />
                     </div>
 
@@ -87,7 +87,7 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
                             onChange={e => set('violationDescription', e.target.value)}
                             placeholder="Describe when this violation applies…"
                             rows={3}
-                            className="bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 resize-none"
+                            className="bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 resize-none"
                         />
                     </div>
 
@@ -98,7 +98,7 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
                             value={form.defaultPenalty ?? ''}
                             onChange={e => set('defaultPenalty', e.target.value)}
                             placeholder="e.g. Warning + 2-position demotion"
-                            className="bg-[#111] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
+                            className="bg-bg border border-border rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/25 h-[38px]"
                         />
                     </div>
 
@@ -108,7 +108,7 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
                             <select
                                 value={form.type ?? 'during-race'}
                                 onChange={e => set('type', e.target.value)}
-                                className="bg-[#111] border border-white/10 rounded-lg px-3 text-[13px] text-white focus:outline-none focus:border-white/25 h-[38px] appearance-none cursor-pointer"
+                                className="bg-bg border border-border rounded-lg px-3 text-[13px] text-white focus:outline-none focus:border-white/25 h-[38px] appearance-none cursor-pointer"
                             >
                                 {PHASES.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
@@ -118,7 +118,7 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
                             <select
                                 value={form.category ?? 'riding'}
                                 onChange={e => set('category', e.target.value)}
-                                className="bg-[#111] border border-white/10 rounded-lg px-3 text-[13px] text-white focus:outline-none focus:border-white/25 h-[38px] appearance-none cursor-pointer"
+                                className="bg-bg border border-border rounded-lg px-3 text-[13px] text-white focus:outline-none focus:border-white/25 h-[38px] appearance-none cursor-pointer"
                             >
                                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
@@ -127,7 +127,7 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
 
                     <div className="flex flex-col gap-2">
                         <label className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                            Severity — <span className="text-[#f3b2a5]">{form.severity}/5</span>
+                            Severity — <span className="text-gold">{form.severity}/5</span>
                         </label>
                         <div className="flex items-center gap-2">
                             {[1, 2, 3, 4, 5].map(s => (
@@ -137,8 +137,8 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
                                     onClick={() => set('severity', s)}
                                     className={`flex-1 py-2 rounded-lg border text-[12px] font-bold transition-colors ${
                                         form.severity === s
-                                            ? 'bg-[#f3b2a5]/20 border-[#f3b2a5]/40 text-[#f3b2a5]'
-                                            : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10'
+                                            ? 'bg-gold/20 border-gold/40 text-gold'
+                                            : 'bg-white/5 border-border text-gray-500 hover:bg-white/10'
                                     }`}
                                 >
                                     {s}
@@ -152,7 +152,7 @@ export default function ViolationTypeModal({ isOpen, onClose, onSave, item }: Vi
                     )}
 
                     <div className="flex gap-3 pt-1">
-                        <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-white/10 bg-white/5 text-[12px] font-semibold text-gray-300 hover:bg-white/10 transition-colors">
+                        <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-border bg-white/5 text-[12px] font-semibold text-gray-300 hover:bg-white/10 transition-colors">
                             Cancel
                         </button>
                         <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-lg bg-[#ab3030] hover:bg-[#8f2828] text-[12px] font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">

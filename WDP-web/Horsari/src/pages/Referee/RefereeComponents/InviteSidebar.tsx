@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { CheckCircle2, ChevronRight, Flag, MapPin, XCircle } from "lucide-react";
 import type { RecentInvite, InviteStatus } from "../../../shared/types/HomepageTypes";
 import { useNavigate } from "react-router-dom";
@@ -10,8 +10,8 @@ function StatusPill({ status }: { status: InviteStatus }) {
     const cfg = {
         pending: "border-yellow-700/60 text-yellow-400 bg-yellow-500/10",
         accepted: "border-green-700/60 text-green-400 bg-green-500/10",
-        declined: "border-white/10 text-gray-600 bg-transparent",
-        cancelled: "border-white/10 text-gray-600 bg-transparent",
+        declined: "border-border text-gray-600 bg-transparent",
+        cancelled: "border-border text-gray-600 bg-transparent",
     }[status];
     const dot = { pending: "bg-yellow-500", accepted: "bg-green-500", declined: "bg-gray-600", cancelled: "bg-gray-600" }[status];
     const label = { pending: "Pending", accepted: "Accepted", declined: "Declined", cancelled: "Cancelled" }[status];
@@ -72,10 +72,10 @@ export default function InviteSidebar({ invites: initial }: InviteSidebarProps) 
     const pendingCount = invites.filter(i => i.status === "pending").length;
 
     return (
-        <div className="bg-[#1a1a1a] rounded-xl border border-white/8 overflow-hidden h-fit">
+        <div className="bg-surface rounded-xl border border-border overflow-hidden h-fit">
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <div>
                     <h2 className="text-[14px] font-bold text-white font-serif">
                         Recent Invitations
@@ -148,7 +148,7 @@ export default function InviteSidebar({ invites: initial }: InviteSidebarProps) 
                                             <button
                                                 onClick={() => handleDecline(inv.id)}
                                                 disabled={loadingId === inv.id}
-                                                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-white/10 text-[11px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all disabled:opacity-50"
+                                                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg border border-border text-[11px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all disabled:opacity-50"
                                             >
                                                 {loadingId === inv.id ? <div className="w-3 h-3 rounded-full border border-white/20 border-t-white animate-spin" /> : <XCircle size={11} className="text-gray-600" />} Decline
                                             </button>
@@ -169,7 +169,7 @@ export default function InviteSidebar({ invites: initial }: InviteSidebarProps) 
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3 border-t border-white/8">
+            <div className="px-5 py-3 border-t border-border">
                 <button 
                     className="w-full flex items-center justify-center gap-1.5 text-[12px] text-red-500 font-semibold hover:text-red-400 transition-colors" 
                     onClick={() => navigate("/referee/inbox")}
