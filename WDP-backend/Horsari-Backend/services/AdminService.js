@@ -2861,7 +2861,7 @@ AdminService.prototype.getDashboardHouseEarnings = async function (groupBy = 'da
                 },
             ]),
             Transaction.aggregate([
-                { $match: { transactionType: 'reward', referenceType: 'prediction', status: 'completed' } },
+                { $match: { transactionType: 'reward', referenceType: 'prediction', status: 'completed', amount: { $gt: 0 } } },
                 {
                     $group: {
                         _id: { $dateToString: { format: dateFormat, date: '$date' } },
