@@ -462,11 +462,11 @@ export default function PredictionsScreen() {
             />
           </View>
           <Text style={styles.headerTitle}>PREDICTIONS</Text>
-          {total > 0 && (
+          {/* {total > 0 && (
             <View style={styles.totalBadge}>
               <Text style={styles.totalBadgeText}>{total}</Text>
             </View>
-          )}
+          )} */}
           <RefetchButton onRefetch={() => load(activeFilter, true)} lastUpdated={lastUpdated} loading={isRefreshing} accentColor={Palette.gold} />
           <Pressable
             style={styles.addBtn}

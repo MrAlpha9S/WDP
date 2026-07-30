@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
     House,
     FileText,
+    ChessKnight,
     User,
     AlertTriangle,
     ShieldAlert,
@@ -85,7 +86,7 @@ const SIDEBAR_GROUPS: SidebarGroup<AdminTab>[] = [
     {
         label: "Management",
         items: [
-            { key: "Horses", label: "Horses", icon: <User size={17} /> },
+            { key: "Horses", label: "Horses", icon: <ChessKnight size={17} /> },
             { key: "Users", label: "Users", icon: <User size={17} /> },
             { key: "Rules Managment", label: "Rules Managment", icon: <FileText size={17} /> },
             { key: "Tournaments", label: "Tournaments", icon: <FileText size={17} /> },

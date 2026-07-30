@@ -414,9 +414,9 @@ export default function AdminUsersPage() {
                                     <span className="text-[12px] text-gray-500 truncate">· {totalItems} user{totalItems !== 1 ? "s" : ""}</span>
                                 </div>
                             </div>
-                            <button className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]">
+                            {/* <button className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]">
                                 + Create User
-                            </button>
+                            </button> */}
                         </div>
 
                         {/* Row 2 */}
