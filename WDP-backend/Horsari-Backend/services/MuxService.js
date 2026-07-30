@@ -20,22 +20,32 @@ function client() {
 // { liveStreamId, streamKey, livePlaybackId, vodPlaybackId }
 const cache = new Map();
 
+// TEMP: Mux Live Streams require a paid plan. Until upgraded, "creating a
+// stream" just points the race round at this fixed pre-uploaded playback
+// instead of provisioning a real live stream. Every race will show the same
+// video. Revert to the commented-out block below once Live Streams are available.
+const FIXED_PLAYBACK_ID = 'QPyH01vERrIoRJtH3z3n883GQqQ5t01x2fef9CpkfBllw';
+
 // ── Create a Mux live stream and persist the IDs to the race round ─────────────
 async function createLiveStream(raceRoundId) {
-    const mux = client();
+    // const mux = client();
+    //
+    // const liveStream = await mux.video.liveStreams.create({
+    //     playback_policy: ['public'],
+    //     new_asset_settings: {
+    //         playback_policy: ['public'],
+    //         mp4_support: 'capped-1080p',
+    //     },
+    //     reconnect_window: 60,
+    // });
+    //
+    // const liveStreamId   = liveStream.id;
+    // const streamKey      = liveStream.stream_key;
+    // const livePlaybackId = liveStream.playback_ids?.[0]?.id ?? null;
 
-    const liveStream = await mux.video.liveStreams.create({
-        playback_policy: ['public'],
-        new_asset_settings: {
-            playback_policy: ['public'],
-            mp4_support: 'capped-1080p',
-        },
-        reconnect_window: 60,
-    });
-
-    const liveStreamId   = liveStream.id;
-    const streamKey      = liveStream.stream_key;
-    const livePlaybackId = liveStream.playback_ids?.[0]?.id ?? null;
+    const liveStreamId   = FIXED_PLAYBACK_ID;
+    const streamKey      = null;
+    const livePlaybackId = FIXED_PLAYBACK_ID;
 
     const info = { liveStreamId, streamKey, livePlaybackId, vodPlaybackId: null };
     cache.set(raceRoundId, info);
