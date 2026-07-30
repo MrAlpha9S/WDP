@@ -109,6 +109,18 @@ async function getVOD(raceRoundId) {
     }
     if (!liveStreamId) return null;
 
+    // TEMP: while Live Streams are faked (see createLiveStream), liveStreamId
+    // is actually the pre-uploaded FIXED_PLAYBACK_ID, not a real Mux Live
+    // Stream ID — calling liveStreams.retrieve() with it 400s. Just reuse it
+    // as the VOD playback ID directly. Revert once real Live Streams are back.
+    if (liveStreamId === FIXED_PLAYBACK_ID) {
+        const vodPlaybackId = FIXED_PLAYBACK_ID;
+        if (cached) cached.vodPlaybackId = vodPlaybackId;
+        const RaceRound = require('../entities/RaceRound');
+        await RaceRound.findByIdAndUpdate(raceRoundId, { muxVodPlaybackId: vodPlaybackId });
+        return { vodPlaybackId };
+    }
+
     const mux        = client();
     const liveStream = await mux.video.liveStreams.retrieve(liveStreamId);
     const assetId    = liveStream.recent_asset_ids?.[0];
