@@ -5,6 +5,7 @@ const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const RegistrationRepository = require('../repositories/RegistrationRepository');
 const InvitationRepository = require('../repositories/InvitationRepository');
 const NotificationService = require('./NotificationService');
+const RaceDateUtil = require('../utils/RaceDateUtil');
 
 class RaceRoundService {
     async createRaceRound(payload, adminID, io) {
@@ -32,8 +33,9 @@ class RaceRoundService {
             // Measure the lead time from the start of today (not the current instant) so the
             // guard is calendar-day based — e.g. if today is Jul 30, Aug 13 (exactly 14 days
             // later) must be a valid choice regardless of what time of day it is right now.
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // Anchored to Vietnam time (not the server process's own local zone) so "today"
+            // agrees with RaceDateUtil's other calendar-day checks regardless of host TZ.
+            const today = RaceDateUtil.getVietnamDayRange(RaceDateUtil.calendarDayKey(new Date())).start;
             // Cap the required lead time at whatever runway actually remains before the
             // tournament ends, instead of always demanding the full 14 days — otherwise, as
             // a tournament's endDate approaches, it becomes impossible to add races that
@@ -52,11 +54,7 @@ class RaceRoundService {
 
         // Prevent scheduling race rounds too close to each other on the same day/location
         if (!overrideScheduleConflict && raceRoundData.location && !isNaN(newRaceDate.getTime())) {
-            const startOfDay = new Date(newRaceDate);
-            startOfDay.setHours(0, 0, 0, 0);
-
-            const endOfDay = new Date(newRaceDate);
-            endOfDay.setHours(23, 59, 59, 999);
+            const { start: startOfDay, end: endOfDay } = RaceDateUtil.getVietnamDayRange(RaceDateUtil.calendarDayKey(newRaceDate));
 
             const existingRaces = await RaceRoundRepository.findActiveRoundsByLocationAndDateRange(
                 raceRoundData.location,
@@ -165,8 +163,9 @@ class RaceRoundService {
             return { code: 404, message: 'Race round not found' };
         }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Anchored to Vietnam time (not the server process's own local zone) so "today"
+        // agrees with RaceDateUtil's other calendar-day checks regardless of host TZ.
+        const today = RaceDateUtil.getVietnamDayRange(RaceDateUtil.calendarDayKey(new Date())).start;
 
         const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
         const twoWeeksFromToday = new Date(today.getTime() + TWO_WEEKS_MS);
@@ -195,11 +194,7 @@ class RaceRoundService {
         if (!overrideScheduleConflict && updateData && (updateData.raceDate || updateData.location)) {
             const checkLocation = updateData.location || existingRaceRound.location;
             if (checkLocation && !isNaN(effectiveDate.getTime())) {
-                const startOfDay = new Date(effectiveDate);
-                startOfDay.setHours(0, 0, 0, 0);
-
-                const endOfDay = new Date(effectiveDate);
-                endOfDay.setHours(23, 59, 59, 999);
+                const { start: startOfDay, end: endOfDay } = RaceDateUtil.getVietnamDayRange(RaceDateUtil.calendarDayKey(effectiveDate));
 
                 const existingRaces = await RaceRoundRepository.findActiveRoundsByLocationAndDateRange(
                     checkLocation,

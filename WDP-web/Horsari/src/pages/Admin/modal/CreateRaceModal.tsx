@@ -59,7 +59,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                         if (raceToEdit.raceDate) {
                             const d = new Date(raceToEdit.raceDate);
                             if (!isNaN(d.getTime())) {
-                                setRaceDate(d.toISOString().split('T')[0]);
+                                const yyyy = d.getFullYear();
+                                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                const dd = String(d.getDate()).padStart(2, '0');
+                                setRaceDate(`${yyyy}-${mm}-${dd}`);
                                 setRaceTime(d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
                             }
                         }

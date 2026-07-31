@@ -6,15 +6,15 @@ function formatDate(dateStr: string): string {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return "";
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    return `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
 // Helper to format time as "h:mm a"
 function formatTime(dateStr: string): string {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return "";
-    let h = d.getHours();
-    const m = d.getMinutes().toString().padStart(2, '0');
+    let h = d.getUTCHours();
+    const m = d.getUTCMinutes().toString().padStart(2, '0');
     const ampm = h >= 12 ? 'PM' : 'AM';
     h = h % 12;
     h = h ? h : 12;
