@@ -1,0 +1,51 @@
+const HorseOwnerInvitationService = require('../../services/HorseOwnerInvitationService');
+const InvitationService = require('../../services/InvitationService');
+const NotificationService = require('../../services/NotificationService');
+
+class InvitationController {
+    async createInvitation(req, res, next) {
+        try {
+            const data = req.body;
+            const io = req.app.get('io');
+            const result = await InvitationService.createInvitation(req.userId, data, io);
+            if (result.code === 200 || result.code === 201) {
+                NotificationService.notify({
+                    role: 'admin',
+                    type: 'new_invitation',
+                    title: 'New Jockey Invitation Sent',
+                    message: 'A horse owner has sent a new jockey invitation.',
+                    actionPayload: { entityType: 'Invitation', entityId: result.data?._id },
+                }, io).catch(err => console.error('[createInvitation] notify admin error:', err.message));
+            }
+            return res.status(result.code).json(result);
+        } catch (err) {
+            return next(err);
+        }
+    }
+
+    async getRaceInvitations(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { status, search, sortBy = 'createdAt', order = 'desc' } = req.query;
+        const response = await HorseOwnerInvitationService.getRaceInvitations(req.userId, page, limit, status, search, sortBy, order);
+        return res.status(response.code).json(response);
+    }
+
+    async acceptRegistration(req, res) {
+        const { registrationId } = req.params;
+        const io = req.app.get('io');
+        const response = await HorseOwnerInvitationService.acceptRegistration(req.userId, registrationId, io);
+        return res.status(response.code).json(response);
+    }
+
+    // Get jockey invitations sent by this horse owner
+    async getJockeyInvitations(req, res) {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const { search } = req.query;
+        const response = await HorseOwnerInvitationService.getJockeyInvitations(req.userId, page, limit, search || null);
+        return res.status(response.code).json(response);
+    }
+}
+
+module.exports = new InvitationController();

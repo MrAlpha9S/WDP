@@ -863,7 +863,7 @@ export const adminService = {
 
   createRaceRound: async (payload: CreateRaceRoundPayload): Promise<RaceRoundMutationResponse> => {
     try {
-      const response = await api.post('/raceround', payload);
+      const response = await api.post('/admin/race-rounds', payload);
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -873,7 +873,7 @@ export const adminService = {
 
   updateRaceRound: async (id: string, payload: UpdateRaceRoundPayload): Promise<RaceRoundMutationResponse> => {
     try {
-      const response = await api.put(`/raceround/${id}`, payload);
+      const response = await api.put(`/admin/race-rounds/${id}`, payload);
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -883,7 +883,7 @@ export const adminService = {
 
   createTournament: async (data: TournamentPayload): Promise<TournamentMutationResponse> => {
     try {
-      const response = await api.post('/tournament', data);
+      const response = await api.post('/admin/tournaments', data);
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -893,7 +893,7 @@ export const adminService = {
 
   updateTournament: async (id: string, data: Partial<TournamentPayload>): Promise<TournamentMutationResponse> => {
     try {
-      const response = await api.put(`/tournament/${id}`, data);
+      const response = await api.put(`/admin/tournaments/${id}`, data);
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -921,7 +921,7 @@ export const adminService = {
 
   deleteTournament: async (id: string): Promise<SimpleMsgResponse> => {
     try {
-      const response = await api.delete(`/tournament/${id}`);
+      const response = await api.delete(`/admin/tournaments/${id}`);
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -1013,7 +1013,7 @@ export const adminService = {
 
   cancelRaceRound: async (id: string): Promise<SimpleMsgResponse> => {
     try {
-      const response = await api.patch(`/raceround/${id}/cancel`);
+      const response = await api.patch(`/admin/race-rounds/${id}/cancel`);
       console.log('API Response:', response.data);
       return response.data;
     } catch (error: any) {

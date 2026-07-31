@@ -95,6 +95,155 @@
  *     responses:
  *       200:
  *         description: Paginated list of jockey invitations
+ *   post:
+ *     summary: Invite a jockey for a specific horse registration (hire jockey)
+ *     description: >
+ *       All invitations for the same registration must use the same horse. A jockey cannot be
+ *       invited twice to the same registration, and cannot be invited if they already hold an
+ *       accepted invitation for this same race round or for another race round scheduled within
+ *       90 minutes of it.
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [registrationId, horseId, jockeyId]
+ *             properties:
+ *               registrationId: { type: string }
+ *               horseId: { type: string }
+ *               jockeyId: { type: string }
+ *               percentagePayout:
+ *                 type: number
+ *                 description: "Jockey's share of prize money (0–100)"
+ *               isBackup:
+ *                 type: boolean
+ *                 default: false
+ *               bookingFees:
+ *                 type: number
+ *                 description: Flat fee paid to the jockey regardless of race outcome
+ *     responses:
+ *       201:
+ *         description: Invitation created
+ *       400:
+ *         description: Missing registrationId, horseId, or jockeyId
+ *       403:
+ *         description: Caller does not own the registration or the horse
+ *       404:
+ *         description: Registration or horse not found
+ *       409:
+ *         description: Jockey already invited to this registration, invitation uses a different horse than an existing one, or jockey has a conflicting accepted invitation
+ *       422:
+ *         description: Registration is not "accepted"
+ *
+ * /api/horseowner/horses:
+ *   post:
+ *     summary: Create a horse under the authenticated horse owner
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [horseName]
+ *             properties:
+ *               horseName: { type: string }
+ *               breed: { type: string }
+ *               gender: { type: string, enum: [male, female] }
+ *               healthStatus: { type: string, enum: [healthy, injured, sick], default: healthy }
+ *               registrationDate: { type: string, format: date }
+ *               status: { type: string, enum: [active, inactive, retired], default: active }
+ *               dateOfBirth: { type: string, format: date }
+ *     responses:
+ *       201:
+ *         description: Horse created (ownerId is taken from the authenticated user)
+ *       400:
+ *         description: horseName is required
+ *
+ * /api/horseowner/horses/{id}:
+ *   put:
+ *     summary: Update a horse
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               horseName: { type: string }
+ *               breed: { type: string }
+ *               gender: { type: string, enum: [male, female] }
+ *               healthStatus: { type: string, enum: [healthy, injured, sick] }
+ *               status: { type: string, enum: [active, inactive, retired] }
+ *               dateOfBirth: { type: string, format: date }
+ *               img: { type: string, description: "Cloudinary URL, normally set via /horses/{horseId}/upload-image" }
+ *     responses:
+ *       200:
+ *         description: Horse updated
+ *       404:
+ *         description: Horse not found
+ *
+ *   delete:
+ *     summary: Delete a horse
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Horse deleted
+ *       404:
+ *         description: Horse not found
+ *
+ * /api/horseowner/horses/{horseId}/upload-image:
+ *   post:
+ *     summary: Upload a horse's profile image to Cloudinary
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: horseId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [image]
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Image uploaded and horse.img updated
+ *       400:
+ *         description: Missing horseId or image file
+ *       403:
+ *         description: Authenticated user is not this horse's owner
+ *       404:
+ *         description: Horse not found
  *
  * /api/horseowner/horses/{horseId}/profile:
  *   get:

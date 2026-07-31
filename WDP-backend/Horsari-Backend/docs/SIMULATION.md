@@ -9,11 +9,11 @@ horse's position is computed tick by tick, and what happens when the race ends.
 
 | Step | Function | Trigger |
 |---|---|---|
-| Start | `initializeSimulation(raceRoundId, io)` | `AdminService` sets a race round's status to `running` ([AdminService.js:1472](../services/AdminService.js#L1472)) |
+| Start | `initializeSimulation(raceRoundId, io)` | `AdminRaceRoundService` sets a race round's status to `running` ([AdminRaceRoundService.js:415](../services/AdminRaceRoundService.js#L415)) |
 | Tick | internal `setInterval` callback | every `TICK_MS` (100 ms → 10 updates/sec) while the race runs |
 | Finish | `finalizeRace(...)` | fires once every horse has crossed the line |
 | Stop (abort) | `stopSimulation(raceRoundId)` | called defensively at the start of `initializeSimulation`, and available for admin cancellation flows |
-| Poll snapshot | `getSimulationState(raceRoundId)` | `AdminService.getSimulationState` ([AdminService.js:2022](../services/AdminService.js#L2022)), used for reconnect/late-join clients |
+| Poll snapshot | `getSimulationState(raceRoundId)` | `AdminRaceRoundService.getSimulationState` ([AdminRaceRoundService.js:756](../services/AdminRaceRoundService.js#L756)), used for reconnect/late-join clients |
 
 All in-progress races live in a single in-memory `Map` (`activeRaces`, keyed by `raceRoundId`)
 — there is no persistence of live race state; if the server restarts mid-race, that race's

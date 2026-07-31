@@ -288,7 +288,7 @@ export const refereeService = {
 
     getActiveRules: async (): Promise<{ code: number; data: { items: Record<string, unknown>[]; pagination: PaginationMeta }; msg: string }> => {
         try {
-            const response = await api.get('/eligibility-rules');
+            const response = await api.get('/referee/eligibility-rules');
             console.log('getActiveRules:', response.data);
             return response.data;
         } catch (error: any) {

@@ -4,7 +4,6 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const authRouter = require('./routes/auth');
-const horseRouter = require('./routes/horse');
 const adminRouter = require('./routes/admin');
 const jockeyRouter = require('./routes/jockey');
 const horseOwnerRouter = require('./routes/horseowner');
@@ -15,7 +14,6 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swaggerConfig');
-const raceRound = require('./routes/raceround');
 dotenv.config();
 var app = express();
 // React Native's WebSocket implementation always sends an `Origin` header
@@ -79,16 +77,11 @@ app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 
 app.use('/api/auth', authRouter);
-app.use('/api/horse', horseRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/jockey', jockeyRouter);
 app.use('/api/horseowner', horseOwnerRouter);
-app.use('/api/tournament', require('./routes/tournament'));
 app.use('/api/referee', refereeRouter);
 app.use('/api/spectator', spectatorRouter);
-app.use('/api/invitations', require('./routes/invitations'));
-app.use('/api/raceround', raceRound);
-app.use('/api/eligibility-rules', require('./routes/raceEligibilityRule'));
 app.use('/api/notifications', require('./routes/notification'));
 // catch 404 and forward to error handler
 // app.use(function (req, res, next) {
