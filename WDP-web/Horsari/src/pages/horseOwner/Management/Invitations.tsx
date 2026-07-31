@@ -7,6 +7,8 @@ import { type Invitation, type InviteJockeyStatus, type InviteStatus } from "../
 import { horseOwnerService, type JockeyInvitationEntry } from "../../../api/horseOwnerService";
 import { useSocket } from "../../../providers/SocketProvider";
 import { RefetchButton } from "../../../components/RefetchButton";
+import { RejectRegistrationModal } from "../../../components/RejectRegistrationModal";
+import { useRejectRegistration } from "../../../hooks/useRejectRegistration";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const INVITE_STATUS_CFG: Record<InviteStatus | InviteJockeyStatus, { text: string; bg: string; border: string }> = {
@@ -114,6 +116,7 @@ function InvitationDetailModal({
 }) {
   const stCfg = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
   const isPending = inv.status === "pending";
+  const canReject = inv.status === "pending" || inv.status === "accepted";
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -188,15 +191,15 @@ function InvitationDetailModal({
           <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-white/12 text-gray-400 text-[13px] font-semibold hover:border-white/25 hover:text-white transition-all duration-150">
             Close
           </button>
+          {canReject && (
+            <button onClick={() => { onDeny(inv.id); onClose(); }} className="flex-1 py-2.5 rounded-lg border border-red-700/50 text-red-400 text-[13px] font-semibold hover:bg-red-700/10 transition-all duration-150 flex items-center justify-center gap-2">
+              <X size={14} /> Reject
+            </button>
+          )}
           {isPending && (
-            <>
-              <button onClick={() => { onDeny(inv.id); onClose(); }} className="flex-1 py-2.5 rounded-lg border border-red-700/50 text-red-400 text-[13px] font-semibold hover:bg-red-700/10 transition-all duration-150 flex items-center justify-center gap-2">
-                <X size={14} /> Deny
-              </button>
-              <button onClick={() => { onAccept(inv.id.toString()); onClose(); }} className="flex-1 py-2.5 rounded-lg bg-green-700 hover:bg-green-600 text-white text-[13px] font-bold transition-colors duration-150 shadow-lg shadow-green-900/30 flex items-center justify-center gap-2">
-                <Check size={14} /> Accept
-              </button>
-            </>
+            <button onClick={() => { onAccept(inv.id.toString()); onClose(); }} className="flex-1 py-2.5 rounded-lg bg-green-700 hover:bg-green-600 text-white text-[13px] font-bold transition-colors duration-150 shadow-lg shadow-green-900/30 flex items-center justify-center gap-2">
+              <Check size={14} /> Accept
+            </button>
           )}
         </div>
       </div>
@@ -215,6 +218,7 @@ function InvitationCard({
 }) {
   const stCfg = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
   const isPending = inv.status === "pending";
+  const canReject = inv.status === "pending" || inv.status === "accepted";
 
   return (
     <div className={`bg-surface rounded-2xl border overflow-hidden transition-all duration-200 ${isPending ? "border-border hover:border-white/15" : "border-border/60 opacity-75"}`}>
@@ -263,16 +267,16 @@ function InvitationCard({
               <button onClick={onDetail} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-gray-400 text-[12px] font-semibold hover:border-white/28 hover:text-white transition-all duration-150">
                 <Info size={13} /> Detail
               </button>
+              {canReject && (
+                <button onClick={() => onDeny(inv.id)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-gray-400 text-[12px] font-semibold hover:border-red-700/50 hover:text-red-400 transition-all duration-150">
+                  <X size={13} /> Reject
+                </button>
+              )}
               {isPending ? (
-                <>
-                  <button onClick={() => onDeny(inv.id)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-gray-400 text-[12px] font-semibold hover:border-red-700/50 hover:text-red-400 transition-all duration-150">
-                    <X size={13} /> Deny
-                  </button>
-                  <button onClick={() => onAccept(inv.id.toString())} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white text-[12px] font-semibold transition-colors duration-150 shadow-lg shadow-green-900/30">
-                    <Check size={13} /> Accept
-                  </button>
-                </>
-              ) : (
+                <button onClick={() => onAccept(inv.id.toString())} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white text-[12px] font-semibold transition-colors duration-150 shadow-lg shadow-green-900/30">
+                  <Check size={13} /> Accept
+                </button>
+              ) : !canReject && (
                 <div className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600">
                   {inv.status === "accepted" ? <Check size={13} className="text-green-500" /> : <X size={13} className="text-red-600" />}
                   {inv.status}
@@ -575,12 +579,17 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     });
   }
 
-  function handleDeny(id: number | string) {
+  const reject = useRejectRegistration((id) => {
     setInvitations((prev) => {
-      const next = prev.map((i) => i.id === id ? { ...i, status: "rejected" as const } : i);
+      const next = prev.map((i) => i.id.toString() === id ? { ...i, status: "cancelled" as const } : i);
       onPendingChange?.(next.filter((i) => i.status === "pending").length);
       return next;
     });
+  });
+
+  function handleDenyRequest(id: number | string) {
+    const inv = invitations.find((i) => i.id === id);
+    reject.requestReject(String(id), inv?.name ?? "this race");
   }
 
   const racePendingCount = invitations.filter((i) => i.status === "pending").length;
@@ -598,9 +607,17 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
           inv={selectedLive}
           onClose={() => setSelected(null)}
           onAccept={handleAccept}
-          onDeny={handleDeny}
+          onDeny={handleDenyRequest}
         />
       )}
+
+      <RejectRegistrationModal
+        target={reject.target}
+        pending={reject.pending}
+        error={reject.error}
+        onConfirm={reject.confirm}
+        onCancel={reject.cancel}
+      />
 
       <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
         <div className="flex items-start justify-between gap-4">
@@ -666,7 +683,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
                 )}
                 <div className="space-y-4">
                   {pagedInvitations.map((inv) => (
-                    <InvitationCard key={inv.id} inv={inv} onAccept={handleAccept} onDeny={handleDeny} onDetail={() => setSelected(inv)} />
+                    <InvitationCard key={inv.id} inv={inv} onAccept={handleAccept} onDeny={handleDenyRequest} onDetail={() => setSelected(inv)} />
                   ))}
                 </div>
                 <PaginationBar page={racePage} totalPages={raceTotalPages} onPrev={() => setRacePage(p => p - 1)} onNext={() => setRacePage(p => p + 1)} />

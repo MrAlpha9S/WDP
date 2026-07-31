@@ -76,6 +76,27 @@
  *       404:
  *         description: Registration not found
  *
+ * /api/horseowner/registration/{registrationId}/reject:
+ *   post:
+ *     summary: Reject one of the owner's registrations (allowed from pending or accepted). Permanent — persists as "cancelled".
+ *     tags: [HorseOwner]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: registrationId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Registration rejected
+ *       400:
+ *         description: Registration already rejected/cancelled/verified/failed
+ *       403:
+ *         description: Registration does not belong to this owner
+ *       404:
+ *         description: Registration not found
+ *
  * /api/horseowner/invitations:
  *   get:
  *     summary: Get all jockey invitations sent by this horse owner (paginated, searchable by jockey/horse name)

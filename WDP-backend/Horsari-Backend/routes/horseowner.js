@@ -19,6 +19,7 @@ router.get('/my-horses', authMiddleware, authHorseOwner, HorseOwnerController.ge
 // Race invitations for owner
 router.get('/race-invitations', authMiddleware, authHorseOwner, RaceInvitationsController.getRaceInvitations);
 router.post('/registration/:registrationId/accept', authMiddleware, authHorseOwner, RaceInvitationsController.acceptRegistration);
+router.post('/registration/:registrationId/reject', authMiddleware, authHorseOwner, RaceInvitationsController.rejectRegistration);
 // Jockey invitations sent by this horse owner
 router.get('/invitations', authMiddleware, authHorseOwner, HorseOwnerController.getJockeyInvitations);
 // Horse profile: aggregated registration history, race results, violations

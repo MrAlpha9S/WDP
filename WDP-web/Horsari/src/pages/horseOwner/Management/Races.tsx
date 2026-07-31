@@ -5,6 +5,8 @@ import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
 import { horseOwnerService, type RaceInvitationEntry } from "../../../api/horseOwnerService";
 import { RefetchButton } from "../../../components/RefetchButton";
 import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
+import { RejectRegistrationModal } from "../../../components/RejectRegistrationModal";
+import { useRejectRegistration } from "../../../hooks/useRejectRegistration";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
@@ -85,24 +87,33 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"overview" | "entry" | "results">("overview");
 
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await horseOwnerService.getRaceDetail(raceRoundId);
+      setDetail(res?.data ?? null);
+    } catch (err: any) {
+      setError(err?.msg ?? "Failed to load race detail.");
+    } finally {
+      setLoading(false);
+    }
+  }, [raceRoundId]);
+
   useEffect(() => {
-    let cancelled = false;
-    horseOwnerService.getRaceDetail(raceRoundId)
-      .then((res) => {
-        if (!cancelled) setDetail(res?.data ?? null);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err?.msg ?? "Failed to load race detail.");
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raceRoundId]);
 
   const raceRound = detail?.raceRound;
   const reg = detail?.registration;
   const competition = detail?.competition;
 
+  const reject = useRejectRegistration(() => { load(); });
+  const canReject = reg?.registrationStatus === "pending" || reg?.registrationStatus === "accepted";
+
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={onClose}
@@ -269,14 +280,24 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                     {/* Registration status */}
                     <div className="flex items-center justify-between">
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Registration</p>
-                      {(() => {
-                        const cfg = REG_STATUS_CFG[reg.registrationStatus] ?? REG_STATUS_CFG.pending;
-                        return (
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.color}`}>
-                            {cfg.label}
-                          </span>
-                        );
-                      })()}
+                      <div className="flex items-center gap-2">
+                        {canReject && (
+                          <button
+                            onClick={() => reject.requestReject(reg._id, raceRound?.roundName ?? "this race")}
+                            className="text-[10px] font-bold px-2.5 py-1 rounded-full border border-red-700/40 text-red-400 hover:bg-red-700/10 transition-colors duration-150"
+                          >
+                            Reject
+                          </button>
+                        )}
+                        {(() => {
+                          const cfg = REG_STATUS_CFG[reg.registrationStatus] ?? REG_STATUS_CFG.pending;
+                          return (
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.color}`}>
+                              {cfg.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     {/* Horse card */}
@@ -430,6 +451,14 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
         </div>
       </div>
     </div>
+    <RejectRegistrationModal
+      target={reject.target}
+      pending={reject.pending}
+      error={reject.error}
+      onConfirm={reject.confirm}
+      onCancel={reject.cancel}
+    />
+    </>
   );
 }
 

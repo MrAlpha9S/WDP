@@ -9,6 +9,8 @@ import {
   type HorseRegistrationEntry,
   type HorseViolationEntry,
 } from "../../../api/horseOwnerService";
+import { RejectRegistrationModal } from "../../../components/RejectRegistrationModal";
+import { useRejectRegistration } from "../../../hooks/useRejectRegistration";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface HorseProfileProps {
@@ -104,9 +106,10 @@ function StatCell({ label, value, accent }: { label: string; value: string | num
 }
 
 // ── Active registration card ──────────────────────────────────────────────────
-function ActiveRegCard({ entry }: { entry: HorseRegistrationEntry }) {
+function ActiveRegCard({ entry, onRequestReject }: { entry: HorseRegistrationEntry; onRequestReject: (id: string, label: string) => void }) {
   const rr  = entry.raceRound;
   const reg = entry.registration;
+  const canReject = reg.registrationStatus === "pending" || reg.registrationStatus === "accepted";
 
   const statusGlow =
     reg.registrationStatus === "verified"
@@ -134,13 +137,21 @@ function ActiveRegCard({ entry }: { entry: HorseRegistrationEntry }) {
           )}
         </div>
       </div>
+      {canReject && (
+        <button
+          onClick={() => onRequestReject(reg._id, rr?.roundName ?? "this race")}
+          className="text-[10px] font-bold px-2.5 py-1 rounded-full border border-red-700/40 text-red-400 hover:bg-red-700/10 transition-colors duration-150 shrink-0"
+        >
+          Reject
+        </button>
+      )}
       <RegChip status={reg.registrationStatus} />
     </div>
   );
 }
 
 // ── Race history tab ──────────────────────────────────────────────────────────
-function RaceHistoryTab({ history }: { history: HorseRegistrationEntry[] }) {
+function RaceHistoryTab({ history, onRequestReject }: { history: HorseRegistrationEntry[]; onRequestReject: (id: string, label: string) => void }) {
   const ACTIVE = ["pending", "accepted", "verified"];
 
   const upcoming  = history.filter(e => ACTIVE.includes(e.registration.registrationStatus) && !e.result);
@@ -169,7 +180,7 @@ function RaceHistoryTab({ history }: { history: HorseRegistrationEntry[] }) {
             <Clock size={10} /> Currently Registering · {upcoming.length} race{upcoming.length > 1 ? "s" : ""}
           </p>
           <div className="space-y-2">
-            {upcoming.map(e => <ActiveRegCard key={String(e.registration._id)} entry={e} />)}
+            {upcoming.map(e => <ActiveRegCard key={String(e.registration._id)} entry={e} onRequestReject={onRequestReject} />)}
           </div>
         </div>
       )}
@@ -337,6 +348,8 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [horseId]);
 
+  const reject = useRejectRegistration(() => { load(); });
+
   if (!horseId) return null;
 
   const ACTIVE_STATUSES = ["pending", "accepted", "verified"];
@@ -350,6 +363,7 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
     "text-yellow-400 bg-yellow-500/10 border-yellow-600/40";
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
       onClick={onClose}
@@ -473,7 +487,7 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
 
                 {/* Tab content */}
                 {tab === "overview"   && <OverviewTab stats={stats} />}
-                {tab === "history"    && <RaceHistoryTab history={raceHistory} />}
+                {tab === "history"    && <RaceHistoryTab history={raceHistory} onRequestReject={reject.requestReject} />}
                 {tab === "violations" && <ViolationsTab violations={violations} />}
 
                 {/* bottom padding */}
@@ -484,5 +498,13 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
         </div>
       </div>
     </div>
+    <RejectRegistrationModal
+      target={reject.target}
+      pending={reject.pending}
+      error={reject.error}
+      onConfirm={reject.confirm}
+      onCancel={reject.cancel}
+    />
+    </>
   );
 }

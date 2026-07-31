@@ -223,6 +223,43 @@ class HorseOwnerService {
         }
     }
 
+    // Reject a registration (owner action) — allowed from 'pending' or 'accepted'.
+    // Persists as 'cancelled' rather than 'rejected': that's the status value the rest of
+    // the app already actively produces (referee no-show, admin race-round cancellation)
+    // and every existing guard/filter already treats identically to 'rejected'.
+    async rejectRegistration(ownerId, registrationId, io) {
+        try {
+            if (!ownerId) return { code: 400, msg: 'ownerId is required' };
+            if (!registrationId) return { code: 400, msg: 'registrationId is required' };
+
+            const reg = await Registration.findById(registrationId);
+            if (!reg) return { code: 404, msg: 'Registration not found' };
+
+            if (['cancelled', 'rejected', 'verified', 'failed'].includes(reg.registrationStatus)) {
+                return { code: 400, msg: `Cannot reject a registration that is already "${reg.registrationStatus}".` };
+            }
+            if (String(reg.horseOwnerId) !== String(ownerId)) {
+                return { code: 403, msg: 'Not authorized to modify this registration' };
+            }
+
+            reg.registrationStatus = 'cancelled';
+            await reg.save();
+
+            const NotificationService = require('./NotificationService');
+            NotificationService.notify({
+                role: 'admin',
+                type: 'registration_rejected',
+                title: 'Registration Rejected',
+                message: 'A horse owner has rejected their race registration.',
+                actionPayload: { entityType: 'Registration', entityId: reg._id },
+            }, io).catch(err => console.error('[rejectRegistration] notify admin error:', err.message));
+
+            return { code: 200, data: reg, msg: 'Registration rejected' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
     // Dashboard summary: counts + recent activity feed
     async getDashboardSummary(ownerId) {
         try {

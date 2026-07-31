@@ -355,6 +355,14 @@ export const horseOwnerService = {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
+  rejectRegistration: async (registrationId: string): Promise<void> => {
+    if (!registrationId || registrationId === '') return
+    try {
+      await api.post(`/horseowner/registration/${registrationId}/reject`);
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
   HireJockey: async (data: hireJockey): Promise<void> => {
     if (!data) return;
     try {
