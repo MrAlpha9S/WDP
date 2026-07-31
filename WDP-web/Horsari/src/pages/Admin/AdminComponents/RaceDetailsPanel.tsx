@@ -397,8 +397,8 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] font-medium text-gray-400">
                         <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={14} className="text-gray-500" /> {selectedRace.date}</span>
                         <span className="flex items-center gap-1.5 whitespace-nowrap"><Clock size={14} className="text-gray-500" /> {selectedRace.time}</span>
-                        {(detailedOverview?.raceType || selectedRace.raceType) && (
-                            <span className="flex items-center gap-1.5 whitespace-nowrap"><Tag size={14} className="text-gray-500" /> {detailedOverview?.raceType || selectedRace.raceType}</span>
+                        {(detailedOverview?.RaceType || detailedOverview?.raceType || selectedRace.raceType) && (
+                            <span className="flex items-center gap-1.5 whitespace-nowrap"><Tag size={14} className="text-gray-500" /> {detailedOverview?.RaceType || detailedOverview?.raceType || selectedRace.raceType}</span>
                         )}
                     </div>
 
@@ -573,7 +573,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                         {maxSlots ? `${acceptedRegistrationCount} / ${maxSlots}` : acceptedRegistrationCount}
                                     </span>
                                     <span className="text-gray-500 font-medium">Race Type</span>
-                                    <span className="text-white">{detailedOverview?.raceType || selectedRace.raceType || <span className="text-gray-600 italic">N/A</span>}</span>
+                                    <span className="text-white">{detailedOverview?.RaceType || detailedOverview?.raceType || selectedRace.raceType || <span className="text-gray-600 italic">N/A</span>}</span>
                                 </div>
                             </div>
 

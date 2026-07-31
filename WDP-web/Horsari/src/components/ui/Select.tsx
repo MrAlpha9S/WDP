@@ -12,9 +12,10 @@ interface SelectProps {
     options: SelectOption[];
     placeholder?: string;
     className?: string;
+    disabled?: boolean;
 }
 
-export default function Select({ value, onChange, options, placeholder = "Select...", className = "" }: SelectProps) {
+export default function Select({ value, onChange, options, placeholder = "Select...", className = "", disabled = false }: SelectProps) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     const selected = options.find(o => o.value === value);
@@ -33,8 +34,9 @@ export default function Select({ value, onChange, options, placeholder = "Select
         <div className={`relative ${className}`} ref={ref}>
             <button
                 type="button"
-                onClick={() => setOpen(o => !o)}
-                className="w-full flex items-center justify-between gap-2 bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 cursor-pointer"
+                onClick={() => !disabled && setOpen(o => !o)}
+                disabled={disabled}
+                className={`w-full flex items-center justify-between gap-2 bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
             >
                 <span className={selected ? "text-white truncate" : "text-gray-500 truncate"}>
                     {selected?.label ?? placeholder}

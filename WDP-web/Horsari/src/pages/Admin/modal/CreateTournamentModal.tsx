@@ -55,18 +55,22 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
         return sDate <= todayStr && todayStr <= eDate;
     };
 
+    // Minimum selectable start date: must be more than 2 weeks from today, mirroring
+    // TournamentService's createTournament/updateTournament rule exactly (same +14-day
+    // boundary) so the picker never lets you choose something the backend would reject.
+    // Applies whether creating or editing — changing startDate always re-applies this rule,
+    // it does NOT freeze based on the tournament's current date (extending a near-term start
+    // out past this minimum is allowed; only landing on/staying inside the window is blocked).
+    const today = new Date();
+    const currentDateUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const twoWeekFromNow = new Date(currentDateUTC.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const minStartDateStr = `${twoWeekFromNow.getUTCFullYear()}-${String(twoWeekFromNow.getUTCMonth() + 1).padStart(2, '0')}-${String(twoWeekFromNow.getUTCDate()).padStart(2, '0')}`;
+
     const handleStartDateChange = (date: string) => {
-        const today = new Date();
-
-        if (editingTournament && editingTournament.startISO) {
-            const currentStartObj = new Date(editingTournament.startISO);
-            const timeDiff = currentStartObj.getTime() - today.getTime();
-            const daysAway = Math.ceil(timeDiff / (1000 * 3600 * 24));
-
-            if (daysAway <= 14) {
-                setError("Cannot change the start date because the tournament is 14 days or less away.");
-                return;
-            }
+        if (date && date < minStartDateStr) {
+            setError("Start date must be more than 2 weeks from now.");
+            setStartDate(date);
+            return;
         }
 
         setStartDate(date);
@@ -108,6 +112,14 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
 
         if (startDate < oneWeekAgoStr) {
             setError("Start date must not be older than a week ago.");
+            return;
+        }
+
+        // Only re-check the 2-week minimum if startDate is actually being changed — an
+        // untouched startDate on an existing (now-imminent) tournament must stay submittable.
+        const startDateChanged = !editingTournament || startDate !== editingTournament.startISO;
+        if (startDateChanged && startDate < minStartDateStr) {
+            setError("Start date must be more than 2 weeks from now.");
             return;
         }
 
@@ -171,7 +183,13 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Date</label>
-                            <input value={startDate} onChange={e => handleStartDateChange(e.target.value)} type="date" className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
+                            <input
+                                value={startDate}
+                                onChange={e => handleStartDateChange(e.target.value)}
+                                type="date"
+                                min={minStartDateStr}
+                                className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
+                            />
                         </div>
                         <div>
                             <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">End Date</label>

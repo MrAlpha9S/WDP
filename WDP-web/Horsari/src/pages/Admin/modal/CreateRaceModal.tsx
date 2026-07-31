@@ -73,8 +73,10 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                         setSecondPlacePrize(raceToEdit.secondPlacePrize ?? "");
                         setThirdPlacePrize(raceToEdit.thirdPlacePrize ?? "");
                         setCurrencyType(raceToEdit.currencyType ?? "VND");
-                        // Match the saved raceType string back to a rule _id
-                        const matchedRule = data.data?.eligibilityRules?.find((r: any) => r.raceType === raceToEdit.raceType);
+                        // Match the saved raceType string back to a rule _id. The detail endpoint
+                        // returns it as `RaceType` (capital R) — fall back to lowercase defensively,
+                        // matching how RaceSchedulingPage's own list mapper already handles this.
+                        const matchedRule = data.data?.eligibilityRules?.find((r: any) => r.raceType === (raceToEdit.RaceType || raceToEdit.raceType));
                         setCreateRaceType(matchedRule?._id || (data.data?.eligibilityRules?.length > 0 ? data.data.eligibilityRules[0]._id : ""));
 
                         const owners = raceToEdit.Registration?.filter((r: any) => r.registrationStatus !== 'cancelled').map((r: any) => r.Owner?._id || r.horseOwnerId).filter(Boolean) || [];
@@ -196,7 +198,17 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         minAllowedDate.setHours(0, 0, 0, 0);
         minAllowedDate.setDate(minAllowedDate.getDate() + 14);
 
-        if (selectedDate < now) {
+        // When editing, only re-run the date-validity checks below if the date is actually
+        // being changed. Otherwise an admin trying to update an unrelated field (prize money,
+        // track length, etc.) on a race whose date already predates one of these rules — e.g.
+        // the tournament's own start date got moved later after the race was scheduled — gets
+        // permanently blocked from saving anything at all, with no way to fix it through this
+        // form since the date field itself isn't what they're touching.
+        const originalRaceDate = raceToEdit?.raceDate ? new Date(raceToEdit.raceDate) : null;
+        const hasDateChanged = !raceToEdit || !originalRaceDate || isNaN(originalRaceDate.getTime())
+            || originalRaceDate.getTime() !== selectedDate.getTime();
+
+        if (hasDateChanged && selectedDate < now) {
             setError("Race date cannot be in the past.");
             return;
         }
@@ -207,7 +219,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         }
 
         const selectedTournament = metadata?.tournaments?.find((t: any) => t._id === tournamentId);
-        if (selectedTournament && !overrideScheduleConflict) {
+        if (hasDateChanged && selectedTournament && !overrideScheduleConflict) {
             if (selectedTournament.startDate) {
                 const tStart = new Date(selectedTournament.startDate);
                 tStart.setHours(0, 0, 0, 0);
@@ -318,6 +330,14 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         }
     }
 
+    // Once the race's currently-saved date is within 2 weeks, lock date/time editing
+    // entirely — too close to reschedule without disrupting owners/referees/jockeys who've
+    // already committed. Checked against raceToEdit's original date, not the in-progress
+    // form state, and skippable via the same override checkbox as the other schedule guards.
+    const currentRaceDateTime = raceToEdit?.raceDate ? new Date(raceToEdit.raceDate).getTime() : null;
+    const dateEditLocked = !!raceToEdit && currentRaceDateTime != null && !isNaN(currentRaceDateTime)
+        && !overrideScheduleConflict && currentRaceDateTime < minAllowedDateUI.getTime();
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="w-[600px] bg-surface border border-border rounded-xl overflow-hidden shadow-2xl flex flex-col">
@@ -368,6 +388,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                                 setHousingFeePercentage={setHousingFeePercentage}
                                 overrideScheduleConflict={overrideScheduleConflict}
                                 setOverrideScheduleConflict={setOverrideScheduleConflict}
+                                dateEditLocked={dateEditLocked}
                             />
 
                             <CreateRacePrizes

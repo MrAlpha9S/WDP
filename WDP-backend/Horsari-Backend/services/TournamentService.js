@@ -13,7 +13,9 @@ class TournamentService {
             // own date always registers as "before currentDate".
             const now = new Date();
             const currentDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-            const twoWeekFromNow = new Date(currentDate.getTime() + 13 * 24 * 60 * 60 * 1000);
+            // +14 days, not +13 — with the strict "<" check below, a +13 offset would let a
+            // startDate exactly 13 days out (one day short of 2 weeks) slip through.
+            const twoWeekFromNow = new Date(currentDate.getTime() + 14 * 24 * 60 * 60 * 1000);
 
             if (!startDate || !endDate) {
                 return { code: 400, msg: 'startDate and endDate are required' };
@@ -48,6 +50,25 @@ class TournamentService {
             // enforces race-round safety guards (blocks completion while rounds are still
             // active, cascades cancellation) — this endpoint never touches status.
             const { status, ...safeUpdateData } = updateData;
+
+            // Changing startDate must still land at least 2 weeks out — same rule createTournament
+            // enforces at creation, just not previously re-checked on update. This allows pushing
+            // a near-term startDate further out (e.g. extending it to clear the 2-week bar) even
+            // while the tournament is currently inside the window; it only blocks landing on — or
+            // staying on — a date that's still too soon. endDate has no such rule; it stays free.
+            if (safeUpdateData.startDate) {
+                const now = new Date();
+                const currentDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                const twoWeekFromNow = new Date(currentDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+                const existingStart = new Date(tournament.startDate);
+                const newStart = new Date(safeUpdateData.startDate);
+
+                if (!isNaN(existingStart.getTime()) && !isNaN(newStart.getTime())
+                    && newStart.getTime() !== existingStart.getTime() && newStart < twoWeekFromNow) {
+                    return { code: 400, msg: 'Start date must be more than 2 weeks from now.' };
+                }
+            }
+
             const updated = await tournamentRepository.updateTournament(id, safeUpdateData);
 
             return { code: 200, data: updated, msg: 'Tournament updated successfully' };

@@ -170,6 +170,20 @@ class RaceRoundService {
         const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
         const twoWeeksFromToday = new Date(today.getTime() + TWO_WEEKS_MS);
 
+        // Rule 1b: Once the race's CURRENT date is already within 2 weeks, its date is locked
+        // entirely — too close to reschedule without disrupting owners/referees/jockeys who've
+        // already committed. (Rule 2 below only guards how soon the NEW date can be; this
+        // guards against touching the date at all once the existing one is already imminent.)
+        if (!overrideScheduleConflict && updateData && updateData.raceDate) {
+            const currentDate = new Date(existingRaceRound.raceDate);
+            const newDate = new Date(updateData.raceDate);
+            if (!isNaN(currentDate.getTime()) && !isNaN(newDate.getTime()) && newDate.getTime() !== currentDate.getTime()) {
+                if (currentDate < twoWeeksFromToday) {
+                    return { code: 400, message: 'Cannot change the race date once it is within 2 weeks of its scheduled date.' };
+                }
+            }
+        }
+
         // Rule 2: Cannot reschedule to less than the tournament's remaining runway (capped at 14 days) —
         // otherwise, as a tournament's endDate approaches, it becomes impossible to reschedule a race
         // to a date that still validly falls inside the tournament's own bounds.

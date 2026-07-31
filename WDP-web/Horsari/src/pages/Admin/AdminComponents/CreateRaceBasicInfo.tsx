@@ -30,6 +30,7 @@ interface BasicInfoProps {
     setHousingFeePercentage: (v: number | "") => void;
     overrideScheduleConflict: boolean;
     setOverrideScheduleConflict: (v: boolean) => void;
+    dateEditLocked?: boolean;
 }
 
 export default function CreateRaceBasicInfo(props: BasicInfoProps) {
@@ -130,10 +131,16 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                             value={props.raceDate}
                             min={props.minDateUI}
                             max={props.maxDateUI}
+                            disabled={props.dateEditLocked}
                             onChange={(e) => props.setRaceDate(e.target.value)}
-                            className="w-full bg-bg border border-border rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
+                            className="w-full bg-bg border border-border rounded p-2.5 pl-9 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                     </div>
+                    {props.dateEditLocked && (
+                        <p className="mt-1.5 text-[11px] text-amber-500/80">
+                            Locked — this race is within 2 weeks. Check "Override scheduling restrictions" to change it anyway.
+                        </p>
+                    )}
                     <label className="flex items-center gap-2 mt-2 text-[11.5px] text-gray-500 cursor-pointer">
                         <input
                             type="checkbox"
@@ -151,6 +158,7 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                             className="flex-1"
                             value={props.raceTime.split(':')[0] ?? '09'}
                             onChange={(v) => props.setRaceTime(`${v}:${props.raceTime.split(':')[1] ?? '00'}`)}
+                            disabled={props.dateEditLocked}
                             options={Array.from({ length: 9 }, (_, i) => i + 9).map(h => {
                                 const hh = String(h).padStart(2, '0');
                                 return { value: hh, label: hh };
@@ -161,6 +169,7 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                             className="flex-1"
                             value={props.raceTime.split(':')[1] ?? '00'}
                             onChange={(v) => props.setRaceTime(`${props.raceTime.split(':')[0] ?? '09'}:${v}`)}
+                            disabled={props.dateEditLocked}
                             options={[{ value: "00", label: "00" }, { value: "30", label: "30" }]}
                         />
                     </div>
