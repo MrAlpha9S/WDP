@@ -15,7 +15,7 @@ function regStatusBadge(status?: string) {
     switch (status) {
         case "verified": return <span className="text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-700/40 px-1.5 py-0.5 rounded-md">Verified</span>;
         case "failed": return <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-1.5 py-0.5 rounded-md">Failed</span>;
-        case "approved": return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-700/40 px-1.5 py-0.5 rounded-md">Approved</span>;
+        case "accepted": return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-700/40 px-1.5 py-0.5 rounded-md">Accepted</span>;
         case "cancelled": return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Cancelled</span>;
         default: return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Pending</span>;
     }
@@ -24,7 +24,7 @@ function regStatusBadge(status?: string) {
 function gateCircleClass(status?: string, isChecked?: boolean) {
     if (status === "failed") return "bg-red-700 text-white";
     if (status === "verified") return "bg-green-700 text-white";
-    if (status === "approved") return "bg-amber-700 text-white";
+    if (status === "accepted") return "bg-amber-700 text-white";
     if (isChecked) return "bg-green-700 text-white";
     return "bg-white/8 text-gray-400";
 }
@@ -159,7 +159,7 @@ export default function PreRacePage() {
                                             "rounded-xl border px-4 py-3 transition-all duration-150",
                                             regStatus === "failed" ? "border-red-800/40 bg-red-500/5" :
                                                 regStatus === "verified" ? "border-green-800/40 bg-green-500/5" :
-                                                    regStatus === "approved" ? "border-amber-800/30 bg-amber-500/5" :
+                                                    regStatus === "accepted" ? "border-amber-800/30 bg-amber-500/5" :
                                                         "border-border bg-white/[0.02]",
                                         ].join(" ")}
                                     >

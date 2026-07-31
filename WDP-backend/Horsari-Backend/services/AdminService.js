@@ -1571,10 +1571,10 @@ AdminService.prototype.setRaceRoundStatus = async function (raceRoundId, newStat
 
 // ── Admin quick-assign shortcut (testing/demo convenience) ────────────────────
 // Fills in the setup step (horse + jockey) for registrations that haven't
-// gotten there yet via the normal owner-approves / owner-hires-jockey /
+// gotten there yet via the normal owner-accepts / owner-hires-jockey /
 // jockey-accepts flow, so the assigned referee's real review
 // (verifyRegistration → finalizeRaceRound) has something to act on.
-// Registrations already "approved" with an accepted main invitation are left
+// Registrations already "accepted" with an accepted main invitation are left
 // untouched — this only fills gaps, never overwrites legitimate state. It
 // never verifies, prepares, or starts the race itself.
 AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId) {
@@ -1644,7 +1644,7 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
         const fastForwardRegs = [];
         const freshPickRegs = [];
         for (const reg of actionable) {
-            const alreadyDone = reg.registrationStatus === 'approved' && acceptedMainByReg.has(String(reg._id));
+            const alreadyDone = reg.registrationStatus === 'accepted' && acceptedMainByReg.has(String(reg._id));
             if (alreadyDone) {
                 alreadyReady++;
                 if (reg.horseId) usedHorseIds.add(String(reg.horseId));
@@ -1652,7 +1652,7 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
                 if (inv?.jockeyId) usedJockeyIds.add(String(inv.jockeyId));
                 continue;
             }
-            const canFastForward = reg.registrationStatus === 'approved' && pendingMainByReg.has(String(reg._id));
+            const canFastForward = reg.registrationStatus === 'accepted' && pendingMainByReg.has(String(reg._id));
             if (canFastForward) {
                 fastForwardRegs.push(reg);
             } else {
@@ -1728,10 +1728,10 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
 
             await Registration.findByIdAndUpdate(reg._id, {
                 horseId: eligibleHorse._id,
-                registrationStatus: 'approved',
+                registrationStatus: 'accepted',
             });
 
-            // Any pending-and-approved main invitation was already siphoned
+            // Any pending-and-accepted main invitation was already siphoned
             // off into fastForwardRegs above, so anything found here is a
             // dead (declined/cancelled) leftover row, safe to reuse/overwrite.
             const existingNonAccepted = existingInvitations.find(
@@ -2341,7 +2341,7 @@ AdminService.prototype.getTournamentDetail = async function (tournamentId) {
             raceRounds.map(async (rr) => {
                 const participantCount = await Registration.countDocuments({
                     raceRoundId: rr._id,
-                    registrationStatus: { $in: ['approved', 'verified'] },
+                    registrationStatus: { $in: ['accepted', 'verified'] },
                 });
                 return { ...rr, participantCount };
             })

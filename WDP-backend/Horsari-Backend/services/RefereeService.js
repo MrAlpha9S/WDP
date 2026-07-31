@@ -403,8 +403,8 @@ class RefereeService {
             if (registration.raceRoundId.toString() !== raceRoundId) {
                 return { code: 400, msg: 'Registration does not belong to this race round.' };
             }
-            if (!['approved', 'verified', 'failed'].includes(registration.registrationStatus)) {
-                return { code: 422, msg: `Registration is "${registration.registrationStatus}", only "approved", "verified", or "failed" registrations can be reviewed.` };
+            if (!['accepted', 'verified', 'failed'].includes(registration.registrationStatus)) {
+                return { code: 422, msg: `Registration is "${registration.registrationStatus}", only "accepted", "verified", or "failed" registrations can be reviewed.` };
             }
 
             // 3. For verified: validate the selected invitation and confirm jockey confirmed

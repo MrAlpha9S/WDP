@@ -55,9 +55,9 @@
  *       200:
  *         description: Paginated list of race invitations with raceRound, tournament, and eligible horses
  *
- * /api/horseowner/registration/{registrationId}/approve:
+ * /api/horseowner/registration/{registrationId}/accept:
  *   post:
- *     summary: Approve one of the owner's pending registrations
+ *     summary: Accept one of the owner's pending registrations
  *     tags: [HorseOwner]
  *     security:
  *       - BearerAuth: []
@@ -68,7 +68,7 @@
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Registration approved
+ *         description: Registration accepted
  *       400:
  *         description: Tournament is cancelled, or registration already rejected/cancelled
  *       403:
@@ -120,7 +120,7 @@
  *     summary: Get race detail for the authenticated horse owner
  *     description: >
  *       Returns the race round info, a `competition` object (maxParticipants, confirmedCount,
- *       openSlots, and the roster of other approved competitors), and the owner's own
+ *       openSlots, and the roster of other accepted competitors), and the owner's own
  *       `registration` (with horse, jockey invitations, race result, violations) — `registration`
  *       is null if the owner has no registration in this race, but `competition` is always present.
  *     tags: [HorseOwner]

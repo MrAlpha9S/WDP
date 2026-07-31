@@ -303,7 +303,7 @@ async function fetchMappedData(
             const name = item.horseOwner?.fullName || "Unknown Owner";
             const initials = name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
             let status: InvitationStatus = "Pending";
-            if (item.registrationStatus === "approved") status = "Accepted";
+            if (item.registrationStatus === "accepted") status = "Accepted";
             else if (item.registrationStatus === "rejected") status = "Declined";
             return {
                 id: item.registrationId,

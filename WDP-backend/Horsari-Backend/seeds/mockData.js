@@ -555,16 +555,16 @@ async function seed() {
     // Round 2 — 5 horses, mixed owner-decision statuses
     // Flow: admin invited owners → owners responded independently
     //   pending  = owner has not responded yet
-    //   approved = owner accepted and selected a horse
+    //   accepted = owner accepted and selected a horse
     //   rejected = owner declined the invitation
     // Lane numbers are not assigned yet (race is still scheduled, referee has not run pre-check)
     // verificationFailReason is NOT set here — it is only written by the referee during verifyRegistration
     const round2Statuses = [
       "pending",   // owner[0] hasn't responded
-      "approved",  // owner[1] accepted
-      "approved",  // owner[2] accepted
+      "accepted",  // owner[1] accepted
+      "accepted",  // owner[2] accepted
       "rejected",  // owner[3] declined
-      "approved",  // owner[4] accepted
+      "accepted",  // owner[4] accepted
     ];
     for (let i = 0; i < 5; i++) {
       const reg = await Registration.create({
@@ -594,20 +594,20 @@ async function seed() {
     const pickBackup = (mainIdx, ...excludeIdx) =>
       jockeys.find((j, i) => i !== mainIdx && !excludeIdx.includes(i));
 
-    // ── Round 2 (scheduled) — invitations only for approved registrations ────────
-    // r2Regs[0]=pending  → no invitation (owner hasn't approved yet;
-    //                       InvitationService rejects invitations on non-approved regs)
-    // r2Regs[1]=approved → main jockey invited, accepted; backup pending
-    // r2Regs[2]=approved → main jockey invited, not yet responded; backup pending
+    // ── Round 2 (scheduled) — invitations only for accepted registrations ────────
+    // r2Regs[0]=pending  → no invitation (owner hasn't accepted yet;
+    //                       InvitationService rejects invitations on non-accepted regs)
+    // r2Regs[1]=accepted → main jockey invited, accepted; backup pending
+    // r2Regs[2]=accepted → main jockey invited, not yet responded; backup pending
     // r2Regs[3]=rejected → no invitation (owner declined; horse won't race)
-    // r2Regs[4]=approved → main jockey invited, accepted; backup pending
+    // r2Regs[4]=accepted → main jockey invited, accepted; backup pending
     //
     // jockeyInRaceId is NOT set here — it is only written by the referee during
     // verifyRegistration. Race is still scheduled; referee pre-check has not run.
     const r2InvMap = [
-      { regIdx: 1, mainIdx: 1, isAccepted: true },   // owner1 approved, jockey confirmed
-      { regIdx: 2, mainIdx: 2, isAccepted: false },  // owner2 approved, jockey not yet replied
-      { regIdx: 4, mainIdx: 3, isAccepted: true },   // owner4 approved, jockey confirmed
+      { regIdx: 1, mainIdx: 1, isAccepted: true },   // owner1 accepted, jockey confirmed
+      { regIdx: 2, mainIdx: 2, isAccepted: false },  // owner2 accepted, jockey not yet replied
+      { regIdx: 4, mainIdx: 3, isAccepted: true },   // owner4 accepted, jockey confirmed
     ];
 
     for (const entry of r2InvMap) {

@@ -48,7 +48,7 @@ const STATUS_CFG: Record<RaceStatus, { label: string; dot: string; text: string;
 
 const REG_STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: "PENDING", color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-600/40" },
-  approved: { label: "APPROVED", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-600/40" },
+  accepted: { label: "ACCEPTED", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-600/40" },
   verified: { label: "VERIFIED", color: "text-green-400", bg: "bg-green-500/10 border-green-600/40" },
   failed: { label: "FAILED", color: "text-red-400", bg: "bg-red-500/10 border-red-700/40" },
   rejected: { label: "CANCELLED", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-600/40" },

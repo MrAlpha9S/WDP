@@ -25,8 +25,8 @@ class InvitationService {
 
         const registration = await Registration.findById(registrationId).lean();
         if (!registration) return { code: 404, message: 'Registration not found' };
-        if (registration.registrationStatus !== 'approved') {
-            return { code: 422, message: `Registration is "${registration.registrationStatus}". Only approved registrations can receive jockey invitations.` };
+        if (registration.registrationStatus !== 'accepted') {
+            return { code: 422, message: `Registration is "${registration.registrationStatus}". Only accepted registrations can receive jockey invitations.` };
         }
         if (String(registration.horseOwnerId) !== String(ownerId)) {
             return { code: 403, message: 'You are not authorized to modify this registration.' };

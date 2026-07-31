@@ -184,8 +184,8 @@ class HorseOwnerService {
         }
     }
 
-    // Approve a registration (owner action)
-    async approveRegistration(ownerId, registrationId, io) {
+    // Accept a registration (owner action)
+    async acceptRegistration(ownerId, registrationId, io) {
         try {
             if (!ownerId) return { code: 400, msg: 'ownerId is required' };
             if (!registrationId) return { code: 400, msg: 'registrationId is required' };
@@ -194,30 +194,30 @@ class HorseOwnerService {
             if (!reg) return { code: 404, msg: 'Registration not found' };
             const tournament = await Tournament.findById(reg.tournamentId);
             if (tournament && tournament.status === 'cancelled') {
-                return { code: 400, msg: 'Registrations for cancelled tournaments cannot be approved' };
+                return { code: 400, msg: 'Registrations for cancelled tournaments cannot be accepted' };
             }
-            // 'verified'/'failed' are the referee's own pre-race-checkup outcomes — approving
+            // 'verified'/'failed' are the referee's own pre-race-checkup outcomes — accepting
             // over them would silently undo that determination after the fact.
             if (['cancelled', 'rejected', 'verified', 'failed'].includes(reg.registrationStatus)) {
-                return { code: 400, msg: `Cannot approve a registration that is already "${reg.registrationStatus}".` };
+                return { code: 400, msg: `Cannot accept a registration that is already "${reg.registrationStatus}".` };
             }
             if (String(reg.horseOwnerId) !== String(ownerId)) {
                 return { code: 403, msg: 'Not authorized to modify this registration' };
             }
 
-            reg.registrationStatus = 'approved';
+            reg.registrationStatus = 'accepted';
             await reg.save();
 
             const NotificationService = require('./NotificationService');
             NotificationService.notify({
                 role: 'admin',
-                type: 'registration_approved',
-                title: 'Registration Approved',
-                message: 'A horse owner has approved their race registration.',
+                type: 'registration_accepted',
+                title: 'Registration Accepted',
+                message: 'A horse owner has accepted their race registration.',
                 actionPayload: { entityType: 'Registration', entityId: reg._id },
-            }, io).catch(err => console.error('[approveRegistration] notify admin error:', err.message));
+            }, io).catch(err => console.error('[acceptRegistration] notify admin error:', err.message));
 
-            return { code: 200, data: reg, msg: 'Registration approved' };
+            return { code: 200, data: reg, msg: 'Registration accepted' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
@@ -435,7 +435,7 @@ class HorseOwnerService {
                     .select('raceRoundId registrationStatus')
                     .lean(),
                 Registration.aggregate([
-                    { $match: { raceRoundId: { $in: raceIds }, registrationStatus: { $in: ['approved', 'verified'] } } },
+                    { $match: { raceRoundId: { $in: raceIds }, registrationStatus: { $in: ['accepted', 'verified'] } } },
                     { $group: { _id: '$raceRoundId', count: { $sum: 1 } } },
                 ]),
                 RaceEligibilityRule.find({
@@ -581,11 +581,11 @@ class HorseOwnerService {
             raceRound.thirdPlacePrize = CurrencyConverter.convertToVnd(raceRound.thirdPlacePrize ?? 0, raceRound.currencyType);
 
             // Competition roster + slot-fill indicator — "confirmed" means the
-            // owner has accepted (registrationStatus 'approved'); this is a
+            // owner has accepted (registrationStatus 'accepted'); this is a
             // pre-race-day roster view, not the referee's race-day verification.
-            const approvedRegs = await Registration.find({ raceRoundId, registrationStatus: 'approved' }).lean();
-            const confirmedCount = approvedRegs.length;
-            const otherRegs = approvedRegs.filter(r => String(r.horseOwnerId) !== String(ownerId));
+            const acceptedRegs = await Registration.find({ raceRoundId, registrationStatus: 'accepted' }).lean();
+            const confirmedCount = acceptedRegs.length;
+            const otherRegs = acceptedRegs.filter(r => String(r.horseOwnerId) !== String(ownerId));
 
             const [otherHorses, otherOwners, otherMainInvitations] = await Promise.all([
                 otherRegs.length

@@ -335,7 +335,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                     : s === "failed"
                                         ? "border-red-700/70 text-red-300 bg-red-500/20"
                                         : "border-yellow-700/70 text-yellow-300 bg-yellow-500/20";
-                                const label = s === "verified" ? "Verified" : s === "failed" ? "Failed" : "Approved";
+                                const label = s === "verified" ? "Verified" : s === "failed" ? "Failed" : "Accepted";
                                 return (
                                     <span className={`absolute top-2.5 right-3 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border backdrop-blur-sm ${cls}`}>
                                         {label}

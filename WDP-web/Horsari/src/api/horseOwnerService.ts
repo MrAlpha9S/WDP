@@ -347,10 +347,10 @@ export const horseOwnerService = {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
-  approveRegistration: async (registrationId: string): Promise<void> => {
+  acceptRegistration: async (registrationId: string): Promise<void> => {
     if (!registrationId || registrationId === '') return
     try {
-      await api.post(`/horseowner/registration/${registrationId}/approve`);
+      await api.post(`/horseowner/registration/${registrationId}/accept`);
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }

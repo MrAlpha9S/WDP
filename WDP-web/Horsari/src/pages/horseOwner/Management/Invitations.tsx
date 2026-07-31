@@ -11,7 +11,6 @@ import { RefetchButton } from "../../../components/RefetchButton";
 // ── Status config ─────────────────────────────────────────────────────────────
 const INVITE_STATUS_CFG: Record<InviteStatus | InviteJockeyStatus, { text: string; bg: string; border: string }> = {
   pending: { text: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
-  approved: { text: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
   accepted: { text: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
   declined: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
   rejected: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
@@ -27,7 +26,7 @@ function formatDate(isoString: string): string {
 function normalizeInviteStatus(value: unknown): InviteStatus {
   if (
     value === "pending" ||
-    value === "approved" ||
+    value === "accepted" ||
     value === "rejected" ||
     value === "verified" ||
     value === "failed" ||
@@ -275,7 +274,7 @@ function InvitationCard({
                 </>
               ) : (
                 <div className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600">
-                  {inv.status === "approved" ? <Check size={13} className="text-green-500" /> : <X size={13} className="text-red-600" />}
+                  {inv.status === "accepted" ? <Check size={13} className="text-green-500" /> : <X size={13} className="text-red-600" />}
                   {inv.status}
                 </div>
               )}
@@ -568,9 +567,9 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
 
   // Race handlers
   async function handleAccept(id: string) {
-    await horseOwnerService.approveRegistration(id);
+    await horseOwnerService.acceptRegistration(id);
     setInvitations((prev) => {
-      const next = prev.map((i) => i.id.toString() === id ? { ...i, status: "approved" as const } : i);
+      const next = prev.map((i) => i.id.toString() === id ? { ...i, status: "accepted" as const } : i);
       onPendingChange?.(next.filter((i) => i.status === "pending").length);
       return next;
     });

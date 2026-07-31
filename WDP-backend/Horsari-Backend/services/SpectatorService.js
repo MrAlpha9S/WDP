@@ -17,7 +17,7 @@ const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
 async function enrichRace(raceRaw) {
     const regs = await Registration.find({
         raceRoundId: raceRaw._id,
-        registrationStatus: { $in: ['approved', 'verified'] },
+        registrationStatus: { $in: ['accepted', 'verified'] },
     }).lean();
 
     const enrichedRegs = await Promise.all(regs.map(async reg => {
@@ -513,7 +513,7 @@ class SpectatorService {
             // Enrich with currentParticipants count
             const raceRoundIds = raceRounds.map(r => r._id);
             const participantCounts = await Registration.aggregate([
-                { $match: { raceRoundId: { $in: raceRoundIds }, registrationStatus: { $in: ['approved', 'verified'] } } },
+                { $match: { raceRoundId: { $in: raceRoundIds }, registrationStatus: { $in: ['accepted', 'verified'] } } },
                 { $group: { _id: '$raceRoundId', count: { $sum: 1 } } },
             ]);
             const countMap = {};
@@ -564,7 +564,7 @@ class SpectatorService {
 
     // Shared helper: batch-fetch invitations, horses, and jockeys for a set of registrations.
     // Primary: jockeyInRaceId → Invitation (referee-verified races).
-    // Fallback: registrationId → main Invitation (scheduled/approved, no jockey locked yet).
+    // Fallback: registrationId → main Invitation (scheduled/accepted, no jockey locked yet).
     async _enrichRegistrationsWithInvitationData(registrations) {
         const allRegIds = registrations.map(r => r._id);
         const lockedInvIds = registrations.filter(r => r.jockeyInRaceId).map(r => r.jockeyInRaceId);
@@ -627,7 +627,7 @@ class SpectatorService {
 
             const registrations = await Registration.find({
                 raceRoundId,
-                registrationStatus: { $in: ['approved', 'verified'] },
+                registrationStatus: { $in: ['accepted', 'verified'] },
             }).lean();
 
             const registrationIds = registrations.map(r => r._id);
@@ -804,8 +804,8 @@ class SpectatorService {
 
             const registration = await Registration.findById(registrationId).lean();
             if (!registration) return { code: 404, msg: 'Registration not found' };
-            if (!['approved', 'verified'].includes(registration.registrationStatus)) {
-                return { code: 400, msg: 'Predictions can only be placed on approved registrations' };
+            if (!['accepted', 'verified'].includes(registration.registrationStatus)) {
+                return { code: 400, msg: 'Predictions can only be placed on accepted registrations' };
             }
 
             const mainInvitation = await Invitation.findOne({ registrationId, isBackup: false }).lean();
@@ -1001,7 +1001,7 @@ class SpectatorService {
                 if (raceRoundIds.length > 0) {
                     const regs = await Registration.find({
                         raceRoundId: { $in: raceRoundIds },
-                        registrationStatus: { $in: ['approved', 'verified'] },
+                        registrationStatus: { $in: ['accepted', 'verified'] },
                     }).lean();
 
                     const horseIds = [...new Set(regs.map(r => r.horseId?.toString()).filter(Boolean))];
@@ -1123,7 +1123,7 @@ class SpectatorService {
                 } else if (['race_winner', 'race_rank'].includes(method.methodType) && raceRound) {
                     // Build pool directly from ALL pending predictions for this race round
                     // and method type. We do NOT restrict to 'verified' registrations here
-                    // because predictions are allowed on 'approved' registrations too — filtering
+                    // because predictions are allowed on 'accepted' registrations too — filtering
                     // to 'verified' would make the live pool appear empty until admin verifies.
                     const Prediction = require('../entities/Prediction');
                     const allRegsInRound = await Registration.find({ raceRoundId: raceRound._id })

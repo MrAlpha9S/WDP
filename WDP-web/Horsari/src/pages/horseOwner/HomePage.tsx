@@ -31,7 +31,7 @@ function fmtDate(d: string | null) {
 function RegistrationChip({ status }: { status: string }) {
   const cfg: Record<string, string> = {
     pending: "border-yellow-600/60 text-yellow-400 bg-yellow-500/10",
-    approved: "border-green-600/60  text-green-400  bg-green-500/10",
+    accepted: "border-green-600/60  text-green-400  bg-green-500/10",
     verified: "border-blue-600/60   text-blue-400   bg-blue-500/10",
     failed: "border-red-600/60    text-red-400    bg-red-500/10",
     rejected: "border-red-600/60    text-red-400    bg-red-500/10",

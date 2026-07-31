@@ -110,7 +110,7 @@ function InviteDetailSheet({
 
   const registrationStatusLabel: Record<string, string> = {
     pending: 'Pending',
-    approved: 'Approved',
+    accepted: 'Accepted',
     rejected: 'Rejected',
     cancelled: 'Cancelled',
   };

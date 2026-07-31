@@ -18,13 +18,13 @@ interface RaceDetailsPanelProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    approved: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    accepted: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     pending: "bg-amber-500/15  text-amber-400  border-amber-500/30",
     rejected: "bg-red-500/15    text-red-400    border-red-500/30",
     assigned: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
 };
 const STATUS_LABEL: Record<string, string> = {
-    approved: "Approved",
+    accepted: "Accepted",
     pending: "Pending",
     rejected: "Rejected",
     assigned: "Assigned",
@@ -292,10 +292,10 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
     if (!selectedRace) return null;
 
-    // Registrations holding a real race slot right now — approved (pre-race)
+    // Registrations holding a real race slot right now — accepted (pre-race)
     // or verified (post-referee-review) — vs. the round's participant cap.
     const acceptedRegistrationCount = detailedParticipants.filter(
-        (p: any) => p.status === 'approved' || p.status === 'verified'
+        (p: any) => p.status === 'accepted' || p.status === 'verified'
     ).length;
     const maxSlots = detailedOverview?.maxParticipants || selectedRace.maxSlots;
 

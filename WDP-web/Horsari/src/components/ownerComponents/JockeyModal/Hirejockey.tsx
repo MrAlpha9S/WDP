@@ -209,7 +209,7 @@ export default function HireJockeyModal({
     return () => { cancelled = true; };
   }, [selectedRace?.ruleId]);
 
-  // Fetch races (approved registrations only)
+  // Fetch races (accepted registrations only)
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -220,13 +220,13 @@ export default function HireJockeyModal({
         if (cancelled) return;
 
         const list: unknown[] = data?.data?.items ?? [];
-        const approved = list.filter((r: any) => {
+        const accepted = list.filter((r: any) => {
           const registrationStatus = r?.registration?.registrationStatus ?? "";
           const roundStatus = (r?.raceRound?.status ?? "").toLowerCase();
-          return ["approved", "verified"].includes(registrationStatus)
+          return ["accepted", "verified"].includes(registrationStatus)
             && !["completed", "cancelled"].includes(roundStatus);
         });
-        setRaces(approved.map((r: any, i) => mapRace(r, i)));
+        setRaces(accepted.map((r: any, i) => mapRace(r, i)));
       } catch {
         if (!cancelled) setErrorRaces("Failed to load races.");
       } finally {
@@ -435,7 +435,7 @@ export default function HireJockeyModal({
               )}
               {!loadingRaces && !errorRaces && races.length === 0 && (
                 <div className="text-center py-8 text-gray-600 text-[12px]">
-                  No approved races available.
+                  No accepted races available.
                 </div>
               )}
               {races.map((race) => (

@@ -1093,7 +1093,7 @@ export const adminService = {
   },
 
   // Testing/demo shortcut — auto-pick a horse + jockey for registrations on a
-  // "scheduled" race round that aren't already approved with an accepted
+  // "scheduled" race round that aren't already accepted with an accepted
   // invitation (already-ready ones are left untouched), so the assigned
   // referee's normal prepare/cancel review has something to act on.
   quickAssignHorsesAndJockeys: async (

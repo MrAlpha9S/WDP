@@ -537,11 +537,11 @@ export default function RaceSchedulingPage() {
                                                                     <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden w-24">
                                                                         <div
                                                                             className="h-full bg-emerald-500 rounded-full"
-                                                                            style={{ width: `${(race.participants.filter((p: any) => p.status === 'approved').length / Math.max(race.maxSlots, 1)) * 100}%` }}
+                                                                            style={{ width: `${(race.participants.filter((p: any) => p.status === 'accepted').length / Math.max(race.maxSlots, 1)) * 100}%` }}
                                                                         />
                                                                     </div>
                                                                     <span className="text-[12px] font-medium text-gray-400 min-w-[32px]">
-                                                                        {race.participants.filter((p: any) => p.status === 'approved').length}/{race.maxSlots}
+                                                                        {race.participants.filter((p: any) => p.status === 'accepted').length}/{race.maxSlots}
                                                                     </span>
                                                                 </div>
                                                             </td>

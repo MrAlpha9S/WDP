@@ -57,7 +57,7 @@ export default function PostRacePage() {
         fetchData();
     }, [fetchData]);
 
-    // Show all horses that were eligible to run (approved or verified),
+    // Show all horses that were eligible to run (accepted or verified),
     // excluding those that were rejected, failed pre-race checks, no-showed, or never processed.
     const EXCLUDED_STATUSES = new Set(['pending', 'failed', 'rejected', 'cancelled']);
     const registrations = (raceRound?.Registration || []).filter(

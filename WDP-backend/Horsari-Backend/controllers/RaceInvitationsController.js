@@ -9,10 +9,10 @@ class RaceInvitationsController {
         return res.status(response.code).json(response);
     }
 
-    async approveRegistration(req, res) {
+    async acceptRegistration(req, res) {
         const { registrationId } = req.params;
         const io = req.app.get('io');
-        const response = await HorseOwnerService.approveRegistration(req.userId, registrationId, io);
+        const response = await HorseOwnerService.acceptRegistration(req.userId, registrationId, io);
         return res.status(response.code).json(response);
     }
 }

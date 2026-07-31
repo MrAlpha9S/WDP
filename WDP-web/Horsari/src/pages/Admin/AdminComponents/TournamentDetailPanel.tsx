@@ -75,11 +75,14 @@ function RoundResultCell({ rd }: { rd: RoundBreakdownEntry }) {
     if (s === 'rejected') {
         return <span className="text-[9px] font-bold text-red-300/60 bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded">Rejected</span>;
     }
-    // approved / verified — differentiate by round status
+    // accepted / verified — differentiate by round status
     if (rd.roundStatus === 'awaitingConfirmation') {
         return <span className="text-[9px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded">Awaiting</span>;
     }
     if (rd.roundStatus === 'completed') {
+        if (s !== 'verified') {
+            return <span className="text-[9px] font-bold text-gray-400 bg-gray-500/10 border border-gray-500/20 px-1.5 py-0.5 rounded">Pending Result</span>;
+        }
         return <span className="text-[9px] font-bold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded">DNF</span>;
     }
     if (rd.roundStatus === 'running') {

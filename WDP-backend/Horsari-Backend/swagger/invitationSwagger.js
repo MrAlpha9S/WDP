@@ -43,7 +43,7 @@
  *       409:
  *         description: Jockey already invited to this registration, invitation uses a different horse than an existing one, or jockey has a conflicting accepted invitation
  *       422:
- *         description: Registration is not "approved"
+ *         description: Registration is not "accepted"
  */
 
 module.exports = {};

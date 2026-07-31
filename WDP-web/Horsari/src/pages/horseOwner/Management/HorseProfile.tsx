@@ -38,7 +38,7 @@ function PositionBadge({ position, regStatus }: { position: number | null | unde
 // ── Reg status chip ───────────────────────────────────────────────────────────
 const REG_CFG: Record<string, { label: string; color: string; bg: string }> = {
   pending:   { label: "PENDING",   color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-600/40" },
-  approved:  { label: "APPROVED",  color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-600/40"    },
+  accepted:  { label: "ACCEPTED",  color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-600/40"    },
   verified:  { label: "VERIFIED",  color: "text-green-400",  bg: "bg-green-500/10 border-green-600/40"  },
   failed:    { label: "FAILED",    color: "text-red-400",    bg: "bg-red-500/10 border-red-700/40"      },
   rejected:  { label: "REJECTED",  color: "text-gray-400",   bg: "bg-gray-500/10 border-gray-600/40"   },
@@ -111,7 +111,7 @@ function ActiveRegCard({ entry }: { entry: HorseRegistrationEntry }) {
   const statusGlow =
     reg.registrationStatus === "verified"
       ? "border-green-700/40 bg-green-900/10"
-      : reg.registrationStatus === "approved"
+      : reg.registrationStatus === "accepted"
       ? "border-blue-700/40 bg-blue-900/10"
       : "border-yellow-700/40 bg-yellow-900/10";
 
@@ -141,7 +141,7 @@ function ActiveRegCard({ entry }: { entry: HorseRegistrationEntry }) {
 
 // ── Race history tab ──────────────────────────────────────────────────────────
 function RaceHistoryTab({ history }: { history: HorseRegistrationEntry[] }) {
-  const ACTIVE = ["pending", "approved", "verified"];
+  const ACTIVE = ["pending", "accepted", "verified"];
 
   const upcoming  = history.filter(e => ACTIVE.includes(e.registration.registrationStatus) && !e.result);
   const pastRaces = history.filter(e => e.result != null);
@@ -339,7 +339,7 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
 
   if (!horseId) return null;
 
-  const ACTIVE_STATUSES = ["pending", "approved", "verified"];
+  const ACTIVE_STATUSES = ["pending", "accepted", "verified"];
   const activeRegCount  = data
     ? data.raceHistory.filter(e => ACTIVE_STATUSES.includes(e.registration.registrationStatus) && !e.result).length
     : 0;
