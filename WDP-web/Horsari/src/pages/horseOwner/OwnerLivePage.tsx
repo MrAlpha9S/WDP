@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import MuxPlayer from "@mux/mux-player-react";
-import { Camera, ChevronDown, ChevronRight, ShieldAlert, Trophy } from "lucide-react";
+import { Camera, ChevronDown, ChevronRight, Flag, MapPin, ShieldAlert, Trophy, Users } from "lucide-react";
 import { CAMERAS, horseColor } from "../../shared/data/RaceData";
 import { useRaceSocket } from "../../providers/useRaceSocket";
 import type { LiveHorse } from "../../providers/useRaceSocket";
-import { RefetchButton } from "../../components/RefetchButton";
+import type { RaceCompetition } from "../../api/horseOwnerService";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatElapsed(seconds: number) {
@@ -450,17 +450,89 @@ function FinishedBanner({ raceFinished }: { raceFinished: any }) {
     );
 }
 
+// ── Competitors panel (pre-race roster) ────────────────────────────────────────
+// Sourced from getRaceDetail's `competition` field, which is computed from
+// confirmed registrations directly — independent of the live socket feed, so
+// it's available before the race starts (status: 'prepared') when no
+// race_update has fired yet. Excludes the viewing owner's own entry (that's
+// what MyHorsePanel is for).
+function CompetitorsPanel({ competition }: { competition: RaceCompetition | null }) {
+    const competitors = competition?.competitors ?? [];
+
+    return (
+        <div className="bg-surface rounded-xl border border-border p-4">
+            <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-500">Competitors</h2>
+                {competition && (
+                    <span className="text-[11px] text-gray-500">
+                        {competition.confirmedCount}{competition.maxParticipants != null ? `/${competition.maxParticipants}` : ""} · {competition.openSlots} open
+                    </span>
+                )}
+            </div>
+            {competitors.length > 0 ? (
+                <div className="flex flex-col gap-1.5">
+                    {competitors.map(c => (
+                        <div key={c.registrationId} className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border/60 bg-white/[0.02] text-[12px]">
+                            <Users size={13} className="text-gray-600 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <span className="text-white font-semibold truncate">{c.horseName ?? "Unnamed Horse"}</span>
+                                {c.ownerName && <span className="text-gray-600"> · {c.ownerName}</span>}
+                            </div>
+                            {c.jockeyName && <span className="text-gray-500 text-[11px] shrink-0">{c.jockeyName}</span>}
+                            {c.laneNumber != null && (
+                                <span className="text-[10px] text-gray-600 bg-white/5 border border-border px-1.5 py-0.5 rounded-full shrink-0">
+                                    Lane {c.laneNumber}
+                                </span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-[12px] text-gray-600">No other confirmed entries yet.</p>
+            )}
+        </div>
+    );
+}
+
+// ── Race Info panel (pre-race round detail) ────────────────────────────────────
+function RaceInfoPanel({ raceRound }: { raceRound: any }) {
+    return (
+        <div className="bg-surface rounded-xl border border-border p-4">
+            <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Info</h2>
+            <div className="flex flex-col gap-2.5 text-[12px]">
+                <div className="flex items-center justify-between py-2 border-b border-border/60">
+                    <span className="text-gray-500 flex items-center gap-1.5"><MapPin size={11} /> Venue</span>
+                    <span className="font-semibold text-white text-right">{raceRound?.location ?? "TBA"}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-border/60">
+                    <span className="text-gray-500 flex items-center gap-1.5"><Flag size={11} /> Race Type</span>
+                    <span className="font-semibold text-white text-right">{raceRound?.RaceType?.raceType ?? "—"}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
+                    <span className="text-gray-500">Track</span>
+                    <span className="font-semibold text-white">{raceRound?.trackLength ? `${raceRound.trackLength} m` : "—"}</span>
+                </div>
+                {raceRound?.firstPlacePrize > 0 && (
+                    <div className="flex items-center justify-between py-2">
+                        <span className="text-gray-500 flex items-center gap-1.5"><Trophy size={11} className="text-yellow-500" /> 1st Prize</span>
+                        <span className="font-semibold text-yellow-400">{raceRound.firstPlacePrize.toLocaleString()} ₫</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 interface OwnerLivePageProps {
     ownerRegistration: any;
     ownerResult: any;
     violations: any[];
-    onRefetch?: () => void | Promise<void>;
-    lastUpdated?: number | null;
+    competition?: RaceCompetition | null;
 }
 
-export default function OwnerLivePage({ ownerRegistration, ownerResult, violations, onRefetch, lastUpdated }: OwnerLivePageProps) {
+export default function OwnerLivePage({ ownerRegistration, ownerResult, violations, competition }: OwnerLivePageProps) {
     const { raceRound, liveUpdate, raceFinished } = useRaceSocket();
 
     const [activeCam, setActiveCam] = useState(1);
@@ -503,13 +575,47 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
     const isAwaitingConfirmation = raceRound?.status === "awaitingConfirmation" && !raceFinished;
     const isCompletedNoBanner = raceRound?.status === "completed" && !raceFinished;
 
+    // 'prepared' means the admin has finalized the round (stream key may already
+    // exist) but nobody has clicked Start yet — no live simulation is running, so
+    // there's no track position, standings, or stream to show. Render a dedicated
+    // pre-race view instead: roster + race info only, no live-only UI. The moment
+    // the race actually starts, race_status_changed flips raceRound.status away
+    // from 'prepared' (see RaceMonitorIndex), so this branch stops applying on
+    // its own — no risk of it lingering into a running race.
+    const isPrepared = raceRound?.status === "prepared";
+
+    if (isPrepared) {
+        return (
+            <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2 self-start px-3 py-1.5 rounded-xl border border-violet-700/50 bg-violet-500/10 text-violet-400 text-[11px] font-bold font-mono">
+                    <span className="w-2 h-2 rounded-full bg-violet-400" />
+                    Race Ready — Not Started Yet
+                </div>
+
+                {ownerRegistration && (
+                    <MyHorsePanel
+                        ownerRegistration={ownerRegistration}
+                        ownerResult={ownerResult}
+                        liveHorses={null}
+                        collapsed={myHorseCollapsed}
+                        onToggle={() => setMyHorseCollapsed(v => !v)}
+                    />
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-4">
+                    <CompetitorsPanel competition={competition ?? null} />
+
+                    <div className="flex flex-col gap-4">
+                        <RaceInfoPanel raceRound={raceRound} />
+                        <ViolationsPanel violations={violations} ownerRegistrationId={ownerRegistrationId} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col gap-4">
-            {onRefetch && (
-                <div className="flex justify-end">
-                    <RefetchButton onRefetch={onRefetch} lastUpdated={lastUpdated ?? null} />
-                </div>
-            )}
             {isAwaitingConfirmation && (
                 <div className="flex items-center gap-2 self-start px-3 py-1.5 rounded-xl border border-amber-700/60 bg-amber-500/10 text-amber-400 text-[11px] font-bold font-mono">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
