@@ -92,7 +92,14 @@ export interface BrowsableRace {
   entryFee: number;
   baseFee: number;
   raceType: string | null;
-  eligibility: { requiredBreed: string | null; requiredGender: string | null; minAge: number | null; maxAge: number | null } | null;
+  eligibility: {
+    requiredBreed: string | null;
+    requiredGender: string | null;
+    minAge: number | null;
+    maxAge: number | null;
+    minRacesWon: number | null;
+    minRacesRun: number | null;
+  } | null;
   ownerRegistration: { status: string; registrationId: string } | null;
 }
 
@@ -484,6 +491,14 @@ export const horseOwnerService = {
       if (search) params.search = search;
       if (status) params.status = status;
       const response = await api.get('/horseowner/races/browse', { params });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+  registerForRace: async (raceRoundId: string, horseId: string): Promise<{ code: number; data: unknown; msg: string }> => {
+    try {
+      const response = await api.post(`/horseowner/races/${raceRoundId}/register`, { horseId });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };

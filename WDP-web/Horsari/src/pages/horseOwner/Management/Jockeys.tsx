@@ -6,6 +6,28 @@ import { horseOwnerService } from "../../../api/horseOwnerService";
 import { RefetchButton } from "../../../components/RefetchButton";
 import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
 
+// ── Invitation status (owner → jockey) ───────────────────────────────────────
+// One entry per jockey this owner has ever sent an invitation to, collapsed to
+// the single most-relevant status when there are several (e.g. hired for one
+// race, previously declined for another): accepted beats pending beats past.
+type InvitationTone = "accepted" | "pending" | "past";
+interface InvitationInfo { label: string; tone: InvitationTone }
+
+const INVITATION_TONE_CFG: Record<InvitationTone, string> = {
+  accepted: "text-green-400 bg-green-500/10 border-green-600/40",
+  pending: "text-yellow-400 bg-yellow-500/10 border-yellow-600/40",
+  past: "text-gray-500 bg-white/5 border-border",
+};
+
+function InvitationBadge({ info }: { info: InvitationInfo | undefined }) {
+  const resolved = info ?? { label: "Not Invited", tone: "past" as const };
+  return (
+    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${INVITATION_TONE_CFG[resolved.tone]}`}>
+      {resolved.label}
+    </span>
+  );
+}
+
 const WEIGHTS = ["Weight: All", "Under 54kg", "54–56kg", "Over 56kg"];
 const REGIONS = ["Region: Global", "Europe", "Asia", "Americas", "Oceania"];
 
@@ -112,7 +134,7 @@ function JockeySkeleton() {
 }
 
 // ── Jockey Card ───────────────────────────────────────────────────────────────
-function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: () => void; onHire: () => void }) {
+function JockeyCard({ jockey, invitationInfo, onDetail, onHire }: { jockey: Jockey; invitationInfo?: InvitationInfo; onDetail: () => void; onHire: () => void }) {
   const cfg = STATUS_CFG[jockey.status] ?? STATUS_CFG["Unavailable"];
   const isUnavailable = jockey.status === "Unavailable";
 
@@ -147,6 +169,9 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
           <h3 className="text-[16px] font-bold text-white leading-tight font-serif">
             {jockey.name}
           </h3>
+          <div className="mt-1.5">
+            <InvitationBadge info={invitationInfo} />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -186,7 +211,7 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
 }
 
 // ── Jockey Table ──────────────────────────────────────────────────────────────
-function JockeyTable({ jockeys, onDetail, onHire }: { jockeys: Jockey[]; onDetail: (j: Jockey) => void; onHire: (j: Jockey) => void }) {
+function JockeyTable({ jockeys, invitationMap, onDetail, onHire }: { jockeys: Jockey[]; invitationMap: Map<string, InvitationInfo>; onDetail: (j: Jockey) => void; onHire: (j: Jockey) => void }) {
   return (
     <div className="bg-surface rounded-2xl border border-border overflow-hidden">
       <table className="w-full text-left border-collapse">
@@ -196,6 +221,7 @@ function JockeyTable({ jockeys, onDetail, onHire }: { jockeys: Jockey[]; onDetai
             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Win Rate</th>
             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Starts</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Your Invitation</th>
             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase"></th>
           </tr>
         </thead>
@@ -214,6 +240,9 @@ function JockeyTable({ jockeys, onDetail, onHire }: { jockeys: Jockey[]; onDetai
                 </td>
                 <td className={`p-4 text-[13px] font-bold ${isUnavailable ? "text-gray-500" : "text-green-400"}`}>{jockey.winRate}%</td>
                 <td className="p-4 text-[12.5px] text-gray-400">{jockey.starts.toLocaleString()}</td>
+                <td className="p-4">
+                  <InvitationBadge info={invitationMap.get(String(jockey.id))} />
+                </td>
                 <td className="p-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button
@@ -256,6 +285,7 @@ export default function JockeysPage() {
   const [selected, setSelected] = useState<Jockey | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [hiring, setHiring] = useState<Jockey | null>(null);
+  const [invitationMap, setInvitationMap] = useState<Map<string, InvitationInfo>>(new Map());
 
   async function openDetail(jockey: Jockey) {
     setSelected(jockey); // open modal immediately with base data
@@ -286,9 +316,33 @@ export default function JockeysPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await horseOwnerService.getAllJockey();
+      const [data, invRes] = await Promise.all([
+        horseOwnerService.getAllJockey(),
+        // Build a jockeyId → invitation-status lookup from every invitation this
+        // owner has ever sent, so the marketplace can show "have I already
+        // invited them?" without touching the (public, unauthenticated)
+        // /jockey/all endpoint. No unpaginated mode exists, so this is a
+        // one-shot large-limit fetch rather than a real paginated list.
+        horseOwnerService.allJockeyInvitations(1, 500).catch(() => null),
+      ]);
       const raw: unknown[] = data?.data?.items ?? [];
       setJockeys(raw.map((item, i) => mapApiToJockey(item, i)));
+
+      const entries = invRes?.data?.invitations ?? [];
+      const map = new Map<string, InvitationInfo>();
+      for (const inv of entries) {
+        const jockeyId = inv.jockey?._id;
+        if (!jockeyId) continue;
+        const existing = map.get(jockeyId);
+        if (inv.status === "accepted") {
+          map.set(jockeyId, { label: "Hired", tone: "accepted" });
+        } else if (inv.status === "pending" && existing?.tone !== "accepted") {
+          map.set(jockeyId, { label: "Invite Pending", tone: "pending" });
+        } else if (!existing) {
+          map.set(jockeyId, { label: "Previously Invited", tone: "past" });
+        }
+      }
+      setInvitationMap(map);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -379,11 +433,17 @@ export default function JockeysPage() {
           {viewMode === "card" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {visible.map((jockey) => (
-                <JockeyCard key={jockey.id} jockey={jockey} onDetail={() => openDetail(jockey)} onHire={() => setHiring(jockey)} />
+                <JockeyCard
+                  key={jockey.id}
+                  jockey={jockey}
+                  invitationInfo={invitationMap.get(String(jockey.id))}
+                  onDetail={() => openDetail(jockey)}
+                  onHire={() => setHiring(jockey)}
+                />
               ))}
             </div>
           ) : (
-            <JockeyTable jockeys={visible} onDetail={openDetail} onHire={setHiring} />
+            <JockeyTable jockeys={visible} invitationMap={invitationMap} onDetail={openDetail} onHire={setHiring} />
           )}
 
           {visibleCount < filtered.length && (

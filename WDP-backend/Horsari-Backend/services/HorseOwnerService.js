@@ -1,5 +1,6 @@
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const HorseRepository = require('../repositories/HorseRepository');
+const RegistrationRepository = require('../repositories/RegistrationRepository');
 const JockeyRepository = require('../repositories/JockeyRepository');
 const UserRepository = require('../repositories/UserRepository');
 const Registration = require('../entities/Registration');
@@ -513,7 +514,7 @@ class HorseOwnerService {
                 ]),
                 RaceEligibilityRule.find({
                     _id: { $in: raceRounds.map(r => r.eligibilityRuleId).filter(Boolean) },
-                }).select('_id raceType requiredBreed requiredGender minAge maxAge minRacesWon').lean(),
+                }).select('_id raceType requiredBreed requiredGender minAge maxAge minRacesWon minRacesRun').lean(),
             ]);
 
             const tournamentMap = new Map(tournaments.map(t => [String(t._id), t]));
@@ -546,7 +547,14 @@ class HorseOwnerService {
                     baseFee: rr.baseFee ?? 0,
                     raceType: rule?.raceType ?? null,
                     eligibility: rule
-                        ? { requiredBreed: rule.requiredBreed ?? null, requiredGender: rule.requiredGender ?? null, minAge: rule.minAge ?? null, maxAge: rule.maxAge ?? null }
+                        ? {
+                            requiredBreed: rule.requiredBreed ?? null,
+                            requiredGender: rule.requiredGender ?? null,
+                            minAge: rule.minAge ?? null,
+                            maxAge: rule.maxAge ?? null,
+                            minRacesWon: rule.minRacesWon ?? null,
+                            minRacesRun: rule.minRacesRun ?? null,
+                        }
                         : null,
                     ownerRegistration: ownerReg
                         ? { status: ownerReg.registrationStatus, registrationId: ownerReg._id }
@@ -562,6 +570,111 @@ class HorseOwnerService {
         } catch (error) {
             return { code: 500, msg: error.message };
         }
+    }
+
+    // Owner self-registers a horse into an open, scheduled race round — the
+    // self-service counterpart to the admin-driven HorseOwnerInvitation flow.
+    // Only 'scheduled' rounds are joinable this way: running/prepared/
+    // awaitingConfirmation rounds have already closed entry in every other flow
+    // (referee inspection, admin finalize), so getAvailableRaces' wider browse
+    // filter does NOT apply here — this is stricter on purpose.
+    async registerForRace(ownerId, raceRoundId, horseId) {
+        try {
+            if (!horseId) return { code: 400, msg: 'horseId is required' };
+
+            const raceRound = await RaceRound.findById(raceRoundId).lean();
+            if (!raceRound) return { code: 404, msg: 'Race round not found.' };
+            if (raceRound.status !== 'scheduled') {
+                return { code: 422, msg: `This race is "${raceRound.status}" and no longer accepting new registrations.` };
+            }
+
+            const horse = await Horse.findById(horseId).lean();
+            if (!horse) return { code: 404, msg: 'Horse not found.' };
+            if (String(horse.ownerId) !== String(ownerId)) {
+                return { code: 403, msg: 'You do not own this horse.' };
+            }
+            if (horse.status !== 'active' || horse.healthStatus !== 'healthy') {
+                return { code: 422, msg: 'This horse must be active and healthy to race.' };
+            }
+
+            if (raceRound.eligibilityRuleId) {
+                const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
+                if (rule) {
+                    const ineligibleReason = await this._checkHorseEligibility(horse, rule);
+                    if (ineligibleReason) return { code: 422, msg: ineligibleReason };
+                }
+            }
+
+            const existingReg = await Registration.findOne({ raceRoundId, horseOwnerId: ownerId }).lean();
+            if (existingReg && !['cancelled', 'rejected'].includes(existingReg.registrationStatus)) {
+                return { code: 422, msg: `You already have a "${existingReg.registrationStatus}" registration for this race.` };
+            }
+
+            const filledSlots = await Registration.countDocuments({
+                raceRoundId,
+                registrationStatus: { $in: ['accepted', 'verified'] },
+            });
+            if (raceRound.maxParticipants != null && filledSlots >= raceRound.maxParticipants) {
+                return { code: 422, msg: 'This race has already reached its participant limit.' };
+            }
+
+            const registration = await RegistrationRepository.createRegistration({
+                raceRoundId,
+                horseOwnerId: ownerId,
+                horseId,
+                registrationStatus: 'accepted',
+                registeredAt: new Date(),
+            });
+
+            return { code: 201, data: registration, msg: 'Registered successfully.' };
+        } catch (error) {
+            return { code: 500, msg: error.message };
+        }
+    }
+
+    // Mirrors InvitationService._checkHorseEligibility field-for-field so the
+    // self-registration gate never accepts a horse the admin-driven invite flow
+    // would reject. Returns a rejection reason string, or null if eligible.
+    async _checkHorseEligibility(horse, rule) {
+        if (horse.status !== 'active' || horse.healthStatus !== 'healthy') {
+            return 'This horse must be active and healthy to race.';
+        }
+        if (rule.requiredBreed && horse.breed !== rule.requiredBreed) {
+            return `This race requires breed "${rule.requiredBreed}".`;
+        }
+        if (rule.requiredGender && rule.requiredGender !== horse.gender) {
+            return `This race requires gender "${rule.requiredGender}".`;
+        }
+
+        const currentYear = new Date().getFullYear();
+        const horseAge = horse.dateOfBirth ? (currentYear - new Date(horse.dateOfBirth).getFullYear()) : 0;
+        if (rule.minAge != null && horseAge < rule.minAge) {
+            return `This race requires a minimum age of ${rule.minAge}.`;
+        }
+        if (rule.maxAge != null && horseAge > rule.maxAge) {
+            return `This race requires a maximum age of ${rule.maxAge}.`;
+        }
+
+        if (rule.minRacesRun || rule.minRacesWon) {
+            const pastRegs = await Registration.find({ horseId: horse._id }).select('_id').lean();
+            const results = pastRegs.length
+                ? await RaceResult.find({
+                    registrationId: { $in: pastRegs.map(r => r._id) },
+                    resultStatus: 'official',
+                    finishPosition: { $ne: null },
+                }).lean()
+                : [];
+            const racesRun = results.length;
+            const wins = results.filter(r => r.finishPosition === 1).length;
+            if (rule.minRacesRun && racesRun < rule.minRacesRun) {
+                return `This race requires at least ${rule.minRacesRun} race(s) run.`;
+            }
+            if (rule.minRacesWon && wins < rule.minRacesWon) {
+                return `This race requires at least ${rule.minRacesWon} win(s).`;
+            }
+        }
+
+        return null; // eligible
     }
 
     // Get jockey invitations sent by this horse owner (paginated)

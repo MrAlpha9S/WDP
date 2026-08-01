@@ -38,6 +38,7 @@ router.get('/race-eligibility-metadata', authMiddleware, authHorseOwner, HorseOw
 router.get('/dashboard/summary',        authMiddleware, authHorseOwner, HorseOwnerController.getDashboardSummary);
 router.get('/dashboard/top-performers', authMiddleware, authHorseOwner, HorseOwnerController.getTopPerformers);
 router.get('/races/browse',             authMiddleware, authHorseOwner, HorseOwnerController.browseRaces);
+router.post('/races/:raceRoundId/register', authMiddleware, authHorseOwner, HorseOwnerController.registerForRace);
 
 // Jockey profile (race history + violations) visible to horse owners
 router.get('/jockeys/:jockeyId/profile', authMiddleware, authHorseOwner, HorseOwnerController.getJockeyProfile);

@@ -98,6 +98,13 @@ class HorseOwnerController {
         return res.status(response.code).json(response);
     }
 
+    async registerForRace(req, res) {
+        const { raceRoundId } = req.params;
+        const { horseId } = req.body;
+        const response = await HorseOwnerService.registerForRace(req.userId, raceRoundId, horseId);
+        return res.status(response.code).json(response);
+    }
+
     async getJockeyProfile(req, res) {
         const { jockeyId } = req.params;
         const response = await HorseOwnerService.getJockeyProfile(jockeyId);

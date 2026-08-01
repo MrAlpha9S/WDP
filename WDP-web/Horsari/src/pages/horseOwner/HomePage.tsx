@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import {
   Flag, TrendingUp, Mail, ChevronRight, Mic2,
   Users, Loader2, Trophy, MapPin, Radio, Calendar,
+  UserPlus, X, AlertTriangle, CheckCircle2,
 } from "lucide-react";
 import {
   horseOwnerService,
   type DashboardSummary,
   type TopPerformer,
   type BrowsableRace,
+  type OwnedHorseListItem,
 } from "../../api/horseOwnerService";
 import { type ManagementTab } from "./Management/SideBar";
 import { useSocket } from "../../providers/SocketProvider";
@@ -57,6 +59,149 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse bg-white/5 rounded ${className}`} />;
 }
 
+// ── Eligibility check ──────────────────────────────────────────────────────────
+// Mirrors CreateRaceModal.tsx's checkEligibility / the backend's
+// _checkHorseEligibility field-for-field, just sourced from a BrowsableRace's
+// already-fetched `eligibility` object instead of a separate metadata call.
+function isHorseEligible(horse: OwnedHorseListItem, rule: NonNullable<BrowsableRace["eligibility"]>): boolean {
+  if (horse.status !== "active" || horse.healthStatus !== "healthy") return false;
+  if (rule.requiredBreed && horse.breed !== rule.requiredBreed) return false;
+  if (rule.requiredGender && rule.requiredGender !== "both" && rule.requiredGender !== horse.gender) return false;
+
+  const currentYear = new Date().getFullYear();
+  const horseAge = horse.dateOfBirth ? currentYear - new Date(horse.dateOfBirth).getFullYear() : 0;
+  if (rule.minAge != null && horseAge < rule.minAge) return false;
+  if (rule.maxAge != null && horseAge > rule.maxAge) return false;
+
+  if (rule.minRacesWon != null || rule.minRacesRun != null) {
+    const racesRun = horse.raceResults?.length ?? 0;
+    const wins = horse.raceResults?.filter((r) => r.finishPosition === 1).length ?? 0;
+    if (rule.minRacesRun != null && racesRun < rule.minRacesRun) return false;
+    if (rule.minRacesWon != null && wins < rule.minRacesWon) return false;
+  }
+
+  return true;
+}
+
+// ── Register modal ────────────────────────────────────────────────────────────
+function RegisterRaceModal({ race, onClose, onRegistered }: {
+  race: BrowsableRace;
+  onClose: () => void;
+  onRegistered: (registrationId: string) => void;
+}) {
+  const [horses, setHorses] = useState<OwnedHorseListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedHorseId, setSelectedHorseId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    horseOwnerService.getUserHorse(1, 100)
+      .then((res) => { if (!cancelled) setHorses(res.data?.items ?? []); })
+      .catch(() => { if (!cancelled) setError("Failed to load your horses."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const eligibleHorses = race.eligibility
+    ? horses.filter((h) => isHorseEligible(h, race.eligibility!))
+    : horses.filter((h) => h.status === "active" && h.healthStatus === "healthy");
+
+  const handleConfirm = async () => {
+    if (!selectedHorseId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await horseOwnerService.registerForRace(race.id, selectedHorseId);
+      onRegistered((res.data as any)?._id ?? "");
+    } catch (err: any) {
+      setError(err?.msg ?? "Failed to register for this race.");
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div
+        className="bg-surface-raised border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-black/60 flex flex-col gap-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-1">Register</p>
+            <h3 className="text-[16px] font-bold text-white leading-tight">{race.name}</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-600 hover:text-gray-300 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div>
+          <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-2">Select an eligible horse</p>
+          {loading ? (
+            <div className="flex items-center gap-2 text-gray-600 text-[12px] py-4 justify-center">
+              <Loader2 size={13} className="animate-spin" /> Loading your horses…
+            </div>
+          ) : eligibleHorses.length === 0 ? (
+            <div className="flex items-center gap-2 text-[12px] text-amber-400 bg-amber-500/10 border border-amber-700/40 rounded-xl px-4 py-3">
+              <AlertTriangle size={13} className="shrink-0" />
+              None of your horses are eligible for this race.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto pr-1">
+              {eligibleHorses.map((h) => (
+                <button
+                  key={h._id}
+                  onClick={() => setSelectedHorseId(h._id)}
+                  className={[
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all",
+                    selectedHorseId === h._id
+                      ? "border-red-700/60 bg-red-500/8 text-red-300"
+                      : "border-border bg-white/[0.03] text-gray-400 hover:border-white/15 hover:text-gray-200",
+                  ].join(" ")}
+                >
+                  <span className={[
+                    "w-4 h-4 rounded-full border-2 shrink-0 transition-all",
+                    selectedHorseId === h._id ? "border-red-500 bg-red-500" : "border-gray-600",
+                  ].join(" ")} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12.5px] font-semibold">{h.horseName}</p>
+                    <p className="text-[10.5px] text-gray-600 truncate">{[h.breed, h.gender].filter(Boolean).join(" · ")}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 text-[12px] text-red-400 bg-red-500/10 border border-red-700/40 rounded-xl px-4 py-2.5">
+            <AlertTriangle size={12} className="shrink-0" /> {error}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-1 border-t border-border">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 rounded-xl border border-border text-gray-500 text-[12px] font-semibold hover:border-white/20 hover:text-gray-300 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!selectedHorseId || submitting}
+            className="flex-1 py-2 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            {submitting ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+            Register
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Dashboard Page ─────────────────────────────────────────────────────────────
 export default function DashboardPage({ onNavigate }: { onNavigate: (tab: ManagementTab) => void }) {
   const navigate = useNavigate();
@@ -74,6 +219,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
   const [racesError, setRacesError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [registeringRace, setRegisteringRace] = useState<BrowsableRace | null>(null);
 
   // Live refetch on any notification addressed to this horse owner.
   const { socket } = useSocket();
@@ -144,6 +290,16 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
     } finally {
       setRacesLoadingMore(false);
     }
+  }
+
+  function handleRegistered(registrationId: string) {
+    if (!registeringRace) return;
+    const raceId = registeringRace.id;
+    setRaces(prev => prev.map(r => r.id === raceId
+      ? { ...r, ownerRegistration: { status: "accepted", registrationId }, currentParticipants: r.currentParticipants + 1 }
+      : r
+    ));
+    setRegisteringRace(null);
   }
 
   return (
@@ -496,15 +652,26 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                           {race.prizes.first > 0 ? `${fmt(race.prizes.first)} ₫` : "—"}
                         </p>
                       </div>
-                      <button
-                        onClick={() => navigate(`/owner/race-monitor/${race.id}`)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors duration-150 ${race.isLive
-                            ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40"
-                            : "bg-white/8 hover:bg-white/14 text-gray-300"
-                          }`}
-                      >
-                        <Radio size={10} /> Watch
-                      </button>
+                      {race.ownerRegistration ? (
+                        <RegistrationChip status={race.ownerRegistration.status} />
+                      ) : !race.isLive && race.status === "scheduled" && race.maxParticipants != null && race.currentParticipants < race.maxParticipants ? (
+                        <button
+                          onClick={() => setRegisteringRace(race)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40 transition-colors duration-150"
+                        >
+                          <UserPlus size={10} /> Register
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => navigate(`/owner/race-monitor/${race.id}`)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors duration-150 ${race.isLive
+                              ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40"
+                              : "bg-white/8 hover:bg-white/14 text-gray-300"
+                            }`}
+                        >
+                          <Radio size={10} /> Watch
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -540,6 +707,14 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
 
 
       </div>
+
+      {registeringRace && (
+        <RegisterRaceModal
+          race={registeringRace}
+          onClose={() => setRegisteringRace(null)}
+          onRegistered={handleRegistered}
+        />
+      )}
     </div>
   );
 }
