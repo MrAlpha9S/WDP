@@ -238,7 +238,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             return;
         }
 
-        if (selectedDate < minAllowedDate && !raceToEdit && !overrideScheduleConflict) {
+        if (hasDateChanged && selectedDate < minAllowedDate && !overrideScheduleConflict) {
             setError("Race date must be at least 14 days from today to allow for preparations.");
             return;
         }
@@ -358,7 +358,11 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
 
     const twoWeeksStr = `${minAllowedDateUI.getFullYear()}-${String(minAllowedDateUI.getMonth() + 1).padStart(2, '0')}-${String(minAllowedDateUI.getDate()).padStart(2, '0')}`;
 
-    if (!raceToEdit && !overrideScheduleConflict) {
+    // Applies to both create AND edit — previously this only ran for `!raceToEdit`,
+    // so editing an existing race (especially with no tournament selected, which
+    // can't backstop the floor via selectedTournamentUI.startDate below) let the
+    // date picker accept any date with no 2-week floor shown or enforced at all.
+    if (!overrideScheduleConflict) {
         minDateUI = twoWeeksStr;
     }
 
