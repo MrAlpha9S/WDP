@@ -100,8 +100,7 @@ class HorseOwnerController {
 
     async registerForRace(req, res) {
         const { raceRoundId } = req.params;
-        const { horseId } = req.body;
-        const response = await HorseOwnerService.registerForRace(req.userId, raceRoundId, horseId);
+        const response = await HorseOwnerService.registerForRace(req.userId, raceRoundId);
         return res.status(response.code).json(response);
     }
 

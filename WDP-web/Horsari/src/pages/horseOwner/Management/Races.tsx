@@ -1,10 +1,36 @@
 ﻿import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Loader2, AlertCircle, X, Trophy, ShieldAlert, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Calendar, MapPin, Loader2, AlertCircle, X, Trophy, Flag, ShieldAlert, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
-import { horseOwnerService, type RaceInvitationEntry } from "../../../api/horseOwnerService";
+import { horseOwnerService, type RaceInvitationEntry, type OwnedHorseListItem } from "../../../api/horseOwnerService";
 import { RefetchButton } from "../../../components/RefetchButton";
 import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
+
+// Mirrors the backend's HorseOwnerService._checkHorseEligibility field-for-field
+// (same shape as HomePage.tsx's BrowsableRace.eligibility check), applied here
+// against a raceRound's populated eligibility rule (raceRound.RaceType from
+// getRaceDetail) so this view-only "available horses" list matches exactly
+// what the Hire Jockey flow would accept when actually assigning a horse.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isHorseEligible(horse: OwnedHorseListItem, rule: any): boolean {
+  if (horse.status !== "active" || horse.healthStatus !== "healthy") return false;
+  if (rule?.requiredBreed && horse.breed !== rule.requiredBreed) return false;
+  if (rule?.requiredGender && horse.gender !== rule.requiredGender) return false;
+
+  const currentYear = new Date().getFullYear();
+  const horseAge = horse.dateOfBirth ? currentYear - new Date(horse.dateOfBirth).getFullYear() : 0;
+  if (rule?.minAge != null && horseAge < rule.minAge) return false;
+  if (rule?.maxAge != null && horseAge > rule.maxAge) return false;
+
+  if (rule?.minRacesWon || rule?.minRacesRun) {
+    const racesRun = horse.raceResults?.length ?? 0;
+    const wins = horse.raceResults?.filter((r) => r.finishPosition === 1).length ?? 0;
+    if (rule.minRacesRun && racesRun < rule.minRacesRun) return false;
+    if (rule.minRacesWon && wins < rule.minRacesWon) return false;
+  }
+
+  return true;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
@@ -76,6 +102,12 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"overview" | "entry" | "results">("overview");
 
+  // Read-only "which of my horses could fill this registration" list — shown
+  // when the registration hasn't gotten a horse yet. Horse assignment itself
+  // only happens through the Hire Jockey flow, not from here.
+  const [ownedHorses, setOwnedHorses] = useState<OwnedHorseListItem[] | null>(null);
+  const [horsesLoading, setHorsesLoading] = useState(false);
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -97,6 +129,24 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
   const raceRound = detail?.raceRound;
   const reg = detail?.registration;
   const competition = detail?.competition;
+  const needsHorse = tab === "entry" && !!reg && !reg.horse;
+
+  // Fetch the owner's stable only once it's actually needed — a registration
+  // with a horse already assigned never needs this.
+  useEffect(() => {
+    if (!needsHorse || ownedHorses !== null) return;
+    let cancelled = false;
+    setHorsesLoading(true);
+    horseOwnerService.getUserHorse(1, 100)
+      .then((res) => { if (!cancelled) setOwnedHorses(res.data?.items ?? []); })
+      .catch(() => { if (!cancelled) setOwnedHorses([]); })
+      .finally(() => { if (!cancelled) setHorsesLoading(false); });
+    return () => { cancelled = true; };
+  }, [needsHorse, ownedHorses]);
+
+  const eligibleHorses = ownedHorses
+    ? ownedHorses.filter((h) => isHorseEligible(h, raceRound?.RaceType))
+    : [];
 
   return (
     <div
@@ -281,6 +331,50 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                             {reg.laneNumber != null ? ` · Lane ${reg.laneNumber}` : ""}
                           </p>
                         </div>
+                      </div>
+                    )}
+
+                    {/* No horse assigned yet — read-only "what could I assign" view.
+                        Assignment itself happens from Hire Jockey, not here. */}
+                    {!reg.horse && (
+                      <div className="bg-bg rounded-xl border border-border p-3 flex flex-col gap-3">
+                        <div className="flex items-center gap-2 text-amber-400">
+                          <AlertCircle size={14} className="shrink-0" />
+                          <p className="text-[12.5px] font-semibold">No horse assigned yet</p>
+                        </div>
+                        <p className="text-[11px] text-gray-500 -mt-1">
+                          Invite a jockey for this registration to assign one of your horses — the first invitation sets the horse.
+                        </p>
+
+                        {horsesLoading && (
+                          <div className="flex items-center gap-2 text-gray-600 text-[11px] py-1">
+                            <Loader2 size={12} className="animate-spin" /> Checking your stable…
+                          </div>
+                        )}
+
+                        {!horsesLoading && ownedHorses !== null && (
+                          eligibleHorses.length > 0 ? (
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">
+                                Eligible Horses ({eligibleHorses.length})
+                              </p>
+                              <div className="flex flex-col gap-1.5">
+                                {eligibleHorses.map((h) => (
+                                  <div
+                                    key={h._id}
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border bg-white/[0.02] text-[12px]"
+                                  >
+                                    <Flag size={12} className="text-gray-600 shrink-0" />
+                                    <span className="text-white font-semibold truncate flex-1">{h.horseName}</span>
+                                    <span className="text-gray-600 text-[11px] shrink-0">{[h.breed, h.gender].filter(Boolean).join(" · ")}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-[12px] text-gray-600">None of your horses are currently eligible for this race.</p>
+                          )
+                        )}
                       </div>
                     )}
 

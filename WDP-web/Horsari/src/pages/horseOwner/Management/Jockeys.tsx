@@ -1,35 +1,243 @@
 ﻿import { useState, useEffect, useCallback } from "react";
-import { ChevronDown, SlidersHorizontal, User, Diamond, Loader2 } from "lucide-react";
+import { ChevronDown, SlidersHorizontal, User, Diamond, Loader2, Trophy, MapPin, Calendar, Flag, UserX, AlertCircle, ClipboardList, X } from "lucide-react";
 import JockeyDetailModal, { type Jockey, STATUS_CFG } from "../../../components/ownerComponents/JockeyModal/Jockeydetailmodal";
 import HireJockeyModal from "../../../components/ownerComponents/JockeyModal/Hirejockey";
-import { horseOwnerService } from "../../../api/horseOwnerService";
+import { horseOwnerService, type RaceInvitationEntry } from "../../../api/horseOwnerService";
 import { RefetchButton } from "../../../components/RefetchButton";
 import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
 
-// ── Invitation status (owner → jockey) ───────────────────────────────────────
-// One entry per jockey this owner has ever sent an invitation to, collapsed to
-// the single most-relevant status when there are several (e.g. hired for one
-// race, previously declined for another): accepted beats pending beats past.
-type InvitationTone = "accepted" | "pending" | "past";
-interface InvitationInfo { label: string; tone: InvitationTone }
+const WEIGHTS = ["Weight: All", "Under 54kg", "54–56kg", "Over 56kg"];
 
-const INVITATION_TONE_CFG: Record<InvitationTone, string> = {
-  accepted: "text-green-400 bg-green-500/10 border-green-600/40",
-  pending: "text-yellow-400 bg-yellow-500/10 border-yellow-600/40",
-  past: "text-gray-500 bg-white/5 border-border",
+// ── Accepted registrations panel ────────────────────────────────────────────
+// Separate from the jockey marketplace grid/table below: this surfaces the
+// owner's own accepted (in-progress) race registrations and, per registration,
+// whether a jockey has been invited yet — sourced from the same
+// getHorseOwnerInvitations endpoint HireJockeyModal uses to list hireable
+// races, filtered the same way (accepted/verified, round not completed/cancelled).
+interface AcceptedRegistration {
+  id: string;
+  raceName: string;
+  tournament: string | null;
+  status: string;
+  date: string;
+  venue: string;
+  horseName: string | null;
+  jockeyName: string | null;
+  // Every invitation ever sent for this registration, newest first —
+  // distinct from jockeyName above, which only reflects a confirmed/
+  // effective pick. Drives the expandable invitation-history table.
+  invitations: { jockeyName: string | null; status: string; isBackup: boolean }[];
+}
+
+const REG_STATUS_CFG: Record<string, string> = {
+  accepted: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  verified: "bg-blue-500/15 text-blue-400 border-blue-500/30",
 };
 
-function InvitationBadge({ info }: { info: InvitationInfo | undefined }) {
-  const resolved = info ?? { label: "Not Invited", tone: "past" as const };
+const INVITATION_TONE_CFG: Record<string, string> = {
+  pending: "text-yellow-400",
+  accepted: "text-emerald-400",
+  declined: "text-red-400",
+  cancelled: "text-gray-400",
+  didNotAttend: "text-red-400",
+};
+
+const INVITATION_LABEL_CFG: Record<string, string> = {
+  pending: "Pending",
+  accepted: "Accepted",
+  declined: "Declined",
+  cancelled: "Cancelled",
+  didNotAttend: "No-Show",
+};
+
+function fmtRegDate(iso: string | undefined | null): string {
+  if (!iso) return "TBA";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "TBA";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapAcceptedRegistration(raw: any, i: number): AcceptedRegistration {
+  return {
+    id: raw.registration?._id ?? String(i),
+    raceName: raw.raceRound?.roundName ?? "Unnamed Race",
+    tournament: raw.tournament?.name ?? null,
+    status: raw.registration?.registrationStatus ?? "accepted",
+    date: fmtRegDate(raw.raceRound?.raceDate),
+    venue: raw.raceRound?.location ?? "TBA",
+    horseName: raw.horse?.horseName ?? null,
+    jockeyName: raw.jockey?.fullName ?? null,
+    invitations: raw.invitations ?? [],
+  };
+}
+
+function RegistrationRowSkeleton() {
   return (
-    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${INVITATION_TONE_CFG[resolved.tone]}`}>
-      {resolved.label}
-    </span>
+    <div className="rounded-xl bg-white/4 border border-border/60 p-4 space-y-2.5 animate-pulse">
+      <div className="h-4 w-4/5 rounded bg-white/5" />
+      <div className="h-3 w-3/5 rounded bg-white/5" />
+      <div className="h-3 w-2/5 rounded bg-white/5" />
+    </div>
   );
 }
 
-const WEIGHTS = ["Weight: All", "Under 54kg", "54–56kg", "Over 56kg"];
-const REGIONS = ["Region: Global", "Europe", "Asia", "Americas", "Oceania"];
+// Docked side panel, styled after Admin's RaceDetailsPanel: a bordered aside
+// that sits in-flow next to the main content (not an overlay), toggled on
+// from a header button, with the main column shrinking to make room for it.
+function AcceptedRegistrationsPanel({ onClose, registrations, loading, error }: {
+  onClose: () => void;
+  registrations: AcceptedRegistration[];
+  loading: boolean;
+  error: string | null;
+}) {
+  const needsJockeyCount = registrations.filter((r) => !r.jockeyName).length;
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <aside
+      className="h-full bg-surface border border-border/60 rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20"
+      style={{ animation: "panelIn 0.18s ease-out" }}
+    >
+      <style>{`@keyframes panelIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }`}</style>
+
+      <div className="flex flex-col flex-1 min-h-0">
+        {/* ── Header ── */}
+        <div className="px-5 py-5 shrink-0 border-b border-border/60 bg-surface">
+          <div className="flex justify-between items-start w-full gap-4">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-[18px] font-bold tracking-tight leading-tight text-white">
+                Accepted Registrations
+              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block ${needsJockeyCount > 0
+                  ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                  : "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                  }`}>
+                  {needsJockeyCount > 0 ? `${needsJockeyCount} Need${needsJockeyCount === 1 ? "s" : ""} Jockey` : "All Set"}
+                </span>
+                <span className="text-[12px] text-gray-500">
+                  {registrations.length} race{registrations.length !== 1 ? "s" : ""} entered
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors shrink-0"
+              title="Close Panel"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Body ── */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-3">
+          {loading && Array.from({ length: 4 }).map((_, i) => <RegistrationRowSkeleton key={i} />)}
+
+          {!loading && error && (
+            <div className="flex items-center gap-2 text-[12px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
+              <AlertCircle size={13} className="shrink-0" /> {error}
+            </div>
+          )}
+
+          {!loading && !error && registrations.length === 0 && (
+            <div className="text-[13px] text-gray-500 italic p-8 text-center bg-bg rounded-xl border border-border/60">
+              No accepted registrations yet — join a race from your dashboard.
+            </div>
+          )}
+
+          {!loading && !error && registrations.map((reg) => (
+            <div key={reg.id} className="p-4 rounded-xl bg-bg border border-border/60 flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Trophy size={16} className="text-gray-500 shrink-0" />
+                  <span className="text-[14px] font-bold text-white truncate">{reg.raceName}</span>
+                </div>
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${REG_STATUS_CFG[reg.status] ?? REG_STATUS_CFG.accepted}`}>
+                  {reg.status}
+                </span>
+              </div>
+
+              {reg.tournament && (
+                <p className="text-[11px] text-gray-500 -mt-2">{reg.tournament}</p>
+              )}
+
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 font-medium flex items-center gap-1"><Calendar size={12} /> Date</span>
+                  <span className="text-gray-300 font-semibold">{reg.date}</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-gray-500 font-medium flex items-center gap-1"><MapPin size={12} /> Venue</span>
+                  <span className="text-gray-300 font-semibold truncate">{reg.venue}</span>
+                </div>
+                <div className="flex flex-col gap-1 col-span-2">
+                  <span className="text-gray-500 font-medium flex items-center gap-1"><Flag size={12} /> Horse</span>
+                  <span className="text-gray-300 font-semibold">
+                    {reg.horseName ?? <span className="text-gray-600 italic font-normal">N/A</span>}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 col-span-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-gray-500 font-medium">Jockey</span>
+                    {reg.invitations.length > 0 && (
+                      <button
+                        onClick={() => toggleExpanded(reg.id)}
+                        className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-white transition-colors"
+                      >
+                        {reg.invitations.length} invite{reg.invitations.length > 1 ? "s" : ""}
+                        <ChevronDown size={10} className={`transition-transform duration-150 ${expandedIds.has(reg.id) ? "rotate-180" : ""}`} />
+                      </button>
+                    )}
+                  </div>
+
+                  {reg.invitations.length === 0 && (
+                    <span className="font-semibold flex items-center gap-1 text-amber-400">
+                      <UserX size={12} className="shrink-0" /> No invitation sent yet
+                    </span>
+                  )}
+
+                  {expandedIds.has(reg.id) && reg.invitations.length > 0 && (
+                    <div className="mt-2 rounded-lg border border-border/60 overflow-hidden">
+                      <table className="w-full text-[11px] border-collapse">
+                        <thead>
+                          <tr className="bg-white/[0.03]">
+                            <th className="text-left font-semibold text-gray-500 px-2 py-1.5">Jockey</th>
+                            <th className="text-left font-semibold text-gray-500 px-2 py-1.5">Role</th>
+                            <th className="text-left font-semibold text-gray-500 px-2 py-1.5">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {reg.invitations.map((inv, i) => (
+                            <tr key={i}>
+                              <td className="px-2 py-1.5 text-gray-300 truncate max-w-[120px]">{inv.jockeyName ?? "Unknown"}</td>
+                              <td className="px-2 py-1.5 text-gray-500">{inv.isBackup ? "Backup" : "Main"}</td>
+                              <td className={`px-2 py-1.5 font-semibold ${INVITATION_TONE_CFG[inv.status] ?? "text-gray-400"}`}>
+                                {INVITATION_LABEL_CFG[inv.status] ?? inv.status}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
 
 // ── API mapper ────────────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,7 +342,7 @@ function JockeySkeleton() {
 }
 
 // ── Jockey Card ───────────────────────────────────────────────────────────────
-function JockeyCard({ jockey, invitationInfo, onDetail, onHire }: { jockey: Jockey; invitationInfo?: InvitationInfo; onDetail: () => void; onHire: () => void }) {
+function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: () => void; onHire: () => void }) {
   const cfg = STATUS_CFG[jockey.status] ?? STATUS_CFG["Unavailable"];
   const isUnavailable = jockey.status === "Unavailable";
 
@@ -169,9 +377,6 @@ function JockeyCard({ jockey, invitationInfo, onDetail, onHire }: { jockey: Jock
           <h3 className="text-[16px] font-bold text-white leading-tight font-serif">
             {jockey.name}
           </h3>
-          <div className="mt-1.5">
-            <InvitationBadge info={invitationInfo} />
-          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -211,7 +416,7 @@ function JockeyCard({ jockey, invitationInfo, onDetail, onHire }: { jockey: Jock
 }
 
 // ── Jockey Table ──────────────────────────────────────────────────────────────
-function JockeyTable({ jockeys, invitationMap, onDetail, onHire }: { jockeys: Jockey[]; invitationMap: Map<string, InvitationInfo>; onDetail: (j: Jockey) => void; onHire: (j: Jockey) => void }) {
+function JockeyTable({ jockeys, onDetail, onHire }: { jockeys: Jockey[]; onDetail: (j: Jockey) => void; onHire: (j: Jockey) => void }) {
   return (
     <div className="bg-surface rounded-2xl border border-border overflow-hidden">
       <table className="w-full text-left border-collapse">
@@ -221,7 +426,6 @@ function JockeyTable({ jockeys, invitationMap, onDetail, onHire }: { jockeys: Jo
             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Win Rate</th>
             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Starts</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Your Invitation</th>
             <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase"></th>
           </tr>
         </thead>
@@ -240,9 +444,6 @@ function JockeyTable({ jockeys, invitationMap, onDetail, onHire }: { jockeys: Jo
                 </td>
                 <td className={`p-4 text-[13px] font-bold ${isUnavailable ? "text-gray-500" : "text-green-400"}`}>{jockey.winRate}%</td>
                 <td className="p-4 text-[12.5px] text-gray-400">{jockey.starts.toLocaleString()}</td>
-                <td className="p-4">
-                  <InvitationBadge info={invitationMap.get(String(jockey.id))} />
-                </td>
                 <td className="p-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button
@@ -279,13 +480,43 @@ export default function JockeysPage() {
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [weightFilter, setWeightFilter] = useState("Weight: All");
-  const [regionFilter, setRegionFilter] = useState("Region: Global");
   const [visibleCount, setVisibleCount] = useState(8);
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [selected, setSelected] = useState<Jockey | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [hiring, setHiring] = useState<Jockey | null>(null);
-  const [invitationMap, setInvitationMap] = useState<Map<string, InvitationInfo>>(new Map());
+
+  const [registrations, setRegistrations] = useState<AcceptedRegistration[]>([]);
+  const [regsLoading, setRegsLoading] = useState(true);
+  const [regsError, setRegsError] = useState<string | null>(null);
+  const [showRegistrations, setShowRegistrations] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRegistrations() {
+      try {
+        setRegsLoading(true);
+        setRegsError(null);
+        const res = await horseOwnerService.getHorseOwnerInvitations(1, 50);
+        if (cancelled) return;
+        const items: RaceInvitationEntry[] = res?.data?.items ?? [];
+        const accepted = items.filter((r) => {
+          const registrationStatus = (r.registration as { registrationStatus?: string })?.registrationStatus ?? "";
+          const roundStatus = String((r.raceRound as { status?: string })?.status ?? "").toLowerCase();
+          return ["accepted", "verified"].includes(registrationStatus) && !["completed", "cancelled"].includes(roundStatus);
+        });
+        setRegistrations(accepted.map((r, i) => mapAcceptedRegistration(r, i)));
+      } catch {
+        if (!cancelled) setRegsError("Failed to load your accepted registrations.");
+      } finally {
+        if (!cancelled) setRegsLoading(false);
+      }
+    }
+    loadRegistrations();
+    return () => { cancelled = true; };
+  }, []);
+
+  const needsJockeyCount = registrations.filter((r) => !r.jockeyName).length;
 
   async function openDetail(jockey: Jockey) {
     setSelected(jockey); // open modal immediately with base data
@@ -316,33 +547,9 @@ export default function JockeysPage() {
     try {
       setLoading(true);
       setError(null);
-      const [data, invRes] = await Promise.all([
-        horseOwnerService.getAllJockey(),
-        // Build a jockeyId → invitation-status lookup from every invitation this
-        // owner has ever sent, so the marketplace can show "have I already
-        // invited them?" without touching the (public, unauthenticated)
-        // /jockey/all endpoint. No unpaginated mode exists, so this is a
-        // one-shot large-limit fetch rather than a real paginated list.
-        horseOwnerService.allJockeyInvitations(1, 500).catch(() => null),
-      ]);
+      const data = await horseOwnerService.getAllJockey();
       const raw: unknown[] = data?.data?.items ?? [];
       setJockeys(raw.map((item, i) => mapApiToJockey(item, i)));
-
-      const entries = invRes?.data?.invitations ?? [];
-      const map = new Map<string, InvitationInfo>();
-      for (const inv of entries) {
-        const jockeyId = inv.jockey?._id;
-        if (!jockeyId) continue;
-        const existing = map.get(jockeyId);
-        if (inv.status === "accepted") {
-          map.set(jockeyId, { label: "Hired", tone: "accepted" });
-        } else if (inv.status === "pending" && existing?.tone !== "accepted") {
-          map.set(jockeyId, { label: "Invite Pending", tone: "pending" });
-        } else if (!existing) {
-          map.set(jockeyId, { label: "Previously Invited", tone: "past" });
-        }
-      }
-      setInvitationMap(map);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -365,7 +572,7 @@ export default function JockeysPage() {
   const visible = filtered.slice(0, visibleCount);
 
   return (
-    <div className="flex-1 px-8 py-8 font-sans">
+    <div className="h-full flex flex-col overflow-hidden font-sans">
 
       {selected && (
         <JockeyDetailModal jockey={selected} onClose={() => setSelected(null)} loading={profileLoading} />
@@ -382,82 +589,104 @@ export default function JockeysPage() {
         />
       )}
 
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-[36px] font-bold text-white leading-tight font-serif">
-            Jockey Marketplace
-          </h1>
-          <p className="text-[13px] text-gray-500 mt-1">
-            Browse, evaluate, and hire elite riders for your stable.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <ViewToggle value={viewMode} onChange={setViewMode} />
-          <RefetchButton onRefetch={fetchJockeys} lastUpdated={lastUpdated} />
-          <SlidersHorizontal size={14} className="text-gray-500" />
-          <FilterSelect options={WEIGHTS} value={weightFilter} onChange={setWeightFilter} />
-          <FilterSelect options={REGIONS} value={regionFilter} onChange={setRegionFilter} />
-        </div>
-      </div>
-
-      {/* Loading */}
-      {loading && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2">
-            <Loader2 size={13} className="animate-spin" /> Loading jockeys…
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => <JockeySkeleton key={i} />)}
-          </div>
-        </div>
-      )}
-
-      {/* Error */}
-      {!loading && error && (
-        <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">
-          {error}
-        </div>
-      )}
-
-      {/* Empty */}
-      {!loading && !error && jockeys.length === 0 && (
-        <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
-          No jockeys found.
-        </div>
-      )}
-
-      {/* Grid */}
-      {!loading && !error && jockeys.length > 0 && (
-        <>
-          {viewMode === "card" ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {visible.map((jockey) => (
-                <JockeyCard
-                  key={jockey.id}
-                  jockey={jockey}
-                  invitationInfo={invitationMap.get(String(jockey.id))}
-                  onDetail={() => openDetail(jockey)}
-                  onHire={() => setHiring(jockey)}
-                />
-              ))}
+      <div className="flex-1 flex gap-6 px-8 py-8 min-h-0">
+        <main className={`flex flex-col min-w-0 h-full overflow-y-auto custom-scrollbar transition-all duration-200 ${showRegistrations ? "flex-[0_0_65%]" : "flex-1"}`}>
+          {/* Header */}
+          <div className="flex items-start justify-between mb-6 shrink-0">
+            <div>
+              <h1 className="text-[36px] font-bold text-white leading-tight font-serif">
+                Jockey Marketplace
+              </h1>
+              <p className="text-[13px] text-gray-500 mt-1">
+                Browse, evaluate, and hire elite riders for your stable.
+              </p>
             </div>
-          ) : (
-            <JockeyTable jockeys={visible} invitationMap={invitationMap} onDetail={openDetail} onHire={setHiring} />
-          )}
-
-          {visibleCount < filtered.length && (
-            <div className="flex justify-center mt-10">
+            <div className="flex items-center gap-2 mt-2">
               <button
-                onClick={() => setVisibleCount((c) => c + 4)}
-                className="flex items-center gap-2 text-[13px] text-gray-400 font-medium hover:text-white transition-colors duration-150"
+                onClick={() => setShowRegistrations((v) => !v)}
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border text-[13px] font-medium transition-colors duration-150 ${showRegistrations
+                  ? "border-white/30 bg-white/10 text-white"
+                  : "border-white/15 text-gray-300 hover:border-white/30 hover:text-white"
+                  }`}
               >
-                Load More <ChevronDown size={15} />
+                <ClipboardList size={14} /> My Registrations
+                {needsJockeyCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">
+                    {needsJockeyCount}
+                  </span>
+                )}
               </button>
+              <ViewToggle value={viewMode} onChange={setViewMode} />
+              <RefetchButton onRefetch={fetchJockeys} lastUpdated={lastUpdated} />
+              <SlidersHorizontal size={14} className="text-gray-500" />
+              <FilterSelect options={WEIGHTS} value={weightFilter} onChange={setWeightFilter} />
+            </div>
+          </div>
+
+          {/* Loading */}
+          {loading && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2">
+                <Loader2 size={13} className="animate-spin" /> Loading jockeys…
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 8 }).map((_, i) => <JockeySkeleton key={i} />)}
+              </div>
             </div>
           )}
-        </>
-      )}
+
+          {/* Error */}
+          {!loading && error && (
+            <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">
+              {error}
+            </div>
+          )}
+
+          {/* Empty */}
+          {!loading && !error && jockeys.length === 0 && (
+            <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
+              No jockeys found.
+            </div>
+          )}
+
+          {/* Grid */}
+          {!loading && !error && jockeys.length > 0 && (
+            <>
+              {viewMode === "card" ? (
+                <div className={`grid gap-4 ${showRegistrations ? "grid-cols-2 lg:grid-cols-3" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"}`}>
+                  {visible.map((jockey) => (
+                    <JockeyCard key={jockey.id} jockey={jockey} onDetail={() => openDetail(jockey)} onHire={() => setHiring(jockey)} />
+                  ))}
+                </div>
+              ) : (
+                <JockeyTable jockeys={visible} onDetail={openDetail} onHire={setHiring} />
+              )}
+
+              {visibleCount < filtered.length && (
+                <div className="flex justify-center mt-10">
+                  <button
+                    onClick={() => setVisibleCount((c) => c + 4)}
+                    className="flex items-center gap-2 text-[13px] text-gray-400 font-medium hover:text-white transition-colors duration-150"
+                  >
+                    Load More <ChevronDown size={15} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+
+        {showRegistrations && (
+          <div className="flex-1 min-w-[360px] h-full">
+            <AcceptedRegistrationsPanel
+              onClose={() => setShowRegistrations(false)}
+              registrations={registrations}
+              loading={regsLoading}
+              error={regsError}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

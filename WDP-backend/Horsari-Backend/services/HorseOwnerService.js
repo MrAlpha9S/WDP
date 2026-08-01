@@ -120,12 +120,28 @@ class HorseOwnerService {
             const horses = await HorseRepository.findByOwnerId(ownerId);
 
             const regIds = regs.map(r => r._id);
-            const existingInvitations = await Invitation.find({ registrationId: { $in: regIds } }).select('registrationId horseId').lean();
+            const existingInvitations = await Invitation.find({ registrationId: { $in: regIds } })
+                .select('registrationId horseId invitationStatus isBackup createdAt jockeyId')
+                .populate({ path: 'jockeyId', model: 'User', select: 'fullName' })
+                .sort({ createdAt: -1 })
+                .lean();
             const existingHorseMap = new Map();
+            // Every invitation ever sent for each registration (newest first, since
+            // the query above is sorted desc) — surfaces the full invitation history,
+            // separate from `jockey` below (which only reflects a confirmed/effective
+            // pick and would otherwise hide pending/declined/backup invitations).
+            const invitationsByReg = new Map();
             for (const inv of existingInvitations) {
-                if (!existingHorseMap.has(String(inv.registrationId))) {
-                    existingHorseMap.set(String(inv.registrationId), String(inv.horseId));
+                const regKey = String(inv.registrationId);
+                if (!existingHorseMap.has(regKey)) {
+                    existingHorseMap.set(regKey, String(inv.horseId));
                 }
+                if (!invitationsByReg.has(regKey)) invitationsByReg.set(regKey, []);
+                invitationsByReg.get(regKey).push({
+                    jockeyName: inv.jockeyId?.fullName ?? null,
+                    status: inv.invitationStatus,
+                    isBackup: inv.isBackup,
+                });
             }
 
             // jockeyInRaceId is only set once a referee verifies the registration on race
@@ -190,6 +206,7 @@ class HorseOwnerService {
                     horse: horseDoc
                         ? { horseName: horseDoc.horseName ?? null }
                         : null,
+                    invitations: invitationsByReg.get(String(reg._id)) ?? [],
                 };
             }));
 
@@ -572,37 +589,24 @@ class HorseOwnerService {
         }
     }
 
-    // Owner self-registers a horse into an open, scheduled race round — the
+    // Owner self-registers into an open, scheduled race round — the
     // self-service counterpart to the admin-driven HorseOwnerInvitation flow.
     // Only 'scheduled' rounds are joinable this way: running/prepared/
     // awaitingConfirmation rounds have already closed entry in every other flow
     // (referee inspection, admin finalize), so getAvailableRaces' wider browse
     // filter does NOT apply here — this is stricter on purpose.
-    async registerForRace(ownerId, raceRoundId, horseId) {
+    //
+    // No horse is picked at registration time — the Registration is created
+    // with horseId: null (already the schema default) and gets a horse later,
+    // the same way admin-invited registrations do: via InvitationService.
+    // createInvitation, which sets Registration.horseId off the first jockey
+    // invitation (see HireJockeyModal's horse-picker step).
+    async registerForRace(ownerId, raceRoundId) {
         try {
-            if (!horseId) return { code: 400, msg: 'horseId is required' };
-
             const raceRound = await RaceRound.findById(raceRoundId).lean();
             if (!raceRound) return { code: 404, msg: 'Race round not found.' };
             if (raceRound.status !== 'scheduled') {
                 return { code: 422, msg: `This race is "${raceRound.status}" and no longer accepting new registrations.` };
-            }
-
-            const horse = await Horse.findById(horseId).lean();
-            if (!horse) return { code: 404, msg: 'Horse not found.' };
-            if (String(horse.ownerId) !== String(ownerId)) {
-                return { code: 403, msg: 'You do not own this horse.' };
-            }
-            if (horse.status !== 'active' || horse.healthStatus !== 'healthy') {
-                return { code: 422, msg: 'This horse must be active and healthy to race.' };
-            }
-
-            if (raceRound.eligibilityRuleId) {
-                const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
-                if (rule) {
-                    const ineligibleReason = await this._checkHorseEligibility(horse, rule);
-                    if (ineligibleReason) return { code: 422, msg: ineligibleReason };
-                }
             }
 
             const existingReg = await Registration.findOne({ raceRoundId, horseOwnerId: ownerId }).lean();
@@ -621,7 +625,7 @@ class HorseOwnerService {
             const registration = await RegistrationRepository.createRegistration({
                 raceRoundId,
                 horseOwnerId: ownerId,
-                horseId,
+                horseId: null,
                 registrationStatus: 'accepted',
                 registeredAt: new Date(),
             });

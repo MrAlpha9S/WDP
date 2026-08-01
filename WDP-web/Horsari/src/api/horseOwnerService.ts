@@ -190,6 +190,11 @@ export interface RaceInvitationEntry {
   existingHorseId: string | null;
   jockey: { fullName: string | null; image: string | null } | null;
   horse: { horseName: string | null } | null;
+  // Every invitation ever sent for this registration, newest first —
+  // distinct from `jockey` above, which only reflects a confirmed/effective
+  // pick. Lets callers show the full invitation history (pending/declined/
+  // backup included), not just "no jockey yet".
+  invitations: { jockeyName: string | null; status: string; isBackup: boolean }[];
 }
 
 export interface RaceInvitationsResponse {
@@ -496,9 +501,9 @@ export const horseOwnerService = {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
-  registerForRace: async (raceRoundId: string, horseId: string): Promise<{ code: number; data: unknown; msg: string }> => {
+  registerForRace: async (raceRoundId: string): Promise<{ code: number; data: unknown; msg: string }> => {
     try {
-      const response = await api.post(`/horseowner/races/${raceRoundId}/register`, { horseId });
+      const response = await api.post(`/horseowner/races/${raceRoundId}/register`);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };

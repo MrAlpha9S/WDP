@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Flag, TrendingUp, Mail, ChevronRight, Mic2,
   Users, Loader2, Trophy, MapPin, Radio, Calendar,
-  UserPlus, X, AlertTriangle, CheckCircle2,
+  UserPlus, X, CheckCircle2, XCircle, Check,
 } from "lucide-react";
 import {
   horseOwnerService,
@@ -54,15 +54,33 @@ const RACE_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   prepared: { label: "Ready", cls: "text-green-400 bg-green-900/20 border-green-700/30" },
 };
 
+// Mirrors registerForRace's own duplicate-registration guard on the backend
+// (`existingReg && !['cancelled', 'rejected'].includes(existingReg.registrationStatus)`):
+// a cancelled or rejected registration doesn't hold a slot, so it shouldn't
+// block (or be mistaken for) re-registering.
+function hasActiveRegistration(race: BrowsableRace): boolean {
+  return !!race.ownerRegistration && !["cancelled", "rejected"].includes(race.ownerRegistration.status);
+}
+
+// Mirrors registerForRace's own eligibility gate: only scheduled, non-live
+// rounds are joinable, and a null maxParticipants means uncapped (no slot
+// check to fail), not "unregisterable" — `!= null` alone would hide the
+// Register button on every uncapped race.
+function canRegisterForRace(race: BrowsableRace): boolean {
+  return !race.isLive
+    && race.status === "scheduled"
+    && !hasActiveRegistration(race)
+    && (race.maxParticipants == null || race.currentParticipants < race.maxParticipants);
+}
+
 // ── Loading skeleton ──────────────────────────────────────────────────────────
 function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse bg-white/5 rounded ${className}`} />;
 }
 
-// ── Eligibility check ──────────────────────────────────────────────────────────
-// Mirrors CreateRaceModal.tsx's checkEligibility / the backend's
-// _checkHorseEligibility field-for-field, just sourced from a BrowsableRace's
-// already-fetched `eligibility` object instead of a separate metadata call.
+// Mirrors the backend's HorseOwnerService._checkHorseEligibility field-for-field
+// (same shape used in Races.tsx's RaceDetailModal), applied here against a
+// BrowsableRace's already-fetched `eligibility` object.
 function isHorseEligible(horse: OwnedHorseListItem, rule: NonNullable<BrowsableRace["eligibility"]>): boolean {
   if (horse.status !== "active" || horse.healthStatus !== "healthy") return false;
   if (rule.requiredBreed && horse.breed !== rule.requiredBreed) return false;
@@ -83,24 +101,35 @@ function isHorseEligible(horse: OwnedHorseListItem, rule: NonNullable<BrowsableR
   return true;
 }
 
+type RegisterToastState = { type: "success" | "error"; message: string; detail?: string } | null;
+
 // ── Register modal ────────────────────────────────────────────────────────────
+// A horse is NOT picked here — registering just claims a slot. The owner
+// assigns a horse afterward, from the race/registration detail view, right
+// when they invite a jockey (HireJockeyModal's horse-picker step is what
+// actually sets Registration.horseId).
 function RegisterRaceModal({ race, onClose, onRegistered }: {
   race: BrowsableRace;
   onClose: () => void;
   onRegistered: (registrationId: string) => void;
 }) {
-  const [horses, setHorses] = useState<OwnedHorseListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedHorseId, setSelectedHorseId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<RegisterToastState>(null);
+  const [horses, setHorses] = useState<OwnedHorseListItem[]>([]);
+  const [horsesLoading, setHorsesLoading] = useState(true);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [onClose]);
 
   useEffect(() => {
     let cancelled = false;
     horseOwnerService.getUserHorse(1, 100)
       .then((res) => { if (!cancelled) setHorses(res.data?.items ?? []); })
-      .catch(() => { if (!cancelled) setError("Failed to load your horses."); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .catch(() => { if (!cancelled) setHorses([]); })
+      .finally(() => { if (!cancelled) setHorsesLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
@@ -109,94 +138,198 @@ function RegisterRaceModal({ race, onClose, onRegistered }: {
     : horses.filter((h) => h.status === "active" && h.healthStatus === "healthy");
 
   const handleConfirm = async () => {
-    if (!selectedHorseId) return;
     setSubmitting(true);
-    setError(null);
     try {
-      const res = await horseOwnerService.registerForRace(race.id, selectedHorseId);
-      onRegistered((res.data as any)?._id ?? "");
+      const res = await horseOwnerService.registerForRace(race.id);
+      const registrationId = (res.data as any)?._id ?? "";
+      setToast({ type: "success", message: "Registered!" });
+      setTimeout(() => onRegistered(registrationId), 1500);
     } catch (err: any) {
-      setError(err?.msg ?? "Failed to register for this race.");
+      setToast({ type: "error", message: "Registration Failed", detail: err?.msg ?? "Failed to register for this race." });
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div
-        className="bg-surface-raised border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl shadow-black/60 flex flex-col gap-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-1">Register</p>
-            <h3 className="text-[16px] font-bold text-white leading-tight">{race.name}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 font-sans">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="relative w-full max-w-lg bg-bg border border-border rounded-2xl shadow-2xl shadow-black/90 flex flex-col max-h-[90vh] overflow-hidden">
+
+        {/* Header */}
+        <div className="px-6 pt-6 pb-5 border-b border-border shrink-0">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-surface border border-border flex items-center justify-center shrink-0">
+                <Flag size={16} className="text-red-500" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.2em] text-gray-600 uppercase">Registering</p>
+                <h2 className="text-[18px] font-bold text-white leading-tight font-serif">{race.name}</h2>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-full bg-white/5 border border-border flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all duration-150"
+            >
+              <X size={13} />
+            </button>
           </div>
-          <button onClick={onClose} className="text-gray-600 hover:text-gray-300 transition-colors">
-            <X size={18} />
-          </button>
         </div>
 
-        <div>
-          <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-2">Select an eligible horse</p>
-          {loading ? (
-            <div className="flex items-center gap-2 text-gray-600 text-[12px] py-4 justify-center">
-              <Loader2 size={13} className="animate-spin" /> Loading your horses…
+        {/* Body — full race round detail */}
+        <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-5">
+          {/* Identity strip */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {(() => {
+                const cfg = RACE_STATUS_CFG[race.status] ?? { label: race.status, cls: "text-gray-400 bg-white/5 border-border" };
+                return (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.cls}`}>
+                    {cfg.label}
+                  </span>
+                );
+              })()}
+              {race.tournament && (
+                <span className="text-[12px] text-gray-500">{race.tournament.name}</span>
+              )}
             </div>
-          ) : eligibleHorses.length === 0 ? (
-            <div className="flex items-center gap-2 text-[12px] text-amber-400 bg-amber-500/10 border border-amber-700/40 rounded-xl px-4 py-3">
-              <AlertTriangle size={13} className="shrink-0" />
-              None of your horses are eligible for this race.
+            <div className="grid grid-cols-2 gap-2 text-[12px]">
+              <div className="flex items-center gap-1.5 text-gray-400">
+                <Calendar size={11} className="shrink-0" /> {fmtDate(race.date)}
+              </div>
+              <div className="flex items-center gap-1.5 text-gray-400">
+                <MapPin size={11} className="shrink-0" /> {race.location ?? "TBA"}
+              </div>
             </div>
-          ) : (
-            <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto pr-1">
-              {eligibleHorses.map((h) => (
-                <button
-                  key={h._id}
-                  onClick={() => setSelectedHorseId(h._id)}
-                  className={[
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all",
-                    selectedHorseId === h._id
-                      ? "border-red-700/60 bg-red-500/8 text-red-300"
-                      : "border-border bg-white/[0.03] text-gray-400 hover:border-white/15 hover:text-gray-200",
-                  ].join(" ")}
-                >
-                  <span className={[
-                    "w-4 h-4 rounded-full border-2 shrink-0 transition-all",
-                    selectedHorseId === h._id ? "border-red-500 bg-red-500" : "border-gray-600",
-                  ].join(" ")} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12.5px] font-semibold">{h.horseName}</p>
-                    <p className="text-[10.5px] text-gray-600 truncate">{[h.breed, h.gender].filter(Boolean).join(" · ")}</p>
-                  </div>
-                </button>
-              ))}
+          </div>
+
+          {/* Race info */}
+          <div className="bg-surface p-4 rounded-xl border border-border flex flex-col gap-3">
+            <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Race Info</h3>
+            <div className="grid grid-cols-[110px_1fr] gap-y-2.5 gap-x-4 text-[12.5px]">
+              <span className="text-gray-500 font-medium">Race Type</span>
+              <span className="text-white">{race.raceType ?? <span className="text-gray-600 italic">N/A</span>}</span>
+              <span className="text-gray-500 font-medium">Entries</span>
+              <span className="text-white">
+                {race.maxParticipants != null ? `${race.currentParticipants}/${race.maxParticipants}` : race.currentParticipants} entries
+              </span>
+              <span className="text-gray-500 font-medium">Entry Fee</span>
+              <span className="text-white">{race.entryFee > 0 ? `${race.entryFee.toLocaleString()} ₫` : "Free"}</span>
             </div>
-          )}
+          </div>
+
+          {/* Prize pool */}
+          <div className="bg-surface p-4 rounded-xl border border-border flex flex-col gap-3">
+            <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
+              <Trophy size={12} className="text-yellow-500" /> Prize Pool
+            </h3>
+            <div className="grid grid-cols-[110px_1fr] gap-y-2.5 gap-x-4 text-[12.5px]">
+              <span className="text-gray-500 font-medium">1st Place</span>
+              <span className="text-yellow-400 font-semibold">{race.prizes.first > 0 ? `${race.prizes.first.toLocaleString()} ₫` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+              <span className="text-gray-500 font-medium">2nd Place</span>
+              <span className="text-yellow-400 font-semibold">{race.prizes.second > 0 ? `${race.prizes.second.toLocaleString()} ₫` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+              <span className="text-gray-500 font-medium">3rd Place</span>
+              <span className="text-yellow-400 font-semibold">{race.prizes.third > 0 ? `${race.prizes.third.toLocaleString()} ₫` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+            </div>
+          </div>
+
+          {/* My eligible horses — informational only, no picker: nothing here is
+              selected or submitted, it just shows what could race here. */}
+          <div className="bg-surface p-4 rounded-xl border border-border flex flex-col gap-3">
+            <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+              My Eligible Horses{!horsesLoading && ` (${eligibleHorses.length})`}
+            </h3>
+
+            {horsesLoading && (
+              <div className="flex items-center gap-2 text-gray-600 text-[12px] py-1">
+                <Loader2 size={12} className="animate-spin" /> Checking your stable…
+              </div>
+            )}
+
+            {!horsesLoading && eligibleHorses.length === 0 && (
+              <p className="text-[12px] text-gray-600">
+                None of your horses are currently eligible — you can still register and assign one later.
+              </p>
+            )}
+
+            {!horsesLoading && eligibleHorses.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {eligibleHorses.map((h) => (
+                  <span key={h._id} className="text-[11px] text-gray-300 bg-white/5 border border-border px-2 py-1 rounded-lg">
+                    {h.horseName}
+                    {(h.breed || h.gender) && (
+                      <span className="text-gray-600"> · {[h.breed, h.gender].filter(Boolean).join(" · ")}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Registration note */}
+          <div className="flex items-start gap-2 text-[12px] text-gray-500 bg-white/[0.02] border border-border/60 rounded-xl px-4 py-3">
+            <Check size={13} className="text-gray-500 shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              Confirming reserves a slot under your name. You don't need a horse yet — assign one afterward from the race's detail view, when you invite a jockey.
+            </p>
+          </div>
         </div>
 
-        {error && (
-          <div className="flex items-center gap-2 text-[12px] text-red-400 bg-red-500/10 border border-red-700/40 rounded-xl px-4 py-2.5">
-            <AlertTriangle size={12} className="shrink-0" /> {error}
-          </div>
-        )}
-
-        <div className="flex gap-2 pt-1 border-t border-border">
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-border bg-bg shrink-0 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2 rounded-xl border border-border text-gray-500 text-[12px] font-semibold hover:border-white/20 hover:text-gray-300 transition-all"
+            className="flex-1 py-2.5 rounded-lg border border-white/12 text-gray-400 text-[13px] font-semibold hover:border-white/25 hover:text-white transition-all duration-150"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
-            disabled={!selectedHorseId || submitting}
-            className="flex-1 py-2 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+            disabled={submitting}
+            className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${!submitting
+              ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
+              : "bg-surface border border-border text-gray-600 cursor-not-allowed"
+              }`}
           >
-            {submitting ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-            Register
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            {submitting ? "Registering…" : "Confirm Registration"}
           </button>
         </div>
+
+        {/* Toast */}
+        {toast && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 rounded-2xl bg-black/60 backdrop-blur-[2px]">
+            <div className={`flex flex-col items-center gap-3 px-8 py-6 rounded-2xl border shadow-2xl
+      ${toast.type === "success"
+                ? "bg-[#0d1f0d] border-green-700/40"
+                : "bg-[#1f0d0d] border-red-700/40"}`}
+            >
+              {toast.type === "success"
+                ? <CheckCircle2 size={36} className="text-green-400" />
+                : <XCircle size={36} className="text-red-400" />
+              }
+              <p className={`text-[16px] font-bold ${toast.type === "success" ? "text-green-300" : "text-red-300"}`}>
+                {toast.message}
+              </p>
+              {toast.detail && (
+                <p className="text-[12px] text-gray-500 text-center max-w-[220px] leading-relaxed">
+                  {toast.detail}
+                </p>
+              )}
+              {toast.type === "error" && (
+                <button
+                  onClick={() => setToast(null)}
+                  className="mt-1 text-[11px] text-gray-500 hover:text-white underline underline-offset-2 transition-colors"
+                >
+                  Dismiss
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -378,7 +511,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
 
         {/* ── My Upcoming Races + Top Performers ─────────────────────────── */}
         {(() => {
-          const myRaces = races.filter(r => r.ownerRegistration != null || r.isLive).slice(0, 5);
+          const myRaces = races.filter(r => hasActiveRegistration(r) || r.isLive).slice(0, 5);
           return (
             <div className="grid grid-cols-3 gap-6">
 
@@ -465,8 +598,8 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                         >
                           <Radio size={11} /> Watch Live
                         </button>
-                      ) : race.ownerRegistration ? (
-                        <RegistrationChip status={race.ownerRegistration.status} />
+                      ) : hasActiveRegistration(race) ? (
+                        <RegistrationChip status={race.ownerRegistration!.status} />
                       ) : null}
                     </div>
                   </div>
@@ -652,9 +785,9 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                           {race.prizes.first > 0 ? `${fmt(race.prizes.first)} ₫` : "—"}
                         </p>
                       </div>
-                      {race.ownerRegistration ? (
-                        <RegistrationChip status={race.ownerRegistration.status} />
-                      ) : !race.isLive && race.status === "scheduled" && race.maxParticipants != null && race.currentParticipants < race.maxParticipants ? (
+                      {hasActiveRegistration(race) ? (
+                        <RegistrationChip status={race.ownerRegistration!.status} />
+                      ) : canRegisterForRace(race) ? (
                         <button
                           onClick={() => setRegisteringRace(race)}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40 transition-colors duration-150"
