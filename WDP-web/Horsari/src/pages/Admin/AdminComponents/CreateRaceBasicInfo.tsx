@@ -56,7 +56,13 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                         onChange={props.setTournamentId}
                         options={(metadata?.tournaments ?? []).map((t: any) => ({ value: t._id, label: t.tournamentName }))}
                         placeholder="Select tournament..."
+                        disabled={props.dateEditLocked}
                     />
+                    {props.dateEditLocked && (
+                        <p className="mt-1.5 text-[11px] text-amber-500/80">
+                            Locked — this race is within 2 weeks. Check "Override scheduling restrictions" to change it anyway.
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -197,8 +203,12 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                     <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Max Participants</label>
                     <input
                         type="number"
+                        min="2"
                         value={props.maxParticipants}
                         onChange={(e) => props.setMaxParticipants(Number(e.target.value))}
+                        onBlur={() => {
+                            if (props.maxParticipants < 2) props.setMaxParticipants(2);
+                        }}
                         className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50"
                     />
                 </div>

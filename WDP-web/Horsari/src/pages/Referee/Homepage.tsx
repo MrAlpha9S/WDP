@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Loader2, CalendarDays, List } from "lucide-react";
 import type { RecentInvite, InviteStatus } from "../../shared/types/HomepageTypes";
 import HomeCalendar from "./RefereeComponents/HomeCalendar";
@@ -29,6 +30,7 @@ const STATUS_BADGE: Record<string, string> = {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
+    const navigate = useNavigate();
     const now = new Date();
     const [viewMode, setViewMode] = useState<ViewMode>("calendar");
     const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -284,7 +286,11 @@ export default function HomePage() {
                                     ) : races.map((race) => {
                                         const dateObj = new Date(race.raceDate);
                                         return (
-                                            <tr key={race._id} className="hover:bg-white/[0.02] transition-colors">
+                                            <tr
+                                                key={race._id}
+                                                onClick={() => navigate(`/referee/race-monitor/${race._id}`)}
+                                                className="hover:bg-white/[0.02] transition-colors cursor-pointer"
+                                            >
                                                 <td className="p-4">
                                                     <div className="text-[13px] font-semibold text-white">{race.roundName}</div>
                                                 </td>

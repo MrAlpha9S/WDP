@@ -134,6 +134,13 @@ class RefereeController {
         return res.status(response.code).json(response);
     }
 
+    // Undo a no-show mark, reverting the invitation back to "accepted"
+    async cancelJockeyNoShow(req, res) {
+        const { invitationId } = req.params;
+        const response = await RefereeService.cancelJockeyNoShow(req.userId, invitationId);
+        return res.status(response.code).json(response);
+    }
+
     // Finalize a race round — sets status to prepared or cancelled based on inspection results
     async finalizeRaceRound(req, res) {
         const { id } = req.params;

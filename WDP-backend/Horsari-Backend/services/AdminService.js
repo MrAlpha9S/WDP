@@ -997,13 +997,24 @@ class AdminService {
                 RaceRound.countDocuments(query),
             ]);
 
+            // Batch-count slot-holding registrations (accepted/verified — same definition used
+            // by RaceDetailsPanel, SpectatorService, etc.) per race round, for the Capacity column.
+            const raceRoundIds = raceRounds.map(rr => rr._id);
+            const acceptedCounts = raceRoundIds.length
+                ? await Registration.aggregate([
+                    { $match: { raceRoundId: { $in: raceRoundIds }, registrationStatus: { $in: ['accepted', 'verified'] } } },
+                    { $group: { _id: '$raceRoundId', count: { $sum: 1 } } },
+                ])
+                : [];
+            const acceptedCountMap = new Map(acceptedCounts.map(c => [String(c._id), c.count]));
+
             const items = await Promise.all(raceRounds.map(async raceRound => {
                 let raceType = raceRound.raceType || null;
                 if (!raceType && raceRound.eligibilityRuleId) {
                     const rule = await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean();
                     if (rule && rule.raceType) raceType = rule.raceType;
                 }
-                return { ...raceRound, RaceType: raceType };
+                return { ...raceRound, RaceType: raceType, acceptedCount: acceptedCountMap.get(String(raceRound._id)) ?? 0 };
             }));
 
             return {
@@ -2050,8 +2061,8 @@ AdminService.prototype.getStreamInfo = async function (raceRoundId) {
     try {
         const raceRound = await RaceRound.findById(raceRoundId).lean();
         if (!raceRound) return { code: 404, msg: 'Race round not found.' };
-        if (raceRound.status !== 'running' && raceRound.status !== 'prepared') {
-            return { code: 422, msg: 'Stream info is only available for prepared or running races.' };
+        if (!['prepared', 'running', 'awaitingConfirmation'].includes(raceRound.status)) {
+            return { code: 422, msg: 'Stream info is only available for prepared, running, or awaiting-confirmation races.' };
         }
         if (!raceRound.muxLiveStreamId) {
             return { code: 404, msg: 'No stream has been created for this race yet.' };

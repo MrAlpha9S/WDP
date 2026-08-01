@@ -15,7 +15,7 @@ export function RejectRegistrationModal({ target, pending, error, onConfirm, onC
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-[400px] bg-surface border border-red-500/20 rounded-xl overflow-hidden shadow-2xl flex flex-col">
+            <div className="w-[480px] bg-surface border border-red-500/20 rounded-xl overflow-hidden shadow-2xl flex flex-col">
                 <div className="p-6 flex flex-col items-center text-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-2">
                         <AlertTriangle size={24} />

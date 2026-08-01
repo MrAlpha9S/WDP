@@ -197,7 +197,7 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-2xl bg-surface rounded-2xl border border-border shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-3xl bg-surface rounded-2xl border border-border shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Hero banner */}
         <div className="relative h-48 bg-bg shrink-0 overflow-hidden">

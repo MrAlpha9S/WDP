@@ -5,8 +5,6 @@ import { type MyRace, type RaceStatus } from "../../../types/Racingtypes";
 import { horseOwnerService, type RaceInvitationEntry } from "../../../api/horseOwnerService";
 import { RefetchButton } from "../../../components/RefetchButton";
 import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
-import { RejectRegistrationModal } from "../../../components/RejectRegistrationModal";
-import { useRejectRegistration } from "../../../hooks/useRejectRegistration";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
@@ -46,15 +44,6 @@ const STATUS_CFG: Record<RaceStatus, { label: string; dot: string; text: string;
   UPCOMING: { label: "UPCOMING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
   FINISHED: { label: "FINISHED", dot: "bg-gray-500", text: "text-gray-400", bg: "bg-black/50 border-border" },
   PREPARING: { label: "PREPARING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
-};
-
-const REG_STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: "PENDING", color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-600/40" },
-  accepted: { label: "ACCEPTED", color: "text-blue-400", bg: "bg-blue-500/10 border-blue-600/40" },
-  verified: { label: "VERIFIED", color: "text-green-400", bg: "bg-green-500/10 border-green-600/40" },
-  failed: { label: "FAILED", color: "text-red-400", bg: "bg-red-500/10 border-red-700/40" },
-  rejected: { label: "CANCELLED", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-600/40" },
-  cancelled: { label: "CANCELLED", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-600/40" },
 };
 
 const INV_STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
@@ -109,17 +98,13 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
   const reg = detail?.registration;
   const competition = detail?.competition;
 
-  const reject = useRejectRegistration(() => { load(); });
-  const canReject = reg?.registrationStatus === "pending" || reg?.registrationStatus === "accepted";
-
   return (
-    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
-        className="bg-surface border border-border rounded-2xl w-full max-w-lg max-h-[90vh] shadow-2xl shadow-black/60 flex flex-col"
+        className="bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] shadow-2xl shadow-black/60 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -277,29 +262,6 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
               {tab === "entry" && (
                 reg ? (
                   <div className="flex flex-col gap-4">
-                    {/* Registration status */}
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Registration</p>
-                      <div className="flex items-center gap-2">
-                        {canReject && (
-                          <button
-                            onClick={() => reject.requestReject(reg._id, raceRound?.roundName ?? "this race")}
-                            className="text-[10px] font-bold px-2.5 py-1 rounded-full border border-red-700/40 text-red-400 hover:bg-red-700/10 transition-colors duration-150"
-                          >
-                            Reject
-                          </button>
-                        )}
-                        {(() => {
-                          const cfg = REG_STATUS_CFG[reg.registrationStatus] ?? REG_STATUS_CFG.pending;
-                          return (
-                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.color}`}>
-                              {cfg.label}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    </div>
-
                     {/* Horse card */}
                     {reg.horse && (
                       <div className="bg-bg rounded-xl border border-border p-3 flex items-center gap-3">
@@ -451,14 +413,6 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
         </div>
       </div>
     </div>
-    <RejectRegistrationModal
-      target={reject.target}
-      pending={reject.pending}
-      error={reject.error}
-      onConfirm={reject.confirm}
-      onCancel={reject.cancel}
-    />
-    </>
   );
 }
 

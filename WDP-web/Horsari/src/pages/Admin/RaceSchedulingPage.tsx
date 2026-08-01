@@ -58,7 +58,7 @@ export default function RaceSchedulingPage() {
     // race round happens on one specific day rather than spanning a range the way a
     // tournament does. If no day is selected yet (dates still loading, or none match the
     // current filters), there's nothing sensible to fetch, so it's skipped entirely.
-    const fetchData = async (pageOverride?: number) => {
+    const fetchData = useCallback(async (pageOverride?: number) => {
         setLoading(true);
         setError(null);
         try {
@@ -91,7 +91,7 @@ export default function RaceSchedulingPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [viewMode, selectedDate, selectedTournament, selectedStatus, selectedRaceType, raceRoundsLimit, tablePage]);
 
     // The Timeline day-navigation list — independent of raceRoundsLimit/tablePage, since
     // it's a lightweight day list, not full race data. Mirrors how TournamentManagementPage's
@@ -111,10 +111,10 @@ export default function RaceSchedulingPage() {
 
     useEffect(() => { fetchTimelineDates(); }, [fetchTimelineDates]);
 
-    const handleDataRefresh = async () => {
+    const handleDataRefresh = useCallback(async () => {
         await fetchData();
         fetchTimelineDates();
-    };
+    }, [fetchData, fetchTimelineDates]);
 
     const handleTablePageChange = (p: number) => {
         setTablePage(p);
@@ -140,7 +140,7 @@ export default function RaceSchedulingPage() {
         if (!socket) return;
         socket.on("raceround_updated", handleDataRefresh);
         return () => { socket.off("raceround_updated", handleDataRefresh); };
-    }, [socket]);
+    }, [socket, handleDataRefresh]);
 
     useEffect(() => {
         setTablePage(1);
@@ -203,6 +203,7 @@ export default function RaceSchedulingPage() {
             participants: [],
             referees: [],
             pendingInvites: [],
+            acceptedCount: rr.acceptedCount ?? 0,
             maxSlots: rr.maxParticipants || 0,
             leftPercent,
             widthPercent,
@@ -537,11 +538,11 @@ export default function RaceSchedulingPage() {
                                                                     <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden w-24">
                                                                         <div
                                                                             className="h-full bg-emerald-500 rounded-full"
-                                                                            style={{ width: `${(race.participants.filter((p: any) => p.status === 'accepted').length / Math.max(race.maxSlots, 1)) * 100}%` }}
+                                                                            style={{ width: `${(race.acceptedCount / Math.max(race.maxSlots, 1)) * 100}%` }}
                                                                         />
                                                                     </div>
                                                                     <span className="text-[12px] font-medium text-gray-400 min-w-[32px]">
-                                                                        {race.participants.filter((p: any) => p.status === 'accepted').length}/{race.maxSlots}
+                                                                        {race.acceptedCount}/{race.maxSlots}
                                                                     </span>
                                                                 </div>
                                                             </td>

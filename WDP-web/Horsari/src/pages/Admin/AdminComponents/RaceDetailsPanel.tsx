@@ -370,8 +370,9 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 )}
                                 <button
                                     onClick={onEdit}
-                                    className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded border border-blue-500/20 transition-colors"
-                                    title="Edit Race"
+                                    disabled={isCompleted || isPrepared}
+                                    className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded border border-blue-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-500/10"
+                                    title={isCompleted ? "Completed races can't be edited" : isPrepared ? "Prepared races can't be edited — cancel and recreate if changes are needed" : "Edit Race"}
                                 >
                                     <Pencil size={14} />
                                 </button>

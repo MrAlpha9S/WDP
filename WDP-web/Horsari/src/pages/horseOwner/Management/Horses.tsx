@@ -337,7 +337,7 @@ function EditHorseModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-bg rounded-2xl border border-border shadow-2xl overflow-hidden max-h-[90vh] flex flex-col font-sans"
+        className="w-full max-w-xl bg-bg rounded-2xl border border-border shadow-2xl overflow-hidden max-h-[90vh] flex flex-col font-sans"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -568,7 +568,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-bg rounded-2xl border border-border shadow-2xl overflow-hidden font-sans"
+        className="w-full max-w-xl bg-bg rounded-2xl border border-border shadow-2xl overflow-hidden font-sans"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

@@ -236,10 +236,12 @@ export default function PostRacePage() {
                                         {inc.violationStatus === 'pending' ? (
                                             <>
                                                 <button onClick={() => handleDismiss(inc._id)} className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-green-700/50 text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-all">Dismiss</button>
-                                                <button onClick={() => handlePenalize(inc._id)} className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-red-700/50 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all">Penalize</button>
+                                                <button onClick={() => handlePenalize(inc._id)} className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-red-700/50 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all">Confirm Violation</button>
                                             </>
                                         ) : (
-                                            <span className="text-[11px] font-bold text-gray-500 capitalize">{inc.violationStatus}</span>
+                                            <span className="text-[11px] font-bold text-gray-500 capitalize">
+                                                {inc.violationStatus === 'confirmed' ? 'Violation Noted' : inc.violationStatus}
+                                            </span>
                                         )}
                                     </div>
                                 </div>

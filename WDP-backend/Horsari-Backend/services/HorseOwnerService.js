@@ -127,13 +127,32 @@ class HorseOwnerService {
                 }
             }
 
-            // Batch-fetch main invitations (jockeyInRaceId) to get jockey fullName and horse name
+            // jockeyInRaceId is only set once a referee verifies the registration on race
+            // day, so relying on it alone leaves horse/jockey blank ("TBA") for every race
+            // right up until then — even though the owner (or admin quick-assign) already
+            // locked in a pairing well before that via an accepted main invitation and
+            // Registration.horseId. Prefer the verified invitation once it exists, but fall
+            // back to the accepted one, and source the horse straight from Registration.horseId
+            // (set as soon as the first invitation for a registration is created) rather than
+            // through an invitation lookup at all.
             const mainInvitationIds = regs.filter(r => r.jockeyInRaceId).map(r => r.jockeyInRaceId);
-            const mainInvitations = await Invitation.find({ _id: { $in: mainInvitationIds } })
-                .populate({ path: 'jockeyId', model: 'User', select: 'fullName image' })
-                .populate('horseId', 'horseName')
-                .lean();
-            const mainInvMap = new Map(mainInvitations.map(inv => [String(inv._id), inv]));
+            const [verifiedInvitations, acceptedMainInvitations, regHorses] = await Promise.all([
+                Invitation.find({ _id: { $in: mainInvitationIds } })
+                    .populate({ path: 'jockeyId', model: 'User', select: 'fullName image' })
+                    .lean(),
+                Invitation.find({ registrationId: { $in: regIds }, isBackup: false, invitationStatus: 'accepted' })
+                    .populate({ path: 'jockeyId', model: 'User', select: 'fullName image' })
+                    .lean(),
+                Horse.find({ _id: { $in: regs.map(r => r.horseId).filter(Boolean) } }).select('horseName').lean(),
+            ]);
+            const verifiedInvMap = new Map(verifiedInvitations.map(inv => [String(inv._id), inv]));
+            const acceptedMainByReg = new Map();
+            for (const inv of acceptedMainInvitations) {
+                if (!acceptedMainByReg.has(String(inv.registrationId))) {
+                    acceptedMainByReg.set(String(inv.registrationId), inv);
+                }
+            }
+            const horseMap = new Map(regHorses.map(h => [String(h._id), h]));
 
             const items = await Promise.all(regs.map(async reg => {
                 const rr = await RaceRound.findById(reg.raceRoundId).populate('eligibilityRuleId').lean();
@@ -154,7 +173,9 @@ class HorseOwnerService {
                     }
                 }
 
-                const mainInv = reg.jockeyInRaceId ? mainInvMap.get(String(reg.jockeyInRaceId)) : null;
+                const verifiedInv = reg.jockeyInRaceId ? verifiedInvMap.get(String(reg.jockeyInRaceId)) : null;
+                const effectiveJockeyInv = verifiedInv || acceptedMainByReg.get(String(reg._id));
+                const horseDoc = reg.horseId ? horseMap.get(String(reg.horseId)) : null;
 
                 return {
                     registration: reg,
@@ -162,11 +183,11 @@ class HorseOwnerService {
                     tournament: tournament || null,
                     eligibleHorseIds,
                     existingHorseId: existingHorseMap.get(String(reg._id)) ?? null,
-                    jockey: mainInv?.jockeyId
-                        ? { fullName: mainInv.jockeyId.fullName ?? null, image: mainInv.jockeyId.image ?? null }
+                    jockey: effectiveJockeyInv?.jockeyId
+                        ? { fullName: effectiveJockeyInv.jockeyId.fullName ?? null, image: effectiveJockeyInv.jockeyId.image ?? null }
                         : null,
-                    horse: mainInv?.horseId
-                        ? { horseName: mainInv.horseId.horseName ?? null }
+                    horse: horseDoc
+                        ? { horseName: horseDoc.horseName ?? null }
                         : null,
                 };
             }));
@@ -203,6 +224,21 @@ class HorseOwnerService {
             }
             if (String(reg.horseOwnerId) !== String(ownerId)) {
                 return { code: 403, msg: 'Not authorized to modify this registration' };
+            }
+
+            // Block accepting once the race round's participant cap is already filled by
+            // other accepted/verified registrations — mirrors the slot-holding definition
+            // used everywhere else (RaceDetailsPanel, SpectatorService, admin quick-assign).
+            const raceRound = await RaceRound.findById(reg.raceRoundId).lean();
+            if (raceRound?.maxParticipants != null) {
+                const filledSlots = await Registration.countDocuments({
+                    raceRoundId: reg.raceRoundId,
+                    _id: { $ne: reg._id },
+                    registrationStatus: { $in: ['accepted', 'verified'] },
+                });
+                if (filledSlots >= raceRound.maxParticipants) {
+                    return { code: 422, msg: 'This race round has already reached its participant limit.' };
+                }
             }
 
             reg.registrationStatus = 'accepted';
@@ -617,22 +653,28 @@ class HorseOwnerService {
             raceRound.secondPlacePrize = CurrencyConverter.convertToVnd(raceRound.secondPlacePrize ?? 0, raceRound.currencyType);
             raceRound.thirdPlacePrize = CurrencyConverter.convertToVnd(raceRound.thirdPlacePrize ?? 0, raceRound.currencyType);
 
-            // Competition roster + slot-fill indicator — "confirmed" means the
-            // owner has accepted (registrationStatus 'accepted'); this is a
-            // pre-race-day roster view, not the referee's race-day verification.
-            const acceptedRegs = await Registration.find({ raceRoundId, registrationStatus: 'accepted' }).lean();
-            const confirmedCount = acceptedRegs.length;
-            const otherRegs = acceptedRegs.filter(r => String(r.horseOwnerId) !== String(ownerId));
+            // Competition roster + slot-fill indicator — "confirmed" means the registration
+            // holds a real slot: accepted (pre-race-day) or verified (post-referee-review,
+            // same definition used elsewhere in the codebase). finalizeRaceRound requires
+            // every registration to leave 'accepted' before a round can reach 'prepared', so
+            // matching 'accepted' alone would show zero competitors on any prepared race.
+            const confirmedRegs = await Registration.find({
+                raceRoundId,
+                registrationStatus: { $in: ['accepted', 'verified'] },
+            }).lean();
+            const confirmedCount = confirmedRegs.length;
+            const otherRegs = confirmedRegs.filter(r => String(r.horseOwnerId) !== String(ownerId));
+            const otherRegIds = otherRegs.map(r => r._id);
 
-            const [otherHorses, otherOwners, otherMainInvitations] = await Promise.all([
+            const [otherHorses, otherOwners, otherInvitations] = await Promise.all([
                 otherRegs.length
                     ? Horse.find({ _id: { $in: otherRegs.map(r => r.horseId) } }).lean()
                     : Promise.resolve([]),
                 otherRegs.length
                     ? User.find({ _id: { $in: otherRegs.map(r => r.horseOwnerId) } }, 'fullName').lean()
                     : Promise.resolve([]),
-                otherRegs.length
-                    ? Invitation.find({ registrationId: { $in: otherRegs.map(r => r._id) }, isBackup: false })
+                otherRegIds.length
+                    ? Invitation.find({ registrationId: { $in: otherRegIds } })
                         .populate({ path: 'jockeyId', model: 'User', select: 'fullName' })
                         .lean()
                     : Promise.resolve([]),
@@ -640,15 +682,38 @@ class HorseOwnerService {
 
             const otherHorseMap = new Map(otherHorses.map(h => [h._id.toString(), h]));
             const otherOwnerMap = new Map(otherOwners.map(u => [u._id.toString(), u]));
-            const otherInvitationByReg = new Map(otherMainInvitations.map(inv => [inv.registrationId.toString(), inv]));
+
+            const invitationsByReg = new Map();
+            for (const inv of otherInvitations) {
+                const key = String(inv.registrationId);
+                if (!invitationsByReg.has(key)) invitationsByReg.set(key, []);
+                invitationsByReg.get(key).push(inv);
+            }
+
+            // Resolve which invitation represents "the jockey" for a registration: a
+            // referee-locked pick (jockeyInRaceId) is authoritative once it exists; otherwise
+            // prefer the main jockey while pending/accepted, falling back to the backup jockey
+            // if the main one declined (or otherwise isn't pending/accepted).
+            const resolveEffectiveJockeyInvitation = (reg, invitations) => {
+                if (reg.jockeyInRaceId) {
+                    const locked = invitations.find(inv => String(inv._id) === String(reg.jockeyInRaceId));
+                    if (locked) return locked;
+                }
+                const main = invitations.find(inv => !inv.isBackup);
+                if (main && ['pending', 'accepted'].includes(main.invitationStatus)) return main;
+                const backup = invitations.find(inv => inv.isBackup);
+                if (backup && ['pending', 'accepted'].includes(backup.invitationStatus)) return backup;
+                return null;
+            };
 
             const competitors = otherRegs.map(reg => {
-                const inv = otherInvitationByReg.get(reg._id.toString());
+                const invitations = invitationsByReg.get(String(reg._id)) ?? [];
+                const effectiveInv = resolveEffectiveJockeyInvitation(reg, invitations);
                 return {
                     registrationId: reg._id,
                     horseName: otherHorseMap.get(reg.horseId?.toString())?.horseName ?? null,
                     ownerName: otherOwnerMap.get(reg.horseOwnerId?.toString())?.fullName ?? null,
-                    jockeyName: inv?.jockeyId?.fullName ?? null,
+                    jockeyName: effectiveInv?.jockeyId?.fullName ?? null,
                     laneNumber: reg.laneNumber ?? null,
                 };
             });

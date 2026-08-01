@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, ClipboardList, Clock, Flag, UserCheck } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, ClipboardList, Clock, Flag, UserCheck } from "lucide-react";
 import PreRaceInspectionModal from "./modal/PreRaceCheckup";
 import type { RegistrationDetail } from "../../providers/useRaceSocket";
 import { useRaceSocket } from "../../providers/useRaceSocket";
@@ -17,6 +17,7 @@ function regStatusBadge(status?: string) {
         case "failed": return <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-1.5 py-0.5 rounded-md">Failed</span>;
         case "accepted": return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-700/40 px-1.5 py-0.5 rounded-md">Accepted</span>;
         case "cancelled": return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Cancelled</span>;
+        case "rejected": return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Rejected</span>;
         default: return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Pending</span>;
     }
 }
@@ -68,6 +69,33 @@ export default function PreRacePage() {
 
     const registrations = localRegistrations ?? raceRound?.Registration ?? [];
 
+    // Registrations the owner never responded to — nothing to inspect, so a referee
+    // can clear the whole batch as no-shows in one action instead of cancelling each
+    // one individually via the inspection modal.
+    const pendingRegistrations = registrations.filter(r => (r.registrationStatus ?? "pending") === "pending");
+    const [showBulkCancelConfirm, setShowBulkCancelConfirm] = useState(false);
+    const [bulkCancelling, setBulkCancelling] = useState(false);
+    const [bulkCancelError, setBulkCancelError] = useState<string | null>(null);
+
+    const handleBulkCancelPending = async () => {
+        if (!raceRound?._id || pendingRegistrations.length === 0 || bulkCancelling) return;
+        setBulkCancelling(true);
+        setBulkCancelError(null);
+        try {
+            const results = await Promise.allSettled(
+                pendingRegistrations.map(reg => refereeService.cancelRegistration(raceRound._id, reg._id))
+            );
+            const failedCount = results.filter(r => r.status === "rejected").length;
+            if (failedCount > 0) {
+                setBulkCancelError(`${failedCount} of ${pendingRegistrations.length} registration(s) could not be cancelled.`);
+            }
+            await refetchRegistrations();
+        } finally {
+            setBulkCancelling(false);
+            setShowBulkCancelConfirm(false);
+        }
+    };
+
     const TERMINAL = ["verified", "failed", "cancelled", "rejected"];
     const allResolved = registrations.length > 0 && registrations.every(r => TERMINAL.includes(r.registrationStatus ?? ""));
     const hasVerified = registrations.some(r => r.registrationStatus === "verified");
@@ -117,6 +145,112 @@ export default function PreRacePage() {
         setInspecting({ registration, index });
     };
 
+    // Cancelled/rejected registrations never race — nothing left to inspect, so they're
+    // split into their own section below (with the Inspect button hidden) instead of
+    // cluttering the active checklist. Original indices are preserved so openInspection
+    // (and the "Gate N" number) still line up with the full registrations array.
+    const indexedRegistrations = registrations.map((reg, index) => ({ reg, index }));
+    const activeRegistrations = indexedRegistrations.filter(
+        ({ reg }) => reg.registrationStatus !== "cancelled" && reg.registrationStatus !== "rejected"
+    );
+    const cancelledRegistrations = indexedRegistrations.filter(
+        ({ reg }) => reg.registrationStatus === "cancelled" || reg.registrationStatus === "rejected"
+    );
+
+    const renderRegistrationRow = (reg: RegistrationDetail, index: number, showInspect: boolean = true) => {
+        const registrationId = reg._id;
+        const isChecked = checkedIds.has(registrationId);
+        const regStatus = reg.registrationStatus;
+        const horseName = reg.Horse?.horseName;
+        const confirmedInv = reg.jockeyInRaceId
+            ? reg.Invitations?.find(inv => inv._id === reg.jockeyInRaceId)
+            : reg.Invitations?.find(inv => inv.jockeyConfirmation);
+        const jockeyName = (confirmedInv?.jockeyId?._id as any)?.fullName as string | undefined;
+        const ownerName = reg.Owner?.fullName;
+        const jockeyConfirmed = confirmedInv?.jockeyConfirmation ?? false;
+        const hasHorse = !!reg.Horse;
+        const hasJockey = !!confirmedInv && !!jockeyName;
+        const failReason = reg.verificationFailReason;
+
+        return (
+            <div
+                key={registrationId}
+                className={[
+                    "rounded-xl border px-4 py-3 transition-all duration-150",
+                    regStatus === "failed" ? "border-red-800/40 bg-red-500/5" :
+                        regStatus === "verified" ? "border-green-800/40 bg-green-500/5" :
+                            regStatus === "accepted" ? "border-amber-800/30 bg-amber-500/5" :
+                                "border-border bg-white/[0.02]",
+                ].join(" ")}
+            >
+                <div className="flex items-center gap-3">
+                    {/* Gate number */}
+                    <span className={[
+                        "w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0",
+                        gateCircleClass(regStatus, isChecked),
+                    ].join(" ")}>
+                        {index + 1}
+                    </span>
+
+                    {/* Horse / jockey info */}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-[13.5px] font-bold text-white">
+                                {horseName ?? <span className="text-gray-500 font-medium italic">No horse assigned</span>}
+                            </p>
+                            {regStatusBadge(regStatus)}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            {hasJockey ? (
+                                <span className="flex items-center gap-1 text-[11.5px] text-gray-500">
+                                    <UserCheck size={10} className={jockeyConfirmed ? "text-green-500" : "text-amber-500"} />
+                                    {jockeyName}
+                                    {!jockeyConfirmed && (
+                                        <span className="text-amber-600 text-[10px]">· unconfirmed</span>
+                                    )}
+                                </span>
+                            ) : hasHorse ? (
+                                <span className="text-[11.5px] text-amber-600 flex items-center gap-1">
+                                    <AlertTriangle size={10} /> No jockey assigned
+                                </span>
+                            ) : ownerName ? (
+                                <span className="text-[11.5px] text-gray-600">Owner: {ownerName}</span>
+                            ) : null}
+                            {!hasHorse && (
+                                <span className="text-[11.5px] text-red-600 flex items-center gap-1">
+                                    <AlertTriangle size={10} /> No horse placed
+                                </span>
+                            )}
+                        </div>
+                        {failReason && (
+                            <p className="text-[11px] text-red-500 mt-0.5 flex items-center gap-1">
+                                <AlertTriangle size={9} /> {failReason}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Inspect button */}
+                    {showInspect && (
+                        <button
+                            onClick={() => openInspection(index)}
+                            className={[
+                                "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-150 shrink-0",
+                                regStatus === "failed"
+                                    ? "border border-red-700/50 text-red-400 bg-red-500/10 hover:bg-red-500/20"
+                                    : regStatus === "verified"
+                                        ? "border border-green-700/50 text-green-400 bg-green-500/10 hover:bg-green-500/20"
+                                        : "border border-yellow-700/50 text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20",
+                            ].join(" ")}
+                        >
+                            <ClipboardList size={11} />
+                            {regStatus === "failed" ? "Re-inspect" : regStatus === "verified" ? "Reviewed" : "Inspect"}
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <>
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
@@ -128,8 +262,46 @@ export default function PreRacePage() {
                             <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
                                 <ClipboardList size={14} className="text-yellow-500" /> Horse Inspection Checklist
                             </h2>
-                            <RefetchButton onRefetch={refetchRegistrations} lastUpdated={lastUpdated} />
+                            <div className="flex items-center gap-2">
+                                {pendingRegistrations.length > 0 && (
+                                    <button
+                                        onClick={() => setShowBulkCancelConfirm(true)}
+                                        className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-red-800/50 text-red-400 hover:bg-red-500/10 transition-colors"
+                                    >
+                                        <Ban size={12} /> Cancel All Pending ({pendingRegistrations.length})
+                                    </button>
+                                )}
+                                <RefetchButton onRefetch={refetchRegistrations} lastUpdated={lastUpdated} />
+                            </div>
                         </div>
+                        {showBulkCancelConfirm && (
+                            <div className="px-5 py-3 border-b border-red-900/40 bg-red-500/5 flex items-center justify-between gap-3 flex-wrap">
+                                <p className="text-[12px] text-red-400">
+                                    Cancel {pendingRegistrations.length} pending registration{pendingRegistrations.length > 1 ? "s" : ""} as no-show? Owners will be notified.
+                                </p>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <button
+                                        onClick={() => setShowBulkCancelConfirm(false)}
+                                        disabled={bulkCancelling}
+                                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-border text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Keep
+                                    </button>
+                                    <button
+                                        onClick={handleBulkCancelPending}
+                                        disabled={bulkCancelling}
+                                        className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red-700 text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {bulkCancelling ? <span className="animate-pulse">Cancelling…</span> : "Confirm Cancel All"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {bulkCancelError && (
+                            <p className="px-5 py-2 text-[11.5px] text-red-400 flex items-center gap-1.5 border-b border-border">
+                                <AlertTriangle size={11} /> {bulkCancelError}
+                            </p>
+                        )}
                         <div className="p-3 flex flex-col gap-2">
                             {registrationsError && (
                                 <ErrorState message={registrationsError} onRetry={refetchRegistrations} />
@@ -137,99 +309,27 @@ export default function PreRacePage() {
                             {!registrationsError && registrations.length === 0 && (
                                 <p className="text-[12px] text-gray-600 text-center py-6">No horses registered for this race.</p>
                             )}
-                            {!registrationsError && registrations.map((reg, index) => {
-                                const registrationId = reg._id;
-                                const isChecked = checkedIds.has(registrationId);
-                                const regStatus = reg.registrationStatus;
-                                const horseName = reg.Horse?.horseName;
-                                const confirmedInv = reg.jockeyInRaceId
-                                    ? reg.Invitations?.find(inv => inv._id === reg.jockeyInRaceId)
-                                    : reg.Invitations?.find(inv => inv.jockeyConfirmation);
-                                const jockeyName = (confirmedInv?.jockeyId?._id as any)?.fullName as string | undefined;
-                                const ownerName = reg.Owner?.fullName;
-                                const jockeyConfirmed = confirmedInv?.jockeyConfirmation ?? false;
-                                const hasHorse = !!reg.Horse;
-                                const hasJockey = !!confirmedInv && !!jockeyName;
-                                const failReason = reg.verificationFailReason;
-
-                                return (
-                                    <div
-                                        key={registrationId}
-                                        className={[
-                                            "rounded-xl border px-4 py-3 transition-all duration-150",
-                                            regStatus === "failed" ? "border-red-800/40 bg-red-500/5" :
-                                                regStatus === "verified" ? "border-green-800/40 bg-green-500/5" :
-                                                    regStatus === "accepted" ? "border-amber-800/30 bg-amber-500/5" :
-                                                        "border-border bg-white/[0.02]",
-                                        ].join(" ")}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {/* Gate number */}
-                                            <span className={[
-                                                "w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0",
-                                                gateCircleClass(regStatus, isChecked),
-                                            ].join(" ")}>
-                                                {index + 1}
-                                            </span>
-
-                                            {/* Horse / jockey info */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <p className="text-[13.5px] font-bold text-white">
-                                                        {horseName ?? <span className="text-gray-500 font-medium italic">No horse assigned</span>}
-                                                    </p>
-                                                    {regStatusBadge(regStatus)}
-                                                </div>
-                                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                                    {hasJockey ? (
-                                                        <span className="flex items-center gap-1 text-[11.5px] text-gray-500">
-                                                            <UserCheck size={10} className={jockeyConfirmed ? "text-green-500" : "text-amber-500"} />
-                                                            {jockeyName}
-                                                            {!jockeyConfirmed && (
-                                                                <span className="text-amber-600 text-[10px]">· unconfirmed</span>
-                                                            )}
-                                                        </span>
-                                                    ) : hasHorse ? (
-                                                        <span className="text-[11.5px] text-amber-600 flex items-center gap-1">
-                                                            <AlertTriangle size={10} /> No jockey assigned
-                                                        </span>
-                                                    ) : ownerName ? (
-                                                        <span className="text-[11.5px] text-gray-600">Owner: {ownerName}</span>
-                                                    ) : null}
-                                                    {!hasHorse && (
-                                                        <span className="text-[11.5px] text-red-600 flex items-center gap-1">
-                                                            <AlertTriangle size={10} /> No horse placed
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {failReason && (
-                                                    <p className="text-[11px] text-red-500 mt-0.5 flex items-center gap-1">
-                                                        <AlertTriangle size={9} /> {failReason}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            {/* Inspect button */}
-                                            <button
-                                                onClick={() => openInspection(index)}
-                                                className={[
-                                                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-150 shrink-0",
-                                                    regStatus === "failed"
-                                                        ? "border border-red-700/50 text-red-400 bg-red-500/10 hover:bg-red-500/20"
-                                                        : regStatus === "verified"
-                                                            ? "border border-green-700/50 text-green-400 bg-green-500/10 hover:bg-green-500/20"
-                                                            : "border border-yellow-700/50 text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20",
-                                                ].join(" ")}
-                                            >
-                                                <ClipboardList size={11} />
-                                                {regStatus === "failed" ? "Re-inspect" : regStatus === "verified" ? "Reviewed" : "Inspect"}
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            {!registrationsError && activeRegistrations.length === 0 && registrations.length > 0 && (
+                                <p className="text-[12px] text-gray-600 text-center py-6">All registrations for this race have been cancelled.</p>
+                            )}
+                            {!registrationsError && activeRegistrations.map(({ reg, index }) => renderRegistrationRow(reg, index))}
                         </div>
                     </div>
+
+                    {/* Cancelled / rejected registrations — nothing to inspect, kept separate
+                        from the active checklist above so they don't clutter it. */}
+                    {cancelledRegistrations.length > 0 && (
+                        <div className="bg-surface rounded-xl border border-border overflow-hidden opacity-75">
+                            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+                                <h2 className="text-[13px] font-bold text-gray-400 flex items-center gap-2 font-serif">
+                                    <AlertTriangle size={14} className="text-gray-500" /> Cancelled Entries
+                                </h2>
+                            </div>
+                            <div className="p-3 flex flex-col gap-2">
+                                {cancelledRegistrations.map(({ reg, index }) => renderRegistrationRow(reg, index, false))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Venue & Track */}
                     <div className="bg-surface rounded-xl border border-border p-5">

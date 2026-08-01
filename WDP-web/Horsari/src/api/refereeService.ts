@@ -387,6 +387,16 @@ export const refereeService = {
         }
     },
 
+    /** Undoes a no-show mark, reverting the invitation back to "accepted". */
+    cancelJockeyNoShow: async (invitationId: string): Promise<{ code: number; data: InvitationEntity; msg: string }> => {
+        try {
+            const response = await api.put(`/referee/invitations/${invitationId}/cancel-no-show`);
+            return response.data;
+        } catch (error: any) {
+            throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+        }
+    },
+
     finalizeRaceRound: async (
         raceRoundId: string,
         override?: boolean,

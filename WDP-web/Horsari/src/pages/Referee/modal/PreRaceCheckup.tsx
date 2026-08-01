@@ -1,7 +1,7 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import {
     AlertTriangle, CheckCircle2,
-    ClipboardList, Dna, HeartPulse, Scale, Shield,
+    ClipboardList, Dna, HeartPulse, RotateCcw, Scale, Shield,
     UserCheck, UserX, X,
 } from "lucide-react";
 import type { FailFlag } from "../../../shared/types/RaceTypes";
@@ -215,6 +215,33 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
             if (!hasOtherAvailableJockey) setNoJockeyFail(true);
         } catch (err: any) {
             setSubmitError(err?.msg || 'Failed to mark jockey as no-show. Please try again.');
+        } finally {
+            setNoShowSubmittingId(null);
+        }
+    };
+
+    // Reverts a no-show mark back to "accepted" — lets the referee undo a mis-click
+    // instead of the jockey being stuck disqualified for the rest of the inspection.
+    const handleUnmarkNoShow = async (invitationId: string) => {
+        setNoShowSubmittingId(invitationId);
+        setSubmitError(null);
+        try {
+            await refereeService.cancelJockeyNoShow(invitationId);
+            setFreshRegistration(prev => {
+                const base = prev ?? registration;
+                return {
+                    ...base,
+                    Invitations: (base.Invitations ?? []).map(inv =>
+                        inv._id === invitationId ? { ...inv, invitationStatus: 'accepted' } : inv
+                    ),
+                };
+            });
+            userPickedJockeyRef.current = true;
+            // The jockey is selectable again — if marking them no-show had triggered the
+            // "no eligible rider" auto-fail (they were the last one available), undo that too.
+            setNoJockeyFail(false);
+        } catch (err: any) {
+            setSubmitError(err?.msg || 'Failed to undo no-show. Please try again.');
         } finally {
             setNoShowSubmittingId(null);
         }
@@ -437,6 +464,15 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                                         className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-red-800/50 text-red-400 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                     >
                                                         {markingNoShow ? <span className="animate-pulse">Marking…</span> : <><UserX size={11} />No-Show</>}
+                                                    </button>
+                                                )}
+                                                {isNoShow && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleUnmarkNoShow(inv._id); }}
+                                                        disabled={markingNoShow}
+                                                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-border text-gray-400 hover:bg-white/5 hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                    >
+                                                        {markingNoShow ? <span className="animate-pulse">Undoing…</span> : <><RotateCcw size={11} />Undo No-Show</>}
                                                     </button>
                                                 )}
                                             </div>

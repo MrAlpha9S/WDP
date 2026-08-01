@@ -66,6 +66,16 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
     const twoWeekFromNow = new Date(currentDateUTC.getTime() + 14 * 24 * 60 * 60 * 1000);
     const minStartDateStr = `${twoWeekFromNow.getUTCFullYear()}-${String(twoWeekFromNow.getUTCMonth() + 1).padStart(2, '0')}-${String(twoWeekFromNow.getUTCDate()).padStart(2, '0')}`;
 
+    // End date must be strictly after start date (backend rejects startDate >= endDate),
+    // so the picker's floor is startDate + 1 day, not startDate itself.
+    const minEndDateStr = startDate
+        ? (() => {
+            const [y, m, d] = startDate.split('-').map(Number);
+            const dayAfterStart = new Date(Date.UTC(y, m - 1, d + 1));
+            return `${dayAfterStart.getUTCFullYear()}-${String(dayAfterStart.getUTCMonth() + 1).padStart(2, '0')}-${String(dayAfterStart.getUTCDate()).padStart(2, '0')}`;
+        })()
+        : minStartDateStr;
+
     const handleStartDateChange = (date: string) => {
         if (date && date < minStartDateStr) {
             setError("Start date must be more than 2 weeks from now.");
@@ -74,6 +84,12 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
         }
 
         setStartDate(date);
+
+        // Reset endDate whenever it would conflict with the new startDate,
+        // since the endDate input's min is tied to startDate (end must be strictly after start).
+        if (date && endDate && endDate <= date) {
+            setEndDate("");
+        }
 
         const oneWeekAgo = new Date(today);
         oneWeekAgo.setDate(today.getDate() - 7);
@@ -193,7 +209,14 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                         </div>
                         <div>
                             <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">End Date</label>
-                            <input value={endDate} onChange={e => handleEndDateChange(e.target.value)} type="date" className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
+                            <input
+                                value={endDate}
+                                onChange={e => handleEndDateChange(e.target.value)}
+                                type="date"
+                                min={minEndDateStr}
+                                disabled={!startDate}
+                                className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark] disabled:opacity-40 disabled:cursor-not-allowed"
+                            />
                         </div>
                     </div>
                 </div>

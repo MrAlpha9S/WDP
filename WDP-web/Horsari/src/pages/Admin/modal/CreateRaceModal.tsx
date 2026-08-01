@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, CheckCircle2 } from "lucide-react";
 import { adminService } from "../../../api/adminService";
 import CreateRaceBasicInfo from "../AdminComponents/CreateRaceBasicInfo";
 import CreateRacePrizes from "../AdminComponents/CreateRacePrizes";
@@ -39,6 +39,7 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     const [error, setError] = useState<string | null>(null);
     const [showConfirm, setShowConfirm] = useState(false);
     const [overrideScheduleConflict, setOverrideScheduleConflict] = useState(false);
+    const [successInfo, setSuccessInfo] = useState<{ type: 'CREATE' | 'UPDATE' } | null>(null);
 
     const [metadata, setMetadata] = useState<any>(null);
     const [loading, setLoading] = useState(false);
@@ -127,8 +128,32 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             setError(null);
             setShowConfirm(false);
             setOverrideScheduleConflict(false);
+            setSuccessInfo(null);
         }
     }, [isOpen]);
+
+    // Once the race's currently-saved date is within 2 weeks, date/time editing is locked
+    // entirely (see dateEditLocked usage below) — too close to reschedule without disrupting
+    // owners/referees/jockeys who've already committed. Computed up here (rather than only
+    // in the render-prep section below) so handleTournamentChange can consult it too.
+    const minAllowedDateUI = new Date();
+    minAllowedDateUI.setHours(0, 0, 0, 0);
+    minAllowedDateUI.setDate(minAllowedDateUI.getDate() + 14);
+    const currentRaceDateTime = raceToEdit?.raceDate ? new Date(raceToEdit.raceDate).getTime() : null;
+    const dateEditLocked = !!raceToEdit && currentRaceDateTime != null && !isNaN(currentRaceDateTime)
+        && !overrideScheduleConflict && currentRaceDateTime < minAllowedDateUI.getTime();
+
+    // Changing tournament invalidates the currently-picked start date (different
+    // tournament, different date window/conflicts), so clear it and force a re-pick —
+    // unless the date field is locked (dateEditLocked), in which case the input is
+    // disabled and the admin would have no way to re-enter a date, leaving the form
+    // permanently stuck on "Race date must be at least 14 days from today."/"required field".
+    const handleTournamentChange = (v: string) => {
+        setTournamentId(v);
+        if (!dateEditLocked) {
+            setRaceDate("");
+        }
+    };
 
     // Auto-fill address and track length when a known location is selected
     useEffect(() => {
@@ -244,6 +269,27 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             return;
         }
 
+        if (maxParticipants < 2) {
+            setError("Max participants must be at least 2.");
+            return;
+        }
+
+        if (selectedOwners.length < 2) {
+            setError("At least 2 horse owner registrations must be selected.");
+            return;
+        }
+
+        if (selectedReferees.length === 0) {
+            setError("At least one referee must be selected.");
+            return;
+        }
+
+        const refereeMissingFee = selectedReferees.some(id => !refereeFees[id] || refereeFees[id] <= 0);
+        if (refereeMissingFee) {
+            setError("Every selected referee must have a payment fee set.");
+            return;
+        }
+
         setShowConfirm(true);
     };
 
@@ -288,11 +334,12 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             if (raceToEdit) {
                 await adminService.updateRaceRound(raceToEdit._id, payload);
                 if (onSuccess) onSuccess({ type: 'UPDATE', raceRound_id: raceToEdit._id, tournament_id: tournamentId });
+                setSuccessInfo({ type: 'UPDATE' });
             } else {
                 await adminService.createRaceRound(payload);
                 if (onSuccess) onSuccess({ type: 'CREATE', tournament_id: tournamentId });
+                setSuccessInfo({ type: 'CREATE' });
             }
-            onClose();
         } catch (err: any) {
             console.error("Failed to create race", err);
             const message: string = err.message || err.msg || 'Unknown error';
@@ -309,9 +356,6 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     let minDateUI: string | undefined = undefined;
     let maxDateUI: string | undefined = undefined;
 
-    const minAllowedDateUI = new Date();
-    minAllowedDateUI.setHours(0, 0, 0, 0);
-    minAllowedDateUI.setDate(minAllowedDateUI.getDate() + 14);
     const twoWeeksStr = `${minAllowedDateUI.getFullYear()}-${String(minAllowedDateUI.getMonth() + 1).padStart(2, '0')}-${String(minAllowedDateUI.getDate()).padStart(2, '0')}`;
 
     if (!raceToEdit && !overrideScheduleConflict) {
@@ -330,20 +374,14 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         }
     }
 
-    // Once the race's currently-saved date is within 2 weeks, lock date/time editing
-    // entirely — too close to reschedule without disrupting owners/referees/jockeys who've
-    // already committed. Checked against raceToEdit's original date, not the in-progress
-    // form state, and skippable via the same override checkbox as the other schedule guards.
-    const currentRaceDateTime = raceToEdit?.raceDate ? new Date(raceToEdit.raceDate).getTime() : null;
-    const dateEditLocked = !!raceToEdit && currentRaceDateTime != null && !isNaN(currentRaceDateTime)
-        && !overrideScheduleConflict && currentRaceDateTime < minAllowedDateUI.getTime();
-
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="w-[600px] bg-surface border border-border rounded-xl overflow-hidden shadow-2xl flex flex-col">
                 <div className="p-6 border-b border-border/60 flex justify-between items-center bg-surface-raised">
                     <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">
-                        {showConfirm ? (raceToEdit ? "Confirm Race Update" : "Confirm Race Creation") : (raceToEdit ? "Edit Race Round" : "Create New Race")}
+                        {successInfo
+                            ? (successInfo.type === 'UPDATE' ? "Race Updated" : "Race Created")
+                            : showConfirm ? (raceToEdit ? "Confirm Race Update" : "Confirm Race Creation") : (raceToEdit ? "Edit Race Round" : "Create New Race")}
                     </h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
                         <X size={20} />
@@ -357,13 +395,23 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                         </div>
                     )}
 
-                    {!showConfirm ? (
+                    {successInfo ? (
+                        <div className="flex flex-col items-center gap-3 py-8 text-center">
+                            <CheckCircle2 className="text-emerald-500" size={48} />
+                            <p className="text-[15px] font-semibold text-white">
+                                {successInfo.type === 'UPDATE' ? "Race round updated successfully." : "Race round has been created successfully."}
+                            </p>
+                            <p className="text-[13px] text-gray-500">
+                                {raceTitle || "The race"} is now {successInfo.type === 'UPDATE' ? "saved with your changes" : "scheduled"}.
+                            </p>
+                        </div>
+                    ) : !showConfirm ? (
                         <>
                             <CreateRaceBasicInfo
                                 raceTitle={raceTitle}
                                 setRaceTitle={setRaceTitle}
                                 tournamentId={tournamentId}
-                                setTournamentId={setTournamentId}
+                                setTournamentId={handleTournamentChange}
                                 metadata={metadata}
                                 createRaceType={createRaceType}
                                 setCreateRaceType={setCreateRaceType}
@@ -446,7 +494,14 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                 </div>
 
                 <div className="p-4 border-t border-border/60 flex justify-end gap-3 bg-surface-raised">
-                    {showConfirm ? (
+                    {successInfo ? (
+                        <button
+                            className="bg-white hover:bg-gray-200 text-black text-[13px] font-semibold py-2.5 px-6 rounded transition-colors"
+                            onClick={onClose}
+                        >
+                            Done
+                        </button>
+                    ) : showConfirm ? (
                         <>
                             <button onClick={() => setShowConfirm(false)} className="px-6 py-2.5 text-[13px] font-semibold text-white hover:bg-white/5 rounded transition-colors" disabled={submitLoading}>
                                 Back

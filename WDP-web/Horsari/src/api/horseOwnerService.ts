@@ -220,7 +220,7 @@ export interface RaceDetailInvitation {
   jockeyConfirmation: boolean;
   ownerConfirmation: boolean;
   createdAt: string;
-  jockey: { fullName: string; image?: string } | null;
+  jockey: { _id: string; fullName: string; image?: string } | null;
 }
 
 export interface RaceDetailRegistration {

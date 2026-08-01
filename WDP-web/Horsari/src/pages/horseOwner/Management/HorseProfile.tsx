@@ -369,7 +369,7 @@ export default function HorseProfile({ horseId, onClose }: HorseProfileProps) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl flex flex-col bg-bg rounded-2xl border border-border shadow-2xl font-sans"
+        className="relative w-full max-w-3xl flex flex-col bg-bg rounded-2xl border border-border shadow-2xl font-sans"
         style={{ maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >

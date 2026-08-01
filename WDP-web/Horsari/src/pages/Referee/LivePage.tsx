@@ -77,97 +77,125 @@ function HorsePickerModal({
     vt: ViolationTypeRecord;
     horses: HorseOption[];
     loading: boolean;
-    onConfirm: (registrationId: string | null) => void;
+    onConfirm: (registrationIds: string[]) => void;
     onClose: () => void;
 }) {
-    const [selected, setSelected] = useState<string | null>(null);
+    // Race-wide and specific horses are mutually exclusive: picking any horse clears
+    // race-wide, and picking race-wide clears any selected horses. Multiple horses can
+    // be checked at once (e.g. two horses bumped each other) — one violation record is
+    // created per selected horse (or a single race-wide one if none are selected).
+    const [raceWide, setRaceWide] = useState(true);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    const toggleRaceWide = () => {
+        setRaceWide(v => !v);
+        setSelectedIds(new Set());
+    };
+    const toggleHorse = (registrationId: string) => {
+        setRaceWide(false);
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(registrationId)) next.delete(registrationId);
+            else next.add(registrationId);
+            return next;
+        });
+    };
+
+    const canConfirm = raceWide || selectedIds.size > 0;
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
             onClick={onClose}
         >
             <div
-                className="bg-surface-raised border border-border rounded-2xl p-5 w-[320px] shadow-2xl shadow-black/60 flex flex-col gap-4"
+                className="bg-surface-raised border border-border rounded-2xl p-6 w-full max-w-lg max-h-[85vh] shadow-2xl shadow-black/60 flex flex-col gap-5"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between shrink-0">
                     <div>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-gray-600 mb-1">Flag Violation</p>
-                        <h3 className="text-[15px] font-bold text-white leading-tight">{vt.violationName}</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-1">Flag Violation</p>
+                        <h3 className="text-[18px] font-bold text-white leading-tight">{vt.violationName}</h3>
                         {vt.severity && (
-                            <span className={`inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${severityDot(vt.severity)} bg-opacity-20 text-white`}>
+                            <span className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded ${severityDot(vt.severity)} bg-opacity-20 text-white`}>
                                 Severity {vt.severity}
                             </span>
                         )}
                     </div>
-                    <button onClick={onClose} className="text-gray-600 hover:text-gray-300 text-[18px] leading-none mt-0.5">✕</button>
+                    <button onClick={onClose} className="text-gray-600 hover:text-gray-300 text-[20px] leading-none mt-0.5">✕</button>
                 </div>
 
                 {/* Horse list */}
-                <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-2">Select horse involved</p>
-                    <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
+                <div className="flex-1 min-h-0 flex flex-col">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-2.5 shrink-0">
+                        Select horse(s) involved
+                    </p>
+                    <div className="flex flex-col gap-2 overflow-y-auto pr-1">
                         {/* Race-wide option */}
-                        <button
-                            onClick={() => setSelected(null)}
+                        <label
                             className={[
-                                "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all",
-                                selected === null
+                                "flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all",
+                                raceWide
                                     ? "border-yellow-600/60 bg-yellow-500/8 text-yellow-400"
                                     : "border-border bg-white/[0.03] text-gray-500 hover:border-white/15 hover:text-gray-300",
                             ].join(" ")}
                         >
-                            <span className={[
-                                "w-4 h-4 rounded-full border-2 flex-shrink-0 transition-all",
-                                selected === null ? "border-yellow-500 bg-yellow-500" : "border-gray-600",
-                            ].join(" ")} />
+                            <input
+                                type="checkbox"
+                                checked={raceWide}
+                                onChange={toggleRaceWide}
+                                className="w-4 h-4 shrink-0 accent-yellow-500 rounded bg-black border-white/20"
+                            />
                             <div>
-                                <p className="text-[12px] font-semibold">Race-wide</p>
-                                <p className="text-[10px] text-gray-600">No specific horse</p>
+                                <p className="text-[13px] font-semibold">Race-wide</p>
+                                <p className="text-[11px] text-gray-600">No specific horse</p>
                             </div>
-                        </button>
+                        </label>
 
-                        {horses.map(h => (
-                            <button
-                                key={h.registrationId}
-                                onClick={() => setSelected(h.registrationId)}
-                                className={[
-                                    "flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all",
-                                    selected === h.registrationId
-                                        ? "border-red-700/60 bg-red-500/8 text-red-300"
-                                        : "border-border bg-white/[0.03] text-gray-400 hover:border-white/15 hover:text-gray-200",
-                                ].join(" ")}
-                            >
-                                <span className={[
-                                    "w-4 h-4 rounded-full border-2 flex-shrink-0 transition-all",
-                                    selected === h.registrationId ? "border-red-500 bg-red-500" : "border-gray-600",
-                                ].join(" ")} />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[12px] font-semibold">#{h.number} {h.name}</p>
-                                    <p className="text-[10px] text-gray-600 truncate">{h.jockey}</p>
-                                </div>
-                            </button>
-                        ))}
+                        {horses.map(h => {
+                            const checked = selectedIds.has(h.registrationId);
+                            return (
+                                <label
+                                    key={h.registrationId}
+                                    className={[
+                                        "flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all",
+                                        checked
+                                            ? "border-red-700/60 bg-red-500/8 text-red-300"
+                                            : "border-border bg-white/[0.03] text-gray-400 hover:border-white/15 hover:text-gray-200",
+                                    ].join(" ")}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() => toggleHorse(h.registrationId)}
+                                        className="w-4 h-4 shrink-0 accent-red-600 rounded bg-black border-white/20"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[13px] font-semibold">#{h.number} {h.name}</p>
+                                        <p className="text-[11px] text-gray-600 truncate">{h.jockey}</p>
+                                    </div>
+                                </label>
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 pt-1 border-t border-border">
+                <div className="flex gap-2 pt-1 border-t border-border shrink-0">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-2 rounded-xl border border-border text-gray-500 text-[12px] font-semibold hover:border-white/20 hover:text-gray-300 transition-all"
+                        className="flex-1 py-2.5 rounded-xl border border-border text-gray-500 text-[13px] font-semibold hover:border-white/20 hover:text-gray-300 transition-all"
                     >
                         Cancel
                     </button>
                     <button
-                        onClick={() => onConfirm(selected)}
-                        disabled={loading}
-                        className="flex-1 py-2 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        onClick={() => onConfirm(Array.from(selectedIds))}
+                        disabled={loading || !canConfirm}
+                        className="flex-1 py-2.5 rounded-xl bg-red-700 text-white text-[13px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
-                        {loading ? <Loader2 size={12} className="animate-spin" /> : <ShieldAlert size={12} />}
-                        Flag
+                        {loading ? <Loader2 size={13} className="animate-spin" /> : <ShieldAlert size={13} />}
+                        {selectedIds.size > 1 ? `Flag ${selectedIds.size} Horses` : "Flag"}
                     </button>
                 </div>
             </div>
@@ -429,17 +457,26 @@ export default function LivePage() {
 
     const sortedByDist = liveHorses ? [...liveHorses].sort((a, b) => b.currentDistance - a.currentDistance) : [];
 
-    const handleConfirmViolation = async (registrationId: string | null) => {
+    const handleConfirmViolation = async (registrationIds: string[]) => {
         if (!raceRound?._id || !pendingVt) return;
         setModalLoading(true);
         try {
-            const res = await refereeService.createViolation({
-                raceRoundId: raceRound._id,
-                violationTypeId: pendingVt._id,
-                ...(registrationId ? { registrationId } : {}),
-            });
-            if (res.data) {
-                setActiveViolations(prev => [...prev, res.data]);
+            // Empty selection means "race-wide" — a single violation with no registrationId.
+            // Otherwise create one violation per selected horse (e.g. two horses bumped
+            // each other, both get flagged in one action).
+            const targets = registrationIds.length > 0 ? registrationIds : [null];
+            const results = await Promise.all(
+                targets.map(registrationId =>
+                    refereeService.createViolation({
+                        raceRoundId: raceRound._id!,
+                        violationTypeId: pendingVt._id,
+                        ...(registrationId ? { registrationId } : {}),
+                    })
+                )
+            );
+            const created = results.map(r => r.data).filter((v): v is ViolationRecord => !!v);
+            if (created.length > 0) {
+                setActiveViolations(prev => [...prev, ...created]);
             }
         } catch { }
         setModalLoading(false);

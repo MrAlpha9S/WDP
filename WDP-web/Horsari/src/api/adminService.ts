@@ -74,6 +74,7 @@ export interface RaceRoundData {
   address?: string;
   status: string;
   maxParticipants?: number;
+  acceptedCount?: number;
   trackLength?: number;
   raceType?: string;
   RaceType?: string;

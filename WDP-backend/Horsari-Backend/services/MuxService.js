@@ -82,10 +82,10 @@ async function getStreamInfo(raceRoundId) {
     }
 
     return {
-        rtmpUrl:       'rtmps://global-live.mux.com:443/app',
-        streamKey:     info.streamKey,
-        livePlaybackId: info.livePlaybackId,
-        playerUrl:     info.livePlaybackId
+        rtmpUrl:     'rtmps://global-live.mux.com:443/app',
+        streamKey:   info.streamKey,
+        playbackId:  info.livePlaybackId,
+        playerUrl:   info.livePlaybackId
             ? `https://stream.mux.com/${info.livePlaybackId}.m3u8`
             : null,
     };

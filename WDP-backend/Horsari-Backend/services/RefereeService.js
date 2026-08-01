@@ -846,6 +846,45 @@ class RefereeService {
         }
     }
 
+    // Undo a no-show mark, reverting the invitation back to "accepted" — lets a
+    // referee correct a mis-click instead of the jockey being permanently locked out.
+    async cancelJockeyNoShow(refereeId, invitationId) {
+        try {
+            const invitation = await Invitation.findById(invitationId).lean();
+            if (!invitation) {
+                return { code: 404, msg: 'Invitation not found.' };
+            }
+            if (!invitation.registrationId) {
+                return { code: 422, msg: 'Invitation is not linked to a registration.' };
+            }
+
+            const registration = await Registration.findById(invitation.registrationId).lean();
+            if (!registration) {
+                return { code: 404, msg: 'Registration not found.' };
+            }
+
+            const assignment = await RaceReferee.findOne({ raceRoundId: registration.raceRoundId, refereeId }).lean();
+            if (!assignment) {
+                return { code: 403, msg: 'You are not assigned to this race round.' };
+            }
+
+            if (invitation.invitationStatus !== 'didNotAttend') {
+                return { code: 400, msg: `Cannot undo no-show: invitation is "${invitation.invitationStatus}", not "didNotAttend".` };
+            }
+
+            const updated = await Invitation.findByIdAndUpdate(
+                invitationId,
+                { invitationStatus: 'accepted' },
+                { new: true }
+            ).lean();
+
+            return { code: 200, data: updated, msg: 'No-show undone — jockey is accepted again.' };
+        } catch (error) {
+            console.error('Error undoing jockey no-show:', error);
+            return { code: 500, msg: error.message };
+        }
+    }
+
     // Finalize a race round after all registrations are inspected.
     // Sets status to "prepared" if at least one registration is verified,
     // or "cancelled" if all registrations ended up failed/cancelled/rejected.

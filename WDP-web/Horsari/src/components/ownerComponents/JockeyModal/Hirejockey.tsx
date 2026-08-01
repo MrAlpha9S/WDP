@@ -17,6 +17,7 @@ type ToastState = {
 
 interface Race {
   id: string;
+  raceRoundId: string | null;
   name: string;
   date: string;
   venue: string;
@@ -60,6 +61,7 @@ function formatDate(iso: string): string {
 function mapRace(raw: any, i: number): Race {
   return {
     id: raw.registration._id ?? String(i),
+    raceRoundId: raw.raceRound?._id ?? null,
     name: raw.raceRound?.roundName ?? raw.name ?? "Unnamed Race",
     date: raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : raw.date ?? "TBA",
     venue: raw.raceRound?.location ?? raw.location ?? "TBA",
@@ -174,6 +176,18 @@ export default function HireJockeyModal({
   // endpoint JockeyDetailModal uses, no dedicated stats endpoint needed.
   const [hasNoShowHistory, setHasNoShowHistory] = useState(false);
 
+  // Whether the selected registration already has an active (pending/accepted)
+  // main-jockey invitation — only one main jockey is allowed per registration,
+  // so Step 2's "Main Racer" option gets grayed out when this is true.
+  const [mainJockeyTaken, setMainJockeyTaken] = useState(false);
+  const [checkingMainJockey, setCheckingMainJockey] = useState(false);
+
+  // Whether THIS jockey already has any invitation (any status) on the
+  // selected registration — the backend rejects re-inviting the same jockey
+  // to the same registration outright, so block it here too instead of
+  // letting the owner hit a 409 after filling out the whole form.
+  const [alreadyInvited, setAlreadyInvited] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     async function loadHistory() {
@@ -208,6 +222,43 @@ export default function HireJockeyModal({
     loadMetadata();
     return () => { cancelled = true; };
   }, [selectedRace?.ruleId]);
+
+  // Check whether this registration already has an active main-jockey invitation,
+  // and whether this specific jockey already has any invitation on it at all.
+  useEffect(() => {
+    setMainJockeyTaken(false);
+    setAlreadyInvited(false);
+    const raceRoundId = selectedRace?.raceRoundId;
+    const registrationId = selectedRace?.id;
+    if (!raceRoundId || !registrationId) return;
+
+    let cancelled = false;
+    async function checkExistingInvitations() {
+      try {
+        setCheckingMainJockey(true);
+        const res = await horseOwnerService.getRaceDetail(raceRoundId!);
+        if (cancelled) return;
+        const invitations = res?.data?.registration?.invitations ?? [];
+
+        const taken = invitations.some(
+          (inv) => !inv.isBackup && ["pending", "accepted"].includes(inv.invitationStatus)
+        );
+        setMainJockeyTaken(taken);
+        // If the position previously chosen is now unavailable, fall back to Substitution.
+        if (taken) setPosition(true);
+
+        // Same jockey already invited (any status) — backend rejects this outright.
+        setAlreadyInvited(invitations.some((inv) => inv.jockey?._id === String(jockey.id)));
+      } catch {
+        // Non-critical: if this fails, the backend's own invite-time validation
+        // still catches these cases — this is a UX pre-check only.
+      } finally {
+        if (!cancelled) setCheckingMainJockey(false);
+      }
+    }
+    checkExistingInvitations();
+    return () => { cancelled = true; };
+  }, [selectedRace?.raceRoundId, selectedRace?.id, jockey.id]);
 
   // Fetch races (accepted registrations only)
   useEffect(() => {
@@ -324,7 +375,7 @@ export default function HireJockeyModal({
   };
 
   async function handleConfirm() {
-    if (!selectedRace || !selectedHorse) return;
+    if (!selectedRace || !selectedHorse || alreadyInvited) return;
     setSubmitting(true);
     try {
       await onConfirm?.({
@@ -358,7 +409,7 @@ export default function HireJockeyModal({
   }
 
   const canNext =
-    (step === 1 && !!selectedRace) ||
+    (step === 1 && !!selectedRace && !checkingMainJockey && !alreadyInvited) ||
     (step === 2 && true) || // position always has a default
     (step === 3 && !!selectedHorse);
 
@@ -370,7 +421,7 @@ export default function HireJockeyModal({
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg bg-bg border border-border rounded-2xl shadow-2xl shadow-black/90 flex flex-col max-h-[90vh] overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-bg border border-border rounded-2xl shadow-2xl shadow-black/90 flex flex-col max-h-[90vh] overflow-hidden">
 
         {/* Header */}
         <div className="px-6 pt-6 pb-5 border-b border-border shrink-0">
@@ -456,6 +507,18 @@ export default function HireJockeyModal({
                   </div>
                 </SelectCard>
               ))}
+
+              {selectedRace && checkingMainJockey && (
+                <div className="flex items-center gap-2 text-gray-600 text-[11px] px-1">
+                  <Loader2 size={11} className="animate-spin" /> Checking existing invitations…
+                </div>
+              )}
+              {selectedRace && !checkingMainJockey && alreadyInvited && (
+                <div className="flex items-center gap-2 text-yellow-500 text-[12px] bg-yellow-900/10 border border-yellow-700/30 rounded-xl px-4 py-3">
+                  <AlertCircle size={13} className="shrink-0" />
+                  {jockey.name} has already been invited to this race. Pick a different race or a different jockey.
+                </div>
+              )}
             </div>
           )}
 
@@ -466,23 +529,43 @@ export default function HireJockeyModal({
                 Select Position
               </p>
 
-              <SelectCard
-                item={{ id: "main" }}
-                selected={position === false}
-                onSelect={() => setPosition(false)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-red-900/30 border border-red-700/30 flex items-center justify-center shrink-0">
-                    <Shield size={14} className="text-red-400" />
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-white">Main Racer</p>
-                    <p className="text-[11px] text-gray-600 mt-0.5">
-                      Primary rider — starts the race from the gate.
-                    </p>
-                  </div>
+              {checkingMainJockey && (
+                <div className="flex items-center gap-2 text-gray-600 text-[11px] mb-1">
+                  <Loader2 size={11} className="animate-spin" /> Checking existing invitations…
                 </div>
-              </SelectCard>
+              )}
+
+              <div className="relative">
+                <SelectCard
+                  item={{ id: "main" }}
+                  selected={position === false}
+                  onSelect={() => { if (!mainJockeyTaken) setPosition(false); }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${mainJockeyTaken ? "bg-white/5 border border-white/10" : "bg-red-900/30 border border-red-700/30"}`}>
+                      <Shield size={14} className={mainJockeyTaken ? "text-gray-600" : "text-red-400"} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className={`text-[13px] font-bold ${mainJockeyTaken ? "text-gray-600" : "text-white"}`}>Main Racer</p>
+                        {mainJockeyTaken && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 text-yellow-500 font-bold shrink-0 tracking-wide uppercase">
+                            Already Invited
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-[11px] mt-0.5 ${mainJockeyTaken ? "text-gray-700" : "text-gray-600"}`}>
+                        {mainJockeyTaken
+                          ? "This race already has a main jockey invitation pending or accepted."
+                          : "Primary rider — starts the race from the gate."}
+                      </p>
+                    </div>
+                  </div>
+                </SelectCard>
+                {mainJockeyTaken && (
+                  <div className="absolute inset-0 rounded-xl bg-black/40 cursor-not-allowed" />
+                )}
+              </div>
 
               <SelectCard
                 item={{ id: "substitution" }}
@@ -686,8 +769,8 @@ export default function HireJockeyModal({
           ) : (
             <button
               onClick={handleConfirm}
-              disabled={!selectedHorse || submitting}
-              className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${selectedHorse && !submitting
+              disabled={!selectedHorse || submitting || alreadyInvited}
+              className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${selectedHorse && !submitting && !alreadyInvited
                 ? "bg-green-700 hover:bg-green-600 text-white shadow-lg shadow-green-900/30"
                 : "bg-surface border border-border text-gray-600 cursor-not-allowed"
                 }`}

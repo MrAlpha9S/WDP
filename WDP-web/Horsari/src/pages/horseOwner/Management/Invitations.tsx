@@ -127,7 +127,7 @@ function InvitationDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 font-sans">
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-surface border border-border rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-surface border border-border rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[90vh]">
 
         <div className="relative h-52 shrink-0 overflow-hidden bg-bg flex items-center justify-center">
           <img src={inv.image} alt={inv.name} className={`h-28 w-28 object-contain ${!isPending ? "opacity-15" : "opacity-25"}`} />
@@ -193,7 +193,7 @@ function InvitationDetailModal({
           </button>
           {canReject && (
             <button onClick={() => { onDeny(inv.id); onClose(); }} className="flex-1 py-2.5 rounded-lg border border-red-700/50 text-red-400 text-[13px] font-semibold hover:bg-red-700/10 transition-all duration-150 flex items-center justify-center gap-2">
-              <X size={14} /> Reject
+              <X size={14} /> Decline
             </button>
           )}
           {isPending && (
@@ -269,7 +269,7 @@ function InvitationCard({
               </button>
               {canReject && (
                 <button onClick={() => onDeny(inv.id)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-gray-400 text-[12px] font-semibold hover:border-red-700/50 hover:text-red-400 transition-all duration-150">
-                  <X size={13} /> Reject
+                  <X size={13} /> Decline
                 </button>
               )}
               {isPending ? (
@@ -473,6 +473,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   const [loadingRace, setLoadingRace] = useState(true);
   const [errorRace, setErrorRace] = useState<string | null>(null);
   const [selected, setSelected] = useState<Invitation | null>(null);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
   const [racePage, setRacePage] = useState(1);
   const [raceSearch, setRaceSearch] = useState("");
   const [raceSearchInput, setRaceSearchInput] = useState("");
@@ -571,12 +572,17 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
 
   // Race handlers
   async function handleAccept(id: string) {
-    await horseOwnerService.acceptRegistration(id);
-    setInvitations((prev) => {
-      const next = prev.map((i) => i.id.toString() === id ? { ...i, status: "accepted" as const } : i);
-      onPendingChange?.(next.filter((i) => i.status === "pending").length);
-      return next;
-    });
+    setAcceptError(null);
+    try {
+      await horseOwnerService.acceptRegistration(id);
+      setInvitations((prev) => {
+        const next = prev.map((i) => i.id.toString() === id ? { ...i, status: "accepted" as const } : i);
+        onPendingChange?.(next.filter((i) => i.status === "pending").length);
+        return next;
+      });
+    } catch (err: any) {
+      setAcceptError(err?.msg ?? "Failed to accept invitation.");
+    }
   }
 
   const reject = useRejectRegistration((id) => {
@@ -672,6 +678,14 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
             {!loadingRace && !errorRace && invitations.length === 0 && (
               <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
                 {raceSearch ? `No results for "${raceSearch}".` : "No race invitations found."}
+              </div>
+            )}
+            {acceptError && (
+              <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400 mb-5 flex items-center justify-between gap-3">
+                <span>{acceptError}</span>
+                <button onClick={() => setAcceptError(null)} className="text-red-400/70 hover:text-red-300 shrink-0">
+                  <X size={14} />
+                </button>
               </div>
             )}
             {!loadingRace && !errorRace && invitations.length > 0 && (

@@ -29,6 +29,7 @@ router.get('/invitations', authMiddleware, authReferee, RefereeController.getRef
 router.put('/invitations/:id/accept', authMiddleware, authReferee, RefereeController.acceptInvitation);
 router.put('/invitations/:id/reject', authMiddleware, authReferee, RefereeController.rejectInvitation);
 router.put('/invitations/:invitationId/no-show', authMiddleware, authReferee, RefereeController.markJockeyNoShow);
+router.put('/invitations/:invitationId/cancel-no-show', authMiddleware, authReferee, RefereeController.cancelJockeyNoShow);
 router.get('/violation-types', authMiddleware, authReferee, RefereeController.getViolationTypes);
 router.get('/violations', authMiddleware, authReferee, RefereeController.getAllViolations);
 router.post('/violations', authMiddleware, authReferee, RefereeController.createViolation);

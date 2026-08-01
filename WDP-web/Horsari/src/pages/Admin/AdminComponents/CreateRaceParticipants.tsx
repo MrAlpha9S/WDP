@@ -23,7 +23,7 @@ export default function CreateRaceParticipants(props: ParticipantsProps) {
         <div className="flex flex-col gap-4">
             <div>
                 <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
-                    Invite Horse Owners <span className="text-gray-500 normal-case ml-1 font-normal">(Auto-filtered for {selectedRuleName} eligibility)</span>
+                    Invite Horse Owners <span className="text-gray-500 normal-case ml-1 font-normal">(Auto-filtered for {selectedRuleName} eligibility · min. 2 required)</span>
                 </label>
                 <div className="p-3 bg-bg border border-border rounded flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar">
                     {metadata?.owners?.filter((owner: any) => owner.horses.some((h: any) => checkEligibility(h, createRaceType))).map((owner: any) => {
@@ -65,7 +65,7 @@ export default function CreateRaceParticipants(props: ParticipantsProps) {
 
             <div>
                 <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
-                    Assign Referee <span className="text-gray-500 normal-case ml-1 font-normal">(Optional)</span>
+                    Assign Referee <span className="text-gray-500 normal-case ml-1 font-normal">(min. 1 required, each must have a fee)</span>
                 </label>
                 <div className="p-3 bg-bg border border-border rounded flex flex-col gap-2">
                     <div className="relative mb-2">
