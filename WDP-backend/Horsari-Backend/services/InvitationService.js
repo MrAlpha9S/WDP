@@ -8,6 +8,7 @@ const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
 const RaceResult = require('../entities/RaceResult');
 const NotificationService = require('./NotificationService');
 const { findJockeyScheduleConflict } = require('./JockeyScheduleConflict');
+const { findHorseScheduleConflict } = require('./HorseScheduleConflict');
 /**
  * return {
  * code: 200,
@@ -46,6 +47,21 @@ class InvitationService {
                 if (ineligibleReason) {
                     return { code: 422, message: ineligibleReason };
                 }
+            }
+        }
+
+        // Only a NEW horse commitment can create a same-day conflict — once
+        // Registration.horseId is set, later invitations to this same
+        // registration just reuse it (enforced by the "same horse" check below).
+        if (!registration.horseId) {
+            const horseConflict = await findHorseScheduleConflict(horseId, registration.raceRoundId, {
+                excludeRegistrationId: registrationId,
+            });
+            if (horseConflict) {
+                return {
+                    code: 409,
+                    message: 'This horse is already committed to another race on the same day.',
+                };
             }
         }
 

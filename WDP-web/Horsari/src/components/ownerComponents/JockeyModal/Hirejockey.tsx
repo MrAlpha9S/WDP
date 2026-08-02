@@ -266,7 +266,7 @@ export default function HireJockeyModal({
     async function load() {
       try {
         setLoadingRaces(true);
-        const data = await horseOwnerService.getHorseOwnerInvitations();
+        const data = await horseOwnerService.getHorseOwnerInvitations(1, 100);
         console.log('data: ', data)
         if (cancelled) return;
 
@@ -315,6 +315,20 @@ export default function HireJockeyModal({
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
   }, [onClose]);
+
+  // ── Same-day double-booking hint ──────────────────────────────────────────
+  // Best-effort UX hint only — `races` is capped at REGISTRATION_FETCH_LIMIT
+  // (100) and `race.date` is a naive UTC-day slice (iso.split("T")[0]), not
+  // the Vietnam-anchored calendar day the backend actually enforces via
+  // findHorseScheduleConflict + isSameCalendarDay. That backend check is the
+  // sole source of truth; this just avoids the obvious case reaching a
+  // submit-time error.
+  const isHorseBookedSameDay = (horseId: string): boolean => {
+    if (!selectedRace) return false;
+    return races.some(
+      (r) => r.id !== selectedRace.id && r.date === selectedRace.date && r.existingHorseId === horseId
+    );
+  };
 
   // ── Eligibility rules check ───────────────────────────────────────────────
   // Requires horseOwnerService.getRaceEligibilityMetadata() to populate `metadata`.
@@ -397,7 +411,9 @@ export default function HireJockeyModal({
           ? "This race already has a horse assigned. Please select the same horse."
           : err?.code === 409 && (err?.message ?? "").includes("already been invited")
             ? "This jockey has already been invited to this race."
-            : err?.code === 422
+            : err?.code === 409 && (err?.message ?? "").includes("same day")
+              ? "This horse is already booked for another race on this day. Choose a different horse."
+              : err?.code === 422
               ? "This registration is no longer accepting jockey assignments."
               : err?.code === 403
                 ? "You are not authorized to modify this registration."
@@ -661,7 +677,8 @@ export default function HireJockeyModal({
                 const isEligible = inEligibleList && meetsEligibilityRules;
                 const isLockedOut = !!selectedRace?.existingHorseId && selectedRace.existingHorseId !== horse.id;
                 const isLockedIn = !!selectedRace?.existingHorseId && selectedRace.existingHorseId === horse.id;
-                const isSelectable = isEligible && !isLockedOut;
+                const isBookedSameDay = !isLockedIn && isHorseBookedSameDay(horse.id);
+                const isSelectable = isEligible && !isLockedOut && !isBookedSameDay;
 
                 return (
                   <div key={horse.id} className="relative">
@@ -688,6 +705,11 @@ export default function HireJockeyModal({
                         {!isLockedOut && !isEligible && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 text-yellow-500 font-bold shrink-0 tracking-wide uppercase">
                             Not Eligible
+                          </span>
+                        )}
+                        {isBookedSameDay && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-900/20 border border-orange-700/30 text-orange-400 font-bold shrink-0 tracking-wide uppercase">
+                            Booked Same Day
                           </span>
                         )}
                       </div>

@@ -2,6 +2,7 @@ const AdminRepository = require('../repositories/AdminRepository');
 const UserRepository = require('../repositories/UserRepository');
 const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
 const RaceDateUtil = require('../utils/RaceDateUtil');
+const { findHorseScheduleConflict } = require('./HorseScheduleConflict');
 const HorseOwnerRepository = require('../repositories/HorseOwnerRepository');
 const JockeyRepository = require('../repositories/JockeyRepository');
 const TournamentRepository = require('../repositories/TournamentRepository');
@@ -1702,6 +1703,7 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
             let eligibleHorse = null;
             for (const horse of ownerHorses) {
                 if (usedHorseIds.has(String(horse._id))) continue;
+                if (await findHorseScheduleConflict(horse._id, raceRoundId)) continue;
                 const horseInvitations = await Invitation.find({ horseId: horse._id, registrationId: { $ne: null } }).lean();
                 const resultRegIds = horseInvitations.map(inv => inv.registrationId);
                 const results = await RaceResult.find({ registrationId: { $in: resultRegIds } }).lean();
