@@ -1,6 +1,6 @@
 /**
  * @swagger
- * /api/eligibility-rules:
+ * /api/referee/eligibility-rules:
  *   get:
  *     summary: List active race eligibility rules (referee-only, paginated, searchable by raceType)
  *     tags: [RaceEligibilityRule]

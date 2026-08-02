@@ -1,6 +1,6 @@
 /**
  * @swagger
- * /api/raceround:
+ * /api/admin/raceround:
  *   post:
  *     summary: Create a new race round, optionally with initial referee assignments and horse-owner registrations
  *     description: >
@@ -55,7 +55,7 @@
  *       400:
  *         description: Location/time collision with another active race round
  *
- * /api/raceround/{id}:
+ * /api/admin/raceround/{id}:
  *   put:
  *     summary: Update a race round
  *     description: >
@@ -105,7 +105,7 @@
  *       404:
  *         description: Race round not found
  *
- * /api/raceround/{id}/cancel:
+ * /api/admin/raceround/{id}/cancel:
  *   patch:
  *     summary: Cancel a race round
  *     description: >

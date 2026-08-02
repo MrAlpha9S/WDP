@@ -4,7 +4,7 @@
  *   name: Horse
  *   description: Horse CRUD (horseowner-only)
  *
- * /api/horses:
+ * /api/horseowner/horse:
  *   post:
  *     summary: Create a horse under the authenticated horse owner
  *     tags: [Horse]
@@ -31,7 +31,7 @@
  *       400:
  *         description: horseName is required
  *
- * /api/horses/{id}:
+ * /api/horseowner/horse/{id}:
  *   put:
  *     summary: Update a horse
  *     tags: [Horse]
@@ -78,7 +78,7 @@
  *       404:
  *         description: Horse not found
  *
- * /api/horses/upload-image/{horseId}:
+ * /api/horseowner/horse/upload-image/{horseId}:
  *   post:
  *     summary: Upload a horse's profile image to Cloudinary
  *     tags: [Horse]

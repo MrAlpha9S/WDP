@@ -1,11 +1,14 @@
 const express = require('express');
 const AdminController = require('../controllers/AdminController');
 const PaymentController = require('../controllers/PaymentController');
+const RaceRoundController = require('../controllers/RaceRoundController');
 const { authMiddleware, authAdmin } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
 require('../swagger/adminSwagger');
+require('../swagger/raceroundSwagger');
+require('../swagger/tournamentSwagger');
 
 // Self-service profile (distinct from /users/:userId, which is admin managing others)
 router.get('/my-profile', authMiddleware, authAdmin, AdminController.getMyProfile);
@@ -125,5 +128,19 @@ router.put('/payments/:paymentId/confirm-paid', authMiddleware, authAdmin, Payme
 router.get('/ledger', authMiddleware, authAdmin, PaymentController.listMyLedger);
 // System-wide wallet ledger (all reward/deposit/withdrawal/refund rows, any user — e.g. spectator prediction payouts)
 router.get('/ledger/all', authMiddleware, authAdmin, PaymentController.listAllLedger);
+
+// --- Race round create/update/cancel (moved from routes/raceround.js, previously
+// mounted at /api/raceround) — distinct from the /race-rounds/... read/detail/
+// status routes above, which predate this move and already lived here.
+router.post('/raceround', authMiddleware, authAdmin, RaceRoundController.createRaceRound);
+router.put('/raceround/:id', authMiddleware, authAdmin, RaceRoundController.updateRaceRound);
+router.patch('/raceround/:id/cancel', authMiddleware, authAdmin, RaceRoundController.cancelRaceRound);
+
+// --- Tournament create/update/delete (moved from routes/tournament.js, previously
+// mounted at /api/tournament) — distinct from the /tournaments/... (plural) read
+// routes above, which predate this move and already lived here.
+router.post('/tournament', authMiddleware, authAdmin, AdminController.createTournament);
+router.put('/tournament/:id', authMiddleware, authAdmin, AdminController.updateTournament);
+router.delete('/tournament/:id', authMiddleware, authAdmin, AdminController.deleteTournament);
 
 module.exports = router;

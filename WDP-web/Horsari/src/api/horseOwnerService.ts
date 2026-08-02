@@ -366,7 +366,7 @@ export const horseOwnerService = {
   HireJockey: async (data: hireJockey): Promise<void> => {
     if (!data) return;
     try {
-      await api.post(`/invitations`, data);
+      await api.post(`/horseowner/invitations`, data);
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
@@ -399,7 +399,7 @@ export const horseOwnerService = {
   },
   createHorse: async (data: Omit<Horse, '_id' | 'ownerId' | 'createdAt' | 'updatedAt' | '__v'>): Promise<{ code: number; data: Horse; msg: string }> => {
     try {
-      const response = await api.post('/horse', data);
+      const response = await api.post('/horseowner/horse', data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
@@ -407,7 +407,7 @@ export const horseOwnerService = {
   },
   updateHorse: async (horseId: string, data: Partial<Horse>): Promise<{ code: number; data: Horse; msg: string }> => {
     try {
-      const response = await api.put(`/horse/${horseId}`, data);
+      const response = await api.put(`/horseowner/horse/${horseId}`, data);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
@@ -415,7 +415,7 @@ export const horseOwnerService = {
   },
   deleteHorse: async (horseId: string): Promise<{ code: number; msg: string }> => {
     try {
-      const response = await api.delete(`/horse/${horseId}`);
+      const response = await api.delete(`/horseowner/horse/${horseId}`);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
@@ -425,7 +425,7 @@ export const horseOwnerService = {
     try {
       const form = new FormData();
       form.append('image', file);
-      const response = await api.post(`/horse/upload-image/${horseId}`, form, {
+      const response = await api.post(`/horseowner/horse/upload-image/${horseId}`, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;

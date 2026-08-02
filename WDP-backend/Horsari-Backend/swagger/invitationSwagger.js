@@ -1,6 +1,6 @@
 /**
  * @swagger
- * /api/invitations:
+ * /api/horseowner/invitations:
  *   post:
  *     summary: Invite a jockey for a specific horse registration (hire jockey)
  *     description: >

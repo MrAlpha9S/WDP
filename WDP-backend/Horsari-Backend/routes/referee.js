@@ -1,12 +1,14 @@
 const express = require('express');
 const RefereeController = require('../controllers/RefereeController');
 const PaymentController = require('../controllers/PaymentController');
+const RaceEligibilityRuleController = require('../controllers/RaceEligibilityRuleController');
 const { authMiddleware, authReferee, authAdmin } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
 
 const router = express.Router();
 
 require('../swagger/refereeSwagger');
+require('../swagger/raceEligibilityRuleSwagger');
 
 // Self-service profile
 router.get('/my-profile', authMiddleware, authReferee, RefereeController.getMyProfile);
@@ -43,5 +45,9 @@ router.get('/statistics/earnings-series', authMiddleware, authReferee, RefereeCo
 router.get('/work-history', authMiddleware, authReferee, RefereeController.getWorkHistory);
 router.get('/payments', authMiddleware, authReferee, PaymentController.listMyPayments);
 router.put('/payments/:paymentId/confirm-received', authMiddleware, authReferee, PaymentController.confirmReceived);
+
+// --- Race eligibility rules, read-only (moved from routes/raceEligibilityRule.js,
+// previously mounted at /api/eligibility-rules)
+router.get('/eligibility-rules', authMiddleware, authReferee, RaceEligibilityRuleController.getActiveRules);
 
 module.exports = router;

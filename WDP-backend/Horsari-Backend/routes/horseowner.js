@@ -1,12 +1,19 @@
 const express = require('express');
 const HorseOwnerController = require('../controllers/HorseOwnerController');
 const PaymentController = require('../controllers/PaymentController');
+const HorseController = require('../controllers/HorseController');
+const InvitationController = require('../controllers/InvitationController');
 const { authMiddleware, authHorseOwner, authAdmin } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
+// Distinct from the license-PDF `upload` above — this is the Cloudinary
+// in-memory multer instance used for horse photo uploads (was routes/horse.js).
+const { upload: horseImageUpload } = require('../utils/CloudinaryUtil');
 
 const router = express.Router();
 
 require('../swagger/horseownerSwagger');
+require('../swagger/horseSwagger');
+require('../swagger/invitationSwagger');
 const RaceInvitationsController = require('../controllers/RaceInvitationsController');
 
 // Self-service profile
@@ -52,5 +59,16 @@ router.get('/financials/race-results', authMiddleware, authHorseOwner, HorseOwne
 router.get('/payments', authMiddleware, authHorseOwner, PaymentController.listMyPayments);
 router.put('/payments/:paymentId/confirm-received', authMiddleware, authHorseOwner, PaymentController.confirmReceived);
 router.put('/payments/:paymentId/confirm-paid', authMiddleware, authHorseOwner, PaymentController.confirmPaid);
+
+// --- Horse CRUD (moved from routes/horse.js, previously mounted at /api/horse) ---
+router.post('/horse', authMiddleware, authHorseOwner, HorseController.createHorse);
+router.put('/horse/:id', authMiddleware, authHorseOwner, HorseController.updateHorse);
+router.delete('/horse/:id', authMiddleware, authHorseOwner, HorseController.deleteHorse);
+router.post('/horse/upload-image/:horseId', authMiddleware, authHorseOwner, horseImageUpload.single('image'), HorseController.uploadHorseImage);
+
+// --- Jockey invitations created by this owner (moved from routes/invitations.js,
+// previously mounted at /api/invitations). Distinct from the GET /invitations
+// above (HorseOwnerController.getJockeyInvitations) — same path, different method.
+router.post('/invitations', authMiddleware, authHorseOwner, InvitationController.createInvitation);
 
 module.exports = router;

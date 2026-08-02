@@ -1,6 +1,6 @@
 /**
  * @swagger
- * /api/tournament:
+ * /api/admin/tournament:
  *   post:
  *     summary: Create a new tournament
  *     tags: [Tournament]
@@ -28,7 +28,7 @@
  *       400:
  *         description: Missing required fields, or startDate is not before endDate
  *
- * /api/tournament/{id}:
+ * /api/admin/tournament/{id}:
  *   put:
  *     summary: Update a tournament
  *     description: Emits a "tournament:status_changed" socket event when status changes.
