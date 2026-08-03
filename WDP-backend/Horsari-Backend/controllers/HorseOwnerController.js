@@ -92,9 +92,20 @@ class HorseOwnerController {
 
     async browseRaces(req, res) {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 12;
-        const { search, status } = req.query;
-        const response = await HorseOwnerService.getAvailableRaces(req.userId, page, limit, search || null, status || null);
+        // Clamp to 50 — an unbounded limit let a caller request the whole
+        // collection in one query.
+        const limit = Math.min(Math.max(parseInt(req.query.limit) || 12, 1), 50);
+        const { search, status, raceType, tournamentId } = req.query;
+        const distance = req.query.distance !== undefined ? Number(req.query.distance) : null;
+        const response = await HorseOwnerService.getAvailableRaces(req.userId, {
+            page,
+            limit,
+            search: search || null,
+            status: status || null,
+            raceType: raceType || null,
+            tournamentId: tournamentId || null,
+            distance: Number.isFinite(distance) ? distance : null,
+        });
         return res.status(response.code).json(response);
     }
 

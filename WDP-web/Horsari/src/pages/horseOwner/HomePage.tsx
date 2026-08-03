@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import {
   Flag, TrendingUp, Mail, ChevronRight, Mic2,
   Users, Loader2, Trophy, MapPin, Radio, Calendar,
-  UserPlus, X, CheckCircle2, XCircle, Check,
+  UserPlus, X, CheckCircle2, XCircle, Check, Search, Ruler,
 } from "lucide-react";
 import {
   horseOwnerService,
   type DashboardSummary,
   type TopPerformer,
   type BrowsableRace,
+  type BrowseFilterOptions,
   type OwnedHorseListItem,
 } from "../../api/horseOwnerService";
 import { type ManagementTab } from "./Management/SideBar";
@@ -250,8 +251,8 @@ function RegisterRaceModal({ race, onClose, onRegistered }: {
             )}
 
             {!horsesLoading && eligibleHorses.length === 0 && (
-              <p className="text-[12px] text-gray-600">
-                None of your horses are currently eligible — you can still register and assign one later.
+              <p className="text-[12px] text-amber-500/80">
+                None of your horses are currently eligible for this race — you need at least one eligible horse to register.
               </p>
             )}
 
@@ -273,7 +274,7 @@ function RegisterRaceModal({ race, onClose, onRegistered }: {
           <div className="flex items-start gap-2 text-[12px] text-gray-500 bg-white/[0.02] border border-border/60 rounded-xl px-4 py-3">
             <Check size={13} className="text-gray-500 shrink-0 mt-0.5" />
             <p className="leading-relaxed">
-              Confirming reserves a slot under your name. You don't need a horse yet — assign one afterward from the race's detail view, when you invite a jockey.
+              Confirming reserves a slot under your name using one of your eligible horses. You'll assign the specific horse afterward from the race's detail view, when you invite a jockey.
             </p>
           </div>
         </div>
@@ -288,8 +289,9 @@ function RegisterRaceModal({ race, onClose, onRegistered }: {
           </button>
           <button
             onClick={handleConfirm}
-            disabled={submitting}
-            className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${!submitting
+            disabled={submitting || horsesLoading || eligibleHorses.length === 0}
+            title={!horsesLoading && eligibleHorses.length === 0 ? "You need at least one eligible horse to register" : undefined}
+            className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${!submitting && !horsesLoading && eligibleHorses.length > 0
               ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
               : "bg-surface border border-border text-gray-600 cursor-not-allowed"
               }`}
@@ -354,6 +356,20 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [registeringRace, setRegisteringRace] = useState<BrowsableRace | null>(null);
 
+  // Race Browser search/filters
+  const [raceSearch, setRaceSearch] = useState("");
+  const [raceTypeFilter, setRaceTypeFilter] = useState("");
+  const [tournamentFilter, setTournamentFilter] = useState("");
+  const [distanceFilter, setDistanceFilter] = useState("");
+  const [filterOptions, setFilterOptions] = useState<BrowseFilterOptions>({ raceTypes: [], tournaments: [], distances: [] });
+  const hasActiveRaceFilters = Boolean(raceSearch || raceTypeFilter || tournamentFilter || distanceFilter);
+  const clearRaceFilters = () => {
+    setRaceSearch("");
+    setRaceTypeFilter("");
+    setTournamentFilter("");
+    setDistanceFilter("");
+  };
+
   // Live refetch on any notification addressed to this horse owner.
   const { socket } = useSocket();
   useEffect(() => {
@@ -366,15 +382,13 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchAll() {
+    async function fetchSummaryAndPerformers() {
       setSummaryError(null);
       setPerformersError(null);
-      setRacesError(null);
 
-      const [sumRes, perfRes, raceRes] = await Promise.allSettled([
+      const [sumRes, perfRes] = await Promise.allSettled([
         horseOwnerService.getDashboardSummary(),
         horseOwnerService.getTopPerformers(3),
-        horseOwnerService.browseRaces(1, 10),
       ]);
 
       if (cancelled) return;
@@ -389,31 +403,64 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
       } else {
         setPerformersError((perfRes.reason as any)?.msg ?? "Failed to load top performers.");
       }
-      if (raceRes.status === "fulfilled") {
-        const { items, pagination } = raceRes.value.data;
-        setRaces(items);
-        setRacesPage(1);
-        setRacesHasMore(pagination.currentPage < pagination.totalPages);
-      } else {
-        setRacesError((raceRes.reason as any)?.msg ?? "Failed to load races.");
-      }
 
       setSummaryLoading(false);
       setPerformersLoading(false);
-      setRacesLoading(false);
       setLastUpdated(Date.now());
     }
 
-    fetchAll();
+    fetchSummaryAndPerformers();
     return () => { cancelled = true; };
   }, [refreshTick]);
+
+  // Races refetch independently whenever search/filters change, resetting to
+  // page 1 (dashboard summary/top performers only refetch on refreshTick).
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchRaces() {
+      setRacesLoading(true);
+      setRacesError(null);
+      try {
+        const res = await horseOwnerService.browseRaces({
+          page: 1,
+          limit: 10,
+          search: raceSearch || undefined,
+          raceType: raceTypeFilter || undefined,
+          tournamentId: tournamentFilter || undefined,
+          distance: distanceFilter ? Number(distanceFilter) : undefined,
+        });
+        if (cancelled) return;
+        const { items, pagination, filterOptions: fo } = res.data;
+        setRaces(items);
+        setRacesPage(1);
+        setRacesHasMore(pagination.currentPage < pagination.totalPages);
+        // Only page-1 responses include filterOptions — keep the prior value otherwise.
+        if (fo) setFilterOptions(fo);
+      } catch (err: any) {
+        if (!cancelled) setRacesError(err?.msg ?? "Failed to load races.");
+      } finally {
+        if (!cancelled) setRacesLoading(false);
+      }
+    }
+
+    fetchRaces();
+    return () => { cancelled = true; };
+  }, [raceSearch, raceTypeFilter, tournamentFilter, distanceFilter, refreshTick]);
 
   async function loadMoreRaces() {
     if (racesLoadingMore || !racesHasMore) return;
     setRacesLoadingMore(true);
     try {
       const next = racesPage + 1;
-      const res = await horseOwnerService.browseRaces(next, 10);
+      const res = await horseOwnerService.browseRaces({
+        page: next,
+        limit: 10,
+        search: raceSearch || undefined,
+        raceType: raceTypeFilter || undefined,
+        tournamentId: tournamentFilter || undefined,
+        distance: distanceFilter ? Number(distanceFilter) : undefined,
+      });
       const { items, pagination } = res.data;
       setRaces(prev => [...prev, ...items]);
       setRacesPage(next);
@@ -677,23 +724,72 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
           );
         })()}
 
-        {/* ── Race Browser (horizontal scroll) ───────────────────────────── */}
+        {/* ── Race Browser ──────────────────────────────────────────────── */}
         <div className="bg-surface rounded-xl border border-border overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div>
               <h2 className="text-[15px] font-semibold text-white">Race Browser</h2>
-              <p className="text-[11px] text-gray-600 mt-0.5">All active races — scroll to explore</p>
+              <p className="text-[11px] text-gray-600 mt-0.5">All active races</p>
             </div>
             {racesLoading && <Loader2 size={13} className="animate-spin text-gray-600" />}
           </div>
 
-          {/* Scroll track */}
-          <div
-            className="flex gap-4 px-6 py-5 overflow-x-auto"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {racesLoading && Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="shrink-0 w-60 rounded-xl bg-white/4 border border-border/60 p-4 space-y-3 animate-pulse">
+          {/* Search + filters */}
+          <div className="flex items-center gap-3 flex-wrap px-6 pt-4">
+            <div className="relative flex-1 min-w-[160px]">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search races…"
+                value={raceSearch}
+                onChange={(e) => setRaceSearch(e.target.value)}
+                className="w-full bg-bg border border-border rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px]"
+              />
+            </div>
+            <select
+              value={raceTypeFilter}
+              onChange={(e) => setRaceTypeFilter(e.target.value)}
+              className="w-[150px] shrink-0 bg-bg border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer"
+            >
+              <option value="">All Types</option>
+              {filterOptions.raceTypes.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <select
+              value={tournamentFilter}
+              onChange={(e) => setTournamentFilter(e.target.value)}
+              className="w-[170px] shrink-0 bg-bg border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer"
+            >
+              <option value="">All Tournaments</option>
+              {filterOptions.tournaments.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <select
+              value={distanceFilter}
+              onChange={(e) => setDistanceFilter(e.target.value)}
+              className="w-[140px] shrink-0 bg-bg border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer"
+            >
+              <option value="">All Distances</option>
+              {filterOptions.distances.map((d) => (
+                <option key={d} value={d}>{d}m</option>
+              ))}
+            </select>
+            {hasActiveRaceFilters && (
+              <button
+                onClick={clearRaceFilters}
+                className="flex items-center gap-1 text-[11px] font-semibold text-gray-500 hover:text-white transition-colors shrink-0"
+              >
+                <X size={11} /> Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-6 py-5">
+            {racesLoading && Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="w-full rounded-xl bg-white/4 border border-border/60 p-4 space-y-3 animate-pulse">
                 <Skeleton className="h-3 w-16 rounded" />
                 <Skeleton className="h-5 w-4/5 rounded" />
                 <Skeleton className="h-3 w-3/5 rounded" />
@@ -705,13 +801,25 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
             ))}
 
             {!racesLoading && racesError && (
-              <div className="w-full py-4">
+              <div className="col-span-full py-4">
                 <ErrorState message={racesError} onRetry={() => setRefreshTick((t) => t + 1)} />
               </div>
             )}
 
             {!racesLoading && !racesError && races.length === 0 && (
-              <p className="text-[13px] text-gray-600 py-4">No active races at the moment.</p>
+              <div className="col-span-full flex flex-col items-center gap-2 py-8 text-center">
+                <p className="text-[13px] text-gray-600">
+                  {hasActiveRaceFilters ? "No races match your filters." : "No active races at the moment."}
+                </p>
+                {hasActiveRaceFilters && (
+                  <button
+                    onClick={clearRaceFilters}
+                    className="text-[12px] text-gray-600 hover:text-gray-300 transition-colors underline underline-offset-2"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
             )}
 
             {!racesLoading && !racesError && races.map((race) => {
@@ -719,7 +827,7 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
               return (
                 <div
                   key={String(race.id)}
-                  className="shrink-0 w-60 rounded-xl bg-surface border border-border hover:border-white/16 transition-colors duration-150 flex flex-col overflow-hidden"
+                  className="w-full rounded-xl bg-surface border border-border hover:border-white/16 transition-colors duration-150 flex flex-col overflow-hidden"
                 >
                   {/* Top accent bar for live races */}
                   {race.isLive && (
@@ -775,6 +883,12 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                           <span className="truncate">{race.raceType}</span>
                         </div>
                       )}
+                      {race.trackLength != null && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                          <Ruler size={10} className="shrink-0" />
+                          <span>{race.trackLength}m</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Prize + action */}
@@ -810,32 +924,28 @@ export default function DashboardPage({ onNavigate }: { onNavigate: (tab: Manage
                 </div>
               );
             })}
-
-            {/* Load more card */}
-            {!racesLoading && !racesError && racesHasMore && (
-              <div className="shrink-0 w-44 self-stretch flex items-center justify-center">
-                <button
-                  onClick={loadMoreRaces}
-                  disabled={racesLoadingMore}
-                  className="flex flex-col items-center gap-2 px-5 py-4 rounded-xl border border-border text-gray-500 hover:border-white/25 hover:text-gray-300 disabled:opacity-50 transition-all duration-150 w-full h-full justify-center"
-                >
-                  {racesLoadingMore
-                    ? <Loader2 size={18} className="animate-spin" />
-                    : <ChevronRight size={18} />
-                  }
-                  <span className="text-[11px] font-semibold tracking-wide">
-                    {racesLoadingMore ? "Loading…" : "Load more"}
-                  </span>
-                </button>
-              </div>
-            )}
-
-            {!racesLoading && !racesHasMore && races.length > 0 && (
-              <div className="shrink-0 self-stretch flex items-center px-2">
-                <p className="text-[11px] text-gray-700 writing-mode-vertical whitespace-nowrap">All races loaded</p>
-              </div>
-            )}
           </div>
+
+          {/* Load more / end-of-list footer */}
+          {!racesLoading && !racesError && racesHasMore && (
+            <div className="flex justify-center pb-5">
+              <button
+                onClick={loadMoreRaces}
+                disabled={racesLoadingMore}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border text-gray-400 hover:border-white/25 hover:text-gray-200 disabled:opacity-50 transition-all duration-150 text-[12px] font-semibold"
+              >
+                {racesLoadingMore
+                  ? <Loader2 size={14} className="animate-spin" />
+                  : <ChevronRight size={14} />
+                }
+                {racesLoadingMore ? "Loading…" : "Load more"}
+              </button>
+            </div>
+          )}
+
+          {!racesLoading && !racesError && !racesHasMore && races.length > 0 && (
+            <p className="text-center text-[11px] text-gray-700 pb-5">All races loaded</p>
+          )}
         </div>
 
 

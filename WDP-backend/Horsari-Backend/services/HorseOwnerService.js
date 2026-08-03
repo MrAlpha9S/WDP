@@ -496,14 +496,29 @@ class HorseOwnerService {
         }
     }
 
-    // Browse all joinable / live race rounds (paginated, searchable)
-    async getAvailableRaces(ownerId, page = 1, limit = 12, search = null, statusFilter = null) {
+    // Browse all joinable / live race rounds (paginated, searchable, filterable
+    // by race type, tournament, and distance)
+    async getAvailableRaces(ownerId, {
+        page = 1, limit = 12, search = null, status: statusFilter = null,
+        raceType = null, tournamentId = null, distance = null,
+    } = {}) {
         try {
             if (!ownerId) return { code: 400, msg: 'ownerId is required' };
 
-            const filter = { status: { $in: ['scheduled', 'running', 'awaitingConfirmation', 'prepared'] } };
+            const baseFilter = { status: { $in: ['scheduled', 'running', 'awaitingConfirmation', 'prepared'] } };
+
+            const filter = { ...baseFilter };
             if (statusFilter) filter.status = statusFilter;
             if (search) filter.roundName = { $regex: search, $options: 'i' };
+            if (tournamentId) filter.tournamentId = tournamentId;
+            if (distance != null) filter.trackLength = distance;
+            // raceType lives on RaceEligibilityRule, not RaceRound — resolve to
+            // the matching rule ids first. No matches -> `$in: []`, a valid
+            // (empty) result rather than an error.
+            if (raceType) {
+                const matchingRules = await RaceEligibilityRule.find({ raceType }).select('_id').lean();
+                filter.eligibilityRuleId = { $in: matchingRules.map(r => r._id) };
+            }
 
             const skip = (page - 1) * limit;
             const [totalItems, raceRounds] = await Promise.all([
@@ -562,6 +577,7 @@ class HorseOwnerService {
                     currentParticipants: countMap.get(String(rr._id)) ?? 0,
                     entryFee: rr.requireEntranceFees ? rr.baseFee ?? 0 : 0,
                     baseFee: rr.baseFee ?? 0,
+                    trackLength: rr.trackLength ?? null,
                     raceType: rule?.raceType ?? null,
                     eligibility: rule
                         ? {
@@ -579,9 +595,38 @@ class HorseOwnerService {
                 };
             });
 
+            // Filter-dropdown options reflect the full joinable universe (ignoring the
+            // caller's own search/type/tournament/distance selections, so the dropdowns
+            // stay complete/stable) — only computed on page 1 to avoid 3 extra queries
+            // on every "load more" page.
+            let filterOptions;
+            if (page === 1) {
+                const [distinctDistances, distinctTournamentIds, distinctRuleIds] = await Promise.all([
+                    RaceRound.distinct('trackLength', baseFilter),
+                    RaceRound.distinct('tournamentId', baseFilter),
+                    RaceRound.distinct('eligibilityRuleId', { ...baseFilter, eligibilityRuleId: { $ne: null } }),
+                ]);
+                const [filterTournaments, filterRaceTypes] = await Promise.all([
+                    Tournament.find({ _id: { $in: distinctTournamentIds.filter(Boolean) } })
+                        .select('_id tournamentName').lean(),
+                    RaceEligibilityRule.distinct('raceType', { _id: { $in: distinctRuleIds }, raceType: { $ne: null } }),
+                ]);
+                filterOptions = {
+                    raceTypes: filterRaceTypes.sort(),
+                    tournaments: filterTournaments
+                        .map(t => ({ id: t._id, name: t.tournamentName }))
+                        .sort((a, b) => a.name.localeCompare(b.name)),
+                    distances: distinctDistances.filter(d => d != null).sort((a, b) => a - b),
+                };
+            }
+
             return {
                 code: 200,
-                data: { items, pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit } },
+                data: {
+                    items,
+                    pagination: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page, limit },
+                    ...(filterOptions ? { filterOptions } : {}),
+                },
                 msg: 'Available races retrieved successfully',
             };
         } catch (error) {
@@ -620,6 +665,27 @@ class HorseOwnerService {
             });
             if (raceRound.maxParticipants != null && filledSlots >= raceRound.maxParticipants) {
                 return { code: 422, msg: 'This race has already reached its participant limit.' };
+            }
+
+            // No horse is picked here, but the owner must have at least one horse that
+            // would actually be eligible — otherwise the slot could never be filled.
+            // Mirrors the frontend's own eligibility check (RegisterRaceModal) so the
+            // gate can't be bypassed by calling this endpoint directly.
+            const rule = raceRound.eligibilityRuleId
+                ? await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean()
+                : null;
+            const horses = await HorseRepository.findByOwnerId(ownerId);
+            let hasEligibleHorse = false;
+            for (const horse of horses) {
+                const ineligibleReason = rule
+                    ? await this._checkHorseEligibility(horse, rule)
+                    : (horse.status !== 'active' || horse.healthStatus !== 'healthy'
+                        ? 'This horse must be active and healthy to race.'
+                        : null);
+                if (!ineligibleReason) { hasEligibleHorse = true; break; }
+            }
+            if (!hasEligibleHorse) {
+                return { code: 422, msg: 'You need at least one eligible horse in your stable to register for this race.' };
             }
 
             const registration = await RegistrationRepository.createRegistration({

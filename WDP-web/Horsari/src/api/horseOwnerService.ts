@@ -91,6 +91,7 @@ export interface BrowsableRace {
   currentParticipants: number;
   entryFee: number;
   baseFee: number;
+  trackLength: number | null;
   raceType: string | null;
   eligibility: {
     requiredBreed: string | null;
@@ -101,6 +102,12 @@ export interface BrowsableRace {
     minRacesRun: number | null;
   } | null;
   ownerRegistration: { status: string; registrationId: string } | null;
+}
+
+export interface BrowseFilterOptions {
+  raceTypes: string[];
+  tournaments: { id: string; name: string }[];
+  distances: number[];
 }
 
 export interface JockeyViolationEntry {
@@ -485,17 +492,28 @@ export const horseOwnerService = {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
-  browseRaces: async (
-    page = 1,
-    limit = 12,
-    search?: string,
-    status?: string,
-  ): Promise<{ code: number; data: { items: BrowsableRace[]; pagination: PaginationMeta }; msg: string }> => {
+  browseRaces: async (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    raceType?: string;
+    tournamentId?: string;
+    distance?: number;
+  } = {}): Promise<{
+    code: number;
+    data: { items: BrowsableRace[]; pagination: PaginationMeta; filterOptions?: BrowseFilterOptions };
+    msg: string;
+  }> => {
     try {
-      const params: Record<string, unknown> = { page, limit };
-      if (search) params.search = search;
-      if (status) params.status = status;
-      const response = await api.get('/horseowner/races/browse', { params });
+      const { page = 1, limit = 12, search, status, raceType, tournamentId, distance } = params;
+      const qp: Record<string, unknown> = { page, limit };
+      if (search) qp.search = search;
+      if (status) qp.status = status;
+      if (raceType) qp.raceType = raceType;
+      if (tournamentId) qp.tournamentId = tournamentId;
+      if (distance != null) qp.distance = distance;
+      const response = await api.get('/horseowner/races/browse', { params: qp });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
