@@ -18,15 +18,36 @@ interface ParticipantsProps {
 export default function CreateRaceParticipants(props: ParticipantsProps) {
     const { metadata, createRaceType, checkEligibility } = props;
     const selectedRuleName = metadata?.eligibilityRules?.find((r: any) => r._id === createRaceType)?.raceType ?? createRaceType;
+    const eligibleOwners = metadata?.owners?.filter((owner: any) => owner.horses.some((h: any) => checkEligibility(h, createRaceType))) ?? [];
+
+    const inviteAllEligible = () => {
+        const eligibleIds = eligibleOwners.map((owner: any) => String(owner._id?._id ?? owner._id));
+        props.setSelectedOwners(Array.from(new Set([...props.selectedOwners, ...eligibleIds])));
+    };
 
     return (
         <div className="flex flex-col gap-4">
             <div>
-                <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
-                    Invite Horse Owners <span className="text-gray-500 normal-case ml-1 font-normal">(Auto-filtered for {selectedRuleName} eligibility · min. 2 required)</span>
-                </label>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                        <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest">
+                            Invite Horse Owners
+                        </label>
+                        <span className="block text-[11px] text-gray-500 normal-case font-normal mt-0.5">
+                            Auto-filtered for {selectedRuleName} eligibility · min. 1 required
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={inviteAllEligible}
+                        disabled={eligibleOwners.length === 0}
+                        className="text-[11px] font-semibold text-red-400 hover:text-red-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors shrink-0 whitespace-nowrap mt-px"
+                    >
+                        Invite All Eligible
+                    </button>
+                </div>
                 <div className="p-3 bg-bg border border-border rounded flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar">
-                    {metadata?.owners?.filter((owner: any) => owner.horses.some((h: any) => checkEligibility(h, createRaceType))).map((owner: any) => {
+                    {eligibleOwners.map((owner: any) => {
                         const ownerId = owner._id?._id ?? owner._id;
                         const ownerName = owner.user?.fullName ?? owner._id?.fullName ?? 'Unknown Owner';
                         const eligibleHorses = owner.horses.filter((h: any) => checkEligibility(h, createRaceType));
@@ -57,7 +78,7 @@ export default function CreateRaceParticipants(props: ParticipantsProps) {
                             </label>
                         );
                     })}
-                    {(!metadata?.owners || metadata.owners.filter((owner: any) => owner.horses.some((h: any) => checkEligibility(h, createRaceType))).length === 0) && (
+                    {eligibleOwners.length === 0 && (
                         <div className="text-[12px] text-gray-500 p-2 italic text-center">No eligible horse owners found for this race type.</div>
                     )}
                 </div>
