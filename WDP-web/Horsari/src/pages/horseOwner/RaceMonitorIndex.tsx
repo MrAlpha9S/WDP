@@ -11,7 +11,7 @@ import type {
     RaceUpdate,
     RaceFinishedPayload,
 } from "../../providers/useRaceSocket";
-import { horseOwnerService } from "../../api/horseOwnerService";
+import { horseOwnerService, type RaceCompetition } from "../../api/horseOwnerService";
 import { TOKEN_KEY } from "../../utils/constants";
 import OwnerLivePage from "./OwnerLivePage";
 
@@ -43,6 +43,10 @@ export default function OwnerRaceMonitorIndex() {
     const [ownerResult, setOwnerResult] = useState<any>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [violations, setViolations] = useState<any[]>([]);
+    // Roster of other confirmed entries — independent of the live socket feed,
+    // so it's available before the race starts (status: 'prepared') when no
+    // race_update has fired yet.
+    const [competition, setCompetition] = useState<RaceCompetition | null>(null);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -70,6 +74,7 @@ export default function OwnerRaceMonitorIndex() {
                 setOwnerRegistration(ownerData.registration ?? null);
                 setOwnerResult(ownerData.registration?.raceResult ?? null);
                 setViolations(ownerData.registration?.violations ?? []);
+                setCompetition(ownerData.competition ?? null);
             }
         } catch {
             setError("Failed to load race data.");
@@ -93,6 +98,9 @@ export default function OwnerRaceMonitorIndex() {
                 setOwnerRegistration(res.data.registration);
                 setOwnerResult(res.data.registration.raceResult ?? null);
                 setViolations(res.data.registration.violations ?? []);
+            }
+            if (res?.data) {
+                setCompetition(res.data.competition ?? null);
             }
         } catch { /* silent */ } finally {
             setLastUpdated(Date.now());
@@ -216,8 +224,7 @@ export default function OwnerRaceMonitorIndex() {
                         ownerRegistration={ownerRegistration}
                         ownerResult={ownerResult}
                         violations={violations}
-                        onRefetch={refreshOwnerDetail}
-                        lastUpdated={lastUpdated}
+                        competition={competition}
                     />
                 </div>
 

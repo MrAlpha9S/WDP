@@ -170,17 +170,17 @@ class RaceRoundService {
         const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
         const twoWeeksFromToday = new Date(today.getTime() + TWO_WEEKS_MS);
 
-        // Rule 1b: Once the race's CURRENT date is already within 2 weeks, its date is locked
-        // entirely — too close to reschedule without disrupting owners/referees/jockeys who've
-        // already committed. (Rule 2 below only guards how soon the NEW date can be; this
-        // guards against touching the date at all once the existing one is already imminent.)
-        if (!overrideScheduleConflict && updateData && updateData.raceDate) {
+        // Rule 0: Once the race's CURRENT date is already within 2 weeks, the entire race
+        // round is locked — not just the date. Previously only the date (old Rule 1b) and
+        // the horse-owner roster (Rule 4 below) were guarded, which left every other field
+        // (location, track length, prizes, eligibility rule, RefereeInvitation, etc.) freely
+        // editable on an imminent race without ever touching raceDate or HorseOwnerInvitation,
+        // silently bypassing the 2-week protection window entirely. Too close to change
+        // anything without disrupting owners/referees/jockeys who've already committed.
+        if (!overrideScheduleConflict) {
             const currentDate = new Date(existingRaceRound.raceDate);
-            const newDate = new Date(updateData.raceDate);
-            if (!isNaN(currentDate.getTime()) && !isNaN(newDate.getTime()) && newDate.getTime() !== currentDate.getTime()) {
-                if (currentDate < twoWeeksFromToday) {
-                    return { code: 400, message: 'Cannot change the race date once it is within 2 weeks of its scheduled date.' };
-                }
+            if (!isNaN(currentDate.getTime()) && currentDate < twoWeeksFromToday) {
+                return { code: 400, message: 'This race round is within 2 weeks of its scheduled date and cannot be edited without an override.' };
             }
         }
 
