@@ -274,8 +274,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
             return;
         }
 
-        if (selectedOwners.length < 2) {
-            setError("At least 2 horse owner registrations must be selected.");
+        if (selectedOwners.length < 1) {
+            setError("At least 1 horse owner registration must be selected.");
             return;
         }
 
