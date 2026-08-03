@@ -31,6 +31,8 @@ interface BasicInfoProps {
     overrideScheduleConflict: boolean;
     setOverrideScheduleConflict: (v: boolean) => void;
     dateEditLocked?: boolean;
+    tournamentBlockedByLeadTime?: boolean;
+    minExtendDateLabel?: string;
 }
 
 export default function CreateRaceBasicInfo(props: BasicInfoProps) {
@@ -61,6 +63,11 @@ export default function CreateRaceBasicInfo(props: BasicInfoProps) {
                     {props.dateEditLocked && (
                         <p className="mt-1.5 text-[11px] text-amber-500/80">
                             Locked — this race is within 2 weeks. Check "Override scheduling restrictions" to change it anyway.
+                        </p>
+                    )}
+                    {props.tournamentBlockedByLeadTime && (
+                        <p className="mt-1.5 text-[11px] text-amber-500/80">
+                            This tournament ends too soon to schedule a new race (2-week lead time required). Extend the end date to {props.minExtendDateLabel} or later to add more races.
                         </p>
                     )}
                 </div>

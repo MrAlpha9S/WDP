@@ -1,4 +1,5 @@
 const tournamentRepository = require('../repositories/TournamentRepository');
+const raceRoundRepository = require('../repositories/RaceRoundRepository');
 
 class TournamentService {
     async createTournament(tournamentData) {
@@ -66,6 +67,35 @@ class TournamentService {
                 if (!isNaN(existingStart.getTime()) && !isNaN(newStart.getTime())
                     && newStart.getTime() !== existingStart.getTime() && newStart < twoWeekFromNow) {
                     return { code: 400, msg: 'Start date must be more than 2 weeks from now.' };
+                }
+            }
+
+            // Narrowing startDate/endDate can strand existing race rounds outside the new
+            // window — block that instead of silently letting a round's raceDate fall outside
+            // [startDate, endDate]. Cancelled rounds don't count; they're no longer "in" the
+            // tournament. endDate is compared end-of-day since raceDate carries a race start time.
+            if (safeUpdateData.startDate || safeUpdateData.endDate) {
+                const newStart = safeUpdateData.startDate ? new Date(safeUpdateData.startDate) : new Date(tournament.startDate);
+                const newEnd = safeUpdateData.endDate ? new Date(safeUpdateData.endDate) : new Date(tournament.endDate);
+
+                if (!isNaN(newStart.getTime()) && !isNaN(newEnd.getTime())) {
+                    const newEndOfDay = new Date(newEnd);
+                    newEndOfDay.setHours(23, 59, 59, 999);
+
+                    const raceRounds = await raceRoundRepository.findByTournamentId(id);
+                    const conflicting = raceRounds.filter(r => {
+                        if (r.status === 'cancelled') return false;
+                        const raceDate = new Date(r.raceDate);
+                        return raceDate < newStart || raceDate > newEndOfDay;
+                    });
+
+                    if (conflicting.length > 0) {
+                        const earliest = conflicting.reduce((a, b) => new Date(a.raceDate) < new Date(b.raceDate) ? a : b);
+                        return {
+                            code: 400,
+                            msg: `Cannot update tournament dates: ${conflicting.length} race round(s) would fall outside the new date range (e.g. "${earliest.roundName}" on ${new Date(earliest.raceDate).toLocaleDateString()}). Reschedule or cancel those race rounds first.`
+                        };
+                    }
                 }
             }
 

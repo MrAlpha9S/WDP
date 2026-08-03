@@ -378,6 +378,15 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
         }
     }
 
+    // A tournament ending sooner than the 2-week lead time floor leaves no valid date
+    // for the picker to land on (min > max) — warn the admin why and what to fix instead
+    // of leaving them stuck on a date field with no selectable options.
+    const tournamentEndDateStr = selectedTournamentUI?.endDate
+        ? new Date(selectedTournamentUI.endDate).toISOString().split('T')[0]
+        : undefined;
+    const tournamentBlockedByLeadTime = !overrideScheduleConflict
+        && !!tournamentEndDateStr && tournamentEndDateStr < twoWeeksStr;
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="w-[600px] bg-surface border border-border rounded-xl overflow-hidden shadow-2xl flex flex-col">
@@ -441,6 +450,8 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                                 overrideScheduleConflict={overrideScheduleConflict}
                                 setOverrideScheduleConflict={setOverrideScheduleConflict}
                                 dateEditLocked={dateEditLocked}
+                                tournamentBlockedByLeadTime={tournamentBlockedByLeadTime}
+                                minExtendDateLabel={minAllowedDateUI.toLocaleDateString()}
                             />
 
                             <CreateRacePrizes
