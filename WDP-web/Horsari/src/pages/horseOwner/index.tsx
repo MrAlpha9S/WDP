@@ -79,7 +79,7 @@ export default function DashboardPage() {
     ALL_OWNER_TABS.find((t) => t.toLowerCase() === tabs?.toLowerCase()) ?? "Dashboard";
 
   const [activeTab, setActiveTab] = useState<OwnerNavKey>(initialTab);
-  const [pendingInvitations, setPendingInvitations] = useState(2);
+  const [pendingInvitations, setPendingInvitations] = useState(0);
 
   useEffect(() => {
     const matchingTab = ALL_OWNER_TABS.find((t) => t.toLowerCase() === tabs?.toLowerCase());

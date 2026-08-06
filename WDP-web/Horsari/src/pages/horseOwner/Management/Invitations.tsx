@@ -294,9 +294,13 @@ function InvitationCard({
 function JockeyInvitationCard({
   inv,
   hasNoShowHistory,
+  onCancel,
+  isCancelling,
 }: {
   inv: JockeyInvitation;
   hasNoShowHistory?: boolean;
+  onCancel?: (id: string) => void;
+  isCancelling?: boolean;
 }) {
   const stCfg = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
   const isPending = inv.status === "pending";
@@ -362,6 +366,17 @@ function JockeyInvitationCard({
               )}
             </div>
             <div className="flex items-center gap-2">
+              {isPending && onCancel && (
+                <button
+                  type="button"
+                  onClick={() => onCancel(inv.id)}
+                  disabled={isCancelling}
+                  className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-lg border border-red-700/40 text-red-400 bg-red-500/5 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isCancelling ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                  Cancel
+                </button>
+              )}
               <div className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600">
                 {inv.status === "accepted" && <Check size={13} className="text-green-500" />}
                 {inv.status !== "accepted" && inv.status !== "pending" && <X size={13} className="text-red-600" />}
@@ -458,8 +473,15 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   const { socket } = useSocket();
   useEffect(() => {
     if (!socket) return;
+    const LIVE_REFRESH_TYPES = new Set([
+      "invitation_accepted",
+      "invitation_declined",
+      "new_invitation",
+      "jockey_invited",
+      "invitation_cancelled",
+    ]);
     const handler = (payload: { type?: string }) => {
-      if (payload?.type === "invitation_accepted" || payload?.type === "invitation_declined") {
+      if (payload?.type && LIVE_REFRESH_TYPES.has(payload.type)) {
         setRefreshTick((t) => t + 1);
       }
     };
@@ -489,6 +511,16 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   // Jockey ids (from the current page) known to have a no-show on record —
   // reuses the same profile endpoint JockeyDetailModal uses, no new stats endpoint.
   const [noShowJockeyIds, setNoShowJockeyIds] = useState<Set<string>>(new Set());
+  const [cancellingInvId, setCancellingInvId] = useState<string | null>(null);
+  const [cancelInvError, setCancelInvError] = useState<string | null>(null);
+
+  // Pending counts across ALL pages, not just the current page — the visible
+  // lists are paginated (INV_PAGE_SIZE) and can be search-filtered, so counting
+  // `invitations`/`jockeyInvs` directly undercounts whenever pending items sit
+  // on other pages. Fetched independently via status=pending + limit=1, using
+  // only the pagination total from the response.
+  const [racePendingTotal, setRacePendingTotal] = useState(0);
+  const [jockeyPendingTotal, setJockeyPendingTotal] = useState(0);
 
   // Debounce: flush input → committed search and reset page
   useEffect(() => {
@@ -516,7 +548,6 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
         const mapped = raw.map((item) => mapApiToInvitation(item));
         setInvitations(mapped);
         setRaceTotalPages(data?.data?.pagination?.totalPages ?? 1);
-        onPendingChange?.(mapped.filter((i) => i.status === "pending").length);
       } catch (err: unknown) {
         if (!cancelled) setErrorRace(err instanceof Error ? err.message : "Failed to load invitations.");
       } finally {
@@ -525,7 +556,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     }
     load();
     return () => { cancelled = true; };
-  }, [racePage, raceSearch, onPendingChange, refreshTick]);
+  }, [racePage, raceSearch, refreshTick]);
 
   // Fetch jockey invitations (re-runs on page or search change)
   useEffect(() => {
@@ -551,6 +582,28 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     return () => { cancelled = true; };
   }, [jockeyPage, jockeySearch, refreshTick]);
 
+  // Fetch total pending counts across all pages (unrelated to which page/search
+  // the user currently has open) — drives the tab badges, the sidebar badge,
+  // and the "N pending" banners.
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const [raceData, jockeyData] = await Promise.all([
+          horseOwnerService.getHorseOwnerInvitations(1, 1, 'pending'),
+          horseOwnerService.allJockeyInvitations(1, 1, undefined, 'pending'),
+        ]);
+        if (cancelled) return;
+        setRacePendingTotal(raceData?.data?.pagination?.totalItems ?? 0);
+        setJockeyPendingTotal(jockeyData?.data?.pagination?.total ?? 0);
+      } catch {
+        // Non-critical — badges just stay at their last known value.
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [refreshTick]);
+
   // For each distinct jockey on this page, check their history for a no-show —
   // bounded to page size, so this is a handful of parallel calls at most.
   useEffect(() => {
@@ -575,11 +628,10 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     setAcceptError(null);
     try {
       await horseOwnerService.acceptRegistration(id);
-      setInvitations((prev) => {
-        const next = prev.map((i) => i.id.toString() === id ? { ...i, status: "accepted" as const } : i);
-        onPendingChange?.(next.filter((i) => i.status === "pending").length);
-        return next;
-      });
+      setInvitations((prev) =>
+        prev.map((i) => i.id.toString() === id ? { ...i, status: "accepted" as const } : i),
+      );
+      setRacePendingTotal((n) => Math.max(0, n - 1));
     } catch (err: any) {
       setAcceptError(err?.msg ?? "Failed to accept invitation.");
     }
@@ -587,9 +639,9 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
 
   const reject = useRejectRegistration((id) => {
     setInvitations((prev) => {
-      const next = prev.map((i) => i.id.toString() === id ? { ...i, status: "cancelled" as const } : i);
-      onPendingChange?.(next.filter((i) => i.status === "pending").length);
-      return next;
+      const wasPending = prev.find((i) => i.id.toString() === id)?.status === "pending";
+      if (wasPending) setRacePendingTotal((n) => Math.max(0, n - 1));
+      return prev.map((i) => i.id.toString() === id ? { ...i, status: "cancelled" as const } : i);
     });
   });
 
@@ -598,9 +650,30 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
     reject.requestReject(String(id), inv?.name ?? "this race");
   }
 
-  const racePendingCount = invitations.filter((i) => i.status === "pending").length;
-  const jockeyPendingCount = jockeyInvs.filter((i) => i.status === "pending").length;
+  async function handleCancelJockeyInvitation(id: string) {
+    setCancelInvError(null);
+    setCancellingInvId(id);
+    try {
+      await horseOwnerService.cancelJockeyInvitation(id);
+      setJockeyInvs((prev) => {
+        const next = prev.map((i) => i.id === id ? { ...i, status: "cancelled" as const } : i);
+        return next;
+      });
+      setJockeyPendingTotal((n) => Math.max(0, n - 1));
+    } catch (err: any) {
+      setCancelInvError(err?.msg ?? "Failed to cancel invitation.");
+    } finally {
+      setCancellingInvId(null);
+    }
+  }
+
   const selectedLive = selected ? invitations.find((i) => i.id === selected.id) ?? null : null;
+
+  // Report race pending count (across ALL pages) to the sidebar badge —
+  // jockey invitations aren't counted here, only in their own tab.
+  useEffect(() => {
+    onPendingChange?.(racePendingTotal);
+  }, [racePendingTotal, onPendingChange]);
 
   const pagedInvitations = invitations;
   const pagedJockeyInvs = jockeyInvs;
@@ -636,8 +709,8 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
                 Race Management
               </span>
               <span className="text-[12px] text-gray-500 truncate">
-                {racePendingCount + jockeyPendingCount > 0
-                  ? `· ${racePendingCount + jockeyPendingCount} pending`
+                {racePendingTotal > 0
+                  ? `· ${racePendingTotal} pending`
                   : "· No pending"}
               </span>
             </div>
@@ -645,8 +718,8 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
           <RefetchButton onRefetch={() => setRefreshTick((t) => t + 1)} lastUpdated={lastUpdated} />
         </div>
         <div className="flex items-center gap-1 p-1 bg-surface border border-border rounded-xl w-fit">
-          <TabButton active={activeTab === "race"} label="Race Invitations" count={racePendingCount} onClick={() => { setActiveTab("race"); setRacePage(1); setRaceSearch(""); setRaceSearchInput(""); }} />
-          <TabButton active={activeTab === "jockey"} label="Jockey Invitations" count={jockeyPendingCount} onClick={() => { setActiveTab("jockey"); setJockeyPage(1); setJockeySearch(""); setJockeySearchInput(""); }} />
+          <TabButton active={activeTab === "race"} label="Race Invitations" count={racePendingTotal} onClick={() => { setActiveTab("race"); setRacePage(1); setRaceSearch(""); setRaceSearchInput(""); }} />
+          <TabButton active={activeTab === "jockey"} label="Jockey Invitations" count={jockeyPendingTotal} onClick={() => { setActiveTab("jockey"); setJockeyPage(1); setJockeySearch(""); setJockeySearchInput(""); }} />
         </div>
       </header>
       <div className="flex-1 pt-5">
@@ -690,9 +763,9 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
             )}
             {!loadingRace && !errorRace && invitations.length > 0 && (
               <>
-                {racePendingCount > 0 && !raceSearch && (
+                {racePendingTotal > 0 && !raceSearch && (
                   <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
-                    {racePendingCount} pending {racePendingCount === 1 ? "invitation" : "invitations"} awaiting your response.
+                    {racePendingTotal} pending {racePendingTotal === 1 ? "invitation" : "invitations"} awaiting your response.
                   </p>
                 )}
                 <div className="space-y-4">
@@ -737,10 +810,13 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
             )}
             {!loadingJockey && !errorJockey && jockeyInvs.length > 0 && (
               <>
-                {jockeyPendingCount > 0 && !jockeySearch && (
+                {jockeyPendingTotal > 0 && !jockeySearch && (
                   <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
-                    {jockeyPendingCount} pending {jockeyPendingCount === 1 ? "invitation" : "invitations"} awaiting jockey response.
+                    {jockeyPendingTotal} pending {jockeyPendingTotal === 1 ? "invitation" : "invitations"} awaiting jockey response.
                   </p>
+                )}
+                {cancelInvError && (
+                  <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-3 mb-4 text-[13px] text-red-400">{cancelInvError}</div>
                 )}
                 <div className="space-y-4">
                   {pagedJockeyInvs.map((inv) => (
@@ -748,6 +824,8 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
                       key={inv.id}
                       inv={inv}
                       hasNoShowHistory={!!inv.jockeyId && noShowJockeyIds.has(inv.jockeyId)}
+                      onCancel={handleCancelJockeyInvitation}
+                      isCancelling={cancellingInvId === inv.id}
                     />
                   ))}
                 </div>

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -23,7 +24,7 @@ import { useSocket } from '../../socket/SocketContext';
 import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
-import { Badge, BadgeTone } from '@/components/ui/Badge';
+import { Badge, BadgeTone, TONE_COLOR } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 
@@ -48,23 +49,29 @@ function formatDateTime(dateStr: string | null | undefined): string | null {
   return `${hh}:${mm} — ${d.getDate()} Th${String(d.getMonth() + 1).padStart(2, '0')}, ${d.getFullYear()}`;
 }
 
-function formatFee(bookingFees: number | undefined, pct: number | undefined): string | null {
-  const parts: string[] = [];
-  if (bookingFees && bookingFees > 0) parts.push(`${bookingFees.toLocaleString()} ₫`);
-  if (pct && pct > 0) parts.push(`${pct * 100}%`);
-  return parts.length > 0 ? parts.join(' + ') : null;
+// percentagePayout is already a plain 0–100 percent (see Invitation schema's
+// `min: 0, max: 100`), not a 0–1 fraction — no `* 100` here. The old version
+// multiplied it again, so an 8% payout rendered as "800%".
+function formatBookingFee(bookingFees: number | undefined): string | null {
+  return bookingFees && bookingFees > 0 ? `${bookingFees.toLocaleString()} ₫` : null;
+}
+
+function formatPayoutRate(pct: number | undefined): string | null {
+  return pct && pct > 0 ? `${pct}%` : null;
 }
 
 // ─── Status colour helper (shared by card + sheet) ───────────────────────────
 
+// Tones mirror the filter chips' color meaning (see FILTERS below) so a
+// status reads the same color whether you're looking at the chip or the card.
 function getStatusStyle(inv: InvitationItem): { tone: BadgeTone; label: string } {
-  if (inv.invitationStatus === 'didNotAttend') return { tone: 'muted', label: 'No-Show' };
+  if (inv.invitationStatus === 'didNotAttend') return { tone: 'violet', label: 'No-Show' };
   if (inv.invitationStatus === 'declined')  return { tone: 'red',   label: 'Declined'   };
   if (inv.invitationStatus === 'accepted')  return { tone: 'green', label: 'Accepted' };
-  if (inv.invitationStatus === 'cancelled') return { tone: 'muted', label: 'Cancelled'      };
+  if (inv.invitationStatus === 'cancelled') return { tone: 'gold',  label: 'Cancelled'      };
   // pending
   if (inv.jockeyConfirmation) return { tone: 'green', label: 'Confirmed'    };
-  return                               { tone: 'amber', label: 'Awaiting Response' };
+  return                               { tone: 'amber', label: 'Pending' };
 }
 
 // ─── Detail sheet row ─────────────────────────────────────────────────────────
@@ -297,23 +304,43 @@ function InviteDetailSheet({
 
 // ─── Filter ───────────────────────────────────────────────────────────────────
 
-type FilterKey = 'pending' | 'confirmed' | 'declined' | 'noShow';
+type FilterKey = 'all' | 'pending' | 'confirmed' | 'declined' | 'cancelled' | 'noShow';
 
+// Each status gets its own hue so the active chip is identifiable by color
+// alone (label is still always shown too, per the app's "never color-only"
+// rule) — and the hue carries meaning, not just distinctness:
+//   all       — neutral gray: it's a meta-filter, not a real status
+//   pending   — amber: matches the "awaiting response" Badge tone used on cards
+//   confirmed — green: this app's single "positive" color, matches Badge tone
+//   declined  — red: matches the "rejected" Badge tone, an active jockey decision
+//   cancelled — gold: withdrawn by the owner, not the jockey's doing — a
+//               warmer neutral, deliberately not red (jockey didn't reject it)
+//   noShow    — violet: worse than a decline (jockey no-showed a confirmed
+//               race), so it gets its own alarm color instead of reusing red
 const FILTERS: { key: FilterKey; label: string; color: string }[] = [
-  { key: 'pending',   label: 'Awaiting Response', color: Palette.gold },
-  { key: 'confirmed', label: 'Confirmed',         color: Palette.green },
-  { key: 'declined',  label: 'Declined',          color: Palette.red  },
-  { key: 'noShow',    label: 'No-Show',           color: Palette.textMuted },
+  { key: 'all',       label: 'All',                color: Palette.textMuted },
+  { key: 'pending',   label: 'Pending',            color: Palette.amber },
+  { key: 'confirmed', label: 'Confirmed',          color: Palette.green },
+  { key: 'declined',  label: 'Declined',           color: Palette.red  },
+  // The owner can now cancel a sent invitation (see InvitationService.cancelInvitation)
+  // — without this filter, a cancelled invitation was fetched from the API but
+  // matched no case below, so it was silently unreachable in the UI.
+  { key: 'cancelled', label: 'Cancelled',          color: Palette.gold },
+  { key: 'noShow',    label: 'No-Show',            color: Palette.violet },
 ];
 
 function applyFilter(all: InvitationItem[], filter: FilterKey): InvitationItem[] {
   switch (filter) {
+    case 'all':
+      return all;
     case 'pending':
       return all.filter((i) => i.invitationStatus === 'pending' && !i.jockeyConfirmation);
     case 'confirmed':
       return all.filter((i) => i.jockeyConfirmation === true);
     case 'declined':
       return all.filter((i) => i.invitationStatus === 'declined');
+    case 'cancelled':
+      return all.filter((i) => i.invitationStatus === 'cancelled');
     case 'noShow':
       return all.filter((i) => i.invitationStatus === 'didNotAttend');
   }
@@ -323,7 +350,7 @@ function applyFilter(all: InvitationItem[], filter: FilterKey): InvitationItem[]
 
 export default function InvitesScreen() {
   const [allInvites, setAllInvites] = useState<InvitationItem[]>([]);
-  const [activeFilter, setActiveFilter] = useState<FilterKey>('pending');
+  const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -350,7 +377,15 @@ export default function InvitesScreen() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  // Fetches on mount and whenever this tab regains focus, so an invitation
+  // created while the jockey was on another tab (no socket event delivered,
+  // or delivered while the app was backgrounded) shows up without requiring
+  // a manual pull-to-refresh.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [])
+  );
 
   // Live refetch when a new invitation notification arrives for this jockey.
   const { socket } = useSocket();
@@ -413,7 +448,11 @@ export default function InvitesScreen() {
         </View>
 
         {/* ─── Filter bar ─── */}
-        <View style={styles.filterBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterBar}
+          contentContainerStyle={styles.filterBarContent}>
           {FILTERS.map(({ key, label, color }) => (
             <Chip
               key={key}
@@ -424,7 +463,7 @@ export default function InvitesScreen() {
               onPress={() => setActiveFilter(key)}
             />
           ))}
-        </View>
+        </ScrollView>
 
         {/* ─── Body ─── */}
         {isLoading ? (
@@ -476,18 +515,23 @@ export default function InvitesScreen() {
               const owner = invite.horseOwner?.user?.fullName ?? '—';
               const tournament = invite.tournament?.tournamentName ?? '—';
               const raceDate = formatDate(invite.raceRound?.raceDate);
-              const fee = formatFee(invite.bookingFees, invite.percentagePayout);
+              const bookingFee = formatBookingFee(invite.bookingFees);
+              const payoutRate = formatPayoutRate(invite.percentagePayout);
               const isResponding = respondingId === invite.invitationId;
 
               const { tone: statusTone, label: statusText } = getStatusStyle(invite);
+              const statusColor = TONE_COLOR[statusTone];
 
               return (
                 <View key={invite.invitationId} style={[
                   styles.inviteCard,
-                  invite.isBackup ? styles.inviteCardBackup : styles.inviteCardOfficial,
+                  { borderColor: `${statusColor}44` },
                 ]}>
-                  {/* Left accent stripe — gold for backup, green for official */}
-                  <View style={invite.isBackup ? styles.backupStripe : styles.officialStripe} />
+                  {/* Left accent stripe — colored by invitation status, matching
+                      the Badge in the top-right corner and the filter chips
+                      above (Official/Backup is still shown via the small
+                      chip next to "RACE HORSE" instead). */}
+                  <View style={[styles.statusStripe, { backgroundColor: statusColor }]} />
 
                   {/* Tappable area → opens detail sheet */}
                   <Pressable
@@ -538,20 +582,27 @@ export default function InvitesScreen() {
                           <Text style={styles.detailValue} numberOfLines={1}>{tournament}</Text>
                         </View>
                       </View>
-                      {(raceDate || fee) && (
+                      {raceDate && (
                         <View style={styles.inviteDetailRow}>
-                          {raceDate && (
-                            <View style={styles.inviteDetailCell}>
-                              <Text style={styles.detailLabel}>Race Date</Text>
-                              <Text style={styles.detailValue}>{raceDate}</Text>
-                            </View>
-                          )}
-                          {fee && (
-                            <View style={styles.inviteDetailCell}>
-                              <Text style={styles.detailLabel}>Fee / Payout</Text>
-                              <Text style={[styles.detailValue, { color: Palette.gold }]}>{fee}</Text>
-                            </View>
-                          )}
+                          <View style={styles.inviteDetailCell}>
+                            <Text style={styles.detailLabel}>Race Date</Text>
+                            <Text style={styles.detailValue}>{raceDate}</Text>
+                          </View>
+                        </View>
+                      )}
+                      {(bookingFee || payoutRate) && (
+                        // Always both cells, one "—" if the owner didn't set it — keeps
+                        // this row the same two-column shape across every card instead of
+                        // the width lurching depending on which fields happen to be set.
+                        <View style={styles.inviteDetailRow}>
+                          <View style={styles.inviteDetailCell}>
+                            <Text style={styles.detailLabel}>Booking Fee</Text>
+                            <Text style={[styles.detailValue, { color: Palette.gold }]}>{bookingFee ?? '—'}</Text>
+                          </View>
+                          <View style={styles.inviteDetailCell}>
+                            <Text style={styles.detailLabel}>Payout Rate</Text>
+                            <Text style={[styles.detailValue, { color: Palette.gold }]}>{payoutRate ?? '—'}</Text>
+                          </View>
                         </View>
                       )}
                     </View>
@@ -693,16 +744,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
-  inviteCardBackup: {
-    borderColor: `${'#6B7280'}55`,
-  },
-  backupStripe: {
+  // Colored per-invitation via inline `backgroundColor` (status tone) —
+  // see the `statusColor` computed alongside each card above.
+  statusStripe: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: '#6B7280',
     borderTopLeftRadius: 14,
     borderBottomLeftRadius: 14,
   },
@@ -740,19 +789,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
     color: '#6B7280',
-  },
-  inviteCardOfficial: {
-    borderColor: `${'#0D9488'}44`,
-  },
-  officialStripe: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    backgroundColor: '#0D9488',
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
   },
   horseThumbnailOfficial: {
     backgroundColor: '#0D948822',
@@ -826,13 +862,24 @@ const styles = StyleSheet.create({
   bottomPad: { height: 20 },
 
   // ─── Filter bar ───────────────────────────────────────────────────────────────
+  // Horizontal ScrollView, not a plain row View — the filter set can exceed
+  // screen width (e.g. on narrower devices, or if more filters are added),
+  // and a non-scrolling row would just clip/overflow instead of reaching them.
+  // flexGrow/flexShrink: 0 is required — ScrollView defaults to flexGrow: 1
+  // (unlike View), so left alone it soaks up whatever vertical space the body
+  // below doesn't use (e.g. an empty-state tab), stretching the bar's height
+  // and turning the fully-rounded Chips into tall ovals.
   filterBar: {
+    flexGrow: 0,
+    flexShrink: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: Palette.cardBorder,
+  },
+  filterBarContent: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 10,
     gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.cardBorder,
   },
   // ─── Bottom sheet ────────────────────────────────────────────────────────────
   overlay: {

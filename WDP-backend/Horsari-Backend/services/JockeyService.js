@@ -12,6 +12,7 @@ const RaceEligibilityRule = require("../entities/RaceEligibilityRule");
 const Tournament = require("../entities/Tournament");
 const NotificationService = require("./NotificationService");
 const { findJockeyScheduleConflict } = require("./JockeyScheduleConflict");
+const { releaseHorseIfNoActiveInvitation } = require("./HorseScheduleConflict");
 const ProfileUpdateUtil = require("../utils/ProfileUpdateUtil");
 
 class JockeyService {
@@ -123,6 +124,12 @@ class JockeyService {
       }
 
       await invitation.save();
+
+      if (jockeyConfirmation === 'rejected' && invitation.registrationId) {
+        // A declined invitation is a dead commitment — release the horse's
+        // day-slot lock if nothing else is still holding this registration.
+        await releaseHorseIfNoActiveInvitation(invitation.registrationId);
+      }
 
       if (invitation.registrationId) {
         const registration = await Registration.findById(invitation.registrationId).lean();

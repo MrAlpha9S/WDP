@@ -8,6 +8,7 @@ const RaceEligibilityRule = require('../entities/RaceEligibilityRule');
 const RaceResult = require('../entities/RaceResult');
 const NotificationService = require('./NotificationService');
 const { findJockeyScheduleConflict } = require('./JockeyScheduleConflict');
+const { findHorseScheduleConflict, releaseHorseIfNoActiveInvitation } = require('./HorseScheduleConflict');
 /**
  * return {
  * code: 200,
@@ -49,10 +50,30 @@ class InvitationService {
             }
         }
 
-        // All invitations for a registration must share the same horse
-        const existingInv = await Invitation.findOne({ registrationId }).lean();
+        // All invitations for a registration must share the same horse — but a
+        // declined/cancelled invitation is a dead commitment, so it no longer
+        // locks the registration to that horse (lets the owner pick a different
+        // horse once every prior invitation for this registration has died).
+        const existingInv = await Invitation.findOne({
+            registrationId,
+            invitationStatus: { $nin: ['declined', 'cancelled'] },
+        }).lean();
         if (existingInv && String(existingInv.horseId) !== String(horseId)) {
             return { code: 409, message: 'All invitations for a registration must use the same horse.' };
+        }
+
+        // BR: a horse can only be committed to one race round per GMT+7 calendar
+        // day, across every tournament. Skip when this registration itself is
+        // already the one holding the horse (existingInv above already confirmed
+        // that case matches this horseId).
+        if (!existingInv) {
+            const horseConflict = await findHorseScheduleConflict(horseId, registration.raceRoundId);
+            if (horseConflict) {
+                return {
+                    code: 409,
+                    message: 'This horse is already racing in another event on the same day. A horse can only be assigned to one race per day.',
+                };
+            }
         }
 
         // No duplicate jockey on the same registration
@@ -99,6 +120,53 @@ class InvitationService {
             code: 201,
             message: "Invitation created successfully",
             data: invitation
+        };
+    }
+
+    // Lets the horse owner withdraw an invitation they sent, as long as the
+    // jockey hasn't already responded. Only owners could ever create an
+    // invitation and previously had no way to undo it — this closes that gap
+    // and, via releaseHorseIfNoActiveInvitation, frees the horse's day-slot
+    // (and the "same horse per registration" lock) once nothing is left
+    // holding it.
+    async cancelInvitation(ownerId, invitationId, io) {
+        if (!invitationId) return { code: 400, message: 'invitationId is required' };
+
+        const invitation = await Invitation.findById(invitationId);
+        if (!invitation) return { code: 404, message: 'Invitation not found' };
+
+        const registration = invitation.registrationId
+            ? await Registration.findById(invitation.registrationId).lean()
+            : null;
+        if (!registration) return { code: 404, message: 'Registration for this invitation not found' };
+        if (String(registration.horseOwnerId) !== String(ownerId)) {
+            return { code: 403, message: 'You are not authorized to cancel this invitation.' };
+        }
+
+        if (invitation.invitationStatus !== 'pending') {
+            return { code: 400, message: `Cannot cancel an invitation that is already "${invitation.invitationStatus}".` };
+        }
+
+        invitation.invitationStatus = 'cancelled';
+        await invitation.save();
+
+        await releaseHorseIfNoActiveInvitation(registration._id);
+
+        if (invitation.jockeyId) {
+            NotificationService.notify({
+                recipientIds: [invitation.jockeyId],
+                role: 'admin',
+                type: 'invitation_cancelled',
+                title: 'Race Invitation Cancelled',
+                message: 'A horse owner has cancelled a race invitation sent to you.',
+                actionPayload: { entityType: 'Invitation', entityId: invitation._id },
+            }, io).catch(err => console.error('[cancelInvitation] notify jockey error:', err.message));
+        }
+
+        return {
+            code: 200,
+            message: 'Invitation cancelled successfully',
+            data: invitation,
         };
     }
 

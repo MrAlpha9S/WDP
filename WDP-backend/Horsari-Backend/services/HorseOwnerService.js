@@ -16,6 +16,7 @@ const User = require('../entities/User');
 const Transaction = require('../entities/Transaction');
 const CurrencyConverter = require('./CurrencyConverter');
 const ProfileUpdateUtil = require('../utils/ProfileUpdateUtil');
+const { findHorseScheduleConflict } = require('./HorseScheduleConflict');
 
 class HorseOwnerService {
     // Get all horses owned
@@ -682,10 +683,16 @@ class HorseOwnerService {
                     : (horse.status !== 'active' || horse.healthStatus !== 'healthy'
                         ? 'This horse must be active and healthy to race.'
                         : null);
-                if (!ineligibleReason) { hasEligibleHorse = true; break; }
+                if (ineligibleReason) continue;
+                // BR: a horse can only be committed to one race round per GMT+7
+                // calendar day — don't count a horse already racing elsewhere that day.
+                const horseConflict = await findHorseScheduleConflict(horse._id, raceRoundId);
+                if (horseConflict) continue;
+                hasEligibleHorse = true;
+                break;
             }
             if (!hasEligibleHorse) {
-                return { code: 422, msg: 'You need at least one eligible horse in your stable to register for this race.' };
+                return { code: 422, msg: 'You need at least one eligible horse, not already racing elsewhere that day, to register for this race.' };
             }
 
             const registration = await RegistrationRepository.createRegistration({
@@ -748,7 +755,7 @@ class HorseOwnerService {
     }
 
     // Get jockey invitations sent by this horse owner (paginated)
-    async getJockeyInvitations(ownerId, page = 1, limit = 10, search = null) {
+    async getJockeyInvitations(ownerId, page = 1, limit = 10, search = null, status = null) {
         try {
             if (!ownerId) return { code: 400, msg: 'ownerId is required' };
 
@@ -757,6 +764,7 @@ class HorseOwnerService {
             const regIds = regs.map(r => r._id);
 
             const invFilter = { registrationId: { $in: regIds } };
+            if (status) invFilter.invitationStatus = status;
 
             if (search) {
                 const [matchingUsers, matchingHorses] = await Promise.all([

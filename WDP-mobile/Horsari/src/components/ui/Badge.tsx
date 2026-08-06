@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Fonts, Palette, Radius } from '@/constants/theme';
 
-export type BadgeTone = 'gold' | 'red' | 'green' | 'amber' | 'muted';
+export type BadgeTone = 'gold' | 'red' | 'green' | 'amber' | 'violet' | 'muted';
 
 interface BadgeProps {
   label: string;
@@ -13,11 +13,15 @@ interface BadgeProps {
   dot?: boolean;
 }
 
-const TONE_COLOR: Record<BadgeTone, string> = {
+// Exported so screens that draw their own status-colored elements (card
+// borders, accent stripes, etc.) reuse this exact tone→hex mapping instead
+// of re-deriving/duplicating it — one source of truth for what each tone means.
+export const TONE_COLOR: Record<BadgeTone, string> = {
   gold: Palette.gold,
   red: Palette.red,
   green: Palette.green,
   amber: Palette.amber,
+  violet: Palette.violet,
   muted: Palette.textMuted,
 };
 

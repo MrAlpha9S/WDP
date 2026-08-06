@@ -189,11 +189,15 @@ export default function PaymentsScreen() {
         </View>
 
         {/* ─── Filter bar ─── */}
-        <View style={styles.filterBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterBar}
+          contentContainerStyle={styles.filterBarContent}>
           {FILTERS.map(({ key, label }) => (
             <Chip key={key} label={label} active={activeFilter === key} onPress={() => setActiveFilter(key)} />
           ))}
-        </View>
+        </ScrollView>
 
         {/* ─── Body ─── */}
         {isLoading ? (
@@ -305,13 +309,22 @@ const styles = StyleSheet.create({
   errorText: { flex: 1, fontSize: 13, color: Palette.red, lineHeight: 18 },
 
   // Filter bar
+  // Horizontal ScrollView, not a plain row View — the filter set can exceed
+  // screen width, and a non-scrolling row would just clip instead of reaching them.
+  // flexGrow/flexShrink: 0 is required — ScrollView defaults to flexGrow: 1
+  // (unlike View), so left alone it soaks up whatever vertical space the body
+  // below doesn't use, stretching the bar's height into tall ovals.
   filterBar: {
+    flexGrow: 0,
+    flexShrink: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: Palette.cardBorder,
+  },
+  filterBarContent: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 10,
     gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Palette.cardBorder,
   },
 
   // Payment list

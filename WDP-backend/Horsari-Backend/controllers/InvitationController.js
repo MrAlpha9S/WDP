@@ -21,6 +21,17 @@ class InvitationController {
       return next(err);
     }
   }
+
+  async cancelInvitation(req, res, next) {
+    try {
+      const { id } = req.params;
+      const io = req.app.get('io');
+      const result = await InvitationService.cancelInvitation(req.userId, id, io);
+      return res.status(result.code).json(result);
+    } catch (err) {
+      return next(err);
+    }
+  }
 }
 
 module.exports = new InvitationController();

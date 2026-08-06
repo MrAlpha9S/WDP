@@ -29,6 +29,7 @@ const PaymentService = require('./PaymentService');
 const NotificationService = require('./NotificationService');
 const CurrencyConverter = require('./CurrencyConverter');
 const PayoutService = require('./PayoutService');
+const { findHorseScheduleConflict } = require('./HorseScheduleConflict');
 
 class AdminService {
     // Create admin profile only (expects existing user id)
@@ -1702,6 +1703,10 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
             let eligibleHorse = null;
             for (const horse of ownerHorses) {
                 if (usedHorseIds.has(String(horse._id))) continue;
+                // BR: a horse can only be committed to one race round per GMT+7
+                // calendar day — skip horses already racing elsewhere that day.
+                const horseConflict = await findHorseScheduleConflict(horse._id, raceRoundId);
+                if (horseConflict) continue;
                 const horseInvitations = await Invitation.find({ horseId: horse._id, registrationId: { $ne: null } }).lean();
                 const resultRegIds = horseInvitations.map(inv => inv.registrationId);
                 const results = await RaceResult.find({ registrationId: { $in: resultRegIds } }).lean();

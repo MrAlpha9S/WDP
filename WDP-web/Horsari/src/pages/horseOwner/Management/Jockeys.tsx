@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback } from "react";
-import { ChevronDown, SlidersHorizontal, User, Diamond, Loader2, Trophy, MapPin, Calendar, Flag, UserX, AlertCircle, ClipboardList, X } from "lucide-react";
+import { ChevronDown, SlidersHorizontal, User, Loader2, Trophy, MapPin, Calendar, Flag, UserX, AlertCircle, ClipboardList, X, UserSearch } from "lucide-react";
 import JockeyDetailModal, { type Jockey, STATUS_CFG } from "../../../components/ownerComponents/JockeyModal/Jockeydetailmodal";
 import HireJockeyModal from "../../../components/ownerComponents/JockeyModal/Hirejockey";
 import { horseOwnerService, type RaceInvitationEntry } from "../../../api/horseOwnerService";
@@ -349,8 +349,8 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
   return (
     <div
       className={`bg-surface rounded-2xl border border-border overflow-hidden flex flex-col transition-all duration-200 ${!isUnavailable
-          ? "hover:border-white/15 hover:shadow-xl hover:shadow-black/40"
-          : "opacity-80"
+        ? "hover:border-white/15 hover:shadow-xl hover:shadow-black/40"
+        : "opacity-80"
         }`}
     >
       <div className="relative h-28 bg-bg overflow-hidden">
@@ -403,11 +403,11 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
             disabled={isUnavailable}
             onClick={isUnavailable ? undefined : onHire}
             className={`flex-1 py-2.5 rounded-lg text-[12px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 ${isUnavailable
-                ? "bg-[#242424] border border-border text-gray-600 cursor-not-allowed"
-                : "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
+              ? "bg-[#242424] border border-border text-gray-600 cursor-not-allowed"
+              : "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
               }`}
           >
-            {isUnavailable ? "Unavailable" : <><span>Hire</span> <Diamond size={11} className="text-red-300" /></>}
+            {isUnavailable ? "Unavailable" : <><span>Hire</span> <UserSearch size={12} className="text-white stroke-2" /></>}
           </button>
         </div>
       </div>
@@ -456,8 +456,8 @@ function JockeyTable({ jockeys, onDetail, onHire }: { jockeys: Jockey[]; onDetai
                       disabled={isUnavailable}
                       onClick={isUnavailable ? undefined : () => onHire(jockey)}
                       className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-150 ${isUnavailable
-                          ? "bg-[#242424] border border-border text-gray-600 cursor-not-allowed"
-                          : "bg-red-700 hover:bg-red-600 text-white"
+                        ? "bg-[#242424] border border-border text-gray-600 cursor-not-allowed"
+                        : "bg-red-700 hover:bg-red-600 text-white"
                         }`}
                     >
                       {isUnavailable ? "Unavailable" : "Hire"}

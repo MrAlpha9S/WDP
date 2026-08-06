@@ -35,8 +35,8 @@ class HorseOwnerController {
     async getJockeyInvitations(req, res) {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
-        const { search } = req.query;
-        const response = await HorseOwnerService.getJockeyInvitations(req.userId, page, limit, search || null);
+        const { search, status } = req.query;
+        const response = await HorseOwnerService.getJockeyInvitations(req.userId, page, limit, search || null, status || null);
         return res.status(response.code).json(response);
     }
 

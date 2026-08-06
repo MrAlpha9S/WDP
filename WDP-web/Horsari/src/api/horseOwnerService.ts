@@ -390,10 +390,19 @@ export const horseOwnerService = {
       throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
     }
   },
-  allJockeyInvitations: async (page = 1, limit = 10, search?: string): Promise<JockeyInvitationsListResponse> => {
+  cancelJockeyInvitation: async (invitationId: string): Promise<void> => {
+    if (!invitationId) return;
+    try {
+      await api.patch(`/invitations/${invitationId}/cancel`);
+    } catch (error: any) {
+      throw error.response?.data || { msg: NETWORK_ERROR_MESSAGE, isNetworkError: true };
+    }
+  },
+  allJockeyInvitations: async (page = 1, limit = 10, search?: string, status?: string): Promise<JockeyInvitationsListResponse> => {
     try {
       const params: Record<string, unknown> = { page, limit };
       if (search) params.search = search;
+      if (status) params.status = status;
       const response = await api.get('/horseowner/invitations', { params });
       return response.data;
     } catch (error: any) {

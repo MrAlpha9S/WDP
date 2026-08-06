@@ -58,6 +58,7 @@ export const Palette = {
   red: '#C81E2E',
   green: '#22C55E',
   amber: '#E07B3A',
+  violet: '#A78BFA',
   errorBg: '#2A1215',
   errorBorder: '#3A1218',
   scrim: 'rgba(0,0,0,0.55)',
