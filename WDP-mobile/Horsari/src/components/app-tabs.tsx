@@ -12,7 +12,7 @@ export default function AppTabs() {
         { name: 'payments', title: 'PAYMENTS', icon: 'cash-outline' },
         { name: 'profile', title: 'PROFILE', icon: 'person-outline' },
       ]}
-      hidden={['edit-profile', 'statistics']}
+      hidden={['edit-profile', 'statistics', 'race/[id]']}
     />
   );
 }

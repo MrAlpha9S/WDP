@@ -19,6 +19,7 @@ router.get('/my-profile', authMiddleware, authJockey, JockeyController.getMyProf
 router.put('/my-profile', authMiddleware, authJockey, JockeyController.updateMyProfile);
 router.put('/my-profile/license', authMiddleware, authJockey, upload.single('license'), JockeyController.updateMyLicense);
 router.get('/all-races', authMiddleware, authJockey, JockeyController.getAllRaces);
+router.get('/race-rounds/:raceRoundId', authMiddleware, authJockey, JockeyController.getRaceRoundDetail);
 
 // Wallet + payment verification
 router.get('/wallet', authMiddleware, authJockey, JockeyController.getWalletInfo);

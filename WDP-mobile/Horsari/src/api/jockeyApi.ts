@@ -195,6 +195,17 @@ export async function confirmPaymentReceived(
 // Mirrors the web's horseOwnerService.ts JockeyProfileData — same backend
 // response (HorseOwnerService.getJockeyProfile), just reused for self-view.
 
+export interface JockeyViolationItem {
+  _id: string;
+  raceRound: { _id: string; roundName?: string; raceDate?: string } | null;
+  violationType: { violationName: string; category?: string; severity?: string; defaultPenalty?: string } | null;
+  description: string;
+  severity: string;
+  actualPenalty?: string;
+  stewardAction: 'no-action' | 'warning' | 'fine' | 'suspended' | 'disqualified' | 'demoted' | 'investigation' | 'permanent-ban';
+  violationStatus: 'pending' | 'confirmed' | 'dismissed';
+}
+
 export interface JockeyProfileData {
   jockey: {
     _id: string;
@@ -227,17 +238,9 @@ export interface JockeyProfileData {
     date: string;
     attendance?: 'no_show' | 'main' | 'backup';
     bookingFees: number;
+    violations: JockeyViolationItem[];
   }[];
-  violations: {
-    _id: string;
-    raceRound: { _id: string; roundName?: string; raceDate?: string } | null;
-    violationType: { violationName: string; category?: string; severity?: string; defaultPenalty?: string } | null;
-    description: string;
-    severity: string;
-    actualPenalty?: string;
-    stewardAction: 'no-action' | 'warning' | 'fine' | 'suspended' | 'disqualified' | 'demoted' | 'investigation' | 'permanent-ban';
-    violationStatus: 'pending' | 'confirmed' | 'dismissed';
-  }[];
+  violations: JockeyViolationItem[];
 }
 
 export async function getMyProfile(): Promise<JockeyProfileData | null> {
@@ -406,5 +409,62 @@ export async function getAllRaces(
   } catch (err: any) {
     if (isNetworkError(err)) throw err;
     return empty;
+  }
+}
+
+// ─── Race round detail ──────────────────────────────────────────────────────
+// Single race round, pre- or post-race: full field/standings plus this
+// jockey's own registration's result/violations.
+
+export interface RaceRoundDetailRaceRound {
+  _id: string;
+  roundName: string;
+  raceDate: string;
+  trackLength: number | null;
+  location: string;
+  address: string | null;
+  raceGround: string | null;
+  status: string;
+  maxParticipants: number | null;
+  raceType: string | null;
+  tournamentId: { _id: string; tournamentName: string } | null;
+}
+
+export interface RaceRoundDetailResult {
+  _id: string;
+  registrationId: string;
+  finishPosition: number | null;
+  finishTime: string | null;
+  prizeMoney: number;
+  distance?: number | null;
+  resultStatus: string;
+}
+
+export interface RaceRoundDetailRegistration {
+  _id: string;
+  laneNumber: number | null;
+  registrationStatus: string;
+  horse: { _id: string; horseName: string; img?: string | null } | null;
+  jockey: { _id: string; fullName?: string } | null;
+  raceResult: RaceRoundDetailResult | null;
+}
+
+export interface RaceRoundDetail {
+  raceRound: RaceRoundDetailRaceRound;
+  registrations: RaceRoundDetailRegistration[];
+  myRegistrationId: string | null;
+  myResult: RaceRoundDetailResult | null;
+  myViolations: JockeyViolationItem[];
+}
+
+export async function getRaceRoundDetail(raceRoundId: string): Promise<RaceRoundDetail | null> {
+  try {
+    const res = await apiClient.get<{ code: number; data: RaceRoundDetail; msg: string }>(
+      `/api/jockey/race-rounds/${raceRoundId}`
+    );
+    return res.data.code === 200 ? res.data.data : null;
+  } catch (err: any) {
+    if (isNetworkError(err)) throw err;
+    return null;
   }
 }

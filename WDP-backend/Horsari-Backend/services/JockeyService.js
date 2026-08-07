@@ -10,6 +10,9 @@ const HorseOwner = require("../entities/HorseOwner");
 const RaceRound = require("../entities/RaceRound");
 const RaceEligibilityRule = require("../entities/RaceEligibilityRule");
 const Tournament = require("../entities/Tournament");
+const User = require("../entities/User");
+const RaceResult = require("../entities/RaceResult");
+const Violation = require("../entities/Violation");
 const NotificationService = require("./NotificationService");
 const { findJockeyScheduleConflict } = require("./JockeyScheduleConflict");
 const { releaseHorseIfNoActiveInvitation } = require("./HorseScheduleConflict");
@@ -400,6 +403,114 @@ class JockeyService {
   // spectator's role-agnostic race-listing query.
   async getAllRaces(page, limit, status, sortBy, order) {
     return SpectatorService._listAllRaceRounds(page, limit, status, sortBy, order);
+  }
+
+  // Mobile: single race round detail for a jockey — the full field/standings
+  // (reusing Spectator's role-agnostic enrichment, works pre- and post-race
+  // since raceResult is simply null before results are published) plus this
+  // jockey's own registration's result and violations, mirroring
+  // HorseOwnerService.getRaceDetail's own-registration block but resolved via
+  // the jockey's own Invitation instead of horseOwnerId.
+  async getRaceRoundDetail(jockeyId, raceRoundId) {
+    try {
+      const raceRound = await RaceRound.findById(raceRoundId).populate('tournamentId').lean();
+      if (!raceRound) return { code: 404, msg: 'Race round not found' };
+
+      raceRound.raceType = raceRound.eligibilityRuleId
+        ? (await RaceEligibilityRule.findById(raceRound.eligibilityRuleId).lean())?.raceType ?? null
+        : null;
+
+      const registrations = await Registration.find({
+        raceRoundId,
+        registrationStatus: { $in: ['accepted', 'verified'] },
+      }).lean();
+      const registrationIds = registrations.map(r => r._id);
+
+      const [enriched, raceResults, myInvitation] = await Promise.all([
+        SpectatorService._enrichRegistrationsWithInvitationData(registrations),
+        registrationIds.length > 0
+          ? RaceResult.find({ registrationId: { $in: registrationIds } }).lean()
+          : Promise.resolve([]),
+        // Resolved independently of the enrichment above — that helper only
+        // surfaces the locked/main (isBackup: false) invitation per
+        // registration, so deriving "is this jockey part of the race" from
+        // it would wrongly 403 a backup jockey. Same query shape as
+        // getMyRaceScheduleFlat (no backup filter), so anyone who sees this
+        // race in their schedule can always open its detail.
+        registrationIds.length > 0
+          ? Invitation.findOne({
+              jockeyId,
+              registrationId: { $in: registrationIds },
+              invitationStatus: 'accepted',
+            }).lean()
+          : Promise.resolve(null),
+      ]);
+
+      const resultByRegId = {};
+      raceResults.forEach(r => { resultByRegId[r.registrationId.toString()] = r; });
+
+      // The Jockey entity itself has no fullName (that lives on User) — the
+      // enrichment helper's `jockey` object is the raw Jockey doc, so batch
+      // in fullName here rather than touching the shared Spectator helper.
+      const jockeyUserIds = [...new Set(enriched.map(r => r.jockey?._id).filter(Boolean).map(String))];
+      const jockeyUsers = jockeyUserIds.length > 0
+        ? await User.find({ _id: { $in: jockeyUserIds } }, 'fullName').lean()
+        : [];
+      const jockeyNameById = {};
+      jockeyUsers.forEach(u => { jockeyNameById[u._id.toString()] = u.fullName; });
+
+      const enrichedRegistrations = enriched.map(reg => ({
+        ...reg,
+        jockey: reg.jockey ? { ...reg.jockey, fullName: jockeyNameById[reg.jockey._id.toString()] ?? null } : null,
+        raceResult: resultByRegId[reg._id.toString()] || null,
+      }));
+
+      // Any jockey can view a race round's public field/standings (like a
+      // spectator would) even if they're not registered for it — e.g.
+      // browsing "All Races" on the dashboard. myRegistrationId/myResult/
+      // myViolations just stay null/empty in that case.
+      const myRegistrationId = myInvitation?.registrationId ?? null;
+
+      // `violationTypeId` is populated but keeps its original key name
+      // (Mongoose populate doesn't rename fields) — map it onto
+      // `violationType` explicitly so it matches JockeyViolationItem on the
+      // frontend, same fix already applied to HorseOwnerService's
+      // getHorseProfile/getJockeyProfile.
+      const rawMyViolations = myRegistrationId
+        ? await Violation.find({
+            raceRoundId,
+            $or: [
+              { registrationId: myRegistrationId },
+              { registrationId: null },
+              { registrationId: { $exists: false } },
+            ],
+          }).populate('violationTypeId', 'violationName category severity defaultPenalty').lean()
+        : [];
+      const myViolations = rawMyViolations.map(v => ({
+        _id: v._id,
+        raceRound: { _id: raceRound._id, roundName: raceRound.roundName, raceDate: raceRound.raceDate },
+        violationType: v.violationTypeId ?? null,
+        description: v.description,
+        severity: v.severity,
+        actualPenalty: v.actualPenalty,
+        stewardAction: v.stewardAction,
+        violationStatus: v.violationStatus,
+      }));
+
+      return {
+        code: 200,
+        data: {
+          raceRound,
+          registrations: enrichedRegistrations,
+          myRegistrationId,
+          myResult: myRegistrationId ? (resultByRegId[String(myRegistrationId)] || null) : null,
+          myViolations,
+        },
+        msg: 'Race round detail retrieved successfully',
+      };
+    } catch (error) {
+      return { code: 500, msg: error.message };
+    }
   }
 
   // ─── Wallet ──────────────────────────────────────────────────────────────

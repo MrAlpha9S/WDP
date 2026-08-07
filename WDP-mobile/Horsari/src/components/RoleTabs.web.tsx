@@ -20,6 +20,20 @@ interface RoleTabsProps {
   items: RoleTabItem[];
   /** name -> href, e.g. { index: '/', wallet: '/wallet' } */
   hrefs: Record<string, string>;
+  /**
+   * Route names that exist under this group but aren't shown as tab items
+   * (pushed screens, e.g. a detail screen reached via router.push) — mirrors
+   * RoleTabs.tsx's `hidden` prop. expo-router/ui's TabSlot only renders
+   * routes that have a registered TabTrigger, unlike native Tabs where any
+   * Tabs.Screen (even href:null ones) stays reachable via router.push — so
+   * without this, router.push to a route not listed here is a silent no-op
+   * on web even though it works fine on native.
+   *
+   * These MUST be nested inside <TabList> to be picked up at all — Tabs.js's
+   * parseTriggersFromChildren only walks TabTriggers found inside a TabList,
+   * silently ignoring any TabTrigger rendered as a sibling of it.
+   */
+  hiddenHrefs?: Record<string, string>;
 }
 
 /**
@@ -28,7 +42,7 @@ interface RoleTabsProps {
  * jockey group had a web variant; spectator fell back to the native Tabs
  * component and diverged in behavior on web.
  */
-export function RoleTabs({ accentColor, items, hrefs }: RoleTabsProps) {
+export function RoleTabs({ accentColor, items, hrefs, hiddenHrefs = {} }: RoleTabsProps) {
   return (
     <Tabs style={{ flex: 1 }}>
       <TabSlot style={{ flex: 1 }} />
@@ -38,6 +52,12 @@ export function RoleTabs({ accentColor, items, hrefs }: RoleTabsProps) {
             <TabTrigger key={item.name} name={item.name} href={hrefs[item.name] as Href} asChild>
               <TabButton icon={item.icon} accentColor={accentColor}>{item.title}</TabButton>
             </TabTrigger>
+          ))}
+          {/* Registered so TabSlot can route to them via router.push, but
+              never rendered as a visible tab button. Must stay inside
+              TabList (see hiddenHrefs doc above) — style alone hides it. */}
+          {Object.entries(hiddenHrefs).map(([name, href]) => (
+            <TabTrigger key={name} name={name} href={href as Href} style={styles.hiddenTrigger} />
           ))}
         </CustomTabList>
       </TabList>
@@ -69,6 +89,9 @@ function CustomTabList({ children }: TabListProps) {
 }
 
 const styles = StyleSheet.create({
+  hiddenTrigger: {
+    display: 'none',
+  },
   tabListContainer: {
     backgroundColor: Palette.card,
     borderTopColor: Palette.cardBorder,

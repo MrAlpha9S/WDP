@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,7 +18,20 @@ import { getMyRaceSchedule, ScheduleItem } from '../../api/jockeyApi';
 import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
-import { Badge } from '@/components/ui/Badge';
+import { Badge, BadgeTone } from '@/components/ui/Badge';
+
+// Signals whether this race card still needs a response/attention or is
+// settled — same status the detail screen uses to decide pre- vs post-race
+// rendering, so the badge here tells the jockey what they'll see if they tap in.
+function raceStatusBadge(status: string | undefined): { label: string; tone: BadgeTone } {
+  switch (status) {
+    case 'running': return { label: 'LIVE', tone: 'red' };
+    case 'completed': return { label: 'COMPLETED', tone: 'muted' };
+    case 'cancelled': return { label: 'CANCELLED', tone: 'muted' };
+    case 'awaitingConfirmation': return { label: 'AWAITING RESULTS', tone: 'amber' };
+    default: return { label: 'CONFIRMED', tone: 'green' };
+  }
+}
 
 const Palette = {
   ...SharedPalette,
@@ -85,6 +100,7 @@ function groupByDate(items: ScheduleItem[]): DateGroup[] {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ScheduleScreen() {
+  const router = useRouter();
   const [groups, setGroups] = useState<DateGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -186,8 +202,16 @@ export default function ScheduleScreen() {
                   const location = item.raceRound?.location ?? '—';
                   const horse = item.horse?.horseName ?? '—';
 
+                  const raceRoundId = item.raceRound?.raceRoundId;
+                  const statusBadge = raceStatusBadge(item.raceRound?.status);
+
                   return (
-                    <View key={item.invitationId} style={styles.raceCard}>
+                    <Pressable
+                      key={item.invitationId}
+                      style={({ pressed }) => [styles.raceCard, pressed && styles.raceCardPressed]}
+                      disabled={!raceRoundId}
+                      onPress={() => raceRoundId && router.push(`/(jockey)/race/${raceRoundId}` as any)}
+                    >
                       <View style={styles.raceTimeCol}>
                         <Text style={styles.raceTime}>{time}</Text>
                         <Text style={styles.racePeriod}>{period}</Text>
@@ -206,7 +230,7 @@ export default function ScheduleScreen() {
                               {horse.toUpperCase()}
                             </Text>
                           </View>
-                          <Badge label="CONFIRMED" tone="green" />
+                          <Badge label={statusBadge.label} tone={statusBadge.tone} />
                           {item.isBackup && (
                             <View style={styles.tagBackup}>
                               <Text style={styles.tagBackupText}>BACKUP</Text>
@@ -214,7 +238,8 @@ export default function ScheduleScreen() {
                           )}
                         </View>
                       </View>
-                    </View>
+                      <Ionicons name="chevron-forward" size={16} color={Palette.textMuted} />
+                    </Pressable>
                   );
                 })}
               </View>
@@ -347,6 +372,7 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 12,
   },
+  raceCardPressed: { opacity: 0.7 },
   raceTimeCol: { alignItems: 'center', minWidth: 52 },
   raceTime: {
     fontFamily: Fonts.mono,

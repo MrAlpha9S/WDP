@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -88,7 +90,7 @@ const VARIANT_BADGE: Record<RaceVariant, { text: string; bg: string; textColor: 
   scheduled: { text: 'NEXT RACE', bg: '#E8828A', textColor: '#1A0608' },
 };
 
-function NextRaceCard({ item }: { item: ScheduleItem }) {
+function NextRaceCard({ item, onPress }: { item: ScheduleItem; onPress: () => void }) {
   const [countdown, setCountdown] = useState(
     item.raceRound?.raceDate ? buildCountdown(item.raceRound.raceDate) : '—'
   );
@@ -109,7 +111,7 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
   const badge = VARIANT_BADGE[variant];
 
   return (
-    <View style={styles.nextRaceCard}>
+    <Pressable style={({ pressed }) => [styles.nextRaceCard, pressed && styles.cardPressed]} onPress={onPress}>
       <LinearGradient
         colors={['#2A1215', '#1C1A10', '#0E1018']}
         start={{ x: 0, y: 0 }}
@@ -147,11 +149,11 @@ function NextRaceCard({ item }: { item: ScheduleItem }) {
           </View>
         </View>
       </LinearGradient>
-    </View>
+    </Pressable>
   );
 }
 
-// ─── All-Races Card (read-only browse — jockeys don't drill into a race) ─────
+// ─── All-Races Card ──────────────────────────────────────────────────────────
 
 function statusLabel(s: string): { label: string; tone: BadgeTone } {
   if (s === 'running')              return { label: 'Running',              tone: 'red' };
@@ -162,16 +164,19 @@ function statusLabel(s: string): { label: string; tone: BadgeTone } {
   return { label: s, tone: 'muted' };
 }
 
-function AllRaceCard({ item }: { item: RaceScheduleItem }) {
+function AllRaceCard({ item, onPress }: { item: RaceScheduleItem; onPress: () => void }) {
   const { label, tone } = statusLabel(item.status);
 
   return (
-    <View style={[
-      styles.raceCard,
-      item.status === 'running'              && styles.raceCardLive,
-      item.status === 'prepared'             && styles.raceCardPrepared,
-      item.status === 'awaitingConfirmation' && styles.raceCardPrepared,
-    ]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.raceCard,
+        item.status === 'running'              && styles.raceCardLive,
+        item.status === 'prepared'             && styles.raceCardPrepared,
+        item.status === 'awaitingConfirmation' && styles.raceCardPrepared,
+        pressed && styles.cardPressed,
+      ]}>
       <View style={styles.raceCardTop}>
         <View style={{ flex: 1 }}>
           <Text style={styles.raceName} numberOfLines={2}>{item.roundName}</Text>
@@ -229,7 +234,7 @@ function AllRaceCard({ item }: { item: RaceScheduleItem }) {
           </View>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -243,6 +248,7 @@ const ALL_RACES_FILTERS: { key: ScheduleFilter; label: string; color: string }[]
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const { session } = useAuth();
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -423,7 +429,13 @@ export default function DashboardScreen() {
               />
             </View>
           ) : nextRace ? (
-            <NextRaceCard item={nextRace} />
+            <NextRaceCard
+              item={nextRace}
+              onPress={() => {
+                const rid = nextRace.raceRound?.raceRoundId;
+                if (rid) router.push(`/(jockey)/race/${rid}` as any);
+              }}
+            />
           ) : (
             <View style={styles.noRaceCard}>
               <LinearGradient
@@ -494,7 +506,13 @@ export default function DashboardScreen() {
               <Text style={styles.noRaceSubText}>No races found</Text>
             </View>
           ) : (
-            allRaces.map((item) => <AllRaceCard key={item._id} item={item} />)
+            allRaces.map((item) => (
+              <AllRaceCard
+                key={item._id}
+                item={item}
+                onPress={() => router.push(`/(jockey)/race/${item._id}` as any)}
+              />
+            ))
           )}
 
           <View style={styles.bottomPad} />
@@ -585,6 +603,7 @@ const styles = StyleSheet.create({
     borderColor: Palette.cardBorder,
     marginBottom: 20,
   },
+  cardPressed: { opacity: 0.75 },
   nextRaceGradient: { padding: 20 },
   nextRaceBadge: {
     flexDirection: 'row',

@@ -19,6 +19,9 @@ export default function AppTabs() {
         payments: '/payments',
         profile: '/profile',
       }}
+      hiddenHrefs={{
+        'race/[id]': '/race/[id]',
+      }}
     />
   );
 }

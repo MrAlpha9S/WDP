@@ -62,6 +62,14 @@ class JockeyController {
     return res.status(response.code).json(response);
   }
 
+  // GET /race-rounds/:raceRoundId — single race round detail (field/standings
+  // + this jockey's own result/violations), pre- or post-race.
+  async getRaceRoundDetail(req, res) {
+    const { raceRoundId } = req.params;
+    const response = await JockeyService.getRaceRoundDetail(req.userId, raceRoundId);
+    return res.status(response.code).json(response);
+  }
+
   // GET /wallet — wallet statistic + payment stats
   async getWalletInfo(req, res) {
     const response = await JockeyService.getWalletInfo(req.userId);
