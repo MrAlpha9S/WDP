@@ -42,6 +42,7 @@ interface EligibilityRule {
   raceType: string | null;
   minWins?: number | null;
   maxWins?: number | null;
+  minRacesRun?: number | null;
   minAge?: number | null;
   maxAge?: number | null;
   requiredGender?: string | null;
@@ -338,6 +339,7 @@ export default function HireJockeyModal({
       return false;
     }
 
+    const racesRun = horse.raceResults ? horse.raceResults.length : 0;
     const wins = horse.raceResults
       ? horse.raceResults.filter((r) => r.finishPosition === 1).length
       : 0;
@@ -348,6 +350,10 @@ export default function HireJockeyModal({
     }
     if (rule.maxWins !== undefined && rule.maxWins !== null && wins > rule.maxWins) {
       console.warn(tag, `❌ wins too high: has ${wins}, needs ≤ ${rule.maxWins}`);
+      return false;
+    }
+    if (rule.minRacesRun !== undefined && rule.minRacesRun !== null && racesRun < rule.minRacesRun) {
+      console.warn(tag, `❌ races run too low: has ${racesRun}, needs ≥ ${rule.minRacesRun}`);
       return false;
     }
 
@@ -370,7 +376,12 @@ export default function HireJockeyModal({
       return false;
     }
 
-    console.log(tag, `✅ eligible (wins=${wins}, age=${horseAge})`);
+    if (rule.requiredBreed && rule.requiredBreed !== horse.breed) {
+      console.warn(tag, `❌ breed mismatch: horse=${horse.breed}, required=${rule.requiredBreed}`);
+      return false;
+    }
+
+    console.log(tag, `✅ eligible (wins=${wins}, racesRun=${racesRun}, age=${horseAge})`);
     return true;
   };
 

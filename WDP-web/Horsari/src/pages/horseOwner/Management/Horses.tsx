@@ -23,8 +23,8 @@ interface HorseCard {
   grade: string;
   status: HorseStatus;
   image: string;
-  returnEst?: string;
-  statusNote?: string;
+  racingStatus: "active" | "inactive" | "retired";
+  healthStatus: "healthy" | "injured" | "sick";
 }
 
 // ── Status metadata ───────────────────────────────────────────────────────────
@@ -34,13 +34,6 @@ const STATUS_META: Record<HorseStatus, { label: string; dot: string; text: strin
   retired: { label: "Retired", dot: "bg-blue", text: "text-blue" },
   injured: { label: "Injured", dot: "bg-red", text: "text-red" },
   sick: { label: "Sick", dot: "bg-amber", text: "text-amber" },
-};
-
-const STATUS_NOTES: Partial<Record<HorseStatus, string>> = {
-  injured: "Medical Review",
-  sick: "Under Treatment",
-  retired: "Retired",
-  inactive: "Inactive",
 };
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -68,12 +61,13 @@ function mapHorseToCard(h: Horse): HorseCard {
     grade: "Listed",
     status,
     image: (h as Horse & { img?: string }).img ?? "/jumping-horse-silhouette-facing-left-side-view.png",
-    // Populate contextual fields based on mapped status
-    ...(status !== "active" && {
-      returnEst: status === "injured" || status === "sick" ? "TBD" : "—",
-      statusNote: STATUS_NOTES[status],
-    }),
+    racingStatus: (h.status as "active" | "inactive" | "retired") || "active",
+    healthStatus: (h.healthStatus as "healthy" | "injured" | "sick") || "healthy",
   };
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -159,13 +153,12 @@ function HorseCardItem({
           </p>
         </div>
 
-        {horse.status !== "active" &&
-          horse.returnEst && horse.statusNote && (
-            <div className="grid grid-cols-2 gap-2">
-              <InfoCell label="Return Est." value={horse.returnEst} />
-              <InfoCell label="Status" value={horse.statusNote} />
-            </div>
-          )}
+        {horse.status !== "active" && (
+          <div className="grid grid-cols-2 gap-2">
+            <InfoCell label="Racing" value={capitalize(horse.racingStatus)} />
+            <InfoCell label="Health" value={capitalize(horse.healthStatus)} />
+          </div>
+        )}
 
         <div className="flex items-center gap-2 mt-auto">
           <button
@@ -436,7 +429,7 @@ function EditHorseModal({
                 value={form.dateOfBirth}
                 onChange={e => handleField("dateOfBirth", e.target.value)}
                 max={new Date().toISOString().split("T")[0]}
-                className={`${inputCls} cursor-pointer`}
+                className={`${inputCls} cursor-pointer [color-scheme:dark]`}
               />
             </div>
           </div>
@@ -663,7 +656,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
                 value={form.dateOfBirth}
                 onChange={e => handleField("dateOfBirth", e.target.value)}
                 max={new Date().toISOString().split("T")[0]}
-                className={`${inputCls} cursor-pointer`}
+                className={`${inputCls} cursor-pointer [color-scheme:dark]`}
               />
             </div>
           </div>

@@ -1090,7 +1090,7 @@ class HorseOwnerService {
 
     async updateHorseStatus(ownerId, horseId, status) {
         try {
-            const owner = await HorseOwner.findById(ownerId);
+            const owner = await HorseOwnerRepository.findById(ownerId);
             if (!owner) return { code: 404, msg: 'Horse owner not found' };
             const horse = await Horse.findById(horseId);
             if (!horse) return { code: 404, msg: 'Horse not found' };
@@ -1106,7 +1106,7 @@ class HorseOwnerService {
 
     async updateHorseHealthStatus(ownerId, horseId, healthStatus) {
         try {
-            const owner = await HorseOwner.findById(ownerId);
+            const owner = await HorseOwnerRepository.findById(ownerId);
             if (!owner) return { code: 404, msg: 'Horse owner not found' };
             const horse = await Horse.findById(horseId);
             if (!horse) return { code: 404, msg: 'Horse not found' };
@@ -1495,6 +1495,7 @@ class HorseOwnerService {
                         raceType: rule.raceType ?? null,
                         minWins: rule.minRacesWon ?? null,
                         maxWins: null,
+                        minRacesRun: rule.minRacesRun ?? null,
                         minAge: rule.minAge ?? null,
                         maxAge: rule.maxAge ?? null,
                         requiredGender: rule.requiredGender ?? null,
