@@ -23,7 +23,6 @@ import { isNetworkError, NETWORK_ERROR_MESSAGE } from '../../api/axios';
 import { Fonts, Palette as SharedPalette } from '@/constants/theme';
 import { RefetchButton } from '@/components/RefetchButton';
 import { NoConnectionState } from '@/components/NoConnectionState';
-import { Badge, BadgeTone } from '@/components/ui/Badge';
 
 const Palette = {
   ...SharedPalette,
@@ -41,29 +40,6 @@ function attendanceLabel(attendance: JockeyProfileData['recentRaces'][number]['a
   if (attendance === 'backup') return 'BACKUP';
   if (attendance === 'no_show') return 'NO SHOW';
   return null;
-}
-
-// Escalating severity scale for a violation's steward action.
-function stewardActionTone(action: string): BadgeTone {
-  switch (action) {
-    case 'disqualified':
-    case 'permanent-ban':
-      return 'red';
-    case 'fine':
-    case 'suspended':
-    case 'demoted':
-      return 'amber';
-    case 'investigation':
-      return 'gold';
-    default: // no-action, warning
-      return 'muted';
-  }
-}
-
-function violationStatusStyle(v: JockeyProfileData['violations'][number]): { tone: BadgeTone; label: string } {
-  if (v.violationStatus === 'dismissed') return { tone: 'muted', label: 'Dismissed' };
-  if (v.violationStatus === 'pending') return { tone: 'amber', label: 'Pending Review' };
-  return { tone: stewardActionTone(v.stewardAction), label: 'Confirmed' };
 }
 
 export default function ProfileScreen() {
@@ -285,43 +261,6 @@ export default function ProfileScreen() {
               ))
             )}
           </View>
-
-          {/* ─── Violations ─── */}
-          {profile.violations.length > 0 && (
-            <>
-              <Text style={styles.cardSectionTitle}>Violations</Text>
-              <View style={styles.raceList}>
-                {[...profile.violations]
-                  .sort((a, b) => (a.violationStatus === 'dismissed' ? 1 : 0) - (b.violationStatus === 'dismissed' ? 1 : 0))
-                  .map((v, i, arr) => {
-                    const status = violationStatusStyle(v);
-                    return (
-                      <View key={v._id}>
-                        <View style={[styles.raceRow, v.violationStatus === 'dismissed' && styles.violationDismissed]}>
-                          <View style={styles.raceBody}>
-                            <Text style={styles.raceName} numberOfLines={1}>
-                              {v.violationType?.violationName ?? 'Violation'}
-                            </Text>
-                            <Text style={styles.raceMeta} numberOfLines={2}>{v.description}</Text>
-                            {v.raceRound?.roundName && (
-                              <Text style={styles.raceMeta} numberOfLines={1}>{v.raceRound.roundName}</Text>
-                            )}
-                          </View>
-                          <View style={styles.violationBadges}>
-                            <Badge
-                              label={(v.stewardAction ?? 'no-action').replace('-', ' ').toUpperCase()}
-                              tone={stewardActionTone(v.stewardAction)}
-                            />
-                            <Badge label={status.label.toUpperCase()} tone={status.tone} />
-                          </View>
-                        </View>
-                        {i < arr.length - 1 && <View style={styles.raceDivider} />}
-                      </View>
-                    );
-                  })}
-              </View>
-            </>
-          )}
 
           {/* ─── Account Settings ─── */}
           {/* <View style={styles.settingsCard}>
@@ -609,10 +548,6 @@ const styles = StyleSheet.create({
     color: Palette.textMuted,
   },
   raceDivider: { height: 1, backgroundColor: Palette.cardBorder, marginHorizontal: 14 },
-
-  // Violations
-  violationDismissed: { opacity: 0.5 },
-  violationBadges: { alignItems: 'flex-end', gap: 4 },
 
   // Settings
   settingsCard: {
