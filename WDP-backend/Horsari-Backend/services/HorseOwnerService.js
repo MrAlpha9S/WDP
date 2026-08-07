@@ -1053,6 +1053,31 @@ class HorseOwnerService {
                     .map(r => [String(r.raceRoundId._id), r.raceRoundId])
             );
 
+            // `violationTypeId` is populated but keeps its original key name
+            // (Mongoose populate doesn't rename fields) — map it onto
+            // `violationType` explicitly so it matches HorseViolationEntry on
+            // the frontend, same as getJockeyProfile already does below.
+            const enrichedViolations = violations.map(v => ({
+                _id: v._id,
+                raceRound: raceRoundById[String(v.raceRoundId)] ?? { _id: v.raceRoundId },
+                violationType: v.violationTypeId ?? null,
+                description: v.description,
+                severity: v.severity,
+                actualPenalty: v.actualPenalty,
+                stewardAction: v.stewardAction,
+                violationStatus: v.violationStatus,
+            }));
+
+            // Group violations by registration so each race-history entry can
+            // show its own penalties inline, instead of only in the separate
+            // top-level `violations` list.
+            const violationsByRegId = new Map();
+            violations.forEach((v, i) => {
+                const key = String(v.registrationId);
+                if (!violationsByRegId.has(key)) violationsByRegId.set(key, []);
+                violationsByRegId.get(key).push(enrichedViolations[i]);
+            });
+
             return {
                 code: 200,
                 data: {
@@ -1075,11 +1100,9 @@ class HorseOwnerService {
                         },
                         raceRound: reg.raceRoundId ?? null,
                         result: resultByRegId[String(reg._id)] ?? null,
+                        violations: violationsByRegId.get(String(reg._id)) ?? [],
                     })),
-                    violations: violations.map(v => ({
-                        ...v,
-                        raceRound: raceRoundById[String(v.raceRoundId)] ?? { _id: v.raceRoundId },
-                    })),
+                    violations: enrichedViolations,
                 },
                 msg: 'Horse profile retrieved successfully',
             };
@@ -1163,6 +1186,27 @@ class HorseOwnerService {
             const raceRoundMap = new Map(raceRounds.map(rr => [String(rr._id), rr]));
             const resultByRegId = new Map(results.map(r => [String(r.registrationId), r]));
 
+            const enrichedViolations = violations.map(v => ({
+                _id: v._id,
+                raceRound: raceRoundMap.get(String(v.raceRoundId)) ?? { _id: v.raceRoundId },
+                violationType: v.violationTypeId ?? null,
+                description: v.description,
+                severity: v.severity,
+                actualPenalty: v.actualPenalty,
+                stewardAction: v.stewardAction,
+                violationStatus: v.violationStatus,
+            }));
+
+            // Group violations by registration so each recent-race entry can show
+            // its own penalties inline, instead of only in the separate top-level
+            // `violations` list.
+            const violationsByRegId = new Map();
+            violations.forEach((v, i) => {
+                const key = String(v.registrationId);
+                if (!violationsByRegId.has(key)) violationsByRegId.set(key, []);
+                violationsByRegId.get(key).push(enrichedViolations[i]);
+            });
+
             const ordinals = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
             const recentRaces = registrations.map(reg => {
                 const result = resultByRegId.get(String(reg._id));
@@ -1178,6 +1222,7 @@ class HorseOwnerService {
                         : 'N/A',
                     attendance: inv?.invitationStatus === 'didNotAttend' ? 'no_show' : inv?.isBackup ? 'backup' : 'main',
                     bookingFees: inv?.bookingFees ?? 0,
+                    violations: violationsByRegId.get(String(reg._id)) ?? [],
                 };
             }).sort((a, b) => 0); // preserve DB order (most recent first via sort below)
 
@@ -1219,16 +1264,7 @@ class HorseOwnerService {
                         totalPrize,
                     },
                     recentRaces,
-                    violations: violations.map(v => ({
-                        _id: v._id,
-                        raceRound: raceRoundMap.get(String(v.raceRoundId)) ?? { _id: v.raceRoundId },
-                        violationType: v.violationTypeId ?? null,
-                        description: v.description,
-                        severity: v.severity,
-                        actualPenalty: v.actualPenalty,
-                        stewardAction: v.stewardAction,
-                        violationStatus: v.violationStatus,
-                    })),
+                    violations: enrichedViolations,
                 },
                 msg: 'Jockey profile retrieved successfully',
             };

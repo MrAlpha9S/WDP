@@ -484,11 +484,24 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                             return (
                               <div
                                 key={v._id}
-                                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red/5" : "border-border bg-white/[0.02]"}`}
+                                className={`flex items-start gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red/5" : "border-border bg-white/[0.02]"}`}
                               >
-                                <span className={`w-2 h-2 rounded-full shrink-0 ${severityColor(severity)}`} />
-                                <span className={`flex-1 ${isOwnerReg ? "text-red" : "text-text-muted"}`}>{vtName}</span>
-                                <span className="text-[10px] text-text-muted/70 capitalize">{v.violationStatus}</span>
+                                <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${severityColor(severity)}`} />
+                                <div className={`flex-1 min-w-0 ${isOwnerReg ? "text-red" : "text-text-muted"}`}>
+                                  <p className="font-medium">{vtName}</p>
+                                  {v.description && (
+                                    <p className="text-[11px] opacity-80 mt-0.5 leading-relaxed">{v.description}</p>
+                                  )}
+                                  {v.actualPenalty && (
+                                    <p className="text-[10px] opacity-70 mt-1">{v.actualPenalty}</p>
+                                  )}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  {v.stewardAction && (
+                                    <p className="text-[10px] font-semibold text-text-muted capitalize">{v.stewardAction.replace(/-/g, " ")}</p>
+                                  )}
+                                  <p className="text-[10px] text-text-muted/70 capitalize mt-0.5">{v.violationStatus}</p>
+                                </div>
                               </div>
                             );
                           })}

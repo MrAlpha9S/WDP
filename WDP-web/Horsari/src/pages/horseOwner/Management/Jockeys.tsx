@@ -292,7 +292,10 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     weight: raw.weight ? `${raw.weight} kg` : "N/A",
     age,
     specialties: raw.specialties ?? [],
-    recentRaces: raw.recentRaces ?? [],
+    // List endpoint's race entries don't include violations (that's only
+    // computed by the full getJockeyProfile fetch in openDetail()) — default
+    // so HistoryTab can render this base data safely if that fetch fails.
+    recentRaces: (raw.recentRaces ?? []).map((r: any) => ({ violations: [], ...r })),
     image: raw.image || null,
     violations: [],
     bookingFee: raw.bookingFee ?? 0,

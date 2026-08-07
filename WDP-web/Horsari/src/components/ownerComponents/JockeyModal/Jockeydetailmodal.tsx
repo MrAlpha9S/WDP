@@ -20,7 +20,7 @@ export interface Jockey {
   weight: string;
   age: number;
   specialties: string[];
-  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup"; bookingFees?: number }[];
+  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup"; bookingFees?: number; violations: JockeyViolationEntry[] }[];
   image: string | null;
   violations: JockeyViolationEntry[];
   totalPrize?: number;
@@ -106,30 +106,62 @@ function HistoryTab({ recentRaces }: { recentRaces: Jockey["recentRaces"] }) {
     <div className="space-y-2">
       {recentRaces.map((r, i) => {
         const attCfg = r.attendance ? ATTENDANCE_CFG[r.attendance] : null;
+        const violations = r.violations ?? [];
         return (
           <div
             key={i}
-            className="flex items-center justify-between bg-surface border border-border/60 rounded-xl px-4 py-3"
+            className="flex flex-col gap-2 bg-surface border border-border/60 rounded-xl px-4 py-3"
           >
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-[13px] font-semibold text-text">{r.race}</p>
-                {attCfg && (
-                  <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${attCfg.bg} ${attCfg.border} ${attCfg.text}`}>
-                    {attCfg.label}
-                  </span>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-[13px] font-semibold text-text">{r.race}</p>
+                  {attCfg && (
+                    <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${attCfg.bg} ${attCfg.border} ${attCfg.text}`}>
+                      {attCfg.label}
+                    </span>
+                  )}
+                  {violations.length > 0 && (
+                    <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border text-red bg-red/10 border-red/40">
+                      <ShieldAlert size={9} />
+                      {violations.length} Violation{violations.length > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-text-muted mt-0.5">on {r.horse} · {r.date}</p>
+              </div>
+              <div className="text-right">
+                <span className={`text-[14px] font-bold ${POSITION_COLOR[r.position] ?? "text-text-muted"}`}>
+                  {r.attendance === "no_show" ? "—" : r.position}
+                </span>
+                {r.bookingFees != null && r.bookingFees > 0 && (
+                  <p className="text-[10px] text-text-muted/70 mt-0.5">{r.bookingFees.toLocaleString()} ₫</p>
                 )}
               </div>
-              <p className="text-[11px] text-text-muted mt-0.5">on {r.horse} · {r.date}</p>
             </div>
-            <div className="text-right">
-              <span className={`text-[14px] font-bold ${POSITION_COLOR[r.position] ?? "text-text-muted"}`}>
-                {r.attendance === "no_show" ? "—" : r.position}
-              </span>
-              {r.bookingFees != null && r.bookingFees > 0 && (
-                <p className="text-[10px] text-text-muted/70 mt-0.5">{r.bookingFees.toLocaleString()} ₫</p>
-              )}
-            </div>
+
+            {violations.length > 0 && (
+              <div className="flex flex-col gap-1.5 pt-2 border-t border-border/60">
+                {violations.map((v) => (
+                  <div key={v._id} className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex items-start gap-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 mt-1 ${severityColor(v.severity ?? v.violationType?.severity)}`} />
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-semibold text-text">{v.violationType?.violationName ?? "Violation"}</p>
+                        {v.description && <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{v.description}</p>}
+                        {v.actualPenalty && <p className="text-[10px] text-text-muted/70 mt-1">{v.actualPenalty}</p>}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {v.stewardAction && (
+                        <p className="text-[10px] font-semibold text-text-muted capitalize">{v.stewardAction.replace(/-/g, " ")}</p>
+                      )}
+                      <p className="text-[10px] text-text-muted/70 capitalize mt-0.5">{v.violationStatus}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
@@ -153,16 +185,25 @@ function ViolationsTab({ violations }: { violations: JockeyViolationEntry[] }) {
       {violations.map((v) => (
         <div
           key={v._id}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border bg-white/[0.02] text-[12px]"
+          className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-border bg-white/[0.02] text-[12px]"
         >
-          <span className={`w-2 h-2 rounded-full shrink-0 ${severityColor(v.severity ?? v.violationType?.severity)}`} />
+          <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${severityColor(v.severity ?? v.violationType?.severity)}`} />
           <div className="flex-1 min-w-0">
-            <span className="text-text-muted font-medium truncate">{v.violationType?.violationName ?? "Violation"}</span>
-            {v.raceRound?.roundName && (
-              <span className="text-text-muted/70"> · {v.raceRound.roundName}</span>
-            )}
+            <div>
+              <span className="text-text-muted font-medium truncate">{v.violationType?.violationName ?? "Violation"}</span>
+              {v.raceRound?.roundName && (
+                <span className="text-text-muted/70"> · {v.raceRound.roundName}</span>
+              )}
+            </div>
+            {v.description && <p className="text-[11px] text-text-muted/80 mt-0.5 leading-relaxed">{v.description}</p>}
+            {v.actualPenalty && <p className="text-[10px] text-text-muted/70 mt-1">{v.actualPenalty}</p>}
           </div>
-          <span className="text-[10px] text-text-muted/70 capitalize shrink-0">{v.violationStatus}</span>
+          <div className="text-right shrink-0">
+            {v.stewardAction && (
+              <p className="text-[10px] font-semibold text-text-muted capitalize">{v.stewardAction.replace(/-/g, " ")}</p>
+            )}
+            <p className="text-[10px] text-text-muted/70 capitalize mt-0.5">{v.violationStatus}</p>
+          </div>
         </div>
       ))}
     </div>

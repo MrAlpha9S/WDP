@@ -40,6 +40,7 @@ export interface HorseRegistrationEntry {
   registration: { _id: string; registrationStatus: string; laneNumber?: number; registeredAt: string; };
   raceRound: { _id: string; roundName: string; raceDate: string; trackLength: number; location: string; status: string; tournament?: { name: string }; } | null;
   result?: { finishPosition: number | null; finishTime: string | null; prizeMoney: number; resultStatus: string; distance?: number; } | null;
+  violations: HorseViolationEntry[];
 }
 
 export interface HorseViolationEntry {
@@ -128,7 +129,7 @@ export interface JockeyProfileData {
     fullName: string; image: string | null; dateOfBirth: string;
   };
   stats: { totalRaces: number; wins: number; winRate: number; totalPrize: number; };
-  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup"; bookingFees: number; }[];
+  recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup"; bookingFees: number; violations: JockeyViolationEntry[]; }[];
   violations: JockeyViolationEntry[];
 }
 

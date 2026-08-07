@@ -196,45 +196,79 @@ function RaceHistoryTab({ history, onRequestReject }: { history: HorseRegistrati
               const rr  = entry.raceRound;
               const res = entry.result;
               const reg = entry.registration;
+              const violations = entry.violations ?? [];
 
               return (
-                <div key={String(reg._id)} className="bg-[#1e1e1e] rounded-xl border border-border px-4 py-3.5 flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <p className="text-[13px] font-bold text-text truncate font-serif">
-                        {rr?.roundName ?? "—"}
-                      </p>
-                      {rr?.tournament && (
-                        <span className="text-[10px] text-text-muted/70 bg-white/5 border border-border px-1.5 py-0.5 rounded">
-                          {rr.tournament.name}
-                        </span>
-                      )}
+                <div key={String(reg._id)} className="bg-[#1e1e1e] rounded-xl border border-border px-4 py-3.5 flex flex-col gap-2.5">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <p className="text-[13px] font-bold text-text truncate font-serif">
+                          {rr?.roundName ?? "—"}
+                        </p>
+                        {rr?.tournament && (
+                          <span className="text-[10px] text-text-muted/70 bg-white/5 border border-border px-1.5 py-0.5 rounded">
+                            {rr.tournament.name}
+                          </span>
+                        )}
+                        {violations.length > 0 && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border text-red bg-red/10 border-red/40">
+                            <ShieldAlert size={10} />
+                            {violations.length} Violation{violations.length > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-text-muted flex-wrap">
+                        {rr?.raceDate && (
+                          <span className="flex items-center gap-1"><Calendar size={10} />{formatDate(rr.raceDate)}</span>
+                        )}
+                        {rr?.location && (
+                          <span className="flex items-center gap-1"><MapPin size={10} />{rr.location}</span>
+                        )}
+                        {rr?.trackLength && (
+                          <span className="flex items-center gap-1"><Flag size={10} />{rr.trackLength}m</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 text-[11px] text-text-muted flex-wrap">
-                      {rr?.raceDate && (
-                        <span className="flex items-center gap-1"><Calendar size={10} />{formatDate(rr.raceDate)}</span>
-                      )}
-                      {rr?.location && (
-                        <span className="flex items-center gap-1"><MapPin size={10} />{rr.location}</span>
-                      )}
-                      {rr?.trackLength && (
-                        <span className="flex items-center gap-1"><Flag size={10} />{rr.trackLength}m</span>
-                      )}
+                    <div className="flex items-center gap-4 shrink-0">
+                      <RegChip status={reg.registrationStatus} />
+                      <div className="text-center min-w-[36px]">
+                        <p className="text-[9px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">Pos.</p>
+                        <PositionBadge position={res?.finishPosition} regStatus={reg.registrationStatus} />
+                      </div>
+                      <div className="text-center min-w-[56px]">
+                        <p className="text-[9px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">Prize</p>
+                        <p className="text-[12px] font-semibold text-green">
+                          {res?.prizeMoney ? `${res.prizeMoney.toLocaleString()} ₫` : "—"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 shrink-0">
-                    <RegChip status={reg.registrationStatus} />
-                    <div className="text-center min-w-[36px]">
-                      <p className="text-[9px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">Pos.</p>
-                      <PositionBadge position={res?.finishPosition} regStatus={reg.registrationStatus} />
+
+                  {violations.length > 0 && (
+                    <div className="flex flex-col gap-1.5 pt-2.5 border-t border-border/60">
+                      {violations.map((v) => (
+                        <div key={String(v._id)} className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-semibold text-text">
+                              {v.violationType?.violationName ?? "Unknown Violation"}
+                            </p>
+                            {v.description && (
+                              <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{v.description}</p>
+                            )}
+                            {v.actualPenalty && (
+                              <p className="text-[10px] text-text-muted/70 mt-1">{v.actualPenalty}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <SeverityDots level={v.severity ?? v.violationType?.severity ?? 0} />
+                            {v.stewardAction && <StewardChip action={v.stewardAction} />}
+                            <ViolationStatusChip status={v.violationStatus} />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="text-center min-w-[56px]">
-                      <p className="text-[9px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">Prize</p>
-                      <p className="text-[12px] font-semibold text-green">
-                        {res?.prizeMoney ? `${res.prizeMoney.toLocaleString()} ₫` : "—"}
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
