@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import MuxPlayer from "@mux/mux-player-react";
 import {
     AlertTriangle, Camera, CheckCircle2, ChevronDown, ChevronRight,
-    Loader2, Shield, ShieldAlert, Trophy,
+    Loader2, Shield, ShieldAlert,
 } from "lucide-react";
 import { CAMERAS, horseColor } from "../../shared/data/RaceData";
 import type { HorseEntry } from "../../shared/types/RaceTypes";
@@ -704,8 +704,8 @@ export default function LivePage() {
                 showOnStream={showTrackOnStream}
             />
 
-            {/* Row 3: Stats + Actions + Verification */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_300px] gap-4">
+            {/* Row 3: Stats + Verification */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
 
                 <div className="bg-surface rounded-xl border border-border p-4">
                     <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Race Stats</h2>
@@ -721,18 +721,6 @@ export default function LivePage() {
                             <span className="text-[12px] font-semibold text-text">{item.value}</span>
                         </div>
                     ))}
-                </div>
-
-                <div className="bg-surface rounded-xl border border-border p-4">
-                    <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Actions</h2>
-                    <div className="flex flex-col gap-2.5">
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-text-muted text-[13px] font-semibold hover:border-white/20 hover:text-text transition-all">
-                            <Camera size={13} /> Review Finish Photo
-                        </button>
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red text-text text-[13px] font-bold uppercase tracking-widest hover:bg-red/85 shadow-lg shadow-red-900/40 transition-all">
-                            <Trophy size={13} /> Publish Results
-                        </button>
-                    </div>
                 </div>
 
                 <div className="bg-surface rounded-xl border border-border overflow-hidden">

@@ -59,6 +59,7 @@ function mapApiToInvitation(raw: any): Invitation {
     status: normalizeInviteStatus(raw.registration?.registrationStatus),
     date: raw.raceRound?.raceDate ? formatDate(raw.raceRound.raceDate) : "TBA",
     venue: raw.raceRound?.location ?? raw.location ?? "TBA",
+    address: raw.raceRound?.address ?? undefined,
     prize: raw.raceRound?.firstPlacePrize != null ? `${raw.raceRound?.currencyType ?? "VND"} ${raw.raceRound.firstPlacePrize.toLocaleString()}` : "TBA",
     distance: raw.raceRound?.trackLength != null ? `${raw.raceRound.trackLength}m` : "TBA",
     sentBy: raw.sentBy ?? raw.organizer ?? "Organizer",
@@ -146,11 +147,12 @@ function InvitationDetailModal({
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-2 gap-5">
             {[
               { icon: <Calendar size={13} className="text-red" />, label: "Date & Time", value: inv.date },
               { icon: <MapPin size={13} className="text-blue" />, label: "Venue", value: inv.venue },
               { icon: <Ruler size={13} className="text-green" />, label: "Distance", value: inv.distance },
+              ...(inv.address ? [{ icon: <MapPin size={13} className="text-blue" />, label: "Address", value: inv.address }] : []),
             ].map((item) => (
               <div key={item.label} className="bg-surface rounded-xl px-4 py-3 border border-border/60 flex items-start gap-3">
                 <div className="mt-0.5 shrink-0">{item.icon}</div>

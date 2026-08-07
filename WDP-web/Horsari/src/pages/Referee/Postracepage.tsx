@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { AlertTriangle, Camera, Flag, Loader2, Medal, Trophy } from "lucide-react";
+import { AlertTriangle, Ban, Clock, Flag, Loader2, Medal, Trophy } from "lucide-react";
 import { ordinal } from "../../shared/data/RaceData";
 import { refereeService } from "../../api/refereeService";
 import type { ViolationRecord } from "../../api/refereeService";
@@ -18,6 +18,24 @@ const fmtLength = (l: number | null | undefined, unit: DistUnit = 'lengths'): st
     const frac  = Math.round((l - whole) * 4) / 4;
     const f     = frac === 0 ? '' : frac === 0.25 ? '¼' : frac === 0.5 ? '½' : '¾';
     return whole === 0 ? `${f}L` : `${whole}${f}L`;
+};
+
+// Mirrors RefereeService.confirmViolation's severity → time-penalty mapping
+// (3 → +5s, 4 → +10s) so the original pre-penalty time can be reconstructed
+// here from the already-penalized finishTime, without persisting it server-side.
+const TIME_PENALTY_SECONDS: Record<number, number> = { 3: 5, 4: 10 };
+
+const parseRaceTime = (timeStr?: string | null): number => {
+    if (!timeStr) return Infinity;
+    const [minsPart, secsPart] = timeStr.split(':');
+    return ((Number(minsPart) || 0) * 60 + (Number(secsPart) || 0)) * 1000;
+};
+
+const formatRaceTime = (ms: number): string => {
+    const totalSec = ms / 1000;
+    const mins = Math.floor(totalSec / 60);
+    const secs = (totalSec % 60).toFixed(2);
+    return `${mins}:${secs.padStart(5, '0')}`;
 };
 
 export default function PostRacePage() {
@@ -91,10 +109,10 @@ export default function PostRacePage() {
     const handlePenalize = async (violationId: string) => {
         try {
             await refereeService.confirmViolation(violationId);
-            setViolations(prev => prev.map(v => v._id === violationId ? { ...v, violationStatus: 'confirmed' } : v));
-        } catch (err) {
+            await fetchData();
+        } catch (err: any) {
             console.error("Error confirming violation:", err);
-            alert("Failed to confirm violation");
+            alert(err?.msg ?? "Failed to confirm violation");
         }
     };
 
@@ -172,42 +190,72 @@ export default function PostRacePage() {
                                 ?? (confirmedInv?.jockeyId as any)?.fullName
                                 ?? "Unknown Jockey";
                             const result = reg.RaceResult || {};
+                            const isCancelled = result.resultStatus === 'cancelled';
                             const pos = result.finishPosition ?? 0;
                             const posColor = pos === 1 ? "text-amber" : pos === 2 ? "text-text-muted" : pos === 3 ? "text-amber-500" : "text-text-muted/70";
                             const posBg = pos === 1 ? "bg-yellow-600" : pos === 2 ? "bg-gray-500" : pos === 3 ? "bg-amber-700" : "bg-white/8";
-                            
+
                             const hasHorseObjection = violations.some(v => {
                                 const vRegId = typeof v.registrationId === 'string' ? v.registrationId : v.registrationId?._id;
                                 return vRegId === reg._id && v.violationStatus === 'pending';
                             });
 
+                            // Total confirmed time penalty for this horse, derived from each
+                            // confirmed violation's severity — used to reconstruct the
+                            // pre-penalty time from the (already-adjusted) finishTime.
+                            const penaltySeconds = violations.reduce((sum, v) => {
+                                const vRegId = typeof v.registrationId === 'string' ? v.registrationId : v.registrationId?._id;
+                                if (vRegId !== reg._id || v.violationStatus !== 'confirmed' || v.severity == null) return sum;
+                                return sum + (TIME_PENALTY_SECONDS[v.severity] ?? 0);
+                            }, 0);
+                            const hasPenalty = !isCancelled && penaltySeconds > 0;
+                            const originalFinishTime = hasPenalty
+                                ? formatRaceTime(parseRaceTime(result.finishTime) - penaltySeconds * 1000)
+                                : null;
+
                             return (
                                 <div key={reg._id} className={["rounded-xl border px-4 py-3 flex items-center gap-3",
-                                    hasHorseObjection && !objectionResolved ? "border-red-800/60 bg-red/5"
-                                        : pos > 0 && pos <= 3 ? "border-border bg-white/[0.03]"
-                                            : "border-border/60 bg-white/[0.02]"].join(" ")}
+                                    isCancelled ? "border-border/60 bg-white/[0.02] opacity-50"
+                                        : hasHorseObjection && !objectionResolved ? "border-red-800/60 bg-red/5"
+                                            : pos > 0 && pos <= 3 ? "border-border bg-white/[0.03]"
+                                                : "border-border/60 bg-white/[0.02]"].join(" ")}
                                 >
-                                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 text-text ${posBg}`}>{pos || "-"}</span>
+                                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 text-text ${isCancelled ? "bg-white/8" : posBg}`}>{isCancelled ? "-" : pos || "-"}</span>
                                     <span className="w-6 h-6 rounded-full bg-white/8 flex items-center justify-center text-[10px] font-bold text-text-muted shrink-0">{horse.horseNumber || "?"}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className={["text-[13.5px] font-bold",
-                                            hasHorseObjection && !objectionResolved ? "text-red" : pos > 0 && pos <= 3 ? "text-text" : "text-text-muted"].join(" ")}>
+                                            isCancelled ? "text-text-muted line-through" : hasHorseObjection && !objectionResolved ? "text-red" : pos > 0 && pos <= 3 ? "text-text" : "text-text-muted"].join(" ")}>
                                             {horse.horseName || "Unknown Horse"}
                                         </p>
                                         <p className="text-[11.5px] text-text-muted mt-0.5">{jockeyName}</p>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <p className={`text-[13px] font-bold font-mono ${posColor}`}>{result.finishTime || "--:--"}</p>
-                                        <p className={`text-[10px] font-bold uppercase mt-0.5 ${posColor}`}>{pos > 0 ? ordinal(pos) : "N/A"}</p>
-                                        {result.distance != null && result.distance > 0 && (
+                                        {hasPenalty && (
+                                            <p className="text-[10.5px] font-mono text-text-muted/60 line-through leading-tight">{originalFinishTime}</p>
+                                        )}
+                                        <p className={`text-[13px] font-bold font-mono ${isCancelled ? "text-text-muted/70" : posColor}`}>{isCancelled ? "—" : result.finishTime || "--:--"}</p>
+                                        <p className={`text-[10px] font-bold uppercase mt-0.5 ${isCancelled ? "text-text-muted/70" : posColor}`}>{isCancelled ? "DQ" : pos > 0 ? ordinal(pos) : "N/A"}</p>
+                                        {!isCancelled && result.distance != null && result.distance > 0 && (
                                             <p className="text-[10px] font-mono text-text-muted mt-0.5">{fmtLength(result.distance, distUnit)}</p>
                                         )}
                                     </div>
-                                    {hasHorseObjection && !objectionResolved && (
-                                        <span className="flex items-center gap-1 text-[10px] font-bold text-red bg-red/10 border border-red/40 px-2 py-0.5 rounded-full ml-1 shrink-0">
-                                            <Flag size={9} /> Objection
-                                        </span>
-                                    )}
+                                    <div className="flex flex-col items-end gap-1 ml-1 shrink-0">
+                                        {isCancelled && (
+                                            <span className="flex items-center gap-1 text-[10px] font-bold text-text-muted bg-white/5 border border-border px-2 py-0.5 rounded-full shrink-0">
+                                                <Ban size={9} /> DQ
+                                            </span>
+                                        )}
+                                        {hasPenalty && (
+                                            <span className="flex items-center gap-1 text-[10px] font-bold text-amber bg-amber-500/10 border border-amber-700/40 px-2 py-0.5 rounded-full shrink-0">
+                                                <Clock size={9} /> +{penaltySeconds}s
+                                            </span>
+                                        )}
+                                        {!isCancelled && hasHorseObjection && !objectionResolved && (
+                                            <span className="flex items-center gap-1 text-[10px] font-bold text-red bg-red/10 border border-red/40 px-2 py-0.5 rounded-full shrink-0">
+                                                <Flag size={9} /> Objection
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}
@@ -240,7 +288,12 @@ export default function PostRacePage() {
                                             </>
                                         ) : (
                                             <span className="text-[11px] font-bold text-text-muted capitalize">
-                                                {inc.violationStatus === 'confirmed' ? 'Violation Noted' : inc.violationStatus}
+                                                {inc.violationStatus !== 'confirmed'
+                                                    ? inc.violationStatus
+                                                    : inc.stewardAction === 'warning' ? 'Warning Issued'
+                                                        : inc.stewardAction === 'demoted' ? (inc.actualPenalty ?? 'Penalized')
+                                                            : inc.stewardAction === 'disqualified' ? 'Disqualified'
+                                                                : 'Violation Noted'}
                                             </span>
                                         )}
                                     </div>
@@ -256,21 +309,6 @@ export default function PostRacePage() {
 
             {/* RIGHT */}
             <div className="flex flex-col gap-5">
-
-                {/* Finish photo */}
-                <div className="bg-surface rounded-xl border border-border overflow-hidden">
-                    <div className="px-4 py-3 border-b border-border">
-                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 flex items-center gap-2">
-                            <Camera size={13} className="text-green-500" /> Finish Photo
-                        </h2>
-                    </div>
-                    <div className="relative m-3 rounded-xl overflow-hidden aspect-video bg-black flex items-center justify-center">
-                        <img src="/jumping-horse-silhouette-facing-left-side-view.png" alt="Finish" className="h-16 w-16 object-contain opacity-25" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[11px] font-bold text-text uppercase tracking-wider bg-black/60 px-3 py-1 rounded-lg">Photo Finish</span>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Summary */}
                 <div className="bg-surface rounded-xl border border-border p-4">
@@ -291,9 +329,6 @@ export default function PostRacePage() {
 
                 {/* Publish */}
                 <div className="flex flex-col gap-2.5">
-                    <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-text-muted text-[13px] font-semibold hover:border-white/20 hover:text-text transition-all duration-150">
-                        <Camera size={14} /> Review Finish Photo
-                    </button>
                     <button
                         onClick={handlePublish}
                         disabled={hasObjection || isAlreadyPublished || isPublishing || !canPublish}

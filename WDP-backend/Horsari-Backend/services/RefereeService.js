@@ -1199,11 +1199,94 @@ class RefereeService {
             }).lean();
             if (!assignment) return { code: 403, msg: 'You do not have permission to confirm this violation.' };
 
-            await Violation.findByIdAndUpdate(violationId, { violationStatus: 'confirmed' });
-            return { code: 200, msg: 'Violation confirmed.' };
+            const raceRound = await RaceRound.findById(violation.raceRoundId).lean();
+            if (raceRound && raceRound.status === 'completed') {
+                return { code: 422, msg: 'Cannot confirm — results for this race have already been published.' };
+            }
+
+            // Steward action + result consequence derived from severity:
+            //   1-2 → warning only, 3-4 → time penalty added to finish time (re-ranked
+            //   against everyone else's time), 5 → disqualify (cancel result).
+            const severity = violation.severity ?? 1;
+            const TIME_PENALTY_SECONDS = { 3: 5, 4: 10 };
+            let stewardAction = 'warning';
+            let actualPenalty = 'Formal warning issued.';
+            if (severity >= 5) {
+                stewardAction = 'disqualified';
+                actualPenalty = 'Result cancelled — disqualified.';
+            } else if (severity >= 3) {
+                stewardAction = 'demoted';
+                actualPenalty = `Time penalty: +${TIME_PENALTY_SECONDS[severity]}s.`;
+            }
+
+            await Violation.findByIdAndUpdate(violationId, {
+                violationStatus: 'confirmed',
+                stewardAction,
+                actualPenalty,
+            });
+
+            if (violation.registrationId && severity >= 3) {
+                if (severity >= 5) {
+                    await this._reorderRaceResults(violation.raceRoundId, violation.registrationId, { cancel: true });
+                } else {
+                    await this._reorderRaceResults(violation.raceRoundId, violation.registrationId, { penaltySeconds: TIME_PENALTY_SECONDS[severity] });
+                }
+            }
+
+            const updated = await Violation.findById(violationId)
+                .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                .populate('registrationId', '_id registrationStatus')
+                .lean();
+            return { code: 200, data: updated, msg: 'Violation confirmed.' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
+    }
+
+    // Reorders RaceResult placements for a race round after a time-penalty or
+    // disqualification: a time penalty is added to the horse's own finishTime,
+    // then every active result is re-ranked by (possibly adjusted) finish time —
+    // a cancelled horse is simply dropped from the pool first. Renumbers
+    // finishPosition and refreshes prizeMoney off the race round's prize table.
+    async _reorderRaceResults(raceRoundId, registrationId, { penaltySeconds = 0, cancel = false }) {
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+        let results = await RaceResult.find({ raceRoundId, resultStatus: { $ne: 'cancelled' } }).lean();
+
+        const entry = results.find(r => String(r.registrationId) === String(registrationId));
+        if (!entry || entry.finishTime == null) return; // no active timed result yet — nothing to reorder
+
+        if (cancel) {
+            await RaceResult.findByIdAndUpdate(entry._id, { resultStatus: 'cancelled', finishPosition: null, prizeMoney: 0 });
+            results = results.filter(r => String(r._id) !== String(entry._id));
+        } else if (penaltySeconds > 0) {
+            entry.finishTime = this._formatRaceTime(this._parseRaceTime(entry.finishTime) + penaltySeconds * 1000);
+        }
+
+        const prizes = [raceRound?.firstPlacePrize ?? 0, raceRound?.secondPlacePrize ?? 0, raceRound?.thirdPlacePrize ?? 0];
+        const ranked = [...results].sort((a, b) => this._parseRaceTime(a.finishTime) - this._parseRaceTime(b.finishTime));
+
+        const bulkOps = ranked.map((r, i) => {
+            const update = { finishPosition: i + 1, prizeMoney: i < 3 ? prizes[i] : 0 };
+            if (!cancel && String(r._id) === String(entry._id)) update.finishTime = entry.finishTime;
+            return { updateOne: { filter: { _id: r._id }, update } };
+        });
+        if (bulkOps.length) await RaceResult.bulkWrite(bulkOps);
+    }
+
+    // "M:SS.ss" ⇄ milliseconds — mirrors SimulationService's own formatTime.
+    _parseRaceTime(timeStr) {
+        if (!timeStr) return Infinity;
+        const [minsPart, secsPart] = String(timeStr).split(':');
+        const mins = Number(minsPart) || 0;
+        const secs = Number(secsPart) || 0;
+        return (mins * 60 + secs) * 1000;
+    }
+
+    _formatRaceTime(ms) {
+        const totalSec = ms / 1000;
+        const mins = Math.floor(totalSec / 60);
+        const secs = (totalSec % 60).toFixed(2);
+        return `${mins}:${secs.padStart(5, '0')}`;
     }
 
     async deleteViolation(refereeId, violationId, io) {
