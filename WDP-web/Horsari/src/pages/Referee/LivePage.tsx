@@ -549,13 +549,6 @@ export default function LivePage() {
                             <img src={cam.src} alt="Race feed" className="w-full h-full object-cover opacity-90 transition-all duration-300" />
                         )}
 
-                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-red/90 backdrop-blur px-2 py-1 rounded-lg">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                            <span className="text-[10px] font-bold text-text uppercase tracking-wider">
-                                {showMux ? "Live · OBS Stream" : streamTimedOut ? "Placeholder · Awaiting Stream" : `Preview · ${cam.label}`}
-                            </span>
-                        </div>
-
                         <div className="absolute bottom-2.5 left-2.5 bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg border border-border flex items-center gap-3">
                             <div>
                                 <p className="text-[8px] text-text-muted uppercase tracking-wider font-medium">Pace</p>
