@@ -101,17 +101,17 @@ function SelectCard<T extends { id: string }>({
     <button
       onClick={onSelect}
       className={`w-full text-left rounded-xl border px-4 py-3 transition-all duration-150 ${selected
-        ? "border-red-600/60 bg-red-900/10"
+        ? "border-red-600/60 bg-error-bg"
         : "border-border bg-surface hover:border-white/18 hover:bg-surface-raised"
         }`}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">{children}</div>
         <div
-          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all duration-150 ${selected ? "border-red-500 bg-red-600" : "border-white/20"
+          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all duration-150 ${selected ? "border-red-500 bg-red" : "border-white/20"
             }`}
         >
-          {selected && <Check size={9} className="text-white" strokeWidth={3} />}
+          {selected && <Check size={9} className="text-text" strokeWidth={3} />}
         </div>
       </div>
     </button>
@@ -125,14 +125,14 @@ function StepDot({ step, current, label }: { step: number; current: number; labe
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all duration-200 ${done ? "bg-red-700 border-red-600 text-white"
-          : active ? "bg-surface border-red-500 text-red-400"
-            : "bg-surface border-border text-gray-600"
+        className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all duration-200 ${done ? "bg-red border-red-600 text-text"
+          : active ? "bg-surface border-red-500 text-red"
+            : "bg-surface border-border text-text-muted/70"
           }`}
       >
         {done ? <Check size={11} strokeWidth={3} /> : step}
       </div>
-      <span className={`text-[9.5px] font-semibold tracking-widest uppercase ${active ? "text-red-400" : "text-gray-600"}`}>
+      <span className={`text-[9.5px] font-semibold tracking-widest uppercase ${active ? "text-red" : "text-text-muted/70"}`}>
         {label}
       </span>
     </div>
@@ -434,33 +434,33 @@ export default function HireJockeyModal({
                 }
               </div>
               <div>
-                <p className="text-[10px] font-bold tracking-[0.2em] text-gray-600 uppercase">Hiring</p>
-                <h2 className="text-[18px] font-bold text-white leading-tight font-serif">
+                <p className="text-[10px] font-bold tracking-[0.2em] text-text-muted/70 uppercase">Hiring</p>
+                <h2 className="text-[18px] font-bold text-text leading-tight font-serif">
                   {jockey.name}
                 </h2>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="w-7 h-7 rounded-full bg-white/5 border border-border flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all duration-150"
+              className="w-7 h-7 rounded-full bg-white/5 border border-border flex items-center justify-center text-text-muted hover:text-text hover:bg-white/10 transition-all duration-150"
             >
               <X size={13} />
             </button>
           </div>
 
           {hasNoShowHistory && (
-            <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg border border-red-700/40 bg-red-500/10">
-              <AlertCircle size={13} className="text-red-400 shrink-0" />
-              <span className="text-[11.5px] text-red-400 font-medium">Has a no-show on record</span>
+            <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg border border-red/40 bg-red/10">
+              <AlertCircle size={13} className="text-red shrink-0" />
+              <span className="text-[11.5px] text-red font-medium">Has a no-show on record</span>
             </div>
           )}
 
           {/* Step indicators */}
           <div className="flex items-center gap-0">
             <StepDot step={1} current={step} label="Race" />
-            <div className={`flex-1 h-px mx-2 transition-colors duration-300 ${step > 1 ? "bg-red-700/50" : "bg-white/8"}`} />
+            <div className={`flex-1 h-px mx-2 transition-colors duration-300 ${step > 1 ? "bg-red/50" : "bg-white/8"}`} />
             <StepDot step={2} current={step} label="Position" />
-            <div className={`flex-1 h-px mx-2 transition-colors duration-300 ${step > 2 ? "bg-red-700/50" : "bg-white/8"}`} />
+            <div className={`flex-1 h-px mx-2 transition-colors duration-300 ${step > 2 ? "bg-red/50" : "bg-white/8"}`} />
             <StepDot step={3} current={step} label="Horse" />
           </div>
         </div>
@@ -471,21 +471,21 @@ export default function HireJockeyModal({
           {/* ── Step 1: Race ── */}
           {step === 1 && (
             <div className="space-y-3">
-              <p className="text-[11px] font-bold tracking-[0.18em] text-gray-600 uppercase mb-4">
+              <p className="text-[11px] font-bold tracking-[0.18em] text-text-muted/70 uppercase mb-4">
                 Select Race
               </p>
               {loadingRaces && (
-                <div className="flex items-center gap-2 text-gray-600 text-[12px] py-4 justify-center">
+                <div className="flex items-center gap-2 text-text-muted/70 text-[12px] py-4 justify-center">
                   <Loader2 size={13} className="animate-spin" /> Loading races…
                 </div>
               )}
               {errorRaces && (
-                <div className="flex items-center gap-2 text-red-400 text-[12px] bg-red-900/10 border border-red-700/30 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 text-red text-[12px] bg-error-bg border border-error-border rounded-xl px-4 py-3">
                   <AlertCircle size={13} /> {errorRaces}
                 </div>
               )}
               {!loadingRaces && !errorRaces && races.length === 0 && (
-                <div className="text-center py-8 text-gray-600 text-[12px]">
+                <div className="text-center py-8 text-text-muted/70 text-[12px]">
                   No accepted races available.
                 </div>
               )}
@@ -497,10 +497,10 @@ export default function HireJockeyModal({
                   onSelect={() => setSelectedRace(race)}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <Trophy size={11} className="text-yellow-500 shrink-0" />
-                    <span className="text-[13px] font-bold text-white truncate">{race.name}</span>
+                    <Trophy size={11} className="text-amber shrink-0" />
+                    <span className="text-[13px] font-bold text-text truncate">{race.name}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-gray-600">
+                  <div className="flex items-center gap-3 text-[11px] text-text-muted/70">
                     <span>{race.date}</span>
                     <span>·</span>
                     <span className="truncate">{race.venue}</span>
@@ -509,12 +509,12 @@ export default function HireJockeyModal({
               ))}
 
               {selectedRace && checkingMainJockey && (
-                <div className="flex items-center gap-2 text-gray-600 text-[11px] px-1">
+                <div className="flex items-center gap-2 text-text-muted/70 text-[11px] px-1">
                   <Loader2 size={11} className="animate-spin" /> Checking existing invitations…
                 </div>
               )}
               {selectedRace && !checkingMainJockey && alreadyInvited && (
-                <div className="flex items-center gap-2 text-yellow-500 text-[12px] bg-yellow-900/10 border border-yellow-700/30 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 text-amber text-[12px] bg-amber/10 border border-yellow-700/30 rounded-xl px-4 py-3">
                   <AlertCircle size={13} className="shrink-0" />
                   {jockey.name} has already been invited to this race. Pick a different race or a different jockey.
                 </div>
@@ -525,12 +525,12 @@ export default function HireJockeyModal({
           {/* ── Step 2: Position ── */}
           {step === 2 && (
             <div className="space-y-3">
-              <p className="text-[11px] font-bold tracking-[0.18em] text-gray-600 uppercase mb-4">
+              <p className="text-[11px] font-bold tracking-[0.18em] text-text-muted/70 uppercase mb-4">
                 Select Position
               </p>
 
               {checkingMainJockey && (
-                <div className="flex items-center gap-2 text-gray-600 text-[11px] mb-1">
+                <div className="flex items-center gap-2 text-text-muted/70 text-[11px] mb-1">
                   <Loader2 size={11} className="animate-spin" /> Checking existing invitations…
                 </div>
               )}
@@ -542,19 +542,19 @@ export default function HireJockeyModal({
                   onSelect={() => { if (!mainJockeyTaken) setPosition(false); }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${mainJockeyTaken ? "bg-white/5 border border-white/10" : "bg-red-900/30 border border-red-700/30"}`}>
-                      <Shield size={14} className={mainJockeyTaken ? "text-gray-600" : "text-red-400"} />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${mainJockeyTaken ? "bg-white/5 border border-white/10" : "bg-red-900/30 border border-error-border"}`}>
+                      <Shield size={14} className={mainJockeyTaken ? "text-text-muted/70" : "text-red"} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className={`text-[13px] font-bold ${mainJockeyTaken ? "text-gray-600" : "text-white"}`}>Main Racer</p>
+                        <p className={`text-[13px] font-bold ${mainJockeyTaken ? "text-text-muted/70" : "text-text"}`}>Main Racer</p>
                         {mainJockeyTaken && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 text-yellow-500 font-bold shrink-0 tracking-wide uppercase">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 text-amber font-bold shrink-0 tracking-wide uppercase">
                             Already Invited
                           </span>
                         )}
                       </div>
-                      <p className={`text-[11px] mt-0.5 ${mainJockeyTaken ? "text-gray-700" : "text-gray-600"}`}>
+                      <p className={`text-[11px] mt-0.5 ${mainJockeyTaken ? "text-text-muted/50" : "text-text-muted/70"}`}>
                         {mainJockeyTaken
                           ? "This race already has a main jockey invitation pending or accepted."
                           : "Primary rider — starts the race from the gate."}
@@ -574,11 +574,11 @@ export default function HireJockeyModal({
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-blue-900/30 border border-blue-700/30 flex items-center justify-center shrink-0">
-                    <Repeat2 size={14} className="text-blue-400" />
+                    <Repeat2 size={14} className="text-blue" />
                   </div>
                   <div>
-                    <p className="text-[13px] font-bold text-white">Substitution</p>
-                    <p className="text-[11px] text-gray-600 mt-0.5">
+                    <p className="text-[13px] font-bold text-text">Substitution</p>
+                    <p className="text-[11px] text-text-muted/70 mt-0.5">
                       Reserve rider — steps in if the main racer is unavailable.
                     </p>
                   </div>
@@ -586,7 +586,7 @@ export default function HireJockeyModal({
               </SelectCard>
 
               <div className="mt-4">
-                <p className="text-[11px] font-bold tracking-[0.18em] text-gray-600 uppercase mb-3">
+                <p className="text-[11px] font-bold tracking-[0.18em] text-text-muted/70 uppercase mb-3">
                   Payout Percentage
                 </p>
                 <div className="flex items-center gap-3 bg-surface rounded-xl border border-border px-4 py-3">
@@ -596,30 +596,30 @@ export default function HireJockeyModal({
                     max={100}
                     value={percentagePayout}
                     onChange={(e) => setPercentagePayout(Math.min(100, Math.max(1, Number(e.target.value))))}
-                    className="flex-1 bg-transparent text-white text-[15px] font-bold focus:outline-none"
+                    className="flex-1 bg-transparent text-text text-[15px] font-bold focus:outline-none"
                   />
-                  <span className="text-[13px] font-semibold text-gray-500">%</span>
+                  <span className="text-[13px] font-semibold text-text-muted">%</span>
                 </div>
-                <p className="text-[10.5px] text-gray-600 mt-1.5">
+                <p className="text-[10.5px] text-text-muted/70 mt-1.5">
                   Share of prize money paid to the jockey.
                 </p>
               </div>
 
               <div className="mt-4">
-                <p className="text-[11px] font-bold tracking-[0.18em] text-gray-600 uppercase mb-3">
+                <p className="text-[11px] font-bold tracking-[0.18em] text-text-muted/70 uppercase mb-3">
                   Booking Fee
                 </p>
                 <div className="flex items-center gap-3 bg-surface rounded-xl border border-border px-4 py-3">
-                  <span className="text-[13px] font-semibold text-gray-500">₫</span>
+                  <span className="text-[13px] font-semibold text-text-muted">₫</span>
                   <input
                     type="number"
                     min={jockey.bookingFee}
                     value={bookingFees}
                     onChange={(e) => setBookingFees(Math.max(jockey.bookingFee, Number(e.target.value)))}
-                    className="flex-1 bg-transparent text-white text-[15px] font-bold focus:outline-none"
+                    className="flex-1 bg-transparent text-text text-[15px] font-bold focus:outline-none"
                   />
                 </div>
-                <p className="text-[10.5px] text-gray-600 mt-1.5">
+                <p className="text-[10.5px] text-text-muted/70 mt-1.5">
                   Flat fee paid regardless of race outcome (unless a no-show). Default is {jockey.bookingFee.toLocaleString()} ₫ — you may offer more.
                 </p>
               </div>
@@ -629,21 +629,21 @@ export default function HireJockeyModal({
           {/* ── Step 3: Horse ── */}
           {step === 3 && (
             <div className="space-y-3">
-              <p className="text-[11px] font-bold tracking-[0.18em] text-gray-600 uppercase mb-4">
+              <p className="text-[11px] font-bold tracking-[0.18em] text-text-muted/70 uppercase mb-4">
                 Select Horse
               </p>
               {loadingHorses && (
-                <div className="flex items-center gap-2 text-gray-600 text-[12px] py-4 justify-center">
+                <div className="flex items-center gap-2 text-text-muted/70 text-[12px] py-4 justify-center">
                   <Loader2 size={13} className="animate-spin" /> Loading horses…
                 </div>
               )}
               {errorHorses && (
-                <div className="flex items-center gap-2 text-red-400 text-[12px] bg-red-900/10 border border-red-700/30 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-2 text-red text-[12px] bg-error-bg border border-error-border rounded-xl px-4 py-3">
                   <AlertCircle size={13} /> {errorHorses}
                 </div>
               )}
               {!loadingHorses && !errorHorses && horses.length === 0 && (
-                <div className="text-center py-8 text-gray-600 text-[12px]">
+                <div className="text-center py-8 text-text-muted/70 text-[12px]">
                   No horses found in your stable.
                 </div>
               )}
@@ -671,32 +671,32 @@ export default function HireJockeyModal({
                       onSelect={() => { if (isSelectable) setSelectedHorse(horse); }}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <Flag size={11} className={isSelectable ? "text-red-400 shrink-0" : "text-gray-600 shrink-0"} />
-                        <span className={`text-[13px] font-bold truncate ${isSelectable ? "text-white" : "text-gray-600"}`}>
+                        <Flag size={11} className={isSelectable ? "text-red shrink-0" : "text-text-muted/70 shrink-0"} />
+                        <span className={`text-[13px] font-bold truncate ${isSelectable ? "text-text" : "text-text-muted/70"}`}>
                           {horse.name}
                         </span>
                         {isLockedIn && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-900/20 border border-green-700/30 text-green-400 font-bold shrink-0 tracking-wide uppercase">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-900/20 border border-green-700/30 text-green font-bold shrink-0 tracking-wide uppercase">
                             Assigned
                           </span>
                         )}
                         {isLockedOut && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/20 border border-red-700/30 text-red-400 font-bold shrink-0 tracking-wide uppercase">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/20 border border-error-border text-red font-bold shrink-0 tracking-wide uppercase">
                             Horse Locked
                           </span>
                         )}
                         {!isLockedOut && !isEligible && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 text-yellow-500 font-bold shrink-0 tracking-wide uppercase">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 text-amber font-bold shrink-0 tracking-wide uppercase">
                             Not Eligible
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-[11px] text-gray-600">
+                      <div className="flex items-center gap-3 text-[11px] text-text-muted/70">
                         <span>{horse.breed}</span>
                         <span>·</span>
                         <span className="capitalize">{horse.gender}</span>
                         <span>·</span>
-                        <span className={horse.healthStatus === "healthy" ? "text-green-500" : "text-yellow-500"}>
+                        <span className={horse.healthStatus === "healthy" ? "text-green-500" : "text-amber"}>
                           {horse.healthStatus}
                         </span>
                       </div>
@@ -716,20 +716,20 @@ export default function HireJockeyModal({
         {/* Summary bar (steps 2+) */}
         {step > 1 && selectedRace && (
           <div className="px-6 py-3 border-t border-border/60 bg-[#0e0e0e] shrink-0">
-            <div className="flex items-center gap-4 text-[11px] text-gray-600">
+            <div className="flex items-center gap-4 text-[11px] text-text-muted/70">
               <div className="flex items-center gap-1.5">
-                <Trophy size={10} className="text-yellow-500" />
-                <span className="text-gray-400 font-medium truncate max-w-[140px]">{selectedRace.name}</span>
+                <Trophy size={10} className="text-amber" />
+                <span className="text-text-muted font-medium truncate max-w-[140px]">{selectedRace.name}</span>
               </div>
               {step > 2 && (
                 <>
                   <span>·</span>
                   <div className="flex items-center gap-1.5">
                     {position === false
-                      ? <Shield size={10} className="text-red-400" />
-                      : <Repeat2 size={10} className="text-blue-400" />
+                      ? <Shield size={10} className="text-red" />
+                      : <Repeat2 size={10} className="text-blue" />
                     }
-                    <span className="text-gray-400 font-medium capitalize">{position === false ? "Main Racer" : "Substitution"}</span>
+                    <span className="text-text-muted font-medium capitalize">{position === false ? "Main Racer" : "Substitution"}</span>
                   </div>
                 </>
               )}
@@ -742,14 +742,14 @@ export default function HireJockeyModal({
           {step > 1 ? (
             <button
               onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-              className="flex-1 py-2.5 rounded-lg border border-white/12 text-gray-400 text-[13px] font-semibold hover:border-white/25 hover:text-white transition-all duration-150"
+              className="flex-1 py-2.5 rounded-lg border border-white/12 text-text-muted text-[13px] font-semibold hover:border-white/25 hover:text-text transition-all duration-150"
             >
               Back
             </button>
           ) : (
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-white/12 text-gray-400 text-[13px] font-semibold hover:border-white/25 hover:text-white transition-all duration-150"
+              className="flex-1 py-2.5 rounded-lg border border-white/12 text-text-muted text-[13px] font-semibold hover:border-white/25 hover:text-text transition-all duration-150"
             >
               Cancel
             </button>
@@ -760,8 +760,8 @@ export default function HireJockeyModal({
               onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
               disabled={!canNext}
               className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${canNext
-                ? "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
-                : "bg-surface border border-border text-gray-600 cursor-not-allowed"
+                ? "bg-red hover:bg-red/85 text-text shadow-lg shadow-red-900/30"
+                : "bg-surface border border-border text-text-muted/70 cursor-not-allowed"
                 }`}
             >
               Next <ChevronDown size={13} className="-rotate-90" />
@@ -771,8 +771,8 @@ export default function HireJockeyModal({
               onClick={handleConfirm}
               disabled={!selectedHorse || submitting || alreadyInvited}
               className={`flex-1 py-2.5 rounded-lg text-[13px] font-bold transition-all duration-150 flex items-center justify-center gap-2 ${selectedHorse && !submitting && !alreadyInvited
-                ? "bg-green-700 hover:bg-green-600 text-white shadow-lg shadow-green-900/30"
-                : "bg-surface border border-border text-gray-600 cursor-not-allowed"
+                ? "bg-green-700 hover:bg-green-600 text-text shadow-lg shadow-green-900/30"
+                : "bg-surface border border-border text-text-muted/70 cursor-not-allowed"
                 }`}
             >
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
@@ -785,25 +785,25 @@ export default function HireJockeyModal({
           <div className="absolute inset-0 flex items-center justify-center z-10 rounded-2xl bg-black/60 backdrop-blur-[2px]">
             <div className={`flex flex-col items-center gap-3 px-8 py-6 rounded-2xl border shadow-2xl
       ${toast.type === "success"
-                ? "bg-[#0d1f0d] border-green-700/40"
-                : "bg-[#1f0d0d] border-red-700/40"}`}
+                ? "bg-[#0d1f0d] border-green/40"
+                : "bg-[#1f0d0d] border-red/40"}`}
             >
               {toast.type === "success"
-                ? <CheckCircle2 size={36} className="text-green-400" />
-                : <XCircle size={36} className="text-red-400" />
+                ? <CheckCircle2 size={36} className="text-green" />
+                : <XCircle size={36} className="text-red" />
               }
               <p className={`text-[16px] font-bold ${toast.type === "success" ? "text-green-300" : "text-red-300"}`}>
                 {toast.message}
               </p>
               {toast.detail && (
-                <p className="text-[12px] text-gray-500 text-center max-w-[220px] leading-relaxed">
+                <p className="text-[12px] text-text-muted text-center max-w-[220px] leading-relaxed">
                   {toast.detail}
                 </p>
               )}
               {toast.type === "error" && (
                 <button
                   onClick={() => setToast(null)}
-                  className="mt-1 text-[11px] text-gray-500 hover:text-white underline underline-offset-2 transition-colors"
+                  className="mt-1 text-[11px] text-text-muted hover:text-text underline underline-offset-2 transition-colors"
                 >
                   Dismiss
                 </button>

@@ -5,6 +5,8 @@ import HorseProfile from "./HorseProfile";
 import { RefetchButton } from "../../../components/RefetchButton";
 import { ErrorState } from "../../../components/ErrorState";
 import ViewToggle, { type ViewMode } from "../../../components/ui/ViewToggle";
+import PageHeader from "../../../components/ui/PageHeader";
+import Button from "../../../components/ui/Button";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 // Mirrors the backend enums: Horse.status ('active'|'inactive'|'retired') and
@@ -27,11 +29,11 @@ interface HorseCard {
 
 // ── Status metadata ───────────────────────────────────────────────────────────
 const STATUS_META: Record<HorseStatus, { label: string; dot: string; text: string }> = {
-  active: { label: "Active", dot: "bg-green-400", text: "text-green-400" },
-  inactive: { label: "Inactive", dot: "bg-gray-400", text: "text-gray-400" },
-  retired: { label: "Retired", dot: "bg-blue-400", text: "text-blue-400" },
-  injured: { label: "Injured", dot: "bg-red-400", text: "text-red-400" },
-  sick: { label: "Sick", dot: "bg-yellow-400", text: "text-yellow-400" },
+  active: { label: "Active", dot: "bg-green", text: "text-green" },
+  inactive: { label: "Inactive", dot: "bg-gray-400", text: "text-text-muted" },
+  retired: { label: "Retired", dot: "bg-blue", text: "text-blue" },
+  injured: { label: "Injured", dot: "bg-red", text: "text-red" },
+  sick: { label: "Sick", dot: "bg-amber", text: "text-amber" },
 };
 
 const STATUS_NOTES: Partial<Record<HorseStatus, string>> = {
@@ -98,10 +100,10 @@ function statusLabel(status: HorseStatus) {
 function InfoCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-[#1e1e1e] rounded-lg px-3 py-2.5 border border-border/60">
-      <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-1">
+      <p className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase mb-1">
         {label}
       </p>
-      <p className="text-[13px] font-semibold text-white leading-snug">{value}</p>
+      <p className="text-[13px] font-semibold text-text leading-snug">{value}</p>
     </div>
   );
 }
@@ -148,11 +150,11 @@ function HorseCardItem({
       <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
         <div>
           <h3
-            className="text-[16px] font-bold text-white leading-tight font-serif"
+            className="text-[16px] font-bold text-text leading-tight font-serif"
           >
             {horse.name}
           </h3>
-          <p className="text-[11px] font-semibold tracking-widest text-gray-600 uppercase mt-0.5">
+          <p className="text-[11px] font-semibold tracking-widest text-text-muted/70 uppercase mt-0.5">
             {horse.age}YO {horse.color} {horse.sex} · {horse.grade}
           </p>
         </div>
@@ -168,13 +170,13 @@ function HorseCardItem({
         <div className="flex items-center gap-2 mt-auto">
           <button
             onClick={onViewProfile}
-            className="flex-1 py-2.5 rounded-lg border border-red-700/60 text-red-400 text-[12.5px] font-semibold hover:bg-red-700/10 hover:border-red-600 transition-all duration-150 tracking-wide"
+            className="flex-1 py-2.5 rounded-lg border border-red/50 text-red text-[12.5px] font-semibold hover:bg-red/10 hover:border-red/80 transition-all duration-150 tracking-wide"
           >
             VIEW PROFILE
           </button>
           <button
             onClick={onOpenUpdate}
-            className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150 shrink-0"
+            className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text-muted hover:border-white/25 transition-all duration-150 shrink-0"
           >
             <MoreVertical size={15} />
           </button>
@@ -195,19 +197,19 @@ function HorseTable({ horses, onViewProfile, onOpenUpdate }: {
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="bg-surface border-b border-border/60">
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Name</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Age / Breed / Sex</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Grade</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase"></th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Name</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Age / Breed / Sex</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Grade</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Status</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
           {horses.map((horse) => (
             <tr key={horse.id} className="hover:bg-white/[0.02] transition-colors">
-              <td className="p-4 text-[13px] font-semibold text-white">{horse.name}</td>
-              <td className="p-4 text-[12.5px] text-gray-400">{horse.age}YO {horse.color} {horse.sex}</td>
-              <td className="p-4 text-[12.5px] text-gray-400">{horse.grade}</td>
+              <td className="p-4 text-[13px] font-semibold text-text">{horse.name}</td>
+              <td className="p-4 text-[12.5px] text-text-muted">{horse.age}YO {horse.color} {horse.sex}</td>
+              <td className="p-4 text-[12.5px] text-text-muted">{horse.grade}</td>
               <td className="p-4">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-black/40 text-[10.5px] font-semibold tracking-wide">
                   <span className={`w-1.5 h-1.5 rounded-full ${statusDot(horse.status)}`} />
@@ -218,13 +220,13 @@ function HorseTable({ horses, onViewProfile, onOpenUpdate }: {
                 <div className="flex items-center justify-end gap-2">
                   <button
                     onClick={() => onViewProfile(horse.id)}
-                    className="px-3.5 py-1.5 rounded-lg border border-red-700/60 text-red-400 text-[11px] font-semibold hover:bg-red-700/10 hover:border-red-600 transition-all duration-150"
+                    className="px-3.5 py-1.5 rounded-lg border border-red/50 text-red text-[11px] font-semibold hover:bg-red/10 hover:border-red/80 transition-all duration-150"
                   >
                     View Profile
                   </button>
                   <button
                     onClick={() => onOpenUpdate(horse.id)}
-                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-gray-500 hover:text-gray-300 hover:border-white/25 transition-all duration-150"
+                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text-muted hover:border-white/25 transition-all duration-150"
                   >
                     <MoreVertical size={14} />
                   </button>
@@ -316,20 +318,20 @@ function EditHorseModal({
     }
   }
 
-  const inputCls = "w-full bg-[#1e1e1e] border border-border rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
-  const labelCls = "block text-[10.5px] font-bold tracking-widest text-gray-500 uppercase mb-1.5";
-  const idle = "text-gray-600 border-border bg-transparent hover:border-white/20 hover:text-gray-400";
+  const inputCls = "w-full bg-[#1e1e1e] border border-border rounded-lg px-4 py-2.5 text-[13px] text-text placeholder-text-muted focus:outline-none focus:border-white/30 transition-colors duration-150";
+  const labelCls = "block text-[10.5px] font-bold tracking-widest text-text-muted uppercase mb-1.5";
+  const idle = "text-text-muted/70 border-border bg-transparent hover:border-white/20 hover:text-text-muted";
 
   const statusOptions: { label: string; value: 'active' | 'inactive' | 'retired'; active: string }[] = [
-    { label: "Active", value: "active", active: "text-green-400 border-green-500/50 bg-green-500/10" },
-    { label: "Inactive", value: "inactive", active: "text-gray-300 border-gray-500/50 bg-gray-500/10" },
-    { label: "Retired", value: "retired", active: "text-blue-400 border-blue-500/50 bg-blue-500/10" },
+    { label: "Active", value: "active", active: "text-green border-green/50 bg-green/10" },
+    { label: "Inactive", value: "inactive", active: "text-text-muted border-gray-500/50 bg-gray-500/10" },
+    { label: "Retired", value: "retired", active: "text-blue border-blue/50 bg-blue/10" },
   ];
 
   const healthOptions: { label: string; value: 'healthy' | 'injured' | 'sick'; active: string }[] = [
-    { label: "Healthy", value: "healthy", active: "text-green-400 border-green-500/50 bg-green-500/10" },
-    { label: "Injured", value: "injured", active: "text-red-400 border-red-500/50 bg-red-500/10" },
-    { label: "Sick", value: "sick", active: "text-yellow-400 border-yellow-500/50 bg-yellow-500/10" },
+    { label: "Healthy", value: "healthy", active: "text-green border-green/50 bg-green/10" },
+    { label: "Injured", value: "injured", active: "text-red border-red/50 bg-red/10" },
+    { label: "Sick", value: "sick", active: "text-amber border-amber/50 bg-amber/10" },
   ];
 
   const displayImg = imagePreview ?? currentImg;
@@ -343,14 +345,14 @@ function EditHorseModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div>
-            <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">Edit Horse</p>
-            <h2 className="text-[17px] font-bold text-white mt-0.5 font-serif">
+            <p className="text-[11px] font-bold tracking-[0.2em] text-text-muted/70 uppercase">Edit Horse</p>
+            <h2 className="text-[17px] font-bold text-text mt-0.5 font-serif">
               {horse.horseName}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-text-muted hover:text-text hover:border-white/25 transition-all duration-150"
           >
             <X size={14} />
           </button>
@@ -374,8 +376,8 @@ function EditHorseModal({
                 />
               )}
               <div className={`relative z-10 flex items-center gap-2 ${displayImg ? "bg-black/50 px-3 py-1.5 rounded-full" : ""}`}>
-                <ImagePlus size={16} className={displayImg ? "text-gray-300" : "text-gray-600 group-hover:text-gray-400 transition-colors"} />
-                <p className={`text-[12px] ${displayImg ? "text-gray-200" : "text-gray-600 group-hover:text-gray-400 transition-colors"}`}>
+                <ImagePlus size={16} className={displayImg ? "text-text-muted" : "text-text-muted/70 group-hover:text-text-muted transition-colors"} />
+                <p className={`text-[12px] ${displayImg ? "text-text" : "text-text-muted/70 group-hover:text-text-muted transition-colors"}`}>
                   {displayImg ? "Change photo" : "Upload photo (optional)"}
                 </p>
               </div>
@@ -407,7 +409,7 @@ function EditHorseModal({
                 <option value="">Select breed…</option>
                 {BREEDS.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
-              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             </div>
           </div>
 
@@ -424,7 +426,7 @@ function EditHorseModal({
                   <option value="male">Male (Colt)</option>
                   <option value="female">Female (Filly)</option>
                 </select>
-                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               </div>
             </div>
             <div>
@@ -473,7 +475,7 @@ function EditHorseModal({
           </div>
 
           {error && (
-            <p className="text-[12px] text-red-400 bg-red-900/15 border border-red-700/30 rounded-lg px-3 py-2.5">
+            <p className="text-[12px] text-red bg-error-bg border border-error-border rounded-lg px-3 py-2.5">
               {error}
             </p>
           )}
@@ -482,14 +484,14 @@ function EditHorseModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-border text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
+              className="flex-1 py-2.5 rounded-lg border border-border text-[12.5px] font-semibold text-text-muted hover:text-text hover:border-white/25 transition-all duration-150"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 py-2.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:bg-red-900/50 disabled:text-red-700 text-white text-[12.5px] font-bold tracking-wide transition-all duration-150 flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 rounded-lg bg-red hover:bg-red/85 disabled:bg-red/30 disabled:text-red/60 text-text text-[12.5px] font-bold tracking-wide transition-all duration-150 flex items-center justify-center gap-2"
             >
               {submitting ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : "Save Changes"}
             </button>
@@ -562,8 +564,8 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
     }
   }
 
-  const inputCls = "w-full bg-[#1e1e1e] border border-border rounded-lg px-4 py-2.5 text-[13px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-white/30 transition-colors duration-150";
-  const labelCls = "block text-[10.5px] font-bold tracking-widest text-gray-500 uppercase mb-1.5";
+  const inputCls = "w-full bg-[#1e1e1e] border border-border rounded-lg px-4 py-2.5 text-[13px] text-text placeholder-text-muted focus:outline-none focus:border-white/30 transition-colors duration-150";
+  const labelCls = "block text-[10.5px] font-bold tracking-widest text-text-muted uppercase mb-1.5";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm" onClick={onClose}>
@@ -574,14 +576,14 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <p className="text-[11px] font-bold tracking-[0.2em] text-gray-600 uppercase">New Registration</p>
-            <h2 className="text-[17px] font-bold text-white mt-0.5 font-serif">
+            <p className="text-[11px] font-bold tracking-[0.2em] text-text-muted/70 uppercase">New Registration</p>
+            <h2 className="text-[17px] font-bold text-text mt-0.5 font-serif">
               Register a Horse
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:text-white hover:border-white/25 transition-all duration-150"
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-text-muted hover:text-text hover:border-white/25 transition-all duration-150"
           >
             <X size={14} />
           </button>
@@ -599,9 +601,9 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
               <img src={imagePreview} className="h-20 object-contain rounded-lg" alt="preview" />
             ) : (
               <>
-                <ImagePlus size={20} className="text-gray-600 group-hover:text-gray-400 transition-colors" />
-                <p className="text-[12px] text-gray-600 group-hover:text-gray-400 transition-colors">
-                  Upload photo <span className="text-gray-700">(optional)</span>
+                <ImagePlus size={20} className="text-text-muted/70 group-hover:text-text-muted transition-colors" />
+                <p className="text-[12px] text-text-muted/70 group-hover:text-text-muted transition-colors">
+                  Upload photo <span className="text-text-muted/50">(optional)</span>
                 </p>
               </>
             )}
@@ -633,7 +635,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
                 <option value="">Select breed…</option>
                 {BREEDS.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
-              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             </div>
           </div>
 
@@ -651,7 +653,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
                   <option value="male">Male (Colt)</option>
                   <option value="female">Female (Filly)</option>
                 </select>
-                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               </div>
             </div>
             <div>
@@ -668,7 +670,7 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
 
           {/* Error */}
           {error && (
-            <p className="text-[12px] text-red-400 bg-red-900/15 border border-red-700/30 rounded-lg px-3 py-2.5">
+            <p className="text-[12px] text-red bg-error-bg border border-error-border rounded-lg px-3 py-2.5">
               {error}
             </p>
           )}
@@ -678,14 +680,14 @@ function RegisterHorseModal({ onClose, onCreated }: { onClose: () => void; onCre
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-border text-[12.5px] font-semibold text-gray-400 hover:text-white hover:border-white/25 transition-all duration-150"
+              className="flex-1 py-2.5 rounded-lg border border-border text-[12.5px] font-semibold text-text-muted hover:text-text hover:border-white/25 transition-all duration-150"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 py-2.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:bg-red-900/50 disabled:text-red-700 text-white text-[12.5px] font-bold tracking-wide transition-all duration-150 flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 rounded-lg bg-red hover:bg-red/85 disabled:bg-red/30 disabled:text-red/60 text-text text-[12.5px] font-bold tracking-wide transition-all duration-150 flex items-center justify-center gap-2"
             >
               {submitting ? <><Loader2 size={13} className="animate-spin" /> Registering…</> : "Register Horse"}
             </button>
@@ -708,15 +710,15 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
       <button
         onClick={onPrev}
         disabled={page === 1}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-text-muted font-semibold disabled:opacity-30 hover:border-white/25 hover:text-text transition-all duration-150"
       >
         <ChevronLeft size={13} /> Prev
       </button>
-      <span className="text-[12px] text-gray-500 font-medium">Page {page} of {totalPages}</span>
+      <span className="text-[12px] text-text-muted font-medium">Page {page} of {totalPages}</span>
       <button
         onClick={onNext}
         disabled={page === totalPages}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150"
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-text-muted font-semibold disabled:opacity-30 hover:border-white/25 hover:text-text transition-all duration-150"
       >
         Next <ChevronRight size={13} />
       </button>
@@ -805,64 +807,55 @@ export default function HorsesPage() {
     )}
     <div className="flex-1 px-8 py-8 min-h-screen bg-bg flex flex-col font-sans">
       <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
-              Active Roster
-            </h1>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
-                Horse Management
-              </span>
-              <span className="text-[12px] text-gray-500 truncate">· {filtered.length} horse{filtered.length !== 1 ? "s" : ""}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
+        <PageHeader
+          title="Active Roster"
+          eyebrow="Horse Management"
+          subtext={`${filtered.length} horse${filtered.length !== 1 ? "s" : ""}`}
+          actions={<>
             <ViewToggle value={viewMode} onChange={setViewMode} />
             <RefetchButton onRefetch={() => setRefreshSeed((s) => s + 1)} lastUpdated={lastUpdated} />
-            <button
-              onClick={() => setShowRegister(true)}
-              className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
-            >
-              <Plus size={13} /> Register New Horse
-            </button>
-          </div>
-        </div>
+            <Button size="sm" leftIcon={<Plus size={13} />} onClick={() => setShowRegister(true)}>
+              Register New Horse
+            </Button>
+          </>}
+        />
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative flex-1 max-w-xs">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted/70" />
             <input
               type="text"
               placeholder="Search horses..."
+              aria-label="Search horses"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-surface border border-border rounded-md pl-9 pr-4 text-[11px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 h-[32px] transition-colors duration-150"
+              className="w-full bg-surface border border-border rounded-md pl-9 pr-4 text-[11px] text-text-muted placeholder-text-muted focus:outline-none focus:border-white/20 h-[32px] transition-colors duration-150"
             />
           </div>
           <div className="relative">
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1); }}
-              className="appearance-none bg-surface border border-border rounded-md pl-3 pr-8 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
+              aria-label="Filter by status"
+              className="appearance-none bg-surface border border-border rounded-md pl-3 pr-8 text-[11px] text-text-muted focus:outline-none focus:border-white/20 cursor-pointer h-[32px]"
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           </div>
         </div>
       </header>
       <div className="flex-1 pt-5">
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-24 text-gray-600">
+        <div className="flex flex-col items-center justify-center py-24 text-text-muted/70">
           <p className="text-[15px] font-medium">Loading horses...</p>
         </div>
       ) : error ? (
         <ErrorState message={error} onRetry={() => setRefreshSeed((s) => s + 1)} />
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-gray-600">
+        <div className="flex flex-col items-center justify-center py-24 text-text-muted/70">
           <p className="text-[15px] font-medium">No horses match your filters.</p>
         </div>
       ) : (

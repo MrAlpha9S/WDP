@@ -87,6 +87,7 @@ export interface RaceRoundData {
   RaceReferee?: MyRaceRefereeAssignment | null;
   predictionPools?: PredictionPool[];
   trackEarnings?: TrackEarnings;
+  Violations?: ViolationEntity[];
 }
 
 export interface TournamentRaceData {

@@ -309,7 +309,7 @@ export default function ProfileScreen() {
                           </View>
                           <View style={styles.violationBadges}>
                             <Badge
-                              label={v.stewardAction.replace('-', ' ').toUpperCase()}
+                              label={(v.stewardAction ?? 'no-action').replace('-', ' ').toUpperCase()}
                               tone={stewardActionTone(v.stewardAction)}
                             />
                             <Badge label={status.label.toUpperCase()} tone={status.tone} />

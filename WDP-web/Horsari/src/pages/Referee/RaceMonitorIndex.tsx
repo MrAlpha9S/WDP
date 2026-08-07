@@ -83,7 +83,7 @@ function PageHeader({ phase, raceRound, onBack, wsConnected, onRefetch, lastUpda
     return (
         <div className="mb-6">
             <div className="flex items-center justify-between mb-5">
-                <button onClick={onBack} className="flex items-center gap-2 text-[13px] text-gray-500 font-medium hover:text-gray-200 transition-colors group">
+                <button onClick={onBack} className="flex items-center gap-2 text-[13px] text-text-muted font-medium hover:text-text transition-colors group">
                     <ArrowLeft size={14} className="transition-transform duration-150 group-hover:-translate-x-0.5" />
                     Back to Dashboard
                 </button>
@@ -95,12 +95,12 @@ function PageHeader({ phase, raceRound, onBack, wsConnected, onRefetch, lastUpda
             </div>
             <div>
                 <h1
-                    className="text-[26px] font-bold text-white leading-tight tracking-tight font-serif"
+                    className="text-[26px] font-bold text-text leading-tight tracking-tight font-serif"
                 >
                     {title}
                 </h1>
                 {subtitle && (
-                    <p className="text-[13px] text-gray-500 mt-0.5">{subtitle}</p>
+                    <p className="text-[13px] text-text-muted mt-0.5">{subtitle}</p>
                 )}
             </div>
         </div>
@@ -112,17 +112,17 @@ function PageHeader({ phase, raceRound, onBack, wsConnected, onRefetch, lastUpda
 function DevSwitcher({ phase, onChange }: { phase: RacePhase; onChange: (p: RacePhase) => void }) {
     return (
         <div className="fixed bottom-5 right-5 z-50 bg-[#111] border border-white/15 rounded-2xl px-4 py-3 shadow-2xl shadow-black/60 flex flex-col gap-2">
-            <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Dev · Phase</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted/70">Dev · Phase</p>
             <div className="flex gap-2">
                 {(["pre", "live", "post"] as RacePhase[]).map(p => (
                     <button key={p} onClick={() => onChange(p)}
                         className={[
                             "px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all",
                             phase === p
-                                ? p === "pre" ? "bg-yellow-600 text-white"
-                                    : p === "live" ? "bg-red-700 text-white"
-                                        : "bg-green-700 text-white"
-                                : "bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300",
+                                ? p === "pre" ? "bg-yellow-600 text-text"
+                                    : p === "live" ? "bg-red text-text"
+                                        : "bg-green-700 text-text"
+                                : "bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-muted",
                         ].join(" ")}
                     >
                         {p === "pre" ? "Pre" : p === "live" ? "Live" : "Post"}
@@ -222,7 +222,7 @@ export default function RaceMonitorIndex() {
     if (loading) {
         return (
             <div className="min-h-screen bg-bg flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+                <Loader2 className="w-8 h-8 text-red animate-spin" />
             </div>
         );
     }
@@ -230,17 +230,17 @@ export default function RaceMonitorIndex() {
     if (error) {
         return (
             <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4">
-                <p className="text-[14px] text-red-400 font-medium">{error}</p>
+                <p className="text-[14px] text-red font-medium">{error}</p>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => refetchRaceRound()}
-                        className="flex items-center gap-1.5 text-[13px] font-semibold text-white bg-red-700 hover:bg-red-600 px-3 py-1.5 rounded-lg transition-colors"
+                        className="flex items-center gap-1.5 text-[13px] font-semibold text-text bg-red hover:bg-red/85 px-3 py-1.5 rounded-lg transition-colors"
                     >
                         Retry
                     </button>
                     <button
                         onClick={() => navigate("/referee/dashboard")}
-                        className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors"
+                        className="flex items-center gap-1.5 text-[13px] text-text-muted hover:text-text transition-colors"
                     >
                         <ArrowLeft size={13} /> Back to Dashboard
                     </button>
@@ -252,12 +252,12 @@ export default function RaceMonitorIndex() {
     if (raceRound?.status === "cancelled") {
         return (
             <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4">
-                <p className="text-[14px] text-gray-400">
-                    <span className="font-semibold text-white">{raceRound.roundName}</span> has been cancelled.
+                <p className="text-[14px] text-text-muted">
+                    <span className="font-semibold text-text">{raceRound.roundName}</span> has been cancelled.
                 </p>
                 <button
                     onClick={() => navigate("/referee/dashboard")}
-                    className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors"
+                    className="flex items-center gap-1.5 text-[13px] text-text-muted hover:text-text transition-colors"
                 >
                     <ArrowLeft size={13} /> Back to Dashboard
                 </button>
@@ -284,14 +284,14 @@ export default function RaceMonitorIndex() {
                 </div>
 
                 <footer className="border-t border-border py-4 mt-8">
-                    <div className="max-w-5xl mx-auto px-5 flex items-center justify-between text-[12px] text-gray-600">
+                    <div className="max-w-5xl mx-auto px-5 flex items-center justify-between text-[12px] text-text-muted/70">
                         <span>© 2026 Equine Elite Management System</span>
                         <div className="flex items-center gap-4">
-                            <a href="#" className="hover:text-gray-400 transition-colors">Help/Support</a>
-                            <a href="#" className="hover:text-gray-400 transition-colors">Settings</a>
-                            <a href="#" className="hover:text-gray-400 transition-colors">Privacy Policy</a>
+                            <a href="#" className="hover:text-text-muted transition-colors">Help/Support</a>
+                            <a href="#" className="hover:text-text-muted transition-colors">Settings</a>
+                            <a href="#" className="hover:text-text-muted transition-colors">Privacy Policy</a>
                         </div>
-                        <span className="font-black uppercase tracking-widest text-gray-500 text-[11px] font-serif">
+                        <span className="font-black uppercase tracking-widest text-text-muted text-[11px] font-serif">
                             Equine Elite
                         </span>
                     </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Ban, CheckCircle2, ClipboardList, Clock, Flag, UserCheck } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, ClipboardList, Clock, UserCheck } from "lucide-react";
 import PreRaceInspectionModal from "./modal/PreRaceCheckup";
 import type { RegistrationDetail } from "../../providers/useRaceSocket";
 import { useRaceSocket } from "../../providers/useRaceSocket";
@@ -13,21 +13,21 @@ import { ScheduleConfirmModal } from "../../components/ScheduleConfirmModal";
 
 function regStatusBadge(status?: string) {
     switch (status) {
-        case "verified": return <span className="text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-700/40 px-1.5 py-0.5 rounded-md">Verified</span>;
-        case "failed": return <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-1.5 py-0.5 rounded-md">Failed</span>;
+        case "verified": return <span className="text-[10px] font-bold text-green bg-green/10 border border-green/40 px-1.5 py-0.5 rounded-md">Verified</span>;
+        case "failed": return <span className="text-[10px] font-bold text-red bg-red/10 border border-red/40 px-1.5 py-0.5 rounded-md">Failed</span>;
         case "accepted": return <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-700/40 px-1.5 py-0.5 rounded-md">Accepted</span>;
-        case "cancelled": return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Cancelled</span>;
-        case "rejected": return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Rejected</span>;
-        default: return <span className="text-[10px] font-bold text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Pending</span>;
+        case "cancelled": return <span className="text-[10px] font-bold text-text-muted bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Cancelled</span>;
+        case "rejected": return <span className="text-[10px] font-bold text-text-muted bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Rejected</span>;
+        default: return <span className="text-[10px] font-bold text-text-muted bg-white/5 border border-border px-1.5 py-0.5 rounded-md">Pending</span>;
     }
 }
 
 function gateCircleClass(status?: string, isChecked?: boolean) {
-    if (status === "failed") return "bg-red-700 text-white";
-    if (status === "verified") return "bg-green-700 text-white";
-    if (status === "accepted") return "bg-amber-700 text-white";
-    if (isChecked) return "bg-green-700 text-white";
-    return "bg-white/8 text-gray-400";
+    if (status === "failed") return "bg-red text-text";
+    if (status === "verified") return "bg-green-700 text-text";
+    if (status === "accepted") return "bg-amber-700 text-text";
+    if (isChecked) return "bg-green-700 text-text";
+    return "bg-white/8 text-text-muted";
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -177,7 +177,7 @@ export default function PreRacePage() {
                 key={registrationId}
                 className={[
                     "rounded-xl border px-4 py-3 transition-all duration-150",
-                    regStatus === "failed" ? "border-red-800/40 bg-red-500/5" :
+                    regStatus === "failed" ? "border-red-800/40 bg-red/5" :
                         regStatus === "verified" ? "border-green-800/40 bg-green-500/5" :
                             regStatus === "accepted" ? "border-amber-800/30 bg-amber-500/5" :
                                 "border-border bg-white/[0.02]",
@@ -195,14 +195,14 @@ export default function PreRacePage() {
                     {/* Horse / jockey info */}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-[13.5px] font-bold text-white">
-                                {horseName ?? <span className="text-gray-500 font-medium italic">No horse assigned</span>}
+                            <p className="text-[13.5px] font-bold text-text">
+                                {horseName ?? <span className="text-text-muted font-medium italic">No horse assigned</span>}
                             </p>
                             {regStatusBadge(regStatus)}
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             {hasJockey ? (
-                                <span className="flex items-center gap-1 text-[11.5px] text-gray-500">
+                                <span className="flex items-center gap-1 text-[11.5px] text-text-muted">
                                     <UserCheck size={10} className={jockeyConfirmed ? "text-green-500" : "text-amber-500"} />
                                     {jockeyName}
                                     {!jockeyConfirmed && (
@@ -214,7 +214,7 @@ export default function PreRacePage() {
                                     <AlertTriangle size={10} /> No jockey assigned
                                 </span>
                             ) : ownerName ? (
-                                <span className="text-[11.5px] text-gray-600">Owner: {ownerName}</span>
+                                <span className="text-[11.5px] text-text-muted/70">Owner: {ownerName}</span>
                             ) : null}
                             {!hasHorse && (
                                 <span className="text-[11.5px] text-red-600 flex items-center gap-1">
@@ -223,7 +223,7 @@ export default function PreRacePage() {
                             )}
                         </div>
                         {failReason && (
-                            <p className="text-[11px] text-red-500 mt-0.5 flex items-center gap-1">
+                            <p className="text-[11px] text-red mt-0.5 flex items-center gap-1">
                                 <AlertTriangle size={9} /> {failReason}
                             </p>
                         )}
@@ -236,10 +236,10 @@ export default function PreRacePage() {
                             className={[
                                 "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-150 shrink-0",
                                 regStatus === "failed"
-                                    ? "border border-red-700/50 text-red-400 bg-red-500/10 hover:bg-red-500/20"
+                                    ? "border border-red-700/50 text-red bg-red/10 hover:bg-red/20"
                                     : regStatus === "verified"
-                                        ? "border border-green-700/50 text-green-400 bg-green-500/10 hover:bg-green-500/20"
-                                        : "border border-yellow-700/50 text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20",
+                                        ? "border border-green-700/50 text-green bg-green/10 hover:bg-green-500/20"
+                                        : "border border-yellow-700/50 text-amber bg-amber/10 hover:bg-yellow-500/20",
                             ].join(" ")}
                         >
                             <ClipboardList size={11} />
@@ -259,14 +259,14 @@ export default function PreRacePage() {
                     {/* Horse checklist */}
                     <div className="bg-surface rounded-xl border border-border overflow-hidden">
                         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                            <h2 className="text-[13px] font-bold text-white flex items-center gap-2 font-serif">
-                                <ClipboardList size={14} className="text-yellow-500" /> Horse Inspection Checklist
+                            <h2 className="text-[13px] font-bold text-text flex items-center gap-2 font-serif">
+                                <ClipboardList size={14} className="text-amber" /> Horse Inspection Checklist
                             </h2>
                             <div className="flex items-center gap-2">
                                 {pendingRegistrations.length > 0 && (
                                     <button
                                         onClick={() => setShowBulkCancelConfirm(true)}
-                                        className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-red-800/50 text-red-400 hover:bg-red-500/10 transition-colors"
+                                        className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-red-800/50 text-red hover:bg-red/10 transition-colors"
                                     >
                                         <Ban size={12} /> Cancel All Pending ({pendingRegistrations.length})
                                     </button>
@@ -275,22 +275,22 @@ export default function PreRacePage() {
                             </div>
                         </div>
                         {showBulkCancelConfirm && (
-                            <div className="px-5 py-3 border-b border-red-900/40 bg-red-500/5 flex items-center justify-between gap-3 flex-wrap">
-                                <p className="text-[12px] text-red-400">
+                            <div className="px-5 py-3 border-b border-red-900/40 bg-red/5 flex items-center justify-between gap-3 flex-wrap">
+                                <p className="text-[12px] text-red">
                                     Cancel {pendingRegistrations.length} pending registration{pendingRegistrations.length > 1 ? "s" : ""} as no-show? Owners will be notified.
                                 </p>
                                 <div className="flex items-center gap-2 shrink-0">
                                     <button
                                         onClick={() => setShowBulkCancelConfirm(false)}
                                         disabled={bulkCancelling}
-                                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-border text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-border text-text-muted hover:text-text transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Keep
                                     </button>
                                     <button
                                         onClick={handleBulkCancelPending}
                                         disabled={bulkCancelling}
-                                        className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red-700 text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red text-text hover:bg-red/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {bulkCancelling ? <span className="animate-pulse">Cancelling…</span> : "Confirm Cancel All"}
                                     </button>
@@ -298,7 +298,7 @@ export default function PreRacePage() {
                             </div>
                         )}
                         {bulkCancelError && (
-                            <p className="px-5 py-2 text-[11.5px] text-red-400 flex items-center gap-1.5 border-b border-border">
+                            <p className="px-5 py-2 text-[11.5px] text-red flex items-center gap-1.5 border-b border-border">
                                 <AlertTriangle size={11} /> {bulkCancelError}
                             </p>
                         )}
@@ -307,10 +307,10 @@ export default function PreRacePage() {
                                 <ErrorState message={registrationsError} onRetry={refetchRegistrations} />
                             )}
                             {!registrationsError && registrations.length === 0 && (
-                                <p className="text-[12px] text-gray-600 text-center py-6">No horses registered for this race.</p>
+                                <p className="text-[12px] text-text-muted/70 text-center py-6">No horses registered for this race.</p>
                             )}
                             {!registrationsError && activeRegistrations.length === 0 && registrations.length > 0 && (
-                                <p className="text-[12px] text-gray-600 text-center py-6">All registrations for this race have been cancelled.</p>
+                                <p className="text-[12px] text-text-muted/70 text-center py-6">All registrations for this race have been cancelled.</p>
                             )}
                             {!registrationsError && activeRegistrations.map(({ reg, index }) => renderRegistrationRow(reg, index))}
                         </div>
@@ -321,8 +321,8 @@ export default function PreRacePage() {
                     {cancelledRegistrations.length > 0 && (
                         <div className="bg-surface rounded-xl border border-border overflow-hidden opacity-75">
                             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                                <h2 className="text-[13px] font-bold text-gray-400 flex items-center gap-2 font-serif">
-                                    <AlertTriangle size={14} className="text-gray-500" /> Cancelled Entries
+                                <h2 className="text-[13px] font-bold text-text-muted flex items-center gap-2 font-serif">
+                                    <AlertTriangle size={14} className="text-text-muted" /> Cancelled Entries
                                 </h2>
                             </div>
                             <div className="p-3 flex flex-col gap-2">
@@ -333,7 +333,7 @@ export default function PreRacePage() {
 
                     {/* Venue & Track */}
                     <div className="bg-surface rounded-xl border border-border p-5">
-                        <h2 className="text-[13px] font-bold text-white mb-4 font-serif">Venue & Track</h2>
+                        <h2 className="text-[13px] font-bold text-text mb-4 font-serif">Venue & Track</h2>
                         <div className="grid grid-cols-2 gap-3">
                             {[
                                 { label: "Surface", value: raceRound?.raceGround ?? "-" },
@@ -342,8 +342,8 @@ export default function PreRacePage() {
                                 { label: "Address", value: raceRound?.address ?? "-" },
                             ].map(item => (
                                 <div key={item.label} className="bg-white/[0.03] rounded-lg border border-border/60 px-3 py-2.5">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-0.5">{item.label}</p>
-                                    <p className="text-[13px] font-semibold text-white truncate">{item.value}</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted/70 mb-0.5">{item.label}</p>
+                                    <p className="text-[13px] font-semibold text-text truncate">{item.value}</p>
                                 </div>
                             ))}
                         </div>
@@ -353,7 +353,7 @@ export default function PreRacePage() {
                 {/* RIGHT */}
                 <div className="flex flex-col gap-4">
                     <div className="bg-surface rounded-xl border border-border p-4">
-                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Details</h2>
+                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Race Details</h2>
                         {[
                             { label: "Race Type", value: raceRound?.RaceType?.raceType ?? "-" },
                             { label: "Prize Pool", value: prizePool },
@@ -361,14 +361,14 @@ export default function PreRacePage() {
                             { label: "Entries", value: `${registrations.length} horses` },
                         ].map(item => (
                             <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
-                                <span className="text-[12px] text-gray-500">{item.label}</span>
-                                <span className="text-[12px] font-semibold text-white">{item.value}</span>
+                                <span className="text-[12px] text-text-muted">{item.label}</span>
+                                <span className="text-[12px] font-semibold text-text">{item.value}</span>
                             </div>
                         ))}
                     </div>
 
                     <div className="bg-surface rounded-xl border border-border p-4">
-                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Inspection Progress</h2>
+                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Inspection Progress</h2>
                         {(() => {
                             const verifiedCount = registrations.filter(r => r.registrationStatus === "verified").length;
                             const failedCount = registrations.filter(r => r.registrationStatus === "failed").length;
@@ -398,10 +398,10 @@ export default function PreRacePage() {
                                 { label: "Track Inspection", ok: true, value: "Cleared" },
                             ].map(item => (
                                 <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
-                                    <span className="text-[12px] text-gray-500">{item.label}</span>
+                                    <span className="text-[12px] text-text-muted">{item.label}</span>
                                     {item.ok
-                                        ? <span className="flex items-center gap-1 text-[11px] font-bold text-green-400"><CheckCircle2 size={11} />{item.value}</span>
-                                        : <span className="flex items-center gap-1 text-[11px] font-bold text-yellow-400"><Clock size={11} />{item.value}</span>
+                                        ? <span className="flex items-center gap-1 text-[11px] font-bold text-green"><CheckCircle2 size={11} />{item.value}</span>
+                                        : <span className="flex items-center gap-1 text-[11px] font-bold text-amber"><Clock size={11} />{item.value}</span>
                                     }
                                 </div>
                             ));
@@ -414,7 +414,7 @@ export default function PreRacePage() {
 
                         if (currentStatus === "prepared") {
                             return (
-                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 border border-green-700/50 text-green-400 text-[13px] font-bold uppercase tracking-widest">
+                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green/10 border border-green-700/50 text-green text-[13px] font-bold uppercase tracking-widest">
                                     <CheckCircle2 size={14} /> Race Has Been Prepared
                                 </div>
                             );
@@ -422,15 +422,15 @@ export default function PreRacePage() {
 
                         if (currentStatus === "cancelled") {
                             return (
-                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 border border-red-700/50 text-red-400 text-[13px] font-bold uppercase tracking-widest">
-                                    <Flag size={14} /> Race Cancelled
+                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red/10 border border-red-700/50 text-red text-[13px] font-bold uppercase tracking-widest">
+                                    <Ban size={14} /> Race Cancelled
                                 </div>
                             );
                         }
 
                         if (!allResolved) {
                             return (
-                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 text-gray-500 border border-border text-[13px] font-bold uppercase tracking-widest">
+                                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 text-text-muted border border-border text-[13px] font-bold uppercase tracking-widest">
                                     <Clock size={14} /> Awaiting Clearance
                                 </div>
                             );
@@ -439,7 +439,7 @@ export default function PreRacePage() {
                         return (
                             <div className="flex flex-col gap-2">
                                 {finalizeError && (
-                                    <p className="text-[11.5px] text-red-400 flex items-center gap-1.5 px-1">
+                                    <p className="text-[11.5px] text-red flex items-center gap-1.5 px-1">
                                         <AlertTriangle size={11} /> {finalizeError}
                                     </p>
                                 )}
@@ -449,17 +449,17 @@ export default function PreRacePage() {
                                     className={[
                                         "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
                                         finalizing
-                                            ? "bg-white/5 text-gray-600 border border-border cursor-not-allowed"
+                                            ? "bg-white/5 text-text-muted/70 border border-border cursor-not-allowed"
                                             : hasVerified
-                                                ? "bg-green-700 text-white hover:bg-green-600 shadow-lg shadow-green-900/30"
-                                                : "bg-red-700 text-white hover:bg-red-600 shadow-lg shadow-red-900/30",
+                                                ? "bg-green-700 text-text hover:bg-green-600 shadow-lg shadow-green-900/30"
+                                                : "bg-red text-text hover:bg-red/85 shadow-lg shadow-red-900/30",
                                     ].join(" ")}
                                 >
                                     {finalizing
                                         ? <><Clock size={14} className="animate-spin" /> Finalizing…</>
                                         : hasVerified
                                             ? <><CheckCircle2 size={14} /> Prepare Race</>
-                                            : <><Flag size={14} /> Cancel Race — No Eligible Entries</>
+                                            : <><Ban size={14} /> Cancel Race — No Eligible Entries</>
                                     }
                                 </button>
                             </div>

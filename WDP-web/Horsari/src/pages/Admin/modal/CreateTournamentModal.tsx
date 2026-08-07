@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
 import type { Tournament } from "../../../shared/types/TournamentTypes";
 import { adminService } from "../../../api/adminService";
+import Modal from "../../../components/ui/Modal";
+import Button from "../../../components/ui/Button";
 
 interface CreateTournamentModalProps {
     isOpen: boolean;
@@ -169,68 +170,59 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-[500px] bg-surface border border-border rounded-xl overflow-hidden shadow-2xl flex flex-col">
-                <div className="p-6 border-b border-border/60 flex justify-between items-center bg-surface-raised">
-                    <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">
-                        {editingTournament ? "Edit Tournament" : "Create New Tournament"}
-                    </h2>
-                    <button onClick={onClose} disabled={loading} className="text-gray-500 hover:text-white transition-colors">
-                        <X size={20} />
-                    </button>
+        <Modal
+            title={editingTournament ? "Edit Tournament" : "Create New Tournament"}
+            onClose={onClose}
+            closeOnBackdrop={!loading}
+            footer={<>
+                <Button variant="secondary" size="sm" disabled={loading} onClick={onClose}>
+                    Cancel
+                </Button>
+                <Button size="sm" loading={loading} onClick={handleSubmit}>
+                    {editingTournament ? "Save Changes" : "Create Tournament"}
+                </Button>
+            </>}
+        >
+            <div className="flex flex-col gap-4">
+                {error && (
+                    <div className="bg-error-bg border border-error-border text-red text-[13px] p-3 rounded-lg">
+                        {error}
+                    </div>
+                )}
+                <div>
+                    <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">Tournament Name</label>
+                    <input value={name} onChange={e => setName(e.target.value)} type="text" placeholder="e.g. Winter Cup" className="w-full bg-bg border border-border rounded-lg p-2.5 text-[13px] text-text focus:outline-none focus:border-red/50" />
                 </div>
 
-                <div className="p-6 flex flex-col gap-4">
-                    {error && (
-                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] p-3 rounded">
-                            {error}
-                        </div>
-                    )}
-                    <div>
-                        <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Tournament Name</label>
-                        <input value={name} onChange={e => setName(e.target.value)} type="text" placeholder="e.g. Winter Cup" className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50" />
-                    </div>
-
-                    <div>
-                        <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Description</label>
-                        <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Brief description..." className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 resize-none"></textarea>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Start Date</label>
-                            <input
-                                value={startDate}
-                                onChange={e => handleStartDateChange(e.target.value)}
-                                type="date"
-                                min={minStartDateStr}
-                                className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark]"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-widest mb-2">End Date</label>
-                            <input
-                                value={endDate}
-                                onChange={e => handleEndDateChange(e.target.value)}
-                                type="date"
-                                min={minEndDateStr}
-                                disabled={!startDate}
-                                className="w-full bg-bg border border-border rounded p-2.5 text-[13px] text-white focus:outline-none focus:border-red-500/50 [color-scheme:dark] disabled:opacity-40 disabled:cursor-not-allowed"
-                            />
-                        </div>
-                    </div>
+                <div>
+                    <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">Description</label>
+                    <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Brief description..." className="w-full bg-bg border border-border rounded-lg p-2.5 text-[13px] text-text focus:outline-none focus:border-red/50 resize-none"></textarea>
                 </div>
 
-                <div className="p-5 border-t border-border/60 bg-surface-raised flex justify-end gap-3">
-                    <button onClick={onClose} disabled={loading} className="px-5 py-2 rounded text-[13px] font-medium text-gray-400 hover:text-white transition-colors">
-                        Cancel
-                    </button>
-                    <button onClick={handleSubmit} disabled={loading} className="flex items-center gap-2 px-5 py-2 rounded text-[13px] font-medium text-white bg-red-700 hover:bg-red-600 transition-colors shadow-lg shadow-red-900/20 disabled:opacity-50">
-                        {loading && <Loader2 size={14} className="animate-spin" />}
-                        {editingTournament ? "Save Changes" : "Create Tournament"}
-                    </button>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">Start Date</label>
+                        <input
+                            value={startDate}
+                            onChange={e => handleStartDateChange(e.target.value)}
+                            type="date"
+                            min={minStartDateStr}
+                            className="w-full bg-bg border border-border rounded-lg p-2.5 text-[13px] text-text focus:outline-none focus:border-red/50 [color-scheme:dark]"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">End Date</label>
+                        <input
+                            value={endDate}
+                            onChange={e => handleEndDateChange(e.target.value)}
+                            type="date"
+                            min={minEndDateStr}
+                            disabled={!startDate}
+                            className="w-full bg-bg border border-border rounded-lg p-2.5 text-[13px] text-text focus:outline-none focus:border-red/50 [color-scheme:dark] disabled:opacity-40 disabled:cursor-not-allowed"
+                        />
+                    </div>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 }

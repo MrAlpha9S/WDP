@@ -147,7 +147,7 @@ export default function OwnerRaceMonitorIndex() {
     if (loading) {
         return (
             <div className="min-h-screen bg-bg flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+                <Loader2 className="w-8 h-8 text-red animate-spin" />
             </div>
         );
     }
@@ -155,15 +155,15 @@ export default function OwnerRaceMonitorIndex() {
     if (error) {
         return (
             <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4">
-                <p className="text-[14px] text-red-400 font-medium">{error}</p>
+                <p className="text-[14px] text-red font-medium">{error}</p>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => load()}
-                        className="flex items-center gap-1.5 text-[13px] font-semibold text-white bg-red-700 hover:bg-red-600 px-3 py-1.5 rounded-lg transition-colors"
+                        className="flex items-center gap-1.5 text-[13px] font-semibold text-text bg-red hover:bg-red/85 px-3 py-1.5 rounded-lg transition-colors"
                     >
                         Retry
                     </button>
-                    <button onClick={() => navigate("/owner")} className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors">
+                    <button onClick={() => navigate("/owner")} className="flex items-center gap-1.5 text-[13px] text-text-muted hover:text-text transition-colors">
                         <ArrowLeft size={13} /> Back to Dashboard
                     </button>
                 </div>
@@ -174,10 +174,10 @@ export default function OwnerRaceMonitorIndex() {
     if (raceRound?.status === "cancelled") {
         return (
             <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4">
-                <p className="text-[14px] text-gray-400">
-                    <span className="font-semibold text-white">{raceRound.roundName}</span> has been cancelled.
+                <p className="text-[14px] text-text-muted">
+                    <span className="font-semibold text-text">{raceRound.roundName}</span> has been cancelled.
                 </p>
-                <button onClick={() => navigate("/owner")} className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-200 transition-colors">
+                <button onClick={() => navigate("/owner")} className="flex items-center gap-1.5 text-[13px] text-text-muted hover:text-text transition-colors">
                     <ArrowLeft size={13} /> Back to Dashboard
                 </button>
             </div>
@@ -202,7 +202,7 @@ export default function OwnerRaceMonitorIndex() {
                     {/* Header */}
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-5">
-                            <button onClick={() => navigate("/owner")} className="flex items-center gap-2 text-[13px] text-gray-500 font-medium hover:text-gray-200 transition-colors group">
+                            <button onClick={() => navigate("/owner")} className="flex items-center gap-2 text-[13px] text-text-muted font-medium hover:text-text transition-colors group">
                                 <ArrowLeft size={14} className="transition-transform duration-150 group-hover:-translate-x-0.5" />
                                 Back to Dashboard
                             </button>
@@ -212,10 +212,10 @@ export default function OwnerRaceMonitorIndex() {
                             <span className={`w-2 h-2 rounded-full ${phaseCfg.dot} ${"pulse" in phaseCfg && wsConnected ? "animate-pulse" : ""}`} />
                             <span className={`text-[11px] font-bold uppercase tracking-widest ${phaseCfg.color}`}>{ownerStatusLabel(raceRound?.status)}</span>
                         </div>
-                        <h1 className="text-[26px] font-bold text-white leading-tight tracking-tight font-serif">
+                        <h1 className="text-[26px] font-bold text-text leading-tight tracking-tight font-serif">
                             {raceRound?.roundName ?? "Race Monitor"}
                         </h1>
-                        <p className="text-[13px] text-gray-500 mt-0.5">
+                        <p className="text-[13px] text-text-muted mt-0.5">
                             {[raceRound?.location, raceRound?.raceGround, raceRound?.trackLength ? `${raceRound.trackLength}m` : null].filter(Boolean).join(" · ")}
                         </p>
                     </div>
@@ -229,9 +229,9 @@ export default function OwnerRaceMonitorIndex() {
                 </div>
 
                 <footer className="border-t border-border py-4 mt-8">
-                    <div className="max-w-5xl mx-auto px-5 flex items-center justify-between text-[12px] text-gray-600">
+                    <div className="max-w-5xl mx-auto px-5 flex items-center justify-between text-[12px] text-text-muted/70">
                         <span>© 2026 Equine Elite Management System</span>
-                        <span className="font-black uppercase tracking-widest text-gray-500 text-[11px] font-serif">
+                        <span className="font-black uppercase tracking-widest text-text-muted text-[11px] font-serif">
                             Equine Elite
                         </span>
                     </div>

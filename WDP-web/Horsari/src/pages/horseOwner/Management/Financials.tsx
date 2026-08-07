@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  TrendingUp, TrendingDown, Minus, Trophy,
+  TrendingUp, TrendingDown, Coins, Trophy,
   BarChart2, Search,
   Loader2, AlertTriangle, Medal, Calendar
 } from "lucide-react";
@@ -55,13 +55,13 @@ function StatCard({ icon, label, value, sub, subColor, loading }: {
         {icon}
       </div>
       <div className="flex items-center justify-between relative z-10">
-        <p className="text-[10.5px] font-bold tracking-widest text-gray-500 uppercase">{label}</p>
+        <p className="text-[10.5px] font-bold tracking-widest text-text-muted uppercase">{label}</p>
       </div>
-      <p className="text-[28px] font-black text-white leading-none tracking-tight font-sans">
-        {loading ? <span className="animate-pulse text-gray-700">…</span> : value}
+      <p className="text-[28px] font-black text-text leading-none tracking-tight font-sans">
+        {loading ? <span className="animate-pulse text-text-muted/50">…</span> : value}
       </p>
       <p className={`text-[11.5px] font-medium flex items-center gap-1 ${subColor} relative z-10`}>
-        {loading ? <span className="animate-pulse text-gray-700">Loading</span> : sub}
+        {loading ? <span className="animate-pulse text-text-muted/50">Loading</span> : sub}
       </p>
     </div>
   );
@@ -93,12 +93,12 @@ function EarningsChart() {
     return (
         <div className="bg-surface border border-border rounded-xl p-5 flex flex-col xl:col-span-2 h-[420px]">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[13px] font-semibold text-white flex items-center gap-2">
+                <h3 className="text-[13px] font-semibold text-text flex items-center gap-2">
                     <BarChart2 size={15} className="text-emerald-500" /> Gross Earnings Trend
                 </h3>
                 <div className="flex items-center bg-bg rounded-lg p-1 border border-border">
                     {(['day', 'week', 'month', 'year'] as const).map(g => (
-                        <button key={g} onClick={() => setGroupBy(g)} className={`px-3 py-1 text-[11px] font-bold uppercase rounded-md transition-colors ${groupBy === g ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-500 hover:text-white'}`}>
+                        <button key={g} onClick={() => setGroupBy(g)} className={`px-3 py-1 text-[11px] font-bold uppercase rounded-md transition-colors ${groupBy === g ? 'bg-emerald-500/20 text-emerald-400' : 'text-text-muted hover:text-text'}`}>
                             {g}
                         </button>
                     ))}
@@ -107,10 +107,10 @@ function EarningsChart() {
 
             {loading ? (
                 <div className="flex-1 flex items-center justify-center">
-                    <Loader2 size={24} className="animate-spin text-gray-600" />
+                    <Loader2 size={24} className="animate-spin text-text-muted/70" />
                 </div>
             ) : series.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-[12px] text-gray-500">No data</div>
+                <div className="flex-1 flex items-center justify-center text-[12px] text-text-muted">No data</div>
             ) : (
                 <div className="relative flex-1 min-w-0"
                      onMouseLeave={() => setHoveredIdx(null)}
@@ -150,14 +150,14 @@ function EarningsChart() {
                     {/* Tooltip */}
                     {hoveredIdx !== null && (
                         <div 
-                            className="absolute bg-[#1e1e1e] border border-border rounded-lg px-3 py-2 text-[11px] text-gray-300 whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
+                            className="absolute bg-[#1e1e1e] border border-border rounded-lg px-3 py-2 text-[11px] text-text-muted whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
                             style={{ 
                                 left: `${(toX(hoveredIdx) / W) * 100}%`,
                                 top: '5%',
                                 transform: 'translateX(-50%)'
                             }}
                         >
-                            <p className="font-bold text-white mb-1">{fmtDate(series[hoveredIdx].date, groupBy)}</p>
+                            <p className="font-bold text-text mb-1">{fmtDate(series[hoveredIdx].date, groupBy)}</p>
                             <p><span className="text-emerald-400">●</span> Gross Prize: {fmt(series[hoveredIdx].grossPrize)} ₫</p>
                         </div>
                     )}
@@ -178,20 +178,20 @@ function TopPerformers() {
 
     return (
         <div className="bg-surface border border-border rounded-xl p-5 flex flex-col xl:col-span-1 h-[420px]">
-            <h3 className="text-[13px] font-semibold text-white flex items-center gap-2 mb-4">
-                <Medal size={15} className="text-yellow-500" /> Top Earning Horses
+            <h3 className="text-[13px] font-semibold text-text flex items-center gap-2 mb-4">
+                <Medal size={15} className="text-amber" /> Top Earning Horses
             </h3>
             {loading ? (
                 <div className="flex-1 flex items-center justify-center">
-                    <Loader2 size={24} className="animate-spin text-gray-600" />
+                    <Loader2 size={24} className="animate-spin text-text-muted/70" />
                 </div>
             ) : performers.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-[12px] text-gray-500">No horses found</div>
+                <div className="flex-1 flex items-center justify-center text-[12px] text-text-muted">No horses found</div>
             ) : (
                 <div className="flex flex-col gap-3">
                     {performers.map((p, i) => (
                         <div key={p.id} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-border/60 rounded-lg hover:bg-white/[0.04] transition-colors">
-                            <span className="text-[16px] font-black text-gray-600 w-4">{i + 1}</span>
+                            <span className="text-[16px] font-black text-text-muted/70 w-4">{i + 1}</span>
                             <div className="w-10 h-10 rounded-md bg-[#222] border border-border overflow-hidden shrink-0 flex items-center justify-center">
                                 {p.img ? (
                                     <img 
@@ -213,12 +213,12 @@ function TopPerformers() {
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-bold text-white truncate">{p.name}</p>
-                                <p className="text-[11px] text-gray-400">{p.wins} wins / {p.totalRaces} races</p>
+                                <p className="text-[13px] font-bold text-text truncate">{p.name}</p>
+                                <p className="text-[11px] text-text-muted">{p.wins} wins / {p.totalRaces} races</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-[13.5px] font-black text-emerald-400">{fmt(p.prizeMoney || 0)} ₫</p>
-                                <p className="text-[10px] text-gray-500">Win Rate: {p.winRate}%</p>
+                                <p className="text-[10px] text-text-muted">Win Rate: {p.winRate}%</p>
                             </div>
                         </div>
                     ))}
@@ -230,9 +230,9 @@ function TopPerformers() {
 
 // ── Violation badge ───────────────────────────────────────────────────────────
 function ViolationBadge({ count }: { count: number }) {
-  if (count === 0) return <span className="text-gray-600 text-[12px]">—</span>;
+  if (count === 0) return <span className="text-text-muted/70 text-[12px]">—</span>;
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-400 bg-red-900/20 border border-red-700/30 rounded px-2 py-0.5">
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red bg-red-900/20 border border-error-border rounded px-2 py-0.5">
       <AlertTriangle size={10} /> {count}
     </span>
   );
@@ -328,29 +328,29 @@ export default function FinancialsPage() {
   const s = summary;
 
   return (
-    <div className="flex-1 px-8 py-8 min-h-screen bg-bg text-white font-sans">
+    <div className="flex-1 px-8 py-8 min-h-screen bg-bg text-text font-sans">
 
       {/* ── Top header ───────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-8">
         <div>
           <p className="text-[11px] font-bold tracking-[0.2em] text-emerald-600 uppercase mb-1">Owner Dashboard</p>
-          <h1 className="text-[28px] font-black text-white tracking-tight uppercase font-serif">
+          <h1 className="text-[28px] font-black text-text tracking-tight uppercase font-serif">
             Financials & Earnings
           </h1>
-          <p className="text-[13px] text-gray-500 mt-1">Track your horse's performance, race earnings, and payments.</p>
+          <p className="text-[13px] text-text-muted mt-1">Track your horse's performance, race earnings, and payments.</p>
         </div>
         <div className="flex items-center gap-3 mt-1">
           <RefetchButton onRefetch={refetchAll} lastUpdated={lastUpdated} />
           <div className="bg-surface border border-border rounded-xl px-5 py-3 text-center">
-            <p className="text-[9.5px] font-bold tracking-widest text-gray-500 uppercase mb-1">Net Profit</p>
-            <p className="text-[18px] font-black text-white font-sans">
+            <p className="text-[9.5px] font-bold tracking-widest text-text-muted uppercase mb-1">Net Profit</p>
+            <p className="text-[18px] font-black text-text font-sans">
               {summaryLoading ? "…" : fmt(s?.netProfit ?? 0)}
-              {" "}<span className="text-[11px] text-gray-500 font-semibold">₫</span>
+              {" "}<span className="text-[11px] text-text-muted font-semibold">₫</span>
             </p>
           </div>
           <div className="bg-emerald-900/40 border border-emerald-500/50 rounded-xl px-5 py-3 text-center shadow-lg shadow-emerald-900/20">
             <p className="text-[9.5px] font-bold tracking-widest text-emerald-400 uppercase mb-1">Wallet Balance</p>
-            <p className="text-[18px] font-black text-white font-sans">
+            <p className="text-[18px] font-black text-text font-sans">
               {summaryLoading ? "…" : fmt(s?.wallet ?? 0)}
               {" "}<span className="text-[11px] text-emerald-400 font-semibold">₫</span>
             </p>
@@ -376,27 +376,27 @@ export default function FinancialsPage() {
         />
         <StatCard
           loading={summaryLoading}
-          icon={<TrendingDown size={24} className="text-red-500" />}
+          icon={<TrendingDown size={24} className="text-red" />}
           label="Total Losses"
           value={String(s?.totalLosses ?? 0)}
           sub="non-winning finishes"
-          subColor="text-red-400"
+          subColor="text-red"
         />
         <StatCard
           loading={summaryLoading}
-          icon={<Minus size={24} className="text-blue-500" />}
+          icon={<Coins size={24} className="text-blue-500" />}
           label="Total Prize"
           value={`+${fmt(s?.totalPrize ?? 0)}`}
           sub={`Jockey payout: ${fmt(s?.totalJockeyPayout ?? 0)} ₫`}
-          subColor="text-blue-400"
+          subColor="text-blue"
         />
         <StatCard
           loading={summaryLoading}
-          icon={<Trophy size={24} className={s?.totalViolations ? "text-amber-500" : "text-gray-500"} />}
+          icon={<AlertTriangle size={24} className={s?.totalViolations ? "text-amber-500" : "text-text-muted"} />}
           label="Violations"
           value={String(s?.totalViolations ?? 0)}
           sub={s?.totalViolations ? "review required" : "clean record"}
-          subColor={s?.totalViolations ? "text-amber-400" : "text-gray-500"}
+          subColor={s?.totalViolations ? "text-amber-400" : "text-text-muted"}
         />
       </div>
 
@@ -409,15 +409,15 @@ export default function FinancialsPage() {
       {/* ── Race Activity ─────────────────────────────────────────────────── */}
       <div className="bg-surface border border-border rounded-xl overflow-hidden mb-6">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-[#1f1f1f]">
-          <p className="text-[14px] font-bold text-white">Race Activity & Ledger</p>
+          <p className="text-[14px] font-bold text-text">Race Activity & Ledger</p>
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               type="text"
               placeholder="Search races or horses..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="bg-bg border border-border rounded-lg pl-8 pr-4 py-1.5 text-[12px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 transition-colors duration-150 w-64"
+              className="bg-bg border border-border rounded-lg pl-8 pr-4 py-1.5 text-[12px] text-text-muted placeholder-text-muted focus:outline-none focus:border-white/20 transition-colors duration-150 w-64"
             />
           </div>
         </div>
@@ -425,25 +425,25 @@ export default function FinancialsPage() {
         {/* Column headers */}
         <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1.5fr_1.5fr_1fr] px-6 py-3 border-b border-border/60 bg-[#171717]">
           {["Race", "Horse", "Jockey", "Position", "Gross Prize", "Jockey Pay", "Violations"].map(h => (
-            <span key={h} className="text-[10px] font-bold tracking-widest text-gray-500 uppercase">{h}</span>
+            <span key={h} className="text-[10px] font-bold tracking-widest text-text-muted uppercase">{h}</span>
           ))}
         </div>
 
         {/* Loading */}
         {rowsLoading && (
-          <div className="flex items-center justify-center gap-2 py-12 text-gray-500 text-[12px]">
+          <div className="flex items-center justify-center gap-2 py-12 text-text-muted text-[12px]">
             <Loader2 size={16} className="animate-spin" /> Fetching ledger...
           </div>
         )}
 
         {/* Error */}
         {!rowsLoading && rowsError && (
-          <div className="px-6 py-6 text-[13px] text-red-400">{rowsError}</div>
+          <div className="px-6 py-6 text-[13px] text-red">{rowsError}</div>
         )}
 
         {/* Empty */}
         {!rowsLoading && !rowsError && rows.length === 0 && (
-          <div className="py-12 text-center text-gray-500 text-[13px]">No race activity found.</div>
+          <div className="py-12 text-center text-text-muted text-[13px]">No race activity found.</div>
         )}
 
         {/* Rows */}
@@ -454,26 +454,26 @@ export default function FinancialsPage() {
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${row.finishPosition === 1 ? "bg-emerald-900/40 border border-emerald-500/20" : "bg-white/5 border border-border"}`}>
-                <Trophy size={14} className={row.finishPosition === 1 ? "text-emerald-400" : "text-gray-500"} />
+                <Trophy size={14} className={row.finishPosition === 1 ? "text-emerald-400" : "text-text-muted"} />
               </div>
               <div className="min-w-0">
-                <p className="text-[13px] font-bold text-white truncate">{row.race.name}</p>
+                <p className="text-[13px] font-bold text-text truncate">{row.race.name}</p>
                 {row.race.date && (
-                  <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+                  <p className="text-[11px] text-text-muted flex items-center gap-1 mt-0.5">
                     <Calendar size={10} /> {new Date(row.race.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                   </p>
                 )}
               </div>
             </div>
-            <span className="text-[13px] font-medium text-gray-300 truncate">{row.horse.name}</span>
-            <span className="text-[13px] text-gray-400 truncate">{row.jockey?.name ?? "—"}</span>
-            <span className={`text-[13px] font-bold ${row.finishPosition === 1 ? "text-yellow-400" : row.finishPosition != null ? "text-gray-300" : "text-gray-600"}`}>
+            <span className="text-[13px] font-medium text-text-muted truncate">{row.horse.name}</span>
+            <span className="text-[13px] text-text-muted truncate">{row.jockey?.name ?? "—"}</span>
+            <span className={`text-[13px] font-bold ${row.finishPosition === 1 ? "text-amber" : row.finishPosition != null ? "text-text-muted" : "text-text-muted/70"}`}>
               {positionLabel(row.finishPosition)}
             </span>
-            <span className={`text-[14px] font-black ${row.prizeMoney > 0 ? "text-emerald-400" : "text-gray-600"}`}>
+            <span className={`text-[14px] font-black ${row.prizeMoney > 0 ? "text-emerald-400" : "text-text-muted/70"}`}>
               {row.prizeMoney > 0 ? `+${fmt(row.prizeMoney)} ₫` : "—"}
             </span>
-            <span className="text-[13px] font-semibold text-gray-400">
+            <span className="text-[13px] font-semibold text-text-muted">
               {row.jockeyPayout > 0 ? `-${fmt(row.jockeyPayout)} ₫` : "—"}
             </span>
             <ViolationBadge count={row.violations.length} />
@@ -486,15 +486,15 @@ export default function FinancialsPage() {
             <button
               disabled={page === 1}
               onClick={() => setPage(p => p - 1)}
-              className="text-[12px] font-bold text-gray-500 hover:text-white disabled:opacity-30 transition-colors"
+              className="text-[12px] font-bold text-text-muted hover:text-text disabled:opacity-30 transition-colors"
             >
               ← Previous
             </button>
-            <span className="text-[11px] font-medium text-gray-500">Page {page} of {totalPages}</span>
+            <span className="text-[11px] font-medium text-text-muted">Page {page} of {totalPages}</span>
             <button
               disabled={page === totalPages}
               onClick={() => setPage(p => p + 1)}
-              className="text-[12px] font-bold text-gray-500 hover:text-white disabled:opacity-30 transition-colors"
+              className="text-[12px] font-bold text-text-muted hover:text-text disabled:opacity-30 transition-colors"
             >
               Next →
             </button>

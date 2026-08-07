@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
-import { Search, ScrollText, CheckCircle, XCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, ScrollText, CheckCircle, XCircle } from "lucide-react";
 import RuleDetailPanel from "./AdminComponents/RuleDetailPanel";
 import RuleModal from "./AdminComponents/RuleModal";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
 import { ErrorState } from "../../components/ErrorState";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import SortableTh from "../../components/ui/SortableTh";
+import { useSortableColumns } from "../../hooks/useSortableColumns";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -45,26 +49,8 @@ export default function AdminRuleManagementPage() {
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
     const [totalItems, setTotalItems] = useState(0);
-    const [sortBy, setSortBy] = useState<string>('createdAt');
-    const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+    const { sortBy, order, setSortBy, setOrder, handleSort } = useSortableColumns("createdAt", "desc", () => setPage(1));
     const totalPages = Math.ceil(totalItems / limit) || 1;
-
-    const handleSort = (field: string) => {
-        if (sortBy === field) {
-            setOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortBy(field);
-            setOrder('asc');
-        }
-        setPage(1);
-    };
-
-    const SortIcon = ({ field }: { field: string }) => {
-        if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
-        return order === 'asc'
-            ? <ArrowUp size={11} className="text-gold ml-1 inline" />
-            : <ArrowDown size={11} className="text-gold ml-1 inline" />;
-    };
 
     useEffect(() => { setPage(1); }, [search, limit]);
     useEffect(() => { fetchRules(); }, [page, limit, search, sortBy, order]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -125,46 +111,37 @@ export default function AdminRuleManagementPage() {
     const panelOpen = selectedRule !== null;
 
     return (
-        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-text overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? "flex-[0_0_50%]" : "flex-1"}`}>
 
                     {/* Header */}
                     <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
-                        {/* Row 1 */}
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
-                                    Eligibility Rules
-                                </h1>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
-                                        All Rules
-                                    </span>
-                                    <span className="text-[12px] text-gray-500 truncate">· {totalItems} rule{totalItems !== 1 ? "s" : ""}</span>
-                                </div>
-                            </div>
-                            <button onClick={openCreateModal} className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]">
-                                + Create Rule
-                            </button>
-                        </div>
+                        <PageHeader
+                            title="Eligibility Rules"
+                            eyebrow="All Rules"
+                            subtext={`${totalItems} rule${totalItems !== 1 ? "s" : ""}`}
+                            actions={<Button size="sm" onClick={openCreateModal}>+ Create Rule</Button>}
+                        />
 
                         {/* Row 2 */}
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="relative flex-1 min-w-0">
-                                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                                 <input
                                     type="text"
                                     placeholder="Search type or breed…"
+                                    aria-label="Search rules"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px] transition-colors"
+                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-text placeholder:text-text-muted focus:outline-none focus:border-white/20 h-[32px] transition-colors"
                                 />
                             </div>
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Filter by status"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Statuses</option>
                                 <option value="active">Active</option>
@@ -178,7 +155,8 @@ export default function AdminRuleManagementPage() {
                                     setOrder(dir as 'asc' | 'desc');
                                     setPage(1);
                                 }}
-                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Sort rules"
+                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="createdAt:desc">Newest First</option>
                                 <option value="createdAt:asc">Oldest First</option>
@@ -192,7 +170,8 @@ export default function AdminRuleManagementPage() {
                             <select
                                 value={limit}
                                 onChange={(e) => setLimit(Number(e.target.value))}
-                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Rows per page"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 {[5, 10, 25, 50, 100].map(n => (
                                     <option key={n} value={n}>{n} rows</option>
@@ -207,21 +186,15 @@ export default function AdminRuleManagementPage() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-surface border-b border-border/60">
-                                        <th onClick={() => handleSort('raceType')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Race Type <SortIcon field="raceType" />
-                                        </th>
-                                        <th onClick={() => handleSort('minAge')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Age Limit <SortIcon field="minAge" />
-                                        </th>
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Requirements</th>
+                                        <SortableTh field="raceType" activeField={sortBy} order={order} onSort={handleSort}>Race Type</SortableTh>
+                                        <SortableTh field="minAge" activeField={sortBy} order={order} onSort={handleSort}>Age Limit</SortableTh>
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Requirements</th>
                                         {!panelOpen && (
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Licenses</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Licenses</th>
                                         )}
-                                        <th onClick={() => handleSort('isActive')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Status <SortIcon field="isActive" />
-                                        </th>
+                                        <SortableTh field="isActive" activeField={sortBy} order={order} onSort={handleSort}>Status</SortableTh>
                                         {!panelOpen && (
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Updated</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Updated</th>
                                         )}
                                     </tr>
                                 </thead>
@@ -233,31 +206,40 @@ export default function AdminRuleManagementPage() {
                                         return (
                                             <tr
                                                 key={rule._id}
+                                                role="button"
+                                                tabIndex={0}
+                                                aria-pressed={isSelected}
                                                 onClick={() => setSelectedRule(isSelected ? null : rule)}
-                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        setSelectedRule(isSelected ? null : rule);
+                                                    }
+                                                }}
+                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/40 ${isSelected ? "bg-red-900/10" : ""}`}
                                             >
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-2.5 min-w-0">
-                                                        <div className="w-8 h-8 rounded bg-white/5 border border-border flex items-center justify-center text-gray-400">
+                                                        <div className="w-8 h-8 rounded bg-white/5 border border-border flex items-center justify-center text-text-muted">
                                                             <ScrollText size={14} />
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="text-[13px] text-white font-medium truncate">{rule.raceType || <span className="italic text-gray-500">Any</span>}</p>
-                                                            {!panelOpen && <p className="text-[11px] text-gray-600 truncate">{rule._id.slice(-6)}</p>}
+                                                            <p className="text-[13px] text-text font-medium truncate">{rule.raceType || <span className="italic text-text-muted">Any</span>}</p>
+                                                            {!panelOpen && <p className="text-[11px] text-text-muted truncate">{rule._id.slice(-6)}</p>}
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <p className="text-[12px] text-gray-300">
-                                                        {rule.minAge == null && rule.maxAge == null ? <span className="italic text-gray-500">Any Age</span> :
+                                                    <p className="text-[12px] text-text-muted">
+                                                        {rule.minAge == null && rule.maxAge == null ? <span className="italic text-text-muted">Any Age</span> :
                                                             `${rule.minAge ?? 'Min'} - ${rule.maxAge ?? 'Max'} yrs`}
                                                     </p>
                                                 </td>
                                                 <td className="p-4">
                                                     <div className="flex flex-col gap-0.5">
-                                                        <p className="text-[11px] text-gray-400">Runs: <span className="text-gray-200">{rule.minRacesRun}</span> | Wins: <span className="text-gray-200">{rule.minRacesWon}</span></p>
+                                                        <p className="text-[11px] text-text-muted">Runs: <span className="text-text-muted">{rule.minRacesRun}</span> | Wins: <span className="text-text-muted">{rule.minRacesWon}</span></p>
                                                         {!panelOpen && (
-                                                            <p className="text-[11px] text-gray-500">
+                                                            <p className="text-[11px] text-text-muted/70">
                                                                 Breed: {rule.requiredBreed || "Any"} | Gender: {rule.requiredGender || "Any"}
                                                             </p>
                                                         )}
@@ -266,10 +248,10 @@ export default function AdminRuleManagementPage() {
                                                 {!panelOpen && (
                                                     <td className="p-4">
                                                         <div className="flex flex-col gap-0.5">
-                                                            <span className={rule.licenseRequired ? "text-[11px] text-emerald-400" : "text-[11px] text-gray-500"}>
+                                                            <span className={rule.licenseRequired ? "text-[11px] text-green" : "text-[11px] text-text-muted"}>
                                                                 {rule.licenseRequired ? "License Req." : "No License Req."}
                                                             </span>
-                                                            <span className={rule.requireNomination ? "text-[11px] text-emerald-400" : "text-[11px] text-gray-500"}>
+                                                            <span className={rule.requireNomination ? "text-[11px] text-green" : "text-[11px] text-text-muted"}>
                                                                 {rule.requireNomination ? "Nomination Req." : "No Nomination Req."}
                                                             </span>
                                                         </div>
@@ -283,7 +265,7 @@ export default function AdminRuleManagementPage() {
                                                 </td>
                                                 {!panelOpen && (
                                                     <td className="p-4">
-                                                        <p className="text-[11px] text-gray-600">{new Date(rule.updated_at).toLocaleDateString()}</p>
+                                                        <p className="text-[11px] text-text-muted">{new Date(rule.updated_at).toLocaleDateString()}</p>
                                                     </td>
                                                 )}
                                             </tr>
@@ -291,7 +273,7 @@ export default function AdminRuleManagementPage() {
                                     })}
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={6} className="p-8 text-center text-[13px] text-gray-500">Loading rules...</td>
+                                            <td colSpan={6} className="p-8 text-center text-[13px] text-text-muted">Loading rules...</td>
                                         </tr>
                                     ) : error ? (
                                         <tr>
@@ -301,8 +283,8 @@ export default function AdminRuleManagementPage() {
                                         <tr>
                                             <td colSpan={6}>
                                                 <div className="py-10 text-center">
-                                                    <ScrollText size={22} className="text-gray-700 mx-auto mb-2" />
-                                                    <p className="text-[12px] text-gray-600">No rules found.</p>
+                                                    <ScrollText size={22} className="text-text-muted/60 mx-auto mb-2" />
+                                                    <p className="text-[12px] text-text-muted">No rules found.</p>
                                                 </div>
                                             </td>
                                         </tr>

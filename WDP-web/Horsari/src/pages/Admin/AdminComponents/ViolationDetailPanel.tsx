@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, AlertTriangle, Calendar, Shield, Flag, Hash, Loader2 } from "lucide-react";
 import type { ViolationEntity, ViolationStatus, StewardAction } from "../../../shared/types/ViolationTypes";
 import { adminService } from "../../../api/adminService";
+import StatusBadge, { type BadgeTone } from "../../../components/ui/StatusBadge";
 
 interface ViolationDetailPanelProps {
     violation: ViolationEntity;
@@ -9,10 +10,10 @@ interface ViolationDetailPanelProps {
     onDismissed: (id: string) => void;
 }
 
-const STATUS_STYLES: Record<ViolationStatus, string> = {
-    pending:   'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    confirmed: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    dismissed: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
+const STATUS_TONE: Record<ViolationStatus, BadgeTone> = {
+    pending: 'amber',
+    confirmed: 'green',
+    dismissed: 'neutral',
 };
 
 const STEWARD_STYLES: Record<StewardAction, string> = {
@@ -71,29 +72,24 @@ export default function ViolationDetailPanel({ violation, onClose, onDismissed }
                 <div className="flex flex-col gap-1.5 min-w-0">
                     <div className="flex items-center gap-2">
                         <AlertTriangle size={15} className="text-gold shrink-0" />
-                        <h2 className="text-[16px] font-bold text-white truncate">
+                        <h2 className="text-[16px] font-bold text-text truncate">
                             {vt?.violationName ?? 'Violation'}
                         </h2>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${STATUS_STYLES[status]}`}>
-                            {status}
-                        </span>
+                        <StatusBadge label={status} tone={STATUS_TONE[status]} dot={false} />
                         {vt?.type && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-violet-500/15 text-violet-400 border-violet-500/30">
-                                {vt.type}
-                            </span>
+                            <StatusBadge label={vt.type} tone="violet" dot={false} />
                         )}
                         {vt?.category && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-blue-500/15 text-blue-400 border-blue-500/30">
-                                {vt.category}
-                            </span>
+                            <StatusBadge label={vt.category} tone="blue" dot={false} />
                         )}
                     </div>
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors shrink-0"
+                    aria-label="Close"
+                    className="p-1.5 bg-white/5 hover:bg-white/10 text-text-muted hover:text-text rounded border border-border transition-colors shrink-0 cursor-pointer"
                 >
                     <X size={14} />
                 </button>

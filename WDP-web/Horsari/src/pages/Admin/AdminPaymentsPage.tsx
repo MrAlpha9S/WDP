@@ -54,7 +54,8 @@ function LedgerPanel() {
                 <select
                     value={sortValue}
                     onChange={(e) => { setSortValue(e.target.value as typeof sortValue); setPage(1); }}
-                    className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                    aria-label="Sort wallet activity"
+                    className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                 >
                     <option value="createdAt:desc">Newest First</option>
                     <option value="createdAt:asc">Oldest First</option>
@@ -64,7 +65,8 @@ function LedgerPanel() {
                 <select
                     value={limit}
                     onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
-                    className="w-[110px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                    aria-label="Rows per page"
+                    className="w-[110px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                 >
                     {[5, 10, 20, 50, 100].map(n => (
                         <option key={n} value={n}>{n} rows</option>
@@ -73,14 +75,14 @@ function LedgerPanel() {
             </div>
 
             {loading ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">Loading wallet activity...</p>
+                <p className="text-[13px] text-text-muted text-center py-6">Loading wallet activity...</p>
             ) : error ? (
                 <ErrorState
                     message={(error as any)?.msg ?? "Failed to load wallet activity."}
                     onRetry={refresh}
                 />
             ) : data.length === 0 ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">No wallet activity yet.</p>
+                <p className="text-[13px] text-text-muted text-center py-6">No wallet activity yet.</p>
             ) : (
                 <div className="flex flex-col divide-y divide-white/[0.05]">
                     {data.map((entry) => {
@@ -91,16 +93,16 @@ function LedgerPanel() {
                         return (
                             <div key={entry._id} className="flex items-center justify-between py-3 gap-3">
                                 <div>
-                                    <p className="text-[13px] font-semibold text-white">
+                                    <p className="text-[13px] font-semibold text-text">
                                         {entry.description ?? "Wallet activity"}
                                     </p>
-                                    <p className="text-[11px] text-gray-500 mt-0.5">
+                                    <p className="text-[11px] text-text-muted mt-0.5">
                                         {entry.userName ?? "Unknown user"}
                                         {entry.userRole && ` · ${ROLE_LABEL[entry.userRole] ?? entry.userRole}`}
                                         {" · "}{new Date(entry.createdAt).toLocaleDateString()}
                                     </p>
                                 </div>
-                                <span className={`text-[13px] font-bold ${isCredit ? "text-emerald-400" : "text-red-400"}`}>
+                                <span className={`text-[13px] font-bold ${isCredit ? "text-green" : "text-red"}`}>
                                     {isCredit ? "+" : "-"}{Math.abs(entry.amount).toLocaleString()} ₫
                                 </span>
                             </div>
@@ -131,11 +133,11 @@ export default function AdminPaymentsPage() {
             <div className="mb-5 flex items-start justify-between gap-4 flex-wrap shrink-0">
                 <div>
                     <h1
-                        className="text-[26px] font-bold text-white tracking-tight font-serif"
+                        className="text-[26px] font-bold text-text tracking-tight"
                     >
                         Payments
                     </h1>
-                    <p className="text-[13px] text-gray-500 mt-0.5">
+                    <p className="text-[13px] text-text-muted mt-0.5">
                         Every race prize, referee fee, and jockey payout in the system (statistical wallet tracking only).
                     </p>
                 </div>
@@ -145,7 +147,8 @@ export default function AdminPaymentsPage() {
                         <select
                             value={paymentType}
                             onChange={e => setPaymentType(e.target.value as PaymentType | "All")}
-                            className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            aria-label="Filter by payment type"
+                            className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                         >
                             <option value="All">All Types</option>
                             {Object.entries(PAYMENT_TYPE_LABEL).map(([value, label]) => (
@@ -155,7 +158,8 @@ export default function AdminPaymentsPage() {
                         <select
                             value={status}
                             onChange={e => setStatus(e.target.value as PaymentStatus | "All")}
-                            className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            aria-label="Filter by status"
+                            className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                         >
                             <option value="All">All Statuses</option>
                             <option value="unpaid">Unpaid</option>
@@ -169,14 +173,16 @@ export default function AdminPaymentsPage() {
             {/* Tabs */}
             <div className="flex border-b border-border mb-5 shrink-0 gap-8">
                 <button
-                    className={`pb-2 text-[13px] font-semibold transition-colors ${activeTab === "Payments" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                    className={`pb-2 text-[13px] font-semibold transition-colors cursor-pointer ${activeTab === "Payments" ? "text-text border-b-2 border-text" : "text-text-muted hover:text-text"}`}
                     onClick={() => setActiveTab("Payments")}
+                    aria-pressed={activeTab === "Payments"}
                 >
                     All Payments
                 </button>
                 <button
-                    className={`pb-2 text-[13px] font-semibold transition-colors ${activeTab === "Earnings" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                    className={`pb-2 text-[13px] font-semibold transition-colors cursor-pointer ${activeTab === "Earnings" ? "text-text border-b-2 border-text" : "text-text-muted hover:text-text"}`}
                     onClick={() => setActiveTab("Earnings")}
+                    aria-pressed={activeTab === "Earnings"}
                 >
                     Wallet Activity
                 </button>

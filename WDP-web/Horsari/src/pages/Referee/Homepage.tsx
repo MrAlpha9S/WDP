@@ -21,10 +21,10 @@ const LIMIT_OPTIONS = [5, 10, 25, 50, 100];
 const STATUS_BADGE: Record<string, string> = {
     scheduled: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     prepared: "bg-violet-500/15 text-violet-400 border-violet-500/30",
-    running: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    running: "bg-blue-500/15 text-blue border-blue-500/30",
     awaitingConfirmation: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-    completed: "bg-gray-500/15 text-gray-400 border-gray-500/30",
-    cancelled: "bg-red-500/15 text-red-400 border-red-500/30",
+    completed: "bg-gray-500/15 text-text-muted border-gray-500/30",
+    cancelled: "bg-red/15 text-red border-red-500/30",
 };
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -176,11 +176,11 @@ export default function HomePage() {
                 <div className="mb-7 flex items-start justify-between gap-4 flex-wrap">
                     <div>
                         <h1
-                            className="text-[26px] font-bold text-white tracking-tight font-serif"
+                            className="text-[26px] font-bold text-text tracking-tight font-serif"
                         >
                             Dashboard
                         </h1>
-                        <p className="text-[13px] text-gray-500 mt-0.5">
+                        <p className="text-[13px] text-text-muted mt-0.5">
                             Your upcoming race schedule and recent invitations.
                         </p>
                     </div>
@@ -195,13 +195,13 @@ export default function HomePage() {
                     <div className="flex bg-surface p-1 rounded-lg border border-border/60 shrink-0">
                         <button
                             onClick={() => setViewMode("calendar")}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "calendar" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "calendar" ? "bg-white/10 text-text shadow-sm" : "text-text-muted hover:text-text"}`}
                         >
                             <CalendarDays size={13} /> Calendar
                         </button>
                         <button
                             onClick={() => setViewMode("table")}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "table" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "table" ? "bg-white/10 text-text shadow-sm" : "text-text-muted hover:text-text"}`}
                         >
                             <List size={13} /> Table
                         </button>
@@ -210,7 +210,7 @@ export default function HomePage() {
                     <select
                         value={selectedTournament}
                         onChange={(e) => setSelectedTournament(e.target.value)}
-                        className="w-[170px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                        className="w-[170px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                     >
                         <option value="All">All Tournaments</option>
                         {tournaments.map((t) => (
@@ -221,7 +221,7 @@ export default function HomePage() {
                     <select
                         value={selectedStatus}
                         onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer capitalize"
+                        className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer capitalize"
                     >
                         <option value="All">All Statuses</option>
                         {RACE_STATUSES.map((status) => (
@@ -233,7 +233,7 @@ export default function HomePage() {
                         <select
                             value={limit}
                             onChange={(e) => setLimit(Number(e.target.value))}
-                            className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                            className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                         >
                             {LIMIT_OPTIONS.map((n) => (
                                 <option key={n} value={n}>{n} rows</option>
@@ -252,8 +252,8 @@ export default function HomePage() {
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center min-h-[400px] bg-surface rounded-xl border border-border">
-                            <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-4" />
-                            <span className="text-[13px] font-medium text-gray-400">Loading schedule...</span>
+                            <Loader2 className="w-8 h-8 text-red animate-spin mb-4" />
+                            <span className="text-[13px] font-medium text-text-muted">Loading schedule...</span>
                         </div>
                     ) : viewMode === "calendar" ? (
                         <HomeCalendar
@@ -269,17 +269,17 @@ export default function HomePage() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-surface border-b border-border/60">
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Race Name</th>
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Tournament</th>
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Venue</th>
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Date &amp; Time</th>
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Race Name</th>
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Tournament</th>
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Venue</th>
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Date &amp; Time</th>
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
                                     {races.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500">
+                                            <td colSpan={5} className="p-8 text-center text-[13px] text-text-muted">
                                                 No races found.
                                             </td>
                                         </tr>
@@ -292,17 +292,17 @@ export default function HomePage() {
                                                 className="hover:bg-white/[0.02] transition-colors cursor-pointer"
                                             >
                                                 <td className="p-4">
-                                                    <div className="text-[13px] font-semibold text-white">{race.roundName}</div>
+                                                    <div className="text-[13px] font-semibold text-text">{race.roundName}</div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <div className="text-[13px] text-gray-300">{tournamentName(race.tournamentId)}</div>
+                                                    <div className="text-[13px] text-text-muted">{tournamentName(race.tournamentId)}</div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <div className="text-[13px] text-gray-300">{race.location ?? "—"}</div>
+                                                    <div className="text-[13px] text-text-muted">{race.location ?? "—"}</div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <div className="text-[13px] text-gray-300">{isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleDateString()}</div>
-                                                    <div className="text-[11px] text-gray-500 mt-0.5 font-mono">{isNaN(dateObj.getTime()) ? "" : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                    <div className="text-[13px] text-text-muted">{isNaN(dateObj.getTime()) ? "TBD" : dateObj.toLocaleDateString()}</div>
+                                                    <div className="text-[11px] text-text-muted mt-0.5 font-mono">{isNaN(dateObj.getTime()) ? "" : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                                 </td>
                                                 <td className="p-4">
                                                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${STATUS_BADGE[race.status] ?? "bg-amber-500/15 text-amber-400 border-amber-500/30"}`}>

@@ -6,6 +6,8 @@ import {
 import type { TournamentDetailData, TournamentRankEntry, RoundBreakdownEntry } from "../../../shared/types/TournamentTypes";
 import { adminService } from "../../../api/adminService";
 import { CancelTournamentModal } from "../modal/CancelTournamentModal";
+import Modal from "../../../components/ui/Modal";
+import Button from "../../../components/ui/Button";
 
 interface TournamentDetailPanelProps {
     selectedTournamentId: string;
@@ -191,7 +193,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                         <>
                             <div className="flex justify-between items-start gap-4 mb-3">
                                 <div className="flex flex-col gap-2 min-w-0">
-                                    <h2 className="text-[20px] font-bold tracking-tight leading-tight text-white truncate">
+                                    <h2 className="text-[20px] font-bold tracking-tight leading-tight text-text truncate">
                                         {t.tournamentName}
                                     </h2>
                                     <div className="flex items-center gap-2 flex-wrap">
@@ -232,7 +234,7 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
                                     )}
                                     <button
                                         onClick={onClose}
-                                        className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors"
+                                        className="p-1.5 bg-white/5 hover:bg-white/10 text-text-muted hover:text-text rounded border border-border transition-colors cursor-pointer"
                                         title="Close Panel"
                                     >
                                         <X size={14} />
@@ -485,54 +487,37 @@ export default function TournamentDetailPanel({ selectedTournamentId, onRefresh,
 
             {/* ── Status Change Confirmation Modal ── */}
             {pendingStatus && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#161616] border border-white/10 rounded-xl shadow-2xl w-[400px] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-5 border-b border-white/5 bg-[#1a1a1a]">
-                            <h3 className="text-[16px] font-bold text-white">Confirm Status Change</h3>
-                            <button
-                                onClick={() => !statusUpdating && setPendingStatus(null)}
-                                disabled={statusUpdating}
-                                className="text-gray-500 hover:text-white transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-[14px] text-gray-300 leading-relaxed">
-                                Are you sure you want to mark{" "}
-                                <strong className="text-white">{t?.tournamentName}</strong>
-                                {" "}as <strong className="text-white capitalize">{pendingStatus}</strong>?
-                            </p>
-                            {statusError && (
-                                <p className="text-[12px] text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">{statusError}</p>
-                            )}
-                        </div>
-                        <div className="p-5 border-t border-white/5 bg-[#1a1a1a] flex justify-end gap-3">
-                            <button
-                                onClick={() => setPendingStatus(null)}
-                                disabled={statusUpdating}
-                                className="px-4 py-2 text-[13px] font-medium text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded transition-colors disabled:opacity-50"
-                            >
-                                Go Back
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    const target = pendingStatus;
-                                    await handleStatusChange(target);
-                                    setPendingStatus(null);
-                                }}
-                                disabled={statusUpdating}
-                                className="px-4 py-2 text-[13px] font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors flex items-center gap-2 disabled:opacity-50"
-                            >
-                                {statusUpdating ? (
-                                    <><Loader2 size={14} className="animate-spin" /> Updating...</>
-                                ) : (
-                                    "Confirm"
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <Modal
+                    title="Confirm Status Change"
+                    size="sm"
+                    onClose={() => !statusUpdating && setPendingStatus(null)}
+                    closeOnBackdrop={!statusUpdating}
+                    footer={<>
+                        <Button variant="secondary" size="sm" disabled={statusUpdating} onClick={() => setPendingStatus(null)}>
+                            Go Back
+                        </Button>
+                        <Button
+                            size="sm"
+                            loading={statusUpdating}
+                            onClick={async () => {
+                                const target = pendingStatus;
+                                await handleStatusChange(target);
+                                setPendingStatus(null);
+                            }}
+                        >
+                            {statusUpdating ? "Updating..." : "Confirm"}
+                        </Button>
+                    </>}
+                >
+                    <p className="text-[14px] text-text-muted leading-relaxed">
+                        Are you sure you want to mark{" "}
+                        <strong className="text-text">{t?.tournamentName}</strong>
+                        {" "}as <strong className="text-text capitalize">{pendingStatus}</strong>?
+                    </p>
+                    {statusError && (
+                        <p className="text-[12px] text-red mt-3 bg-error-bg border border-error-border rounded px-3 py-2">{statusError}</p>
+                    )}
+                </Modal>
             )}
         </aside>
     );

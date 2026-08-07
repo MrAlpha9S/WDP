@@ -66,25 +66,25 @@ function mapToMyRace(raw: any, i: number): MyRace {
 
 // ── Status configs ────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<RaceStatus, { label: string; dot: string; text: string; bg: string }> = {
-  LIVE: { label: "LIVE", dot: "bg-red-400 animate-pulse", text: "text-red-400", bg: "bg-red-500/20 border-red-500/40" },
+  LIVE: { label: "LIVE", dot: "bg-red animate-pulse", text: "text-red", bg: "bg-red/20 border-red-500/40" },
   UPCOMING: { label: "UPCOMING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
-  FINISHED: { label: "FINISHED", dot: "bg-gray-500", text: "text-gray-400", bg: "bg-black/50 border-border" },
+  FINISHED: { label: "FINISHED", dot: "bg-gray-500", text: "text-text-muted", bg: "bg-black/50 border-border" },
   PREPARING: { label: "PREPARING", dot: "bg-yellow-400", text: "text-yellow-300", bg: "bg-black/50 border-white/15" },
 };
 
 const INV_STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: "PENDING", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-600/30" },
-  accepted: { label: "ACCEPTED", color: "text-green-400", bg: "bg-green-500/10 border-green-600/40" },
-  declined: { label: "DECLINED", color: "text-red-400", bg: "bg-red-500/10 border-red-700/40" },
-  cancelled: { label: "CANCELLED", color: "text-gray-400", bg: "bg-gray-500/10 border-gray-600/30" },
-  didNotAttend: { label: "NO-SHOW", color: "text-red-400", bg: "bg-red-500/10 border-red-700/40" },
+  pending: { label: "PENDING", color: "text-text-muted", bg: "bg-white/8 border-white/12" },
+  accepted: { label: "ACCEPTED", color: "text-green", bg: "bg-green/10 border-green/40" },
+  declined: { label: "DECLINED", color: "text-red", bg: "bg-red/10 border-red/40" },
+  cancelled: { label: "CANCELLED", color: "text-text-muted", bg: "bg-white/8 border-white/12" },
+  didNotAttend: { label: "NO-SHOW", color: "text-red", bg: "bg-red/10 border-red/40" },
 };
 
 function severityColor(s?: number) {
   if (!s) return "bg-gray-600";
   if (s <= 2) return "bg-yellow-500";
   if (s === 3) return "bg-orange-500";
-  return "bg-red-500";
+  return "bg-red";
 }
 
 function ordinal(n: number) {
@@ -160,12 +160,12 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-border shrink-0">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-gray-600 mb-1">Race Detail</p>
-            <h2 className="text-[17px] font-bold text-white leading-tight font-serif">
+            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted/70 mb-1">Race Detail</p>
+            <h2 className="text-[17px] font-bold text-text leading-tight font-serif">
               {raceRound?.roundName ?? "Loading…"}
             </h2>
           </div>
-          <button onClick={onClose} className="text-gray-600 hover:text-gray-300 transition-colors ml-4 mt-0.5">
+          <button onClick={onClose} className="text-text-muted/70 hover:text-text-muted transition-colors ml-4 mt-0.5">
             <X size={18} />
           </button>
         </div>
@@ -173,13 +173,13 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-5">
           {loading && (
-            <div className="flex items-center gap-2 text-gray-600 text-[12px] py-8 justify-center">
+            <div className="flex items-center gap-2 text-text-muted/70 text-[12px] py-8 justify-center">
               <Loader2 size={14} className="animate-spin" /> Loading…
             </div>
           )}
 
           {!loading && error && (
-            <div className="flex items-center gap-2 text-red-400 text-[12px]">
+            <div className="flex items-center gap-2 text-red text-[12px]">
               <AlertCircle size={13} /> {error}
             </div>
           )}
@@ -204,15 +204,15 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                     );
                   })()}
                   {raceRound?.tournamentId?.tournamentName && (
-                    <span className="text-[11px] text-gray-500">{raceRound.tournamentId.tournamentName}</span>
+                    <span className="text-[11px] text-text-muted">{raceRound.tournamentId.tournamentName}</span>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[12px]">
-                  <div className="flex items-center gap-1.5 text-gray-500">
+                  <div className="flex items-center gap-1.5 text-text-muted">
                     <Calendar size={11} className="shrink-0" />
                     {raceRound?.raceDate ? formatDate(raceRound.raceDate) : "TBA"}
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-500">
+                  <div className="flex items-center gap-1.5 text-text-muted">
                     <MapPin size={11} className="shrink-0" />
                     {raceRound?.location ?? "TBA"}
                   </div>
@@ -231,13 +231,13 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                     onClick={() => setTab(id)}
                     className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
                       tab === id
-                        ? "bg-white/8 text-white border border-white/12"
-                        : "text-gray-500 hover:text-gray-300 border border-transparent"
+                        ? "bg-white/8 text-text border border-white/12"
+                        : "text-text-muted hover:text-text-muted border border-transparent"
                     }`}
                   >
                     {label}
                     {count > 0 && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === id ? "bg-red-700 text-white" : "bg-white/8 text-gray-500"}`}>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === id ? "bg-red text-text" : "bg-white/8 text-text-muted"}`}>
                         {count}
                       </span>
                     )}
@@ -253,27 +253,27 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                     <div className="flex items-center gap-3">
                       {raceRound?.firstPlacePrize > 0 && (
                         <div className="flex items-center gap-1 text-[11px]">
-                          <Trophy size={10} className="text-yellow-400" />
-                          <span className="text-yellow-400 font-semibold">{raceRound.firstPlacePrize.toLocaleString()} ₫</span>
+                          <Trophy size={10} className="text-amber" />
+                          <span className="text-amber font-semibold">{raceRound.firstPlacePrize.toLocaleString()} ₫</span>
                         </div>
                       )}
                       {raceRound?.secondPlacePrize > 0 && (
-                        <span className="text-[11px] text-gray-500">{raceRound.secondPlacePrize.toLocaleString()} ₫</span>
+                        <span className="text-[11px] text-text-muted">{raceRound.secondPlacePrize.toLocaleString()} ₫</span>
                       )}
                       {raceRound?.thirdPlacePrize > 0 && (
-                        <span className="text-[11px] text-gray-500">{raceRound.thirdPlacePrize.toLocaleString()} ₫</span>
+                        <span className="text-[11px] text-text-muted">{raceRound.thirdPlacePrize.toLocaleString()} ₫</span>
                       )}
                     </div>
                   ) : (
-                    <p className="text-[12px] text-gray-600">No prize money set for this race.</p>
+                    <p className="text-[12px] text-text-muted/70">No prize money set for this race.</p>
                   )}
 
                   {/* Competitors */}
                   {competition && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Competitors</p>
-                        <span className="text-[11px] text-gray-500">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted/70">Competitors</p>
+                        <span className="text-[11px] text-text-muted">
                           {competition.confirmedCount}/{competition.maxParticipants ?? "?"} · {competition.openSlots} open
                         </span>
                       </div>
@@ -284,16 +284,16 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                               key={c.registrationId}
                               className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border bg-white/[0.02] text-[12px]"
                             >
-                              <Users size={12} className="text-gray-600 shrink-0" />
+                              <Users size={12} className="text-text-muted/70 shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <span className="text-white font-semibold truncate">{c.horseName ?? "Unnamed Horse"}</span>
-                                {c.ownerName && <span className="text-gray-600"> · {c.ownerName}</span>}
+                                <span className="text-text font-semibold truncate">{c.horseName ?? "Unnamed Horse"}</span>
+                                {c.ownerName && <span className="text-text-muted/70"> · {c.ownerName}</span>}
                               </div>
                               {c.jockeyName && (
-                                <span className="text-gray-500 text-[11px] shrink-0">{c.jockeyName}</span>
+                                <span className="text-text-muted text-[11px] shrink-0">{c.jockeyName}</span>
                               )}
                               {c.laneNumber != null && (
-                                <span className="text-[10px] text-gray-600 bg-white/5 border border-border px-1.5 py-0.5 rounded-full shrink-0">
+                                <span className="text-[10px] text-text-muted/70 bg-white/5 border border-border px-1.5 py-0.5 rounded-full shrink-0">
                                   Lane {c.laneNumber}
                                 </span>
                               )}
@@ -301,7 +301,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                           ))}
                         </div>
                       ) : (
-                        <p className="text-[12px] text-gray-600">No other confirmed entries yet.</p>
+                        <p className="text-[12px] text-text-muted/70">No other confirmed entries yet.</p>
                       )}
                     </div>
                   )}
@@ -322,11 +322,11 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                           className="w-12 h-12 rounded-lg object-contain shrink-0 opacity-70"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[14px] font-bold text-red-400 truncate">{reg.horse.horseName}</p>
-                          <p className="text-[11px] text-gray-500 mt-0.5">
+                          <p className="text-[14px] font-bold text-red truncate">{reg.horse.horseName}</p>
+                          <p className="text-[11px] text-text-muted mt-0.5">
                             {[reg.horse.breed, reg.horse.gender].filter(Boolean).join(" · ")}
                           </p>
-                          <p className="text-[11px] text-gray-600 mt-0.5">
+                          <p className="text-[11px] text-text-muted/70 mt-0.5">
                             {reg.horse.healthStatus ?? "Unknown health"}
                             {reg.laneNumber != null ? ` · Lane ${reg.laneNumber}` : ""}
                           </p>
@@ -342,12 +342,12 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                           <AlertCircle size={14} className="shrink-0" />
                           <p className="text-[12.5px] font-semibold">No horse assigned yet</p>
                         </div>
-                        <p className="text-[11px] text-gray-500 -mt-1">
+                        <p className="text-[11px] text-text-muted -mt-1">
                           Invite a jockey for this registration to assign one of your horses — the first invitation sets the horse.
                         </p>
 
                         {horsesLoading && (
-                          <div className="flex items-center gap-2 text-gray-600 text-[11px] py-1">
+                          <div className="flex items-center gap-2 text-text-muted/70 text-[11px] py-1">
                             <Loader2 size={12} className="animate-spin" /> Checking your stable…
                           </div>
                         )}
@@ -355,7 +355,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                         {!horsesLoading && ownedHorses !== null && (
                           eligibleHorses.length > 0 ? (
                             <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-text-muted/70 mb-2">
                                 Eligible Horses ({eligibleHorses.length})
                               </p>
                               <div className="flex flex-col gap-1.5">
@@ -364,15 +364,15 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                                     key={h._id}
                                     className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border bg-white/[0.02] text-[12px]"
                                   >
-                                    <Flag size={12} className="text-gray-600 shrink-0" />
-                                    <span className="text-white font-semibold truncate flex-1">{h.horseName}</span>
-                                    <span className="text-gray-600 text-[11px] shrink-0">{[h.breed, h.gender].filter(Boolean).join(" · ")}</span>
+                                    <Flag size={12} className="text-text-muted/70 shrink-0" />
+                                    <span className="text-text font-semibold truncate flex-1">{h.horseName}</span>
+                                    <span className="text-text-muted/70 text-[11px] shrink-0">{[h.breed, h.gender].filter(Boolean).join(" · ")}</span>
                                   </div>
                                 ))}
                               </div>
                             </div>
                           ) : (
-                            <p className="text-[12px] text-gray-600">None of your horses are currently eligible for this race.</p>
+                            <p className="text-[12px] text-text-muted/70">None of your horses are currently eligible for this race.</p>
                           )
                         )}
                       </div>
@@ -381,7 +381,7 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                     {/* Jockey invitations */}
                     {reg.invitations?.length > 0 ? (
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Jockey Invitations</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted/70 mb-2">Jockey Invitations</p>
                         <div className="flex flex-col gap-1.5">
                           {reg.invitations.map((inv: any) => {
                             const isSelected = reg.jockeyInRaceId && String(inv._id) === String(reg.jockeyInRaceId);
@@ -389,29 +389,29 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                             return (
                               <div
                                 key={inv._id}
-                                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-[12px] ${isSelected ? "border-yellow-600/40 bg-yellow-500/5" : "border-border bg-white/[0.02]"}`}
+                                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-[12px] ${isSelected ? "border-amber/40 bg-yellow-500/5" : "border-border bg-white/[0.02]"}`}
                               >
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-white font-semibold truncate">
+                                    <span className="text-text font-semibold truncate">
                                       {inv.jockey?.fullName ?? "Unknown Jockey"}
                                     </span>
                                     {isSelected && (
-                                      <span className="text-[9px] font-black uppercase tracking-wider text-yellow-400 bg-yellow-500/15 border border-yellow-600/30 px-1.5 py-0.5 rounded-full">
+                                      <span className="text-[9px] font-black uppercase tracking-wider text-amber bg-yellow-500/15 border border-yellow-600/30 px-1.5 py-0.5 rounded-full">
                                         In Race
                                       </span>
                                     )}
                                     {inv.isBackup && (
-                                      <span className="text-[9px] font-bold uppercase text-gray-500 bg-white/5 border border-border px-1.5 py-0.5 rounded-full">
+                                      <span className="text-[9px] font-bold uppercase text-text-muted bg-white/5 border border-border px-1.5 py-0.5 rounded-full">
                                         Backup
                                       </span>
                                     )}
                                   </div>
-                                  <span className="text-[11px] text-gray-600">{inv.percentagePayout}% payout</span>
+                                  <span className="text-[11px] text-text-muted/70">{inv.percentagePayout}% payout</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   {inv.jockeyConfirmation && (
-                                    <span className="text-green-400 text-[10px]">✓</span>
+                                    <span className="text-green text-[10px]">✓</span>
                                   )}
                                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg border ${invCfg.bg} ${invCfg.color}`}>
                                     {invCfg.label}
@@ -423,11 +423,11 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                         </div>
                       </div>
                     ) : (
-                      <p className="text-[12px] text-gray-600">No jockey invitations sent yet.</p>
+                      <p className="text-[12px] text-text-muted/70">No jockey invitations sent yet.</p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-[13px] text-gray-500 text-center py-4">You haven't registered for this race.</p>
+                  <p className="text-[13px] text-text-muted text-center py-4">You haven't registered for this race.</p>
                 )
               )}
 
@@ -438,36 +438,36 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                     {/* Race result */}
                     {reg.raceResult ? (
                       <div className="bg-bg rounded-xl border border-border p-3">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2">Race Result</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted/70 mb-2">Race Result</p>
                         {reg.raceResult.resultStatus === "cancelled" ? (
-                          <div className="flex items-center gap-2 text-red-400 text-[13px] font-bold">
+                          <div className="flex items-center gap-2 text-red text-[13px] font-bold">
                             <ShieldAlert size={14} /> DISQUALIFIED
                           </div>
                         ) : (
                           <div className="grid grid-cols-3 gap-3">
                             {reg.raceResult.finishPosition != null && (
                               <div>
-                                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Finish</p>
-                                <p className="text-[18px] font-black text-white">{ordinal(reg.raceResult.finishPosition)}</p>
+                                <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Finish</p>
+                                <p className="text-[18px] font-black text-text">{ordinal(reg.raceResult.finishPosition)}</p>
                               </div>
                             )}
                             {reg.raceResult.finishTime && (
                               <div>
-                                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Time</p>
-                                <p className="text-[13px] font-bold text-white font-mono">{reg.raceResult.finishTime}</p>
+                                <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Time</p>
+                                <p className="text-[13px] font-bold text-text font-mono">{reg.raceResult.finishTime}</p>
                               </div>
                             )}
                             {reg.raceResult.prizeMoney > 0 && (
                               <div>
-                                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>
-                                <p className="text-[13px] font-bold text-yellow-400">{reg.raceResult.prizeMoney.toLocaleString()} ₫</p>
+                                <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Prize</p>
+                                <p className="text-[13px] font-bold text-amber">{reg.raceResult.prizeMoney.toLocaleString()} ₫</p>
                               </div>
                             )}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <p className="text-[13px] text-gray-500 text-center py-4">This race hasn't been run yet.</p>
+                      <p className="text-[13px] text-text-muted text-center py-4">This race hasn't been run yet.</p>
                     )}
 
                     {/* Violations */}
@@ -484,22 +484,22 @@ function RaceDetailModal({ raceRoundId, onClose }: { raceRoundId: string; onClos
                             return (
                               <div
                                 key={v._id}
-                                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red-500/5" : "border-border bg-white/[0.02]"}`}
+                                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red/5" : "border-border bg-white/[0.02]"}`}
                               >
                                 <span className={`w-2 h-2 rounded-full shrink-0 ${severityColor(severity)}`} />
-                                <span className={`flex-1 ${isOwnerReg ? "text-red-400" : "text-gray-400"}`}>{vtName}</span>
-                                <span className="text-[10px] text-gray-600 capitalize">{v.violationStatus}</span>
+                                <span className={`flex-1 ${isOwnerReg ? "text-red" : "text-text-muted"}`}>{vtName}</span>
+                                <span className="text-[10px] text-text-muted/70 capitalize">{v.violationStatus}</span>
                               </div>
                             );
                           })}
                         </div>
                       ) : (
-                        <p className="text-[12px] text-gray-600">No violations logged.</p>
+                        <p className="text-[12px] text-text-muted/70">No violations logged.</p>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <p className="text-[13px] text-gray-500 text-center py-4">You haven't registered for this race.</p>
+                  <p className="text-[13px] text-text-muted text-center py-4">You haven't registered for this race.</p>
                 )
               )}
             </>
@@ -534,30 +534,30 @@ function RaceCard({ race, onDetail, onLive }: { race: MyRace; onDetail: () => vo
       </div>
 
       <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
-        <h3 className="text-[16px] font-bold text-white leading-tight font-serif">
+        <h3 className="text-[16px] font-bold text-text leading-tight font-serif">
           {race.name}
         </h3>
 
         <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[12px] text-gray-500">
+          <div className="flex items-center gap-1.5 text-[12px] text-text-muted">
             <Calendar size={11} className="shrink-0" />
             {race.date}
           </div>
-          <div className="flex items-center gap-1.5 text-[12px] text-gray-500">
+          <div className="flex items-center gap-1.5 text-[12px] text-text-muted">
             <MapPin size={11} className="shrink-0" />
             {race.venue}
           </div>
         </div>
 
         <div>
-          <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Horse</p>
-          <p className="text-[12.5px] font-semibold text-red-400">{race.horse}</p>
+          <p className="text-[9.5px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">Horse</p>
+          <p className="text-[12.5px] font-semibold text-red">{race.horse}</p>
         </div>
 
         {isLive ? (
           <button
             onClick={onLive}
-            className="w-full py-2.5 rounded-lg text-[11.5px] font-bold tracking-widest uppercase transition-all duration-150 mt-auto bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/40"
+            className="w-full py-2.5 rounded-lg text-[11.5px] font-bold tracking-widest uppercase transition-all duration-150 mt-auto bg-red hover:bg-red/85 text-text shadow-lg shadow-red-900/40"
           >
             View Live Track
           </button>
@@ -565,8 +565,8 @@ function RaceCard({ race, onDetail, onLive }: { race: MyRace; onDetail: () => vo
           <button
             onClick={onDetail}
             className={`w-full py-2.5 rounded-lg text-[11.5px] font-bold tracking-widest uppercase transition-all duration-150 mt-auto ${isFinished
-              ? "border border-border text-gray-500 hover:text-gray-300 hover:border-white/15"
-              : "border border-white/15 text-gray-300 hover:border-white/30 hover:text-white"
+              ? "border border-border text-text-muted hover:text-text-muted hover:border-white/15"
+              : "border border-white/15 text-text-muted hover:border-white/30 hover:text-text"
               }`}
           >
             {isFinished ? "View Results" : "Manage Entry"}
@@ -584,12 +584,12 @@ function RaceTable({ races, onDetail, onLive }: { races: MyRace[]; onDetail: (ra
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="bg-surface border-b border-border/60">
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Race Name</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Date</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Venue</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Horse</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase"></th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Race Name</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Status</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Date</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Venue</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Horse</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
@@ -603,28 +603,28 @@ function RaceTable({ races, onDetail, onLive }: { races: MyRace[]; onDetail: (ra
                 onClick={() => race.raceRoundId && onLive(race)}
                 className="hover:bg-white/[0.02] transition-colors cursor-pointer"
               >
-                <td className={`p-4 text-[13px] font-semibold ${isFinished ? "text-gray-500" : "text-white"}`}>{race.name}</td>
+                <td className={`p-4 text-[13px] font-semibold ${isFinished ? "text-text-muted" : "text-text"}`}>{race.name}</td>
                 <td className="p-4">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10.5px] font-bold ${cfg.bg} ${cfg.text}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                     {cfg.label}
                   </span>
                 </td>
-                <td className="p-4 text-[12.5px] text-gray-400">{race.date}</td>
-                <td className="p-4 text-[12.5px] text-gray-400">{race.venue}</td>
-                <td className="p-4 text-[12.5px] font-semibold text-red-400">{race.horse}</td>
+                <td className="p-4 text-[12.5px] text-text-muted">{race.date}</td>
+                <td className="p-4 text-[12.5px] text-text-muted">{race.venue}</td>
+                <td className="p-4 text-[12.5px] font-semibold text-red">{race.horse}</td>
                 <td className="p-4 text-right">
                   {isLive ? (
                     <button
                       onClick={(e) => { e.stopPropagation(); onLive(race); }}
-                      className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-widest uppercase bg-red-700 hover:bg-red-600 text-white transition-all duration-150"
+                      className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-widest uppercase bg-red hover:bg-red/85 text-text transition-all duration-150"
                     >
                       View Live
                     </button>
                   ) : (
                     <button
                       onClick={(e) => { e.stopPropagation(); onDetail(race); }}
-                      className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-widest uppercase border border-white/15 text-gray-300 hover:border-white/30 hover:text-white transition-all duration-150"
+                      className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold tracking-widest uppercase border border-white/15 text-text-muted hover:border-white/30 hover:text-text transition-all duration-150"
                     >
                       {isFinished ? "View Results" : "Manage"}
                     </button>
@@ -680,12 +680,12 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
   return (
     <div className="flex items-center justify-center gap-4 mt-8">
       <button onClick={onPrev} disabled={page === 1}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-text-muted font-semibold disabled:opacity-30 hover:border-white/25 hover:text-text transition-all duration-150">
         <ChevronLeft size={13} /> Prev
       </button>
-      <span className="text-[12px] text-gray-500 font-medium">Page {page} of {totalPages}</span>
+      <span className="text-[12px] text-text-muted font-medium">Page {page} of {totalPages}</span>
       <button onClick={onNext} disabled={page === totalPages}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-text-muted font-semibold disabled:opacity-30 hover:border-white/25 hover:text-text transition-all duration-150">
         Next <ChevronRight size={13} />
       </button>
     </div>
@@ -754,14 +754,14 @@ export default function RacesPage() {
       <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
+            <h1 className="text-[22px] font-bold text-text tracking-tight leading-tight truncate font-serif">
               My Races
             </h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
+              <span className="text-[10px] font-semibold tracking-wide text-text-muted bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                 Race Management
               </span>
-              <span className="text-[12px] text-gray-500 truncate">
+              <span className="text-[12px] text-text-muted truncate">
                 · {activeFilter === "ALL" ? "All Races" : activeFilter.charAt(0) + activeFilter.slice(1).toLowerCase()}
               </span>
             </div>
@@ -784,21 +784,21 @@ export default function RacesPage() {
                   "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold border transition-all duration-150",
                   isActive
                     ? isLiveTab
-                      ? "bg-red-700/30 border-red-600/50 text-red-300"
-                      : "bg-white/10 border-white/20 text-white"
-                    : "bg-transparent border-border text-gray-500 hover:border-white/15 hover:text-gray-300",
+                      ? "bg-red/30 border-red-600/50 text-red-300"
+                      : "bg-white/10 border-white/20 text-text"
+                    : "bg-transparent border-border text-text-muted hover:border-white/15 hover:text-text-muted",
                 ].join(" ")}
               >
                 {isLiveTab && isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
                 )}
                 {tab.label}
                 {count > 0 && (
                   <span className={[
                     "text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
                     isActive
-                      ? isLiveTab ? "bg-red-600/40 text-red-300" : "bg-white/15 text-white"
-                      : "bg-white/5 text-gray-600",
+                      ? isLiveTab ? "bg-red/40 text-red-300" : "bg-white/15 text-text"
+                      : "bg-white/5 text-text-muted/70",
                   ].join(" ")}>
                     {count}
                   </span>
@@ -813,7 +813,7 @@ export default function RacesPage() {
         {/* Loading */}
         {loading && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2">
+            <div className="flex items-center gap-2 text-text-muted/70 text-[12px] mb-2">
               <Loader2 size={13} className="animate-spin" /> Loading races…
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -824,7 +824,7 @@ export default function RacesPage() {
 
         {/* Error */}
         {!loading && error && (
-          <div className="flex items-center gap-2 text-red-400 text-[13px] bg-red-900/10 border border-red-700/30 rounded-xl px-5 py-4">
+          <div className="flex items-center gap-2 text-red text-[13px] bg-error-bg border border-error-border rounded-xl px-5 py-4">
             <AlertCircle size={14} className="shrink-0" /> {error}
           </div>
         )}
@@ -832,13 +832,13 @@ export default function RacesPage() {
         {/* Empty filtered */}
         {!loading && !error && filteredRaces.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-            <p className="text-[14px] font-semibold text-gray-500">
+            <p className="text-[14px] font-semibold text-text-muted">
               {activeFilter === "ALL" ? "No races found." : `No ${activeFilter.toLowerCase()} races.`}
             </p>
             {activeFilter !== "ALL" && (
               <button
                 onClick={() => setActiveFilter("ALL")}
-                className="text-[12px] text-gray-600 hover:text-gray-300 transition-colors underline underline-offset-2"
+                className="text-[12px] text-text-muted/70 hover:text-text-muted transition-colors underline underline-offset-2"
               >
                 Show all races
               </button>

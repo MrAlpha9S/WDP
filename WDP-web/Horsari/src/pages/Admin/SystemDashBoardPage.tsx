@@ -24,7 +24,7 @@ function StatCard({
     label,
     value,
     sub,
-    subColor = "text-gray-500",
+    subColor = "text-text-muted",
     icon,
     highlight = false,
 }: {
@@ -38,18 +38,18 @@ function StatCard({
     return (
         <div
             className={`rounded-xl p-5 flex flex-col gap-3 border ${highlight
-                ? "border-red-600/40 bg-[#1a0f0f]"
+                ? "border-red/40 bg-error-bg"
                 : "border-border bg-surface"
                 }`}
         >
             <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">
+                <p className="text-[11px] font-semibold tracking-widest text-text-muted uppercase">
                     {label}
                 </p>
-                <span className="text-gray-600">{icon}</span>
+                <span className="text-text-muted">{icon}</span>
             </div>
             <p
-                className={`text-[28px] font-bold leading-none font-sans ${highlight ? "text-red-400" : "text-white"
+                className={`text-[28px] font-bold leading-none font-sans ${highlight ? "text-red" : "text-text"
                     }`}
             >
                 {value}
@@ -62,28 +62,28 @@ function StatCard({
 function RaceStatusBadge({ status }: { status: RaceStatus }) {
     if (status === "LIVE") {
         return (
-            <span className="flex items-center gap-1 text-[9px] font-bold tracking-widest text-red-400">
-                <Radio size={8} className="text-red-400" />
+            <span className="flex items-center gap-1 text-[9px] font-bold tracking-widest text-red">
+                <Radio size={8} className="text-red" />
                 LIVE
             </span>
         );
     }
     if (status === "PRE-RACE") {
         return (
-            <span className="text-[9px] font-bold tracking-widest text-amber-500">
+            <span className="text-[9px] font-bold tracking-widest text-amber">
                 PRE-RACE
             </span>
         );
     }
     return (
-        <span className="text-[9px] font-bold tracking-widest text-gray-500">
+        <span className="text-[9px] font-bold tracking-widest text-text-muted">
             POST-RACE
         </span>
     );
 }
 
 function RaceIcon({ status }: { status: RaceStatus }) {
-    const cls = "text-gray-500 hover:text-gray-300 transition-colors cursor-pointer";
+    const cls = "text-text-muted hover:text-text transition-colors cursor-pointer";
     if (status === "LIVE") return <Eye size={14} className={cls} />;
     if (status === "PRE-RACE") return <Settings size={14} className={cls} />;
     return <CheckSquare size={14} className={cls} />;
@@ -163,11 +163,11 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                 {/* Header */}
                 <div className="mb-7">
                     <h1
-                        className="text-[26px] font-bold text-white tracking-tight font-serif"
+                        className="text-[26px] font-bold text-text tracking-tight"
                     >
                         System Dashboard
                     </h1>
-                    <p className="text-[13px] text-gray-500 mt-0.5">
+                    <p className="text-[13px] text-text-muted mt-0.5">
                         High-level overview and administrative controls.
                     </p>
                 </div>
@@ -184,14 +184,14 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                         label="Pool Betting Wallet"
                         value={loading ? "..." : (stats?.finance?.mainAdminWallet ?? 0).toLocaleString("vi-VN") + " ₫"}
                         sub="Lifetime pool takeout (statistic only)"
-                        subColor="text-gray-500"
+                        subColor="text-text-muted"
                         icon={<Wallet size={16} />}
                     />
                     <StatCard
                         label="Active Users"
                         value={loading ? "..." : (stats?.users?.countActive || 0).toString()}
                         sub="Total registered accounts"
-                        subColor="text-gray-500"
+                        subColor="text-text-muted"
                         icon={<Users size={16} />}
                     />
                     <StatCard
@@ -204,7 +204,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                         label="Horse Owners"
                         value={loading ? "..." : (stats?.horseOwners?.count || 0).toString()}
                         sub={loading ? "..." : `${stats?.horseOwners?.approved || 0} Active · ${stats?.horseOwners?.pending || 0} Pending`}
-                        subColor={stats?.horseOwners?.pending > 0 ? "text-amber-500" : "text-gray-500"}
+                        subColor={stats?.horseOwners?.pending > 0 ? "text-amber" : "text-text-muted"}
                         icon={<ClipboardList size={16} />}
                         highlight={stats?.horseOwners?.pending > 0}
                     />
@@ -212,7 +212,7 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                         label="Jockeys"
                         value={loading ? "..." : (stats?.jockeys?.count || 0).toString()}
                         sub={loading ? "..." : `${stats?.jockeys?.approved || 0} Active · ${stats?.jockeys?.pending || 0} Pending`}
-                        subColor={stats?.jockeys?.pending > 0 ? "text-amber-500" : "text-gray-500"}
+                        subColor={stats?.jockeys?.pending > 0 ? "text-amber" : "text-text-muted"}
                         icon={<Users size={16} />}
                         highlight={stats?.jockeys?.pending > 0}
                     />
@@ -226,17 +226,17 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                     {/* Active Races */}
                     <div className="rounded-xl border border-border bg-surface p-5 min-w-0">
                         <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-[15px] font-semibold text-white">
+                            <h2 className="text-[15px] font-semibold text-text">
                                 Active Races
                             </h2>
-                            <Radio size={14} className="text-red-500" />
+                            <Radio size={14} className="text-red" />
                         </div>
 
                         <div className="flex flex-col gap-3">
                             {racesLoading ? (
-                                <p className="text-[13px] text-gray-500 text-center py-4">Loading races...</p>
+                                <p className="text-[13px] text-text-muted text-center py-4">Loading races...</p>
                             ) : activeRaces.length === 0 ? (
-                                <p className="text-[13px] text-gray-500 text-center py-4">No active races found.</p>
+                                <p className="text-[13px] text-text-muted text-center py-4">No active races found.</p>
                             ) : (
                                 activeRaces.map((race) => (
                                     <div
@@ -245,10 +245,10 @@ export default function SystemDashboardPage({ setActiveTab }: { setActiveTab: (t
                                     >
                                         <div className="min-w-0">
                                             <RaceStatusBadge status={race.status} />
-                                            <p className="text-[13px] font-semibold text-white mt-1 leading-snug truncate">
+                                            <p className="text-[13px] font-semibold text-text mt-1 leading-snug truncate">
                                                 {race.name}
                                             </p>
-                                            <p className="text-[11px] text-gray-500 mt-0.5 truncate">
+                                            <p className="text-[11px] text-text-muted mt-0.5 truncate">
                                                 {race.detail}
                                             </p>
                                         </div>

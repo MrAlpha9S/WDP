@@ -12,13 +12,13 @@ import { useRejectRegistration } from "../../../hooks/useRejectRegistration";
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const INVITE_STATUS_CFG: Record<InviteStatus | InviteJockeyStatus, { text: string; bg: string; border: string }> = {
-  pending: { text: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
-  accepted: { text: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30" },
-  declined: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
-  rejected: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
-  verified: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
-  failed: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
-  cancelled: { text: "text-gray-500", bg: "bg-white/5", border: "border-border" },
+  pending: { text: "text-amber", bg: "bg-amber/10", border: "border-yellow-500/30" },
+  accepted: { text: "text-green", bg: "bg-green/10", border: "border-green-500/30" },
+  declined: { text: "text-text-muted", bg: "bg-white/5", border: "border-border" },
+  rejected: { text: "text-text-muted", bg: "bg-white/5", border: "border-border" },
+  verified: { text: "text-text-muted", bg: "bg-white/5", border: "border-border" },
+  failed: { text: "text-text-muted", bg: "bg-white/5", border: "border-border" },
+  cancelled: { text: "text-text-muted", bg: "bg-white/5", border: "border-border" },
 };
 
 function formatDate(isoString: string): string {
@@ -132,31 +132,31 @@ function InvitationDetailModal({
         <div className="relative h-52 shrink-0 overflow-hidden bg-bg flex items-center justify-center">
           <img src={inv.image} alt={inv.name} className={`h-28 w-28 object-contain ${!isPending ? "opacity-15" : "opacity-25"}`} />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/20 to-transparent" />
-          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/60 border border-white/15 flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/80 transition-colors duration-150">
+          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/60 border border-white/15 flex items-center justify-center text-text-muted hover:text-text hover:bg-black/80 transition-colors duration-150">
             <X size={14} />
           </button>
           <div className="absolute top-4 left-4 flex items-center gap-2">
-            <span className="text-[10px] font-semibold tracking-widest text-gray-300 uppercase px-2.5 py-1 rounded-full bg-black/60 border border-white/15 backdrop-blur-sm">{inv.type}</span>
+            <span className="text-[10px] font-semibold tracking-widest text-text-muted uppercase px-2.5 py-1 rounded-full bg-black/60 border border-white/15 backdrop-blur-sm">{inv.type}</span>
             <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border backdrop-blur-sm ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
           </div>
           <div className="absolute bottom-4 left-5 right-5">
-            <h2 className="text-[24px] font-bold text-white leading-tight font-serif">{inv.name}</h2>
-            <p className="text-[11.5px] text-gray-400 mt-0.5">Invited by {inv.sentBy} · {inv.sentAt}</p>
+            <h2 className="text-[24px] font-bold text-text leading-tight font-serif">{inv.name}</h2>
+            <p className="text-[11.5px] text-text-muted mt-0.5">Invited by {inv.sentBy} · {inv.sentAt}</p>
           </div>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
           <div className="grid grid-cols-3 gap-5">
             {[
-              { icon: <Calendar size={13} className="text-red-400" />, label: "Date & Time", value: inv.date },
-              { icon: <MapPin size={13} className="text-blue-400" />, label: "Venue", value: inv.venue },
-              { icon: <Ruler size={13} className="text-green-400" />, label: "Distance", value: inv.distance },
+              { icon: <Calendar size={13} className="text-red" />, label: "Date & Time", value: inv.date },
+              { icon: <MapPin size={13} className="text-blue" />, label: "Venue", value: inv.venue },
+              { icon: <Ruler size={13} className="text-green" />, label: "Distance", value: inv.distance },
             ].map((item) => (
               <div key={item.label} className="bg-surface rounded-xl px-4 py-3 border border-border/60 flex items-start gap-3">
                 <div className="mt-0.5 shrink-0">{item.icon}</div>
                 <div>
-                  <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">{item.label}</p>
-                  <p className="text-[13px] font-semibold text-white leading-snug">{item.value}</p>
+                  <p className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">{item.label}</p>
+                  <p className="text-[13px] font-semibold text-text leading-snug">{item.value}</p>
                 </div>
               </div>
             ))}
@@ -166,17 +166,17 @@ function InvitationDetailModal({
           {(inv.prize1st != null || inv.prize2nd != null || inv.prize3rd != null) && (
             <div className="bg-surface rounded-xl border border-border/60 overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border/60">
-                <Trophy size={13} className="text-yellow-500" />
-                <p className="text-[10px] font-semibold tracking-widest text-gray-500 uppercase">Prize Pool</p>
+                <Trophy size={13} className="text-amber" />
+                <p className="text-[10px] font-semibold tracking-widest text-text-muted uppercase">Prize Pool</p>
               </div>
               <div className="divide-y divide-white/5">
                 {[
-                  { label: "1st Place", value: inv.prize1st, color: "text-yellow-400" },
-                  { label: "2nd Place", value: inv.prize2nd, color: "text-gray-300" },
+                  { label: "1st Place", value: inv.prize1st, color: "text-amber" },
+                  { label: "2nd Place", value: inv.prize2nd, color: "text-text-muted" },
                   { label: "3rd Place", value: inv.prize3rd, color: "text-amber-700" },
                 ].map(({ label, value, color }) => value != null && (
                   <div key={label} className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-[12px] text-gray-500">{label}</span>
+                    <span className="text-[12px] text-text-muted">{label}</span>
                     <span className={`text-[13px] font-bold ${color}`}>
                       {inv.currencyType} {value.toLocaleString()}
                     </span>
@@ -188,16 +188,16 @@ function InvitationDetailModal({
         </div>
 
         <div className="px-6 py-4 border-t border-border bg-surface shrink-0 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-white/12 text-gray-400 text-[13px] font-semibold hover:border-white/25 hover:text-white transition-all duration-150">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-white/12 text-text-muted text-[13px] font-semibold hover:border-white/25 hover:text-text transition-all duration-150">
             Close
           </button>
           {canReject && (
-            <button onClick={() => { onDeny(inv.id); onClose(); }} className="flex-1 py-2.5 rounded-lg border border-red-700/50 text-red-400 text-[13px] font-semibold hover:bg-red-700/10 transition-all duration-150 flex items-center justify-center gap-2">
+            <button onClick={() => { onDeny(inv.id); onClose(); }} className="flex-1 py-2.5 rounded-lg border border-red-700/50 text-red text-[13px] font-semibold hover:bg-red/10 transition-all duration-150 flex items-center justify-center gap-2">
               <X size={14} /> Decline
             </button>
           )}
           {isPending && (
-            <button onClick={() => { onAccept(inv.id.toString()); onClose(); }} className="flex-1 py-2.5 rounded-lg bg-green-700 hover:bg-green-600 text-white text-[13px] font-bold transition-colors duration-150 shadow-lg shadow-green-900/30 flex items-center justify-center gap-2">
+            <button onClick={() => { onAccept(inv.id.toString()); onClose(); }} className="flex-1 py-2.5 rounded-lg bg-green-700 hover:bg-green-600 text-text text-[13px] font-bold transition-colors duration-150 shadow-lg shadow-green-900/30 flex items-center justify-center gap-2">
               <Check size={14} /> Accept
             </button>
           )}
@@ -230,11 +230,11 @@ function InvitationCard({
         <div className="flex-1 px-5 py-4 flex flex-col gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase px-2 py-0.5 rounded bg-white/5 border border-border">{inv.type}</span>
+              <span className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase px-2 py-0.5 rounded bg-white/5 border border-border">{inv.type}</span>
               <span className={`text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded border ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
             </div>
-            <h3 className="text-[16px] font-bold text-white font-serif">{inv.name}</h3>
-            <p className="text-[11px] text-gray-600 mt-0.5">Sent by {inv.sentBy} · {inv.sentAt}</p>
+            <h3 className="text-[16px] font-bold text-text font-serif">{inv.name}</h3>
+            <p className="text-[11px] text-text-muted/70 mt-0.5">Sent by {inv.sentBy} · {inv.sentAt}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -243,11 +243,11 @@ function InvitationCard({
               { icon: <MapPin size={11} />, label: "Venue", value: inv.venue },
             ].map((item) => (
               <div key={item.label} className="bg-surface rounded-lg px-3 py-2 border border-border/60">
-                <div className="flex items-center gap-1 text-gray-600 mb-1">
+                <div className="flex items-center gap-1 text-text-muted/70 mb-1">
                   {item.icon}
                   <span className="text-[9.5px] font-semibold tracking-widest uppercase">{item.label}</span>
                 </div>
-                <p className="text-[12px] font-semibold text-white leading-snug truncate">{item.value}</p>
+                <p className="text-[12px] font-semibold text-text leading-snug truncate">{item.value}</p>
               </div>
             ))}
           </div>
@@ -258,26 +258,26 @@ function InvitationCard({
                 { label: "Distance", value: inv.distance, accent: false },
               ].map((f) => (
                 <div key={f.label}>
-                  <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">{f.label}</p>
-                  <p className={`text-[12.5px] font-semibold ${f.accent ? "text-red-400" : "text-white"}`}>{f.value}</p>
+                  <p className="text-[9.5px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">{f.label}</p>
+                  <p className={`text-[12.5px] font-semibold ${f.accent ? "text-red" : "text-text"}`}>{f.value}</p>
                 </div>
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={onDetail} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-gray-400 text-[12px] font-semibold hover:border-white/28 hover:text-white transition-all duration-150">
+              <button onClick={onDetail} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-text-muted text-[12px] font-semibold hover:border-white/28 hover:text-text transition-all duration-150">
                 <Info size={13} /> Detail
               </button>
               {canReject && (
-                <button onClick={() => onDeny(inv.id)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-gray-400 text-[12px] font-semibold hover:border-red-700/50 hover:text-red-400 transition-all duration-150">
+                <button onClick={() => onDeny(inv.id)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-text-muted text-[12px] font-semibold hover:border-red-700/50 hover:text-red transition-all duration-150">
                   <X size={13} /> Decline
                 </button>
               )}
               {isPending ? (
-                <button onClick={() => onAccept(inv.id.toString())} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-white text-[12px] font-semibold transition-colors duration-150 shadow-lg shadow-green-900/30">
+                <button onClick={() => onAccept(inv.id.toString())} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-700 hover:bg-green-600 text-text text-[12px] font-semibold transition-colors duration-150 shadow-lg shadow-green-900/30">
                   <Check size={13} /> Accept
                 </button>
               ) : !canReject && (
-                <div className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600">
+                <div className="flex items-center gap-1.5 text-[12px] font-semibold text-text-muted/70">
                   {inv.status === "accepted" ? <Check size={13} className="text-green-500" /> : <X size={13} className="text-red-600" />}
                   {inv.status}
                 </div>
@@ -313,7 +313,7 @@ function JockeyInvitationCard({
             <img src={inv.jockeyImage} alt={inv.jockeyName} className={`w-full h-full object-cover object-top ${!isPending ? "grayscale brightness-40" : "brightness-75"}`} />
           ) : (
             <div className="w-14 h-14 rounded-full bg-[#2a2a2a] border border-border flex items-center justify-center">
-              <Users size={22} className="text-gray-600" />
+              <Users size={22} className="text-text-muted/70" />
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#1a1a1a]" />
@@ -322,18 +322,18 @@ function JockeyInvitationCard({
         <div className="flex-1 px-5 py-4 flex flex-col gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase px-2 py-0.5 rounded bg-white/5 border border-border">Jockey</span>
+              <span className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase px-2 py-0.5 rounded bg-white/5 border border-border">Jockey</span>
               <span className={`text-[10px] font-semibold tracking-wide px-2 py-0.5 rounded border ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
             </div>
             <div className="flex items-center gap-2">
-              <h3 className="text-[16px] font-bold text-white font-serif">{inv.jockeyName}</h3>
+              <h3 className="text-[16px] font-bold text-text font-serif">{inv.jockeyName}</h3>
               {hasNoShowHistory && (
-                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-700/40">
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-red/10 text-red border border-red/40">
                   No-Show
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-gray-600 mt-0.5">{inv.sentAt ? formatDate(inv.sentAt) : ""}</p>
+            <p className="text-[11px] text-text-muted/70 mt-0.5">{inv.sentAt ? formatDate(inv.sentAt) : ""}</p>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
@@ -343,11 +343,11 @@ function JockeyInvitationCard({
               { icon: <MapPin size={11} />, label: "Venue", value: inv.venue },
             ].map((item) => (
               <div key={item.label} className="bg-surface rounded-lg px-3 py-2 border border-border/60">
-                <div className="flex items-center gap-1 text-gray-600 mb-1">
+                <div className="flex items-center gap-1 text-text-muted/70 mb-1">
                   {item.icon}
                   <span className="text-[9.5px] font-semibold tracking-widest uppercase">{item.label}</span>
                 </div>
-                <p className="text-[12px] font-semibold text-white leading-snug truncate">{item.value}</p>
+                <p className="text-[12px] font-semibold text-text leading-snug truncate">{item.value}</p>
               </div>
             ))}
           </div>
@@ -355,13 +355,13 @@ function JockeyInvitationCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
-                <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Horse</p>
-                <p className="text-[12.5px] font-semibold text-red-400">{inv.horse}</p>
+                <p className="text-[9.5px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">Horse</p>
+                <p className="text-[12.5px] font-semibold text-red">{inv.horse}</p>
               </div>
               {inv.bookingFees > 0 && (
                 <div>
-                  <p className="text-[9.5px] font-semibold tracking-widest text-gray-600 uppercase mb-0.5">Booking Fee</p>
-                  <p className="text-[12.5px] font-semibold text-white">{inv.bookingFees.toLocaleString()} ₫</p>
+                  <p className="text-[9.5px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">Booking Fee</p>
+                  <p className="text-[12.5px] font-semibold text-text">{inv.bookingFees.toLocaleString()} ₫</p>
                 </div>
               )}
             </div>
@@ -371,13 +371,13 @@ function JockeyInvitationCard({
                   type="button"
                   onClick={() => onCancel(inv.id)}
                   disabled={isCancelling}
-                  className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-lg border border-red-700/40 text-red-400 bg-red-500/5 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-lg border border-red/40 text-red bg-red/5 hover:bg-red/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isCancelling ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
                   Cancel
                 </button>
               )}
-              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-600">
+              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-text-muted/70">
                 {inv.status === "accepted" && <Check size={13} className="text-green-500" />}
                 {inv.status !== "accepted" && inv.status !== "pending" && <X size={13} className="text-red-600" />}
                 <span className="capitalize">{inv.status}</span>
@@ -418,12 +418,12 @@ function PaginationBar({ page, totalPages, onPrev, onNext }: {
   return (
     <div className="flex items-center justify-center gap-4 mt-6">
       <button onClick={onPrev} disabled={page === 1}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-text-muted font-semibold disabled:opacity-30 hover:border-white/25 hover:text-text transition-all duration-150">
         <ChevronLeft size={13} /> Prev
       </button>
-      <span className="text-[12px] text-gray-500 font-medium">Page {page} of {totalPages}</span>
+      <span className="text-[12px] text-text-muted font-medium">Page {page} of {totalPages}</span>
       <button onClick={onNext} disabled={page === totalPages}
-        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-gray-400 font-semibold disabled:opacity-30 hover:border-white/25 hover:text-white transition-all duration-150">
+        className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border text-[12px] text-text-muted font-semibold disabled:opacity-30 hover:border-white/25 hover:text-text transition-all duration-150">
         Next <ChevronRight size={13} />
       </button>
     </div>
@@ -441,13 +441,13 @@ function TabButton({ active, label, count, onClick }: {
     <button
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-[12.5px] font-semibold transition-all duration-150 ${active
-        ? "bg-white/8 text-white border border-white/12"
-        : "text-gray-500 hover:text-gray-300 border border-transparent"
+        ? "bg-white/8 text-text border border-white/12"
+        : "text-text-muted hover:text-text-muted border border-transparent"
         }`}
     >
       {label}
       {count !== undefined && count > 0 && (
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${active ? "bg-red-700 text-white" : "bg-white/8 text-gray-500"}`}>
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${active ? "bg-red text-text" : "bg-white/8 text-text-muted"}`}>
           {count}
         </span>
       )}
@@ -701,14 +701,14 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
       <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
+            <h1 className="text-[22px] font-bold text-text tracking-tight leading-tight truncate font-serif">
               Invitations
             </h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
+              <span className="text-[10px] font-semibold tracking-wide text-text-muted bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
                 Race Management
               </span>
-              <span className="text-[12px] text-gray-500 truncate">
+              <span className="text-[12px] text-text-muted truncate">
                 {racePendingTotal > 0
                   ? `· ${racePendingTotal} pending`
                   : "· No pending"}
@@ -729,34 +729,34 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
           <>
             {/* Search */}
             <div className="relative mb-5">
-              <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input
                 type="text"
                 value={raceSearchInput}
                 onChange={(e) => setRaceSearchInput(e.target.value)}
                 placeholder="Search by race name…"
-                className="w-full max-w-sm bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-[13px] text-white placeholder-gray-600 focus:outline-none focus:border-white/25 transition-colors duration-150"
+                className="w-full max-w-sm bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-[13px] text-text placeholder-text-muted focus:outline-none focus:border-white/25 transition-colors duration-150"
               />
             </div>
 
             {loadingRace && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading invitations…</div>
+                <div className="flex items-center gap-2 text-text-muted/70 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading invitations…</div>
                 {Array.from({ length: 3 }).map((_, i) => <InvitationSkeleton key={i} />)}
               </div>
             )}
             {!loadingRace && errorRace && (
-              <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorRace}</div>
+              <div className="rounded-xl border border-error-border bg-error-bg px-5 py-4 text-[13px] text-red">{errorRace}</div>
             )}
             {!loadingRace && !errorRace && invitations.length === 0 && (
-              <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
+              <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-text-muted/70">
                 {raceSearch ? `No results for "${raceSearch}".` : "No race invitations found."}
               </div>
             )}
             {acceptError && (
-              <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400 mb-5 flex items-center justify-between gap-3">
+              <div className="rounded-xl border border-error-border bg-error-bg px-5 py-4 text-[13px] text-red mb-5 flex items-center justify-between gap-3">
                 <span>{acceptError}</span>
-                <button onClick={() => setAcceptError(null)} className="text-red-400/70 hover:text-red-300 shrink-0">
+                <button onClick={() => setAcceptError(null)} className="text-red/70 hover:text-red-300 shrink-0">
                   <X size={14} />
                 </button>
               </div>
@@ -764,7 +764,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
             {!loadingRace && !errorRace && invitations.length > 0 && (
               <>
                 {racePendingTotal > 0 && !raceSearch && (
-                  <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
+                  <p className="text-[12px] text-amber/80 font-medium mb-5">
                     {racePendingTotal} pending {racePendingTotal === 1 ? "invitation" : "invitations"} awaiting your response.
                   </p>
                 )}
@@ -784,39 +784,39 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
           <>
             {/* Search */}
             <div className="relative mb-5">
-              <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
               <input
                 type="text"
                 value={jockeySearchInput}
                 onChange={(e) => setJockeySearchInput(e.target.value)}
                 placeholder="Search by jockey or horse name…"
-                className="w-full max-w-sm bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-[13px] text-white placeholder-gray-600 focus:outline-none focus:border-white/25 transition-colors duration-150"
+                className="w-full max-w-sm bg-surface border border-border rounded-lg pl-9 pr-4 py-2 text-[13px] text-text placeholder-text-muted focus:outline-none focus:border-white/25 transition-colors duration-150"
               />
             </div>
 
             {loadingJockey && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading jockey invitations…</div>
+                <div className="flex items-center gap-2 text-text-muted/70 text-[12px] mb-2"><Loader2 size={13} className="animate-spin" /> Loading jockey invitations…</div>
                 {Array.from({ length: 3 }).map((_, i) => <InvitationSkeleton key={i} />)}
               </div>
             )}
             {!loadingJockey && errorJockey && (
-              <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-4 text-[13px] text-red-400">{errorJockey}</div>
+              <div className="rounded-xl border border-error-border bg-error-bg px-5 py-4 text-[13px] text-red">{errorJockey}</div>
             )}
             {!loadingJockey && !errorJockey && jockeyInvs.length === 0 && (
-              <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
+              <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-text-muted/70">
                 {jockeySearch ? `No results for "${jockeySearch}".` : "No jockey invitations found."}
               </div>
             )}
             {!loadingJockey && !errorJockey && jockeyInvs.length > 0 && (
               <>
                 {jockeyPendingTotal > 0 && !jockeySearch && (
-                  <p className="text-[12px] text-yellow-500/80 font-medium mb-5">
+                  <p className="text-[12px] text-amber/80 font-medium mb-5">
                     {jockeyPendingTotal} pending {jockeyPendingTotal === 1 ? "invitation" : "invitations"} awaiting jockey response.
                   </p>
                 )}
                 {cancelInvError && (
-                  <div className="rounded-xl border border-red-700/30 bg-red-900/10 px-5 py-3 mb-4 text-[13px] text-red-400">{cancelInvError}</div>
+                  <div className="rounded-xl border border-error-border bg-error-bg px-5 py-3 mb-4 text-[13px] text-red">{cancelInvError}</div>
                 )}
                 <div className="space-y-4">
                   {pagedJockeyInvs.map((inv) => (

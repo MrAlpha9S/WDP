@@ -96,13 +96,13 @@ export function InvitationTable({
     return (
         <div className="rounded-xl border border-border bg-surface p-6 mt-4 min-w-0">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-[17px] font-semibold text-white">
+                <h2 className="text-[17px] font-semibold text-text">
                     {title}
                 </h2>
                 {onViewAll && (
                     <button
                         onClick={onViewAll}
-                        className="text-[13px] text-gray-400 hover:text-white border border-border px-4 py-1.5 rounded-lg transition-colors"
+                        className="text-[13px] text-text-muted hover:text-text border border-border px-4 py-1.5 rounded-lg transition-colors cursor-pointer"
                     >
                         View All
                     </button>
@@ -443,19 +443,22 @@ export default function InvitationsSection({
                 <div className="flex gap-4">
                     <button
                         onClick={() => { setActiveTab("Horse Owner"); setPage(1); }}
-                        className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Horse Owner" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                        aria-pressed={activeTab === "Horse Owner"}
+                        className={`pb-2 px-1 text-[14px] font-medium transition-colors cursor-pointer ${activeTab === "Horse Owner" ? "text-text border-b-2 border-text" : "text-text-muted hover:text-text"}`}
                     >
                         Horse Owners
                     </button>
                     <button
                         onClick={() => { setActiveTab("Referee"); setPage(1); }}
-                        className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Referee" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                        aria-pressed={activeTab === "Referee"}
+                        className={`pb-2 px-1 text-[14px] font-medium transition-colors cursor-pointer ${activeTab === "Referee" ? "text-text border-b-2 border-text" : "text-text-muted hover:text-text"}`}
                     >
                         Referees
                     </button>
                     <button
                         onClick={() => { setActiveTab("Jockey"); setPage(1); }}
-                        className={`pb-2 px-1 text-[14px] font-medium transition-colors ${activeTab === "Jockey" ? "text-white border-b-2 border-white" : "text-gray-500 hover:text-gray-300"}`}
+                        aria-pressed={activeTab === "Jockey"}
+                        className={`pb-2 px-1 text-[14px] font-medium transition-colors cursor-pointer ${activeTab === "Jockey" ? "text-text border-b-2 border-text" : "text-text-muted hover:text-text"}`}
                     >
                         Jockeys
                     </button>
@@ -464,7 +467,8 @@ export default function InvitationsSection({
                     <select
                         value={limit}
                         onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
-                        className="mb-2 w-[110px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                        aria-label="Rows per page"
+                        className="mb-2 w-[110px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                     >
                         {[5, 10, 25, 50, 100].map((n) => (
                             <option key={n} value={n}>{n} rows</option>

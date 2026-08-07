@@ -9,6 +9,8 @@ import { adminService } from "../../../api/adminService";
 import { useSocket } from "../../../providers/SocketProvider";
 import { useScheduleGate } from "../../../utils/raceDayUtil";
 import { ScheduleConfirmModal } from "../../../components/ScheduleConfirmModal";
+import Modal from "../../../components/ui/Modal";
+import Button from "../../../components/ui/Button";
 
 interface RaceDetailsPanelProps {
     selectedRace?: ScheduledRace;
@@ -28,6 +30,32 @@ const STATUS_LABEL: Record<string, string> = {
     pending: "Pending",
     rejected: "Rejected",
     assigned: "Assigned",
+};
+
+const VIOLATION_STATUS_COLORS: Record<string, string> = {
+    pending: "bg-amber-500/15   text-amber-400   border-amber-500/30",
+    confirmed: "bg-red-500/15     text-red-400     border-red-500/30",
+    dismissed: "bg-white/5        text-gray-500    border-border",
+};
+const VIOLATION_PHASE_BADGE: Record<string, string> = {
+    'pre-race': "bg-violet-500/15 text-violet-400 border border-violet-500/30",
+    'during-race': "bg-blue-500/15   text-blue-400   border border-blue-500/30",
+    'after-race': "bg-orange-500/15 text-orange-400 border border-orange-500/30",
+};
+const VIOLATION_SEVERITY_COLOR: string[] = ['', 'text-green-400', 'text-yellow-400', 'text-orange-400', 'text-red-400', 'text-red-500'];
+const VIOLATION_STEWARD_STYLES: Record<string, string> = {
+    'no-action': 'text-gray-400',
+    warning: 'text-yellow-400',
+    fine: 'text-orange-400',
+    suspended: 'text-red-400',
+    disqualified: 'text-red-500',
+    demoted: 'text-orange-500',
+    investigation: 'text-blue-400',
+    'permanent-ban': 'text-red-600',
+};
+const fmtViolationDate = (raw?: string | null) => {
+    if (!raw) return null;
+    return new Date(raw).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 
@@ -57,13 +85,12 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const [isCancelling, setIsCancelling] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
-    const [isCreatingStream, setIsCreatingStream] = useState(false);
     const [isQuickAssigning, setIsQuickAssigning] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
     const [quickAssignResult, setQuickAssignResult] = useState<string | null>(null);
 
     // Tab State
-    const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'referees' | 'pools' | 'stream'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'registrations' | 'referees' | 'pools' | 'violations' | 'stream'>('overview');
     const [distUnit, setDistUnit] = useState<'lengths' | 'metres'>('lengths');
     const fmtLength = (l: number | null | undefined) => {
         if (l == null || l === 0) return '—';
@@ -79,6 +106,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
     const [detailedParticipants, setDetailedParticipants] = useState<any[]>([]);
     const [detailedReferees, setDetailedReferees] = useState<any[]>([]);
+    const [detailedViolations, setDetailedViolations] = useState<any[]>([]);
     const [detailedOverview, setDetailedOverview] = useState<any>(null);
     const [detailedPools, setDetailedPools] = useState<any[]>([]);
     const [detailedTrackEarnings, setDetailedTrackEarnings] = useState<any>(null);
@@ -117,7 +145,10 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         registrationId: reg._id,
                         ownerName: reg.Owner?.fullName ?? null,
                         horseName: reg.Horse?.horseName ?? null,
-                        jockeyName: reg.Jockey?._id?.fullName ?? null,
+                        // Only surface the jockey once their invitation has actually
+                        // been accepted — a still-pending invite shouldn't read as a
+                        // confirmed jockey assignment.
+                        jockeyName: reg.JockeyInvitationStatus === 'accepted' ? (reg.Jockey?._id?.fullName ?? null) : null,
                         isJockeyInRace: reg.isJockeyInRace ?? false,
                         status: reg.registrationStatus ?? 'pending',
                         sum_prediction: reg.sum_prediction,
@@ -125,7 +156,38 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                         prizePayment: reg.prizePayment ?? null,
                         jockeyPayment: reg.jockeyPayment ?? null,
                     }));
-                    setDetailedParticipants(parts);
+
+                    // Violations for this race — cross-referenced against `parts` for
+                    // horse/jockey display names, and split out by phase so pre-race
+                    // ones can be attached to their owning registration card.
+                    // (Plain objects, not `Map`, since the `Map` identifier here is
+                    // shadowed by the lucide-react `Map` icon imported above.)
+                    const violationsRaw: any[] = (res.data as any).Violations || [];
+                    const regIdOf = (v: any) => v.registrationId ? (typeof v.registrationId === 'string' ? v.registrationId : v.registrationId?._id) : null;
+                    const regById: Record<string, any> = {};
+                    parts.forEach((p: any) => { regById[p.registrationId] = p; });
+                    const viols = violationsRaw.map((v: any) => {
+                        const reg: any = regById[regIdOf(v)];
+                        return {
+                            ...v,
+                            horseName: reg?.horseName ?? null,
+                            jockeyName: reg?.jockeyName ?? null,
+                        };
+                    });
+                    setDetailedViolations(viols);
+
+                    const preRaceByReg: Record<string, any[]> = {};
+                    violationsRaw.forEach((v: any) => {
+                        if (v.violationTypeId?.type !== 'pre-race') return;
+                        const rid = regIdOf(v);
+                        if (!rid) return;
+                        (preRaceByReg[rid] ||= []).push(v);
+                    });
+                    const partsWithViolations = parts.map((p: any) => ({
+                        ...p,
+                        preRaceViolations: preRaceByReg[p.registrationId] || [],
+                    }));
+                    setDetailedParticipants(partsWithViolations);
 
                     const refs = (res.data.Referee || []).map((ref: any) => ({
                         refereeId: ref.refereeId,
@@ -185,6 +247,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
             setDetailedOverview(null);
             setDetailedPools([]);
             setDetailedTrackEarnings(null);
+            setDetailedViolations([]);
         }
         // updatedAt (a real RaceRound field, set by Mongoose timestamps) changes
         // whenever this race is actually saved, so this only refetches on an
@@ -216,20 +279,6 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
     // ── Action Handlers ────────────────────────────────────────────────────────
 
-    const handleCreateStream = async () => {
-        if (!selectedRace) return;
-        setIsCreatingStream(true);
-        setStreamError(null);
-        try {
-            const res = await adminService.createStream(selectedRace.id);
-            if (res.data) setStreamInfo(res.data);
-        } catch (error: any) {
-            setStreamError(error?.msg || 'Failed to create stream key');
-        } finally {
-            setIsCreatingStream(false);
-        }
-    };
-
     const detailedRaceDate: string | undefined = detailedOverview?.raceDate;
     const startGate = useScheduleGate(detailedRaceDate, { requireStartTime: true });
 
@@ -238,6 +287,18 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
         setIsStarting(true);
         setActionError(null);
         try {
+            let liveStream = streamInfo;
+            if (!liveStream) {
+                setStreamError(null);
+                try {
+                    const streamRes = await adminService.createStream(selectedRace.id);
+                    liveStream = streamRes.data;
+                    if (liveStream) setStreamInfo(liveStream);
+                } catch (streamErr: any) {
+                    setActionError(streamErr?.msg || 'Failed to create stream key');
+                    return;
+                }
+            }
             await adminService.setRaceRoundStatus(selectedRace.id, 'running', override);
             if (onRefresh) onRefresh();
             fetchDetails();
@@ -307,11 +368,12 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
     const isCompleted = status === 'completed';
     const isCancelled = status === 'cancelled';
 
-    const tabs: Array<{ key: 'overview' | 'registrations' | 'referees' | 'pools' | 'stream'; label: string }> = [
+    const tabs: Array<{ key: 'overview' | 'registrations' | 'referees' | 'pools' | 'violations' | 'stream'; label: string }> = [
         { key: 'overview', label: 'Overview' },
         { key: 'registrations', label: 'Registrations' },
         { key: 'referees', label: 'Referees' },
         { key: 'pools', label: 'Pools' },
+        { key: 'violations', label: 'Violations' },
     ];
     if (isRunning || isAwaitingConfirmation || isCompleted) {
         tabs.push({ key: 'stream', label: isRunning || isAwaitingConfirmation ? '🔴 Stream' : 'VOD' });
@@ -330,7 +392,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     <div className="flex flex-col gap-1 mb-3">
                         <div className="flex justify-between items-start w-full gap-4">
                             <div className="flex flex-col gap-2">
-                                <h2 className={`text-[22px] font-bold tracking-tight leading-tight ${isCancelled ? 'text-gray-500 line-through' : 'text-white'}`}>
+                                <h2 className={`text-[22px] font-bold tracking-tight leading-tight ${isCancelled ? 'text-text-muted line-through' : 'text-text'}`}>
                                     {selectedRace.title}
                                 </h2>
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -387,7 +449,7 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                 )}
                                 <button
                                     onClick={onClose}
-                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors ml-1"
+                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-text-muted hover:text-text rounded border border-border transition-colors ml-1 cursor-pointer"
                                     title="Close Panel"
                                 >
                                     <X size={14} />
@@ -424,77 +486,10 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                     {/* ── Action Buttons ── */}
                     {(isPrepared || isRunning || isAwaitingConfirmation) && (
                         <div className="mt-4 flex flex-col gap-2">
-                            {/* Stream setup — required before starting */}
-                            {isPrepared && (
-                                <div className="rounded-xl border border-blue-500/20 bg-bg p-3 flex flex-col gap-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
-                                            <Radio size={12} className={streamInfo ? 'text-emerald-400' : 'text-blue-400'} />
-                                            Stream Setup
-                                        </span>
-                                        {streamInfo && (
-                                            <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
-                                                <CheckCircle2 size={11} /> Ready
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Loading state while checking for existing stream */}
-                                    {streamLoading && !streamInfo && (
-                                        <div className="flex items-center gap-2 text-[12px] text-gray-400">
-                                            <Loader2 size={13} className="animate-spin" /> Checking stream…
-                                        </div>
-                                    )}
-
-                                    {/* No stream yet */}
-                                    {!streamInfo && !streamLoading && (
-                                        <div className="flex flex-col gap-1.5">
-                                            <p className="text-[11px] text-gray-500">
-                                                Create a stream key so OBS can broadcast before the race starts.
-                                            </p>
-                                            <button
-                                                onClick={handleCreateStream}
-                                                disabled={isCreatingStream}
-                                                className="flex items-center justify-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                                            >
-                                                {isCreatingStream ? <Loader2 size={13} className="animate-spin" /> : <Video size={13} />}
-                                                {isCreatingStream ? 'Creating…' : 'Create Stream Key'}
-                                            </button>
-                                            {streamError && (
-                                                <p className="text-[11px] text-red-400 flex items-center gap-1">
-                                                    <TriangleAlert size={11} className="shrink-0" /> {streamError}
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Stream key ready — show credentials */}
-                                    {streamInfo && !streamLoading && (
-                                        <div className="flex flex-col gap-1.5 text-[11px]">
-                                            {streamInfo.rtmpUrl && (
-                                                <div className="flex items-center gap-2 bg-bg rounded-lg px-2 py-1.5 border border-border/60">
-                                                    <span className="text-gray-500 shrink-0">RTMP</span>
-                                                    <span className="text-gray-300 font-mono truncate flex-1">{streamInfo.rtmpUrl}</span>
-                                                    <CopyButton text={streamInfo.rtmpUrl} />
-                                                </div>
-                                            )}
-                                            {streamInfo.streamKey && (
-                                                <div className="flex items-center gap-2 bg-bg rounded-lg px-2 py-1.5 border border-border/60">
-                                                    <span className="text-gray-500 shrink-0">Key</span>
-                                                    <span className="text-gray-300 font-mono truncate flex-1 select-all">{streamInfo.streamKey}</span>
-                                                    <CopyButton text={streamInfo.streamKey} />
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
                             {isPrepared && (
                                 <button
                                     onClick={handleStartRace}
-                                    disabled={isStarting || !streamInfo}
-                                    title={!streamInfo ? 'Create a stream key first' : undefined}
+                                    disabled={isStarting}
                                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
                                 >
                                     {isStarting ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} fill="white" />}
@@ -673,6 +668,25 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                 </div>
                                             )}
                                         </div>
+                                        {p.preRaceViolations?.length > 0 && (
+                                            <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                                                    <TriangleAlert size={12} className="text-amber-500" /> Pre-Race Violations
+                                                </span>
+                                                {p.preRaceViolations.map((v: any, vIdx: number) => {
+                                                    const vStatusClass = VIOLATION_STATUS_COLORS[v.violationStatus] ?? VIOLATION_STATUS_COLORS.pending;
+                                                    const vSeverityClass = VIOLATION_SEVERITY_COLOR[v.severity] || 'text-gray-500';
+                                                    return (
+                                                        <div key={v._id ?? vIdx} className="flex items-center justify-between gap-2 text-[12px]">
+                                                            <span className={`truncate ${vSeverityClass}`}>{v.violationTypeId?.violationName || 'Unknown Violation Type'}</span>
+                                                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${vStatusClass}`}>
+                                                                {v.violationStatus}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -707,6 +721,74 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                             })}
                             {detailedReferees.length === 0 && !loadingDetails && (
                                 <div className="text-[13px] text-gray-500 italic p-8 text-center bg-surface rounded-xl border border-border/60">No referees assigned.</div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── Violations Tab ── */}
+                    {activeTab === 'violations' && (
+                        <div className="flex flex-col gap-3">
+                            {detailedViolations.map((v: any, idx: number) => {
+                                const statusClass = VIOLATION_STATUS_COLORS[v.violationStatus] ?? VIOLATION_STATUS_COLORS.pending;
+                                const phaseClass = VIOLATION_PHASE_BADGE[v.violationTypeId?.type] ?? "bg-white/5 text-gray-500 border border-border";
+                                const severityClass = VIOLATION_SEVERITY_COLOR[v.severity] || 'text-gray-500';
+                                const stewardClass = VIOLATION_STEWARD_STYLES[v.stewardAction] ?? 'text-gray-400';
+                                return (
+                                    <div key={v._id ?? idx} className="p-4 rounded-xl bg-surface border border-border/60 flex flex-col gap-3">
+                                        <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <TriangleAlert size={16} className="text-gray-500 shrink-0" />
+                                                <span className="text-[14px] font-bold text-white truncate">{v.violationTypeId?.violationName || <span className="text-gray-600 italic font-medium">Unknown Violation Type</span>}</span>
+                                            </div>
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${statusClass}`}>
+                                                {v.violationStatus}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {v.violationTypeId?.type && (
+                                                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${phaseClass}`}>{v.violationTypeId.type}</span>
+                                                )}
+                                                {v.violationTypeId?.category && (
+                                                    <span className="text-[11px] text-gray-500">{v.violationTypeId.category}</span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-0.5" title={`Severity ${v.severity ?? '—'}/5`}>
+                                                {[1, 2, 3, 4, 5].map(n => (
+                                                    <span key={n} className={`w-1.5 h-1.5 rounded-full ${n <= (v.severity ?? 0) ? severityClass.replace('text-', 'bg-') : 'bg-white/10'}`} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {v.description && (
+                                            <p className="text-[12px] text-gray-400">{v.description}</p>
+                                        )}
+                                        <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-gray-500 font-medium">Horse</span>
+                                                <span className="text-gray-300 font-semibold">{v.horseName || <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                            </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-gray-500 font-medium">Jockey</span>
+                                                <span className="text-gray-300 font-semibold">{v.jockeyName || <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                            </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-gray-500 font-medium">Steward Action</span>
+                                                <span className={`font-semibold ${stewardClass}`}>{v.stewardAction || <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                            </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-gray-500 font-medium">Actual Penalty</span>
+                                                <span className="text-gray-300 font-semibold">{v.actualPenalty || <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                            </div>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-gray-500 font-medium">Reported</span>
+                                                <span className="text-gray-300 font-semibold">{fmtViolationDate(v.created_at) || <span className="text-gray-600 italic font-normal">N/A</span>}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {detailedViolations.length === 0 && !loadingDetails && (
+                                <div className="text-[13px] text-gray-500 italic p-8 text-center bg-surface rounded-xl border border-border/60">No violations recorded for this race.</div>
                             )}
                         </div>
                     )}
@@ -1005,56 +1087,31 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
 
             {/* ── Cancel Confirmation Modal ── */}
             {isCancelModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-surface border border-border rounded-xl shadow-2xl w-[400px] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-5 border-b border-border/60 bg-surface">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-red-500/20 rounded-full">
-                                    <AlertCircle className="text-red-500" size={20} />
-                                </div>
-                                <h3 className="text-[16px] font-bold text-white">Cancel Race Round</h3>
-                            </div>
-                            <button
-                                onClick={() => !isCancelling && setIsCancelModalOpen(false)}
-                                disabled={isCancelling}
-                                className="text-gray-500 hover:text-white transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-[14px] text-gray-300 leading-relaxed">
-                                Are you sure you want to cancel <strong className="text-white">{selectedRace?.title}</strong>?
-                            </p>
-                            <p className="text-[13px] text-gray-400 mt-2">
-                                This will also cancel all associated registrations, referee assignments, and invitations. This action cannot be undone.
-                            </p>
-                            {actionError && (
-                                <p className="text-[12px] text-red-400 mt-3 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">{actionError}</p>
-                            )}
-                        </div>
-                        <div className="p-5 border-t border-border/60 bg-surface flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsCancelModalOpen(false)}
-                                disabled={isCancelling}
-                                className="px-4 py-2 text-[13px] font-medium text-white bg-white/5 hover:bg-white/10 border border-border rounded transition-colors disabled:opacity-50"
-                            >
-                                Keep Race
-                            </button>
-                            <button
-                                onClick={handleCancelRace}
-                                disabled={isCancelling}
-                                className="px-4 py-2 text-[13px] font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors flex items-center gap-2 disabled:opacity-50"
-                            >
-                                {isCancelling ? (
-                                    <><Loader2 size={14} className="animate-spin" /> Cancelling...</>
-                                ) : (
-                                    "Yes, Cancel Race"
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <Modal
+                    title="Cancel Race Round"
+                    icon={<div className="p-2 bg-red/20 rounded-full"><AlertCircle className="text-red" size={20} /></div>}
+                    size="sm"
+                    onClose={() => !isCancelling && setIsCancelModalOpen(false)}
+                    closeOnBackdrop={!isCancelling}
+                    footer={<>
+                        <Button variant="secondary" size="sm" disabled={isCancelling} onClick={() => setIsCancelModalOpen(false)}>
+                            Keep Race
+                        </Button>
+                        <Button variant="destructive" size="sm" loading={isCancelling} onClick={handleCancelRace}>
+                            {isCancelling ? "Cancelling..." : "Yes, Cancel Race"}
+                        </Button>
+                    </>}
+                >
+                    <p className="text-[14px] text-text-muted leading-relaxed">
+                        Are you sure you want to cancel <strong className="text-text">{selectedRace?.title}</strong>?
+                    </p>
+                    <p className="text-[13px] text-text-muted mt-2">
+                        This will also cancel all associated registrations, referee assignments, and invitations. This action cannot be undone.
+                    </p>
+                    {actionError && (
+                        <p className="text-[12px] text-red mt-3 bg-error-bg border border-error-border rounded px-3 py-2">{actionError}</p>
+                    )}
+                </Modal>
             )}
 
         </aside>

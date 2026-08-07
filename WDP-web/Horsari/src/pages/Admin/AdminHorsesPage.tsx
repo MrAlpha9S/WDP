@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-    X, Search, CheckCircle, XCircle, Clock, AlertTriangle,
+    X, Search, CheckCircle, XCircle, Ban, AlertTriangle,
     ExternalLink, Calendar,
-    ShieldCheck, User, Trophy, Timer, Loader2, Shield,
-    ArrowUpDown, ArrowUp, ArrowDown,
+    ShieldCheck, User, Trophy, Timer, Loader2,
 } from "lucide-react";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
 import { ErrorState } from "../../components/ErrorState";
+import PageHeader from "../../components/ui/PageHeader";
+import SortableTh from "../../components/ui/SortableTh";
+import { useSortableColumns } from "../../hooks/useSortableColumns";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -65,7 +67,7 @@ interface HorseDetail {
 
 const STATUS_CFG: Record<HorseStatus, { icon: React.ReactNode; label: string; color: string; bg: string; border: string }> = {
     active:   { icon: <CheckCircle size={12} />, label: "Active",    color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-    inactive: { icon: <Clock       size={12} />, label: "Suspended", color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/20"   },
+    inactive: { icon: <Ban         size={12} />, label: "Suspended", color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/20"   },
     retired:  { icon: <XCircle     size={12} />, label: "Retired",   color: "text-gray-500",    bg: "bg-white/[0.05]",   border: "border-border"        },
 };
 
@@ -402,7 +404,7 @@ function HorseDetailPanel({
                     <div className="flex flex-col gap-2">
                         {allViolations.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-10 gap-2">
-                                <Shield size={22} className="text-gray-700" />
+                                <AlertTriangle size={22} className="text-gray-700" />
                                 <p className="text-[12px] text-gray-600">No violations recorded.</p>
                             </div>
                         ) : allViolations.map(v => (
@@ -474,30 +476,12 @@ export default function AdminHorsesPage() {
     const [loading,      setLoading]      = useState(true);
     const [error,        setError]        = useState<string | null>(null);
     const [refreshSeed,  setRefreshSeed]  = useState(0);
-    const [sortBy,       setSortBy]       = useState<string>('createdAt');
-    const [order,        setOrder]        = useState<'asc' | 'desc'>('desc');
+    const { sortBy, order, setSortBy, setOrder, handleSort } = useSortableColumns("createdAt", "desc", () => setPage(1));
 
     const [selectedHorse,  setSelectedHorse]  = useState<AdminHorse | null>(null);
     const [horseDetail,    setHorseDetail]    = useState<HorseDetail | null>(null);
     const [detailLoading,  setDetailLoading]  = useState(false);
     const [statusLoading,  setStatusLoading]  = useState(false);
-
-    const handleSort = (field: string) => {
-        if (sortBy === field) {
-            setOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortBy(field);
-            setOrder('asc');
-        }
-        setPage(1);
-    };
-
-    const SortIcon = ({ field }: { field: string }) => {
-        if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
-        return order === 'asc'
-            ? <ArrowUp size={11} className="text-gold ml-1 inline" />
-            : <ArrowDown size={11} className="text-gold ml-1 inline" />;
-    };
 
     // Fetch list
     useEffect(() => {
@@ -550,7 +534,7 @@ export default function AdminHorsesPage() {
     const panelOpen = selectedHorse !== null;
 
     return (
-        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-text overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
 
                 {/* ── List ── */}
@@ -558,33 +542,22 @@ export default function AdminHorsesPage() {
 
                     {/* Header */}
                     <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
-                        {/* Row 1 */}
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
-                                    Horses
-                                </h1>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
-                                        All Registered
-                                    </span>
-                                    <span className="text-[12px] text-gray-500 truncate">· {totalItems} total</span>
-                                </div>
-                            </div>
-                        </div>
+                        <PageHeader title="Horses" eyebrow="All Registered" subtext={`${totalItems} total`} />
 
                         {/* Row 2 */}
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="relative flex-1 min-w-0">
-                                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                                 <input
                                     type="text" placeholder="Search name or breed…" value={search}
+                                    aria-label="Search horses"
                                     onChange={e => handleSearch(e.target.value)}
-                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px]"
+                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-text placeholder:text-text-muted focus:outline-none focus:border-white/20 h-[32px]"
                                 />
                             </div>
                             <select value={statusFilter} onChange={e => handleStatus(e.target.value)}
-                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer">
+                                aria-label="Filter by status"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none h-[32px] appearance-none cursor-pointer">
                                 <option value="">All Statuses</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Suspended</option>
@@ -598,7 +571,8 @@ export default function AdminHorsesPage() {
                                     setOrder(dir as 'asc' | 'desc');
                                     setPage(1);
                                 }}
-                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer"
+                                aria-label="Sort horses"
+                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="createdAt:desc">Newest First</option>
                                 <option value="createdAt:asc">Oldest First</option>
@@ -610,7 +584,8 @@ export default function AdminHorsesPage() {
                             <select
                                 value={limit}
                                 onChange={e => handleLimitChange(Number(e.target.value))}
-                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none h-[32px] appearance-none cursor-pointer"
+                                aria-label="Rows per page"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none h-[32px] appearance-none cursor-pointer"
                             >
                                 {LIMIT_OPTIONS.map(n => (
                                     <option key={n} value={n}>{n} rows</option>
@@ -625,31 +600,25 @@ export default function AdminHorsesPage() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-surface border-b border-border/60">
-                                        <th onClick={() => handleSort('horseName')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Horse <SortIcon field="horseName" />
-                                        </th>
+                                        <SortableTh field="horseName" activeField={sortBy} order={order} onSort={handleSort}>Horse</SortableTh>
                                         {!panelOpen && (
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Owner</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Owner</th>
                                         )}
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Breed</th>
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Breed</th>
                                         {!panelOpen && (
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Gender</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Gender</th>
                                         )}
                                         {!panelOpen && (
-                                            <th onClick={() => handleSort('healthStatus')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                                Health <SortIcon field="healthStatus" />
-                                            </th>
+                                            <SortableTh field="healthStatus" activeField={sortBy} order={order} onSort={handleSort}>Health</SortableTh>
                                         )}
-                                        <th onClick={() => handleSort('status')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Status <SortIcon field="status" />
-                                        </th>
+                                        <SortableTh field="status" activeField={sortBy} order={order} onSort={handleSort}>Status</SortableTh>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
                                     {loading ? (
                                         <tr>
                                             <td colSpan={6} className="py-12 text-center">
-                                                <Loader2 size={22} className="text-gray-600 animate-spin mx-auto" />
+                                                <Loader2 size={22} className="text-text-muted animate-spin mx-auto" />
                                             </td>
                                         </tr>
                                     ) : error ? (
@@ -661,7 +630,7 @@ export default function AdminHorsesPage() {
                                     ) : horses.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="py-10 text-center">
-                                                <p className="text-[12px] text-gray-600">No horses found.</p>
+                                                <p className="text-[12px] text-text-muted">No horses found.</p>
                                             </td>
                                         </tr>
                                     ) : horses.map(horse => {
@@ -670,20 +639,30 @@ export default function AdminHorsesPage() {
                                         const isSelected = selectedHorse?.horseId === horse.horseId;
 
                                         return (
-                                            <tr key={horse.horseId} onClick={() => handleSelectHorse(horse)}
-                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}>
+                                            <tr key={horse.horseId}
+                                                role="button"
+                                                tabIndex={0}
+                                                aria-pressed={isSelected}
+                                                onClick={() => handleSelectHorse(horse)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        handleSelectHorse(horse);
+                                                    }
+                                                }}
+                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/40 ${isSelected ? "bg-red-900/10" : ""}`}>
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-2.5 min-w-0">
                                                         <HorseAvatar src={horse.img} name={horse.horseName} />
                                                         <div className="min-w-0">
-                                                            <p className="text-[13px] text-white font-medium truncate">{horse.horseName}</p>
-                                                            {!panelOpen && <p className="text-[11px] text-gray-600 truncate">{fmtDate(horse.dateOfBirth)}</p>}
+                                                            <p className="text-[13px] text-text font-medium truncate">{horse.horseName}</p>
+                                                            {!panelOpen && <p className="text-[11px] text-text-muted truncate">{fmtDate(horse.dateOfBirth)}</p>}
                                                         </div>
                                                     </div>
                                                 </td>
-                                                {!panelOpen && <td className="p-4"><p className="text-[12px] text-gray-400 truncate">{horse.ownerName ?? "—"}</p></td>}
-                                                <td className="p-4"><p className="text-[12px] text-gray-400 truncate">{horse.breed ?? "—"}</p></td>
-                                                {!panelOpen && <td className="p-4"><p className="text-[12px] text-gray-400 capitalize">{horse.gender ?? "—"}</p></td>}
+                                                {!panelOpen && <td className="p-4"><p className="text-[12px] text-text-muted truncate">{horse.ownerName ?? "—"}</p></td>}
+                                                <td className="p-4"><p className="text-[12px] text-text-muted truncate">{horse.breed ?? "—"}</p></td>
+                                                {!panelOpen && <td className="p-4"><p className="text-[12px] text-text-muted capitalize">{horse.gender ?? "—"}</p></td>}
                                                 {!panelOpen && <td className="p-4"><span className={`text-[12px] font-medium ${h.color}`}>{h.label}</span></td>}
                                                 <td className="p-4">
                                                     <span className={`flex items-center gap-1 text-[12px] font-medium ${s.color}`}>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { LayoutGrid, List, Plus, Loader2 } from "lucide-react";
+import { GanttChart, List, Plus, Loader2 } from "lucide-react";
 import { Pagination } from "../../components/Pagination";
 import type { ViewMode } from "../../shared/types/RaceTypes";
 import CreateRaceModal from "./modal/CreateRaceModal";
@@ -8,12 +8,32 @@ import { adminService, type RaceRoundData, type TournamentNameOption } from "../
 import { useSocket } from "../../providers/SocketProvider";
 import { ErrorState } from "../../components/ErrorState";
 import { calendarDayKey } from "../../utils/raceDayUtil";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import StatusBadge, { type BadgeTone } from "../../components/ui/StatusBadge";
 
 // RaceRound.status is a fixed schema enum (entities/RaceRound.js) — hardcoded here
 // rather than derived from fetched data, since fetched data is now itself
 // status-filtered server-side and would otherwise collapse the option list.
 const RACE_STATUSES = ["draft", "scheduled", "running", "completed", "cancelled", "awaitingConfirmation", "prepared"];
 const RACE_ROUNDS_LIMIT_OPTIONS = [5, 10, 25, 50, 100, 200];
+
+// One tone per status — covers all 7 RACE_STATUSES with the 6 hues the design
+// token set defines; draft/awaitingConfirmation share amber since neither is
+// visually distinct enough from the others to warrant expanding the token set further.
+const RACE_STATUS_TONE: Record<string, BadgeTone> = {
+    cancelled: "red",
+    running: "blue",
+    completed: "neutral",
+    scheduled: "green",
+    prepared: "violet",
+    draft: "amber",
+    awaitingConfirmation: "amber",
+};
+const RACE_STATUS_DOT: Record<string, string> = {
+    cancelled: "bg-red", running: "bg-blue", completed: "bg-white/40",
+    scheduled: "bg-green", prepared: "bg-violet", draft: "bg-amber", awaitingConfirmation: "bg-amber",
+};
 
 export default function RaceSchedulingPage() {
     const [viewMode, setViewMode] = useState<ViewMode>("timeline");
@@ -284,7 +304,7 @@ export default function RaceSchedulingPage() {
     }, [selectedDate, viewMode, selectedTournament, selectedStatus, selectedRaceType]);
 
     return (
-        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-text overflow-hidden font-sans">
 
 
             {/* ── Top Content Area ── */}
@@ -294,26 +314,16 @@ export default function RaceSchedulingPage() {
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${selectedRaceId ? "flex-[0_0_55%]" : "flex-1"}`}>
                     {/* Header — row 1: title + actions, row 2: view toggle + filters */}
                     <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
-                        {/* Row 1 */}
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
-                                    Master Race Schedule
-                                </h1>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
-                                        All Scheduled Races
-                                    </span>
-                                    <span className="text-[12px] text-gray-500 truncate">· {selectedTournament === "All" ? "Across All Tournaments" : (tournaments.find(t => t._id === selectedTournament)?.tournamentName ?? "Unknown Tournament")}</span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setIsCreateModalOpen(true)}
-                                className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
-                            >
-                                <Plus size={13} /> Create Race
-                            </button>
-                        </div>
+                        <PageHeader
+                            title="Master Race Schedule"
+                            eyebrow="All Scheduled Races"
+                            subtext={selectedTournament === "All" ? "Across All Tournaments" : (tournaments.find(t => t._id === selectedTournament)?.tournamentName ?? "Unknown Tournament")}
+                            actions={
+                                <Button size="sm" leftIcon={<Plus size={13} />} onClick={() => setIsCreateModalOpen(true)}>
+                                    Create Race
+                                </Button>
+                            }
+                        />
 
                         {/* Row 2 */}
                         <div className="flex items-center gap-3 flex-wrap">
@@ -321,13 +331,15 @@ export default function RaceSchedulingPage() {
                             <div className="flex bg-surface p-1 rounded-lg border border-border/60 shrink-0">
                                 <button
                                     onClick={() => setViewMode("timeline")}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "timeline" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                                    aria-pressed={viewMode === "timeline"}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${viewMode === "timeline" ? "bg-white/10 text-text shadow-sm" : "text-text-muted hover:text-text"}`}
                                 >
-                                    <LayoutGrid size={13} /> Timeline
+                                    <GanttChart size={13} /> Timeline
                                 </button>
                                 <button
                                     onClick={() => setViewMode("table")}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "table" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                                    aria-pressed={viewMode === "table"}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${viewMode === "table" ? "bg-white/10 text-text shadow-sm" : "text-text-muted hover:text-text"}`}
                                 >
                                     <List size={13} /> Table
                                 </button>
@@ -336,7 +348,8 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={selectedTournament}
                                 onChange={(e) => setSelectedTournament(e.target.value)}
-                                className="flex-1 min-w-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Filter by tournament"
+                                className="flex-1 min-w-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Tournaments</option>
                                 {tournaments.map(t => (
@@ -347,7 +360,8 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={selectedStatus}
                                 onChange={(e) => setSelectedStatus(e.target.value)}
-                                className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer capitalize"
+                                aria-label="Filter by status"
+                                className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer capitalize"
                             >
                                 <option value="All">All Statuses</option>
                                 {RACE_STATUSES.map(status => (
@@ -358,7 +372,8 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={selectedRaceType}
                                 onChange={(e) => setSelectedRaceType(e.target.value)}
-                                className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Filter by race type"
+                                className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Race Types</option>
                                 {raceTypes.map(type => (
@@ -369,7 +384,8 @@ export default function RaceSchedulingPage() {
                             <button
                                 onClick={() => setRaceTypesActiveOnly(v => !v)}
                                 title="Toggle whether the race-type list includes retired (inactive) eligibility rules"
-                                className={`shrink-0 px-3 h-[32px] rounded-md text-[11px] font-medium border transition-colors ${raceTypesActiveOnly ? "bg-white/10 border-border text-white" : "bg-surface border-border text-gray-500 hover:text-gray-300"}`}
+                                aria-pressed={raceTypesActiveOnly}
+                                className={`shrink-0 px-3 h-[32px] rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${raceTypesActiveOnly ? "bg-white/10 border-border text-text" : "bg-surface border-border text-text-muted hover:text-text"}`}
                             >
                                 Active rules only
                             </button>
@@ -377,7 +393,8 @@ export default function RaceSchedulingPage() {
                             <select
                                 value={raceRoundsLimit}
                                 onChange={(e) => setRaceRoundsLimit(Number(e.target.value))}
-                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Rows per page"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 {RACE_ROUNDS_LIMIT_OPTIONS.map(n => (
                                     <option key={n} value={n}>{n} rows</option>
@@ -390,7 +407,7 @@ export default function RaceSchedulingPage() {
                     <div className="flex-1 relative mt-6 rounded-xl border border-border/60 overflow-hidden min-h-0">
                         {loading && (
                             <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface/80 backdrop-blur-sm">
-                                <Loader2 className="animate-spin text-red-500" size={32} />
+                                <Loader2 className="animate-spin text-red" size={32} />
                             </div>
                         )}
                         {!loading && error ? (
@@ -407,17 +424,19 @@ export default function RaceSchedulingPage() {
                                                 <button
                                                     onClick={handlePrevDate}
                                                     disabled={!uniqueDates.length || selectedDate === uniqueDates[0]}
-                                                    className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
+                                                    aria-label="Previous day"
+                                                    className="p-1 text-text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-md hover:bg-white/5 flex items-center justify-center cursor-pointer"
                                                 >
                                                     &larr;
                                                 </button>
-                                                <div className="text-[11px] font-bold tracking-widest text-white uppercase text-center flex-1">
+                                                <div className="text-[11px] font-bold tracking-widest text-text uppercase text-center flex-1">
                                                     {selectedDateLabel}
                                                 </div>
                                                 <button
                                                     onClick={handleNextDate}
                                                     disabled={!uniqueDates.length || selectedDate === uniqueDates[uniqueDates.length - 1]}
-                                                    className="p-1 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded hover:bg-white/5 flex items-center justify-center"
+                                                    aria-label="Next day"
+                                                    className="p-1 text-text-muted hover:text-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-md hover:bg-white/5 flex items-center justify-center cursor-pointer"
                                                 >
                                                     &rarr;
                                                 </button>
@@ -428,7 +447,7 @@ export default function RaceSchedulingPage() {
                                                         {/* Tick mark + label sit at the left edge — this is the 00:00/02:00/... instant,
                                                             not a label for the whole column, which would read as a duration. */}
                                                         <div className="absolute left-0 top-0 bottom-0 w-px bg-border/70" />
-                                                        <span className="absolute left-0 -translate-x-1/2 bg-surface px-1 text-[11px] font-medium text-gray-400 font-mono">{time}</span>
+                                                        <span className="absolute left-0 -translate-x-1/2 bg-surface px-1 text-[11px] font-medium text-text-muted font-mono">{time}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -437,15 +456,15 @@ export default function RaceSchedulingPage() {
                                         {/* Tracks and Race Rows */}
                                         <div className="flex flex-col">
                                             {TRACKS_DYNAMIC.length === 0 && !loading && (
-                                                <div className="p-8 text-center text-gray-500 text-[13px]">No races scheduled for this date.</div>
+                                                <div className="p-8 text-center text-text-muted text-[13px]">No races scheduled for this date.</div>
                                             )}
                                             {TRACKS_DYNAMIC.map(track => (
                                                 <div key={track.id} className="flex border-b border-border/60 last:border-b-0 min-h-[120px]">
 
                                                     {/* Track Info (Y-axis label) */}
                                                     <div className="sticky left-0 z-30 w-[200px] shrink-0 border-r border-border/60 p-5 bg-surface flex flex-col justify-center gap-1 shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
-                                                        <span className="text-[14px] font-semibold text-white truncate">{track.name}</span>
-                                                        <span className="text-[12px] text-gray-500">{track.surface}</span>
+                                                        <span className="text-[14px] font-semibold text-text truncate">{track.name}</span>
+                                                        <span className="text-[12px] text-text-muted">{track.surface}</span>
                                                     </div>
 
                                                     {/* Timeline area for this track */}
@@ -461,30 +480,26 @@ export default function RaceSchedulingPage() {
                                                         {filteredRaces.filter(r => r.trackId === track.id).map(race => {
                                                             const isSelected = selectedRaceId === race.id;
                                                             return (
-                                                                <div
+                                                                <button
                                                                     key={race.id}
+                                                                    type="button"
                                                                     onClick={() => setSelectedRaceId(isSelected ? null : race.id)}
-                                                                    className={`absolute top-1/2 -translate-y-1/2 h-[70px] border rounded-md p-3 shadow-lg shadow-black/40 transition-all cursor-pointer flex flex-col justify-between ${race.status === 'cancelled' ? 'bg-[#161111] border-red-900/30 opacity-60 z-0' : 'bg-[#1f1a1a] z-10'
-                                                                        } ${isSelected ? "border-red-500 ring-1 ring-red-500/50 !z-20" : "border-gold/30 hover:border-gold/60"}`}
+                                                                    aria-pressed={isSelected}
+                                                                    className={`absolute top-1/2 -translate-y-1/2 h-[70px] border rounded-md p-3 shadow-lg shadow-black/40 transition-all cursor-pointer flex flex-col justify-between text-left ${race.status === 'cancelled' ? 'bg-error-bg border-red/20 opacity-60 z-0' : 'bg-surface-raised z-10'
+                                                                        } ${isSelected ? "border-red ring-1 ring-red/50 !z-20" : "border-gold/30 hover:border-gold/60"}`}
                                                                     style={{ left: race.leftPercent, width: race.widthPercent }}
                                                                 >
                                                                     <div className="flex justify-between items-start">
-                                                                        <span className={`text-[13px] font-semibold truncate pr-2 ${race.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-white'}`}>{race.title}</span>
+                                                                        <span className={`text-[13px] font-semibold truncate pr-2 ${race.status === 'cancelled' ? 'text-text-muted line-through' : 'text-text'}`}>{race.title}</span>
                                                                         <span className="text-[12px] font-medium text-gold shrink-0">{race.time}</span>
                                                                     </div>
                                                                     <div className="flex items-center justify-between mt-auto">
                                                                         <div className="flex gap-1 items-center">
-                                                                            {race.status === 'cancelled' && <span className="text-[10px] text-red-500 font-bold uppercase mr-1">Cancelled</span>}
-                                                                            <span className={`w-1.5 h-1.5 rounded-full ${race.status === 'cancelled' ? 'bg-red-500' :
-                                                                                race.status === 'running' ? 'bg-blue-500' :
-                                                                                    race.status === 'completed' ? 'bg-gray-500' :
-                                                                                        race.status === 'scheduled' ? 'bg-emerald-500' :
-                                                                                            race.status === 'prepared' ? 'bg-violet-500' :
-                                                                                                'bg-amber-500'
-                                                                                }`}></span>
+                                                                            {race.status === 'cancelled' && <span className="text-[10px] text-red font-bold uppercase mr-1">Cancelled</span>}
+                                                                            <span className={`w-1.5 h-1.5 rounded-full ${RACE_STATUS_DOT[race.status] ?? 'bg-amber'}`}></span>
                                                                         </div>
                                                                     </div>
-                                                                </div>
+                                                                </button>
                                                             )
                                                         })}
                                                     </div>
@@ -497,11 +512,11 @@ export default function RaceSchedulingPage() {
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="bg-surface border-b border-border/60">
-                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Race Name</th>
-                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Track</th>
-                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Tournament</th>
-                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Date & Time</th>
-                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Capacity</th>
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Race Name</th>
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Track</th>
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Tournament</th>
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Date & Time</th>
+                                                    <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Capacity</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
@@ -510,38 +525,43 @@ export default function RaceSchedulingPage() {
                                                     return (
                                                         <tr
                                                             key={race.id}
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            aria-pressed={isSelected}
                                                             onClick={() => setSelectedRaceId(isSelected ? null : race.id)}
-                                                            className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "Enter" || e.key === " ") {
+                                                                    e.preventDefault();
+                                                                    setSelectedRaceId(isSelected ? null : race.id);
+                                                                }
+                                                            }}
+                                                            className={`hover:bg-white/[0.02] transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/40 ${isSelected ? "bg-red-900/10" : ""}`}
                                                         >
                                                             <td className="p-4">
-                                                                <div className={`text-[13px] font-semibold ${race.status === 'cancelled' ? 'text-gray-500 line-through' : 'text-white'}`}>{race.title}</div>
-                                                                <div className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border inline-block mt-1 ${race.status === 'cancelled' ? 'bg-red-500/15 text-red-400 border-red-500/30' :
-                                                                    race.status === 'scheduled' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
-                                                                        race.status === 'running' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
-                                                                            race.status === 'completed' ? 'bg-gray-500/15 text-gray-400 border-gray-500/30' :
-                                                                                race.status === 'prepared' ? 'bg-violet-500/15 text-violet-400 border-violet-500/30' :
-                                                                                    'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                                                                    }`}>{race.status}</div>
+                                                                <div className={`text-[13px] font-semibold ${race.status === 'cancelled' ? 'text-text-muted line-through' : 'text-text'}`}>{race.title}</div>
+                                                                <div className="mt-1 inline-block">
+                                                                    <StatusBadge label={race.status} tone={RACE_STATUS_TONE[race.status] ?? "amber"} dot={false} />
+                                                                </div>
                                                             </td>
                                                             <td className="p-4">
-                                                                <div className="text-[13px] text-gray-300">{race.trackId}</div>
+                                                                <div className="text-[13px] text-text-muted">{race.trackId}</div>
                                                             </td>
                                                             <td className="p-4">
-                                                                <div className="text-[13px] text-gray-300">{race.tournament}</div>
+                                                                <div className="text-[13px] text-text-muted">{race.tournament}</div>
                                                             </td>
                                                             <td className="p-4">
-                                                                <div className="text-[13px] text-gray-300">{race.dateLabel}</div>
-                                                                <div className="text-[11px] text-gray-500 mt-0.5 font-mono">{race.time}</div>
+                                                                <div className="text-[13px] text-text-muted">{race.dateLabel}</div>
+                                                                <div className="text-[11px] text-text-muted/70 mt-0.5 font-mono">{race.time}</div>
                                                             </td>
                                                             <td className="p-4">
                                                                 <div className="flex items-center gap-2">
                                                                     <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden w-24">
                                                                         <div
-                                                                            className="h-full bg-emerald-500 rounded-full"
+                                                                            className="h-full bg-green rounded-full"
                                                                             style={{ width: `${(race.acceptedCount / Math.max(race.maxSlots, 1)) * 100}%` }}
                                                                         />
                                                                     </div>
-                                                                    <span className="text-[12px] font-medium text-gray-400 min-w-[32px]">
+                                                                    <span className="text-[12px] font-medium text-text-muted min-w-[32px]">
                                                                         {race.acceptedCount}/{race.maxSlots}
                                                                     </span>
                                                                 </div>
