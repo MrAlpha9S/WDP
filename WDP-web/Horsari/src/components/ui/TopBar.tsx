@@ -58,7 +58,7 @@ export default function TopBar({ logo, onProfileClick, onLogout }: TopBarProps) 
                         <img src={horsariLogo} alt="Horsari" className="h-8 w-auto" />
                     )}
                     <span
-                        className="text-[15px] font-bold tracking-widest text-[#AB3030] uppercase font-mono"
+                        className="text-[15px] font-bold tracking-widest text-brand uppercase font-mono"
                         style={{ letterSpacing: "0.18em" }}
                     >
                         Horsari

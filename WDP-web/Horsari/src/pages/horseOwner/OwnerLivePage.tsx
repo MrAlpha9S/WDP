@@ -24,7 +24,7 @@ function severityDot(s?: number) {
     if (!s) return "bg-gray-600";
     if (s <= 2) return "bg-yellow-500";
     if (s === 3) return "bg-orange-500";
-    return "bg-red-500";
+    return "bg-red";
 }
 
 // ── Track View (ported from mobile app TrackView) ─────────────────────────────
@@ -59,7 +59,7 @@ function TrackView({
 
     if (horses.length === 0) {
         return (
-            <div className="bg-bg rounded-xl border border-border p-4 text-center text-[12px] text-gray-600">
+            <div className="bg-bg rounded-xl border border-border p-4 text-center text-[12px] text-text-muted/70">
                 Awaiting race start…
             </div>
         );
@@ -92,8 +92,8 @@ function TrackView({
     return (
         <div className="bg-bg rounded-xl border border-border p-4">
             <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[11px] font-black uppercase tracking-widest text-gray-500">Track Position</h2>
-                <span className="text-[10px] text-gray-600 font-mono">
+                <h2 className="text-[11px] font-black uppercase tracking-widest text-text-muted">Track Position</h2>
+                <span className="text-[10px] text-text-muted/70 font-mono">
                     {Math.round(windowStart)}m – {Math.round(windowEnd)}m
                 </span>
             </div>
@@ -138,7 +138,7 @@ function TrackView({
                         style={{ left: PADDING_L + toPct(m) * usable }}
                     >
                         <div className="w-px bg-white/10" style={{ height: containerH - 24 }} />
-                        <span className="text-[7px] text-gray-700 font-bold mt-0.5 -translate-x-1/2">{m}m</span>
+                        <span className="text-[7px] text-text-muted/50 font-bold mt-0.5 -translate-x-1/2">{m}m</span>
                     </div>
                 ))}
 
@@ -169,7 +169,7 @@ function TrackView({
                             style={{ left, top: offsetTop, width: size, height: size }}
                         >
                             <div
-                                className="flex items-center justify-center rounded-full text-white font-black"
+                                className="flex items-center justify-center rounded-full text-text font-black"
                                 style={{
                                     width: size,
                                     height: size,
@@ -222,9 +222,9 @@ function HorseRow({
 
             {/* Name + progress */}
             <div className="flex-1 min-w-0">
-                <p className="text-[12.5px] font-semibold text-white truncate">{horse.horseName}</p>
+                <p className="text-[12.5px] font-semibold text-text truncate">{horse.horseName}</p>
                 {horse.jockeyName && (
-                    <p className="text-[10px] text-gray-500 truncate">{horse.jockeyName}</p>
+                    <p className="text-[10px] text-text-muted truncate">{horse.jockeyName}</p>
                 )}
                 {!raceFinished && !horse.isFinished && (
                     <div className="mt-1 h-1 rounded-full bg-white/8 overflow-hidden">
@@ -240,7 +240,7 @@ function HorseRow({
             <div className="shrink-0 text-right">
                 {horse.isFinished && horse.finishTime ? (
                     <>
-                        <p className="text-[11px] font-bold text-white font-mono">{horse.finishTime}</p>
+                        <p className="text-[11px] font-bold text-text font-mono">{horse.finishTime}</p>
                         <p className="text-[9px] text-green-500 font-bold uppercase">Finished</p>
                     </>
                 ) : (
@@ -248,7 +248,7 @@ function HorseRow({
                         <p className="text-[12px] font-bold font-mono" style={{ color }}>
                             {horse.currentSpeed > 0 ? horse.currentSpeed.toFixed(1) : "—"}
                         </p>
-                        <p className="text-[9px] text-gray-600">m/s</p>
+                        <p className="text-[9px] text-text-muted/70">m/s</p>
                     </>
                 )}
             </div>
@@ -288,54 +288,54 @@ function MyHorsePanel({
             >
                 <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" />
-                    <h2 className="text-[12px] font-bold uppercase tracking-wider text-yellow-400">
+                    <h2 className="text-[12px] font-bold uppercase tracking-wider text-amber">
                         My Horse {horse ? `· ${horse.horseName}` : ""}
                     </h2>
                 </div>
-                <ChevronDown size={13} className={`text-gray-600 transition-transform duration-200 ${collapsed ? "" : "rotate-180"}`} />
+                <ChevronDown size={13} className={`text-text-muted/70 transition-transform duration-200 ${collapsed ? "" : "rotate-180"}`} />
             </button>
 
             {!collapsed && (
                 <div className="px-4 pb-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
                     {horse && (
                         <div>
-                            <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Horse</p>
-                            <p className="text-[13px] font-bold text-red-400">{horse.horseName}</p>
-                            <p className="text-[10px] text-gray-500">{horse.breed ?? ""}</p>
+                            <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Horse</p>
+                            <p className="text-[13px] font-bold text-red">{horse.horseName}</p>
+                            <p className="text-[10px] text-text-muted">{horse.breed ?? ""}</p>
                         </div>
                     )}
                     {ownerRegistration?.selectedJockey && (
                         <div>
-                            <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Jockey</p>
-                            <p className="text-[12px] font-semibold text-white">{ownerRegistration.selectedJockey.fullName}</p>
+                            <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Jockey</p>
+                            <p className="text-[12px] font-semibold text-text">{ownerRegistration.selectedJockey.fullName}</p>
                         </div>
                     )}
                     {ownerRegistration?.laneNumber != null && (
                         <div>
-                            <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Lane</p>
-                            <p className="text-[22px] font-black text-white">{ownerRegistration.laneNumber}</p>
+                            <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Lane</p>
+                            <p className="text-[22px] font-black text-text">{ownerRegistration.laneNumber}</p>
                         </div>
                     )}
                     {liveEntry && !isDisqualified && !hasOfficialResult && (
                         <>
                             {liveRank && (
                                 <div>
-                                    <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Position</p>
-                                    <p className="text-[18px] font-black text-white">{rankSuffix(liveRank)}</p>
+                                    <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Position</p>
+                                    <p className="text-[18px] font-black text-text">{rankSuffix(liveRank)}</p>
                                 </div>
                             )}
                             <div>
-                                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Speed</p>
-                                <p className="text-[13px] font-bold font-mono text-white">
+                                <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Speed</p>
+                                <p className="text-[13px] font-bold font-mono text-text">
                                     {liveEntry.currentSpeed > 0 ? `${liveEntry.currentSpeed.toFixed(1)} m/s` : "—"}
                                 </p>
                             </div>
                             {liveEntry.isFinished && liveEntry.finishPosition && (
                                 <div>
-                                    <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Finish</p>
-                                    <p className="text-[18px] font-black text-white">{rankSuffix(liveEntry.finishPosition)}</p>
+                                    <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Finish</p>
+                                    <p className="text-[18px] font-black text-text">{rankSuffix(liveEntry.finishPosition)}</p>
                                     {liveEntry.finishTime && (
-                                        <p className="text-[10px] font-mono text-gray-400">{liveEntry.finishTime}</p>
+                                        <p className="text-[10px] font-mono text-text-muted">{liveEntry.finishTime}</p>
                                     )}
                                 </div>
                             )}
@@ -344,25 +344,25 @@ function MyHorsePanel({
                     {hasOfficialResult && (
                         <>
                             <div>
-                                <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Official Finish</p>
-                                <p className="text-[20px] font-black text-white">{rankSuffix(ownerResult.finishPosition)}</p>
+                                <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Official Finish</p>
+                                <p className="text-[20px] font-black text-text">{rankSuffix(ownerResult.finishPosition)}</p>
                             </div>
                             {ownerResult.finishTime && (
                                 <div>
-                                    <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Time</p>
-                                    <p className="text-[12px] font-bold font-mono text-white">{ownerResult.finishTime}</p>
+                                    <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Time</p>
+                                    <p className="text-[12px] font-bold font-mono text-text">{ownerResult.finishTime}</p>
                                 </div>
                             )}
                             {ownerResult.prizeMoney > 0 && (
                                 <div>
-                                    <p className="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Prize</p>
-                                    <p className="text-[14px] font-bold text-yellow-400">${ownerResult.prizeMoney.toLocaleString()}</p>
+                                    <p className="text-[9px] text-text-muted/70 uppercase tracking-wider mb-0.5">Prize</p>
+                                    <p className="text-[14px] font-bold text-amber">${ownerResult.prizeMoney.toLocaleString()}</p>
                                 </div>
                             )}
                         </>
                     )}
                     {isDisqualified && (
-                        <div className="col-span-2 sm:col-span-4 flex items-center gap-2 text-red-400 text-[13px] font-bold">
+                        <div className="col-span-2 sm:col-span-4 flex items-center gap-2 text-red text-[13px] font-bold">
                             <ShieldAlert size={14} /> DISQUALIFIED
                         </div>
                     )}
@@ -385,10 +385,10 @@ function ViolationsPanel({
     return (
         <div className="bg-surface rounded-xl border border-border overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <h2 className="text-[12px] font-bold text-white flex items-center gap-2">
-                    <ShieldAlert size={13} className="text-red-500" /> Violations
+                <h2 className="text-[12px] font-bold text-text flex items-center gap-2">
+                    <ShieldAlert size={13} className="text-red" /> Violations
                 </h2>
-                <span className="text-[11px] font-bold text-red-400">{violations.length} flagged</span>
+                <span className="text-[11px] font-bold text-red">{violations.length} flagged</span>
             </div>
             <div className="p-3 flex flex-col gap-1.5">
                 {violations.map((v: any) => {
@@ -399,12 +399,12 @@ function ViolationsPanel({
                     return (
                         <div
                             key={v._id}
-                            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red-500/8 " : "border-border bg-white/[0.02]"}`}
+                            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-[12px] ${isOwnerReg ? "border-red-800/50 bg-red/8 " : "border-border bg-white/[0.02]"}`}
                         >
                             <span className={`w-2 h-2 rounded-full shrink-0 ${severityDot(severity)}`} />
-                            <span className={`flex-1 ${isOwnerReg ? "text-red-400 font-semibold" : "text-gray-400"}`}>{vtName}</span>
-                            {severity && <span className="text-[9px] text-gray-600 shrink-0">S{severity}</span>}
-                            <span className="text-[10px] text-gray-600 capitalize shrink-0">{v.violationStatus}</span>
+                            <span className={`flex-1 ${isOwnerReg ? "text-red font-semibold" : "text-text-muted"}`}>{vtName}</span>
+                            {severity && <span className="text-[9px] text-text-muted/70 shrink-0">S{severity}</span>}
+                            <span className="text-[10px] text-text-muted/70 capitalize shrink-0">{v.violationStatus}</span>
                         </div>
                     );
                 })}
@@ -422,29 +422,29 @@ function FinishedBanner({ raceFinished }: { raceFinished: any }) {
     return (
         <div className="bg-surface rounded-xl border border-yellow-600/30 p-4 flex flex-col gap-3">
             <div className="flex items-center gap-2">
-                <Trophy size={20} className="text-yellow-400" />
-                <h2 className="text-[15px] font-bold text-white font-serif">Race Finished</h2>
+                <Trophy size={20} className="text-amber" />
+                <h2 className="text-[15px] font-bold text-text font-serif">Race Finished</h2>
             </div>
             <div className="flex flex-col gap-1.5">
                 {top3.map((r: any, i: number) => (
                     <div key={r.registrationId} className="flex items-center gap-2.5 text-[13px]">
                         <span className="text-[15px] shrink-0">{rankSuffix(i + 1)}</span>
-                        <span className="flex-1 text-white font-semibold truncate">{r.horseName}</span>
-                        {r.finishTime && <span className="font-mono text-gray-400 shrink-0">{r.finishTime}</span>}
+                        <span className="flex-1 text-text font-semibold truncate">{r.horseName}</span>
+                        {r.finishTime && <span className="font-mono text-text-muted shrink-0">{r.finishTime}</span>}
                         {r.distance && distUnit === "metres" && (
-                            <span className="text-gray-600 text-[11px] shrink-0">+{(r.distance * 2.4).toFixed(1)}m</span>
+                            <span className="text-text-muted/70 text-[11px] shrink-0">+{(r.distance * 2.4).toFixed(1)}m</span>
                         )}
                     </div>
                 ))}
             </div>
             <button
                 onClick={() => setDistUnit(u => u === "metres" ? "lengths" : "metres")}
-                className="text-[11px] text-gray-500 hover:text-gray-300 transition-colors self-start"
+                className="text-[11px] text-text-muted hover:text-text-muted transition-colors self-start"
             >
                 {distUnit === "metres" ? "Switch to lengths" : "Switch to metres"}
             </button>
             {raceFinished?.isPendingConfirmation && (
-                <p className="text-[11px] text-gray-600 italic">Results pending official confirmation.</p>
+                <p className="text-[11px] text-text-muted/70 italic">Results pending official confirmation.</p>
             )}
         </div>
     );
@@ -462,9 +462,9 @@ function CompetitorsPanel({ competition }: { competition: RaceCompetition | null
     return (
         <div className="bg-surface rounded-xl border border-border p-4">
             <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-500">Competitors</h2>
+                <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted">Competitors</h2>
                 {competition && (
-                    <span className="text-[11px] text-gray-500">
+                    <span className="text-[11px] text-text-muted">
                         {competition.confirmedCount}{competition.maxParticipants != null ? `/${competition.maxParticipants}` : ""} · {competition.openSlots} open
                     </span>
                 )}
@@ -473,14 +473,14 @@ function CompetitorsPanel({ competition }: { competition: RaceCompetition | null
                 <div className="flex flex-col gap-1.5">
                     {competitors.map(c => (
                         <div key={c.registrationId} className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border/60 bg-white/[0.02] text-[12px]">
-                            <Users size={13} className="text-gray-600 shrink-0" />
+                            <Users size={13} className="text-text-muted/70 shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <span className="text-white font-semibold truncate">{c.horseName ?? "Unnamed Horse"}</span>
-                                {c.ownerName && <span className="text-gray-600"> · {c.ownerName}</span>}
+                                <span className="text-text font-semibold truncate">{c.horseName ?? "Unnamed Horse"}</span>
+                                {c.ownerName && <span className="text-text-muted/70"> · {c.ownerName}</span>}
                             </div>
-                            {c.jockeyName && <span className="text-gray-500 text-[11px] shrink-0">{c.jockeyName}</span>}
+                            {c.jockeyName && <span className="text-text-muted text-[11px] shrink-0">{c.jockeyName}</span>}
                             {c.laneNumber != null && (
-                                <span className="text-[10px] text-gray-600 bg-white/5 border border-border px-1.5 py-0.5 rounded-full shrink-0">
+                                <span className="text-[10px] text-text-muted/70 bg-white/5 border border-border px-1.5 py-0.5 rounded-full shrink-0">
                                     Lane {c.laneNumber}
                                 </span>
                             )}
@@ -488,7 +488,7 @@ function CompetitorsPanel({ competition }: { competition: RaceCompetition | null
                     ))}
                 </div>
             ) : (
-                <p className="text-[12px] text-gray-600">No other confirmed entries yet.</p>
+                <p className="text-[12px] text-text-muted/70">No other confirmed entries yet.</p>
             )}
         </div>
     );
@@ -498,24 +498,24 @@ function CompetitorsPanel({ competition }: { competition: RaceCompetition | null
 function RaceInfoPanel({ raceRound }: { raceRound: any }) {
     return (
         <div className="bg-surface rounded-xl border border-border p-4">
-            <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Info</h2>
+            <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Race Info</h2>
             <div className="flex flex-col gap-2.5 text-[12px]">
                 <div className="flex items-center justify-between py-2 border-b border-border/60">
-                    <span className="text-gray-500 flex items-center gap-1.5"><MapPin size={11} /> Venue</span>
-                    <span className="font-semibold text-white text-right">{raceRound?.location ?? "TBA"}</span>
+                    <span className="text-text-muted flex items-center gap-1.5"><MapPin size={11} /> Venue</span>
+                    <span className="font-semibold text-text text-right">{raceRound?.location ?? "TBA"}</span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-border/60">
-                    <span className="text-gray-500 flex items-center gap-1.5"><Flag size={11} /> Race Type</span>
-                    <span className="font-semibold text-white text-right">{raceRound?.RaceType?.raceType ?? "—"}</span>
+                    <span className="text-text-muted flex items-center gap-1.5"><Flag size={11} /> Race Type</span>
+                    <span className="font-semibold text-text text-right">{raceRound?.RaceType?.raceType ?? "—"}</span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
-                    <span className="text-gray-500">Track</span>
-                    <span className="font-semibold text-white">{raceRound?.trackLength ? `${raceRound.trackLength} m` : "—"}</span>
+                    <span className="text-text-muted">Track</span>
+                    <span className="font-semibold text-text">{raceRound?.trackLength ? `${raceRound.trackLength} m` : "—"}</span>
                 </div>
                 {raceRound?.firstPlacePrize > 0 && (
                     <div className="flex items-center justify-between py-2">
-                        <span className="text-gray-500 flex items-center gap-1.5"><Trophy size={11} className="text-yellow-500" /> 1st Prize</span>
-                        <span className="font-semibold text-yellow-400">{raceRound.firstPlacePrize.toLocaleString()} ₫</span>
+                        <span className="text-text-muted flex items-center gap-1.5"><Trophy size={11} className="text-amber" /> 1st Prize</span>
+                        <span className="font-semibold text-amber">{raceRound.firstPlacePrize.toLocaleString()} ₫</span>
                     </div>
                 )}
             </div>
@@ -623,7 +623,7 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                 </div>
             )}
             {isCompletedNoBanner && (
-                <div className="flex items-center gap-2 self-start px-3 py-1.5 rounded-xl border border-green-700/50 bg-green-500/10 text-green-400 text-[11px] font-bold font-mono">
+                <div className="flex items-center gap-2 self-start px-3 py-1.5 rounded-xl border border-green-700/50 bg-green/10 text-green text-[11px] font-bold font-mono">
                     <span className="w-2 h-2 rounded-full bg-green-500" />
                     Race Finished
                 </div>
@@ -648,15 +648,15 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                 <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                     <div className="flex items-center gap-2 flex-wrap">
                         {showMux ? (
-                            <span className="flex items-center gap-1.5 text-[11px] font-bold text-red-400">
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            <span className="flex items-center gap-1.5 text-[11px] font-bold text-red">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
                                 OBS Stream Active
                             </span>
                         ) : (
                             CAMERAS.map(c => (
                                 <button key={c.id} onClick={() => setActiveCam(c.id)}
                                     className={["flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all",
-                                        activeCam === c.id ? "bg-red-700 text-white" : "text-gray-500 bg-white/5 hover:bg-white/10 hover:text-gray-300",
+                                        activeCam === c.id ? "bg-red text-text" : "text-text-muted bg-white/5 hover:bg-white/10 hover:text-text-muted",
                                     ].join(" ")}
                                 >
                                     <Camera size={10} />
@@ -665,7 +665,7 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                             ))
                         )}
                     </div>
-                    <button className="flex items-center gap-1 text-[11px] text-gray-500 font-medium hover:text-gray-200 transition-colors shrink-0">
+                    <button className="flex items-center gap-1 text-[11px] text-text-muted font-medium hover:text-text transition-colors shrink-0">
                         Fullscreen <ChevronRight size={12} />
                     </button>
                 </div>
@@ -693,22 +693,22 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                         <img src={cam.src} alt="Race feed" className="w-full h-full object-cover opacity-90 transition-all duration-300" />
                     )}
 
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-red-700/90 backdrop-blur px-2 py-1 rounded-lg">
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-red/90 backdrop-blur px-2 py-1 rounded-lg">
                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                        <span className="text-[10px] font-bold text-text uppercase tracking-wider">
                             {showMux ? "Live · OBS Stream" : streamTimedOut ? "Placeholder" : `Preview · ${cam.label}`}
                         </span>
                     </div>
 
                     <div className="absolute bottom-2.5 left-2.5 bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg border border-border flex items-center gap-3">
                         <div>
-                            <p className="text-[8px] text-gray-400 uppercase tracking-wider">Pace</p>
-                            <p className="text-[11px] font-bold text-white">{paceMps}</p>
+                            <p className="text-[8px] text-text-muted uppercase tracking-wider">Pace</p>
+                            <p className="text-[11px] font-bold text-text">{paceMps}</p>
                         </div>
                         <div className="w-px h-5 bg-white/10" />
                         <div>
-                            <p className="text-[8px] text-gray-400 uppercase tracking-wider">Leader</p>
-                            <p className="text-[11px] font-bold text-red-400">{leaderLabel}</p>
+                            <p className="text-[8px] text-text-muted uppercase tracking-wider">Leader</p>
+                            <p className="text-[11px] font-bold text-red">{leaderLabel}</p>
                         </div>
                     </div>
                 </div>
@@ -728,7 +728,7 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                 {/* Horse standings */}
                 {sortedHorses.length > 0 && (
                     <div className="bg-surface rounded-xl border border-border p-4">
-                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-500 mb-3">Standings</h2>
+                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted mb-3">Standings</h2>
                         <div className="flex flex-col gap-1.5">
                             {sortedHorses.map((h, i) => (
                                 <HorseRow
@@ -747,7 +747,7 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                 {/* Race stats + violations */}
                 <div className="flex flex-col gap-4">
                     <div className="bg-surface rounded-xl border border-border p-4">
-                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Stats</h2>
+                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Race Stats</h2>
                         {[
                             { label: "Race Type", value: raceRound?.RaceType?.raceType ?? "-" },
                             { label: "Elapsed",   value: elapsed     },
@@ -757,8 +757,8 @@ export default function OwnerLivePage({ ownerRegistration, ownerResult, violatio
                             { label: "Incidents", value: `${violations.length}` },
                         ].map(item => (
                             <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
-                                <span className="text-[12px] text-gray-500">{item.label}</span>
-                                <span className="text-[12px] font-semibold text-white">{item.value}</span>
+                                <span className="text-[12px] text-text-muted">{item.label}</span>
+                                <span className="text-[12px] font-semibold text-text">{item.value}</span>
                             </div>
                         ))}
                     </div>

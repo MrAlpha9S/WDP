@@ -38,10 +38,10 @@ export default function RuleDetailPanel({
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
                 <div className="flex items-center gap-2">
-                    <div className="w-1 h-4 rounded-full bg-amber-500" />
-                    <p className="text-[13px] font-semibold text-white">Rule Details</p>
+                    <div className="w-1 h-4 rounded-full bg-amber" />
+                    <p className="text-[13px] font-semibold text-text">Rule Details</p>
                 </div>
-                <button onClick={onClose} className="p-1 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-colors">
+                <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg text-text-muted hover:text-text hover:bg-white/[0.06] transition-colors cursor-pointer">
                     <X size={14} />
                 </button>
             </div>

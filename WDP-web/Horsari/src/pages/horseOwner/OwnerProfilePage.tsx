@@ -69,10 +69,10 @@ export default function OwnerProfilePage() {
     return (
         <div className="max-w-7xl mx-auto px-6 py-8">
             <div className="mb-7">
-                <h1 className="text-[26px] font-bold text-white tracking-tight font-serif">
+                <h1 className="text-[26px] font-bold text-text tracking-tight font-serif">
                     My Profile
                 </h1>
-                <p className="text-[13px] text-gray-500 mt-0.5">
+                <p className="text-[13px] text-text-muted mt-0.5">
                     Manage your account details.
                 </p>
             </div>

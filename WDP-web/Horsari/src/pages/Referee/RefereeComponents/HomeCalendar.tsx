@@ -8,8 +8,8 @@ import {
 } from "../../../shared/data/HomepageData";
 
 const COLOR_PALETTE = [
-    { text: "text-red-400", border: "border-red-800/60", bg: "bg-red-500/10", dot: "bg-red-500" },
-    { text: "text-blue-400", border: "border-blue-800/60", bg: "bg-blue-500/10", dot: "bg-blue-500" },
+    { text: "text-red", border: "border-red-800/60", bg: "bg-red/10", dot: "bg-red" },
+    { text: "text-blue", border: "border-blue-800/60", bg: "bg-blue/10", dot: "bg-blue-500" },
     { text: "text-orange-400", border: "border-orange-800/60", bg: "bg-orange-500/10", dot: "bg-orange-500" },
     { text: "text-purple-400", border: "border-purple-800/60", bg: "bg-purple-500/10", dot: "bg-purple-500" },
     { text: "text-emerald-400", border: "border-emerald-800/60", bg: "bg-emerald-500/10", dot: "bg-emerald-500" },
@@ -102,13 +102,13 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [], viewMo
 
                 {/* Nav */}
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
-                    <button onClick={onPrevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">
+                    <button onClick={onPrevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-text-muted hover:border-white/25 hover:text-text-muted transition-all">
                         <ChevronLeft size={13} />
                     </button>
-                    <span className="text-[14px] font-bold text-white font-serif">
+                    <span className="text-[14px] font-bold text-text font-serif">
                         {MONTHS[viewMonth]} {viewYear}
                     </span>
-                    <button onClick={onNextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-gray-500 hover:border-white/25 hover:text-gray-300 transition-all">
+                    <button onClick={onNextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg border border-white/12 text-text-muted hover:border-white/25 hover:text-text-muted transition-all">
                         <ChevronRight size={13} />
                     </button>
                 </div>
@@ -116,7 +116,7 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [], viewMo
                 {/* Day names */}
                 <div className="grid grid-cols-7 px-3 pt-3 pb-1">
                     {DAYS.map(d => (
-                        <div key={d} className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-600 pb-1">{d}</div>
+                        <div key={d} className="text-center text-[10px] font-bold uppercase tracking-wider text-text-muted/70 pb-1">{d}</div>
                     ))}
                 </div>
 
@@ -144,7 +144,7 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [], viewMo
                                     isPast ? "opacity-35" : "",
                                 ].join(" ")}
                             >
-                                <span className={["text-[12px] font-semibold leading-none", isSel ? "text-white" : isToday ? "text-red-500" : "text-gray-400"].join(" ")}>
+                                <span className={["text-[12px] font-semibold leading-none", isSel ? "text-text" : isToday ? "text-red" : "text-text-muted"].join(" ")}>
                                     {day}
                                 </span>
                                 {dayRaces.length > 0 && (
@@ -164,7 +164,7 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [], viewMo
                     {activeRules.map((rule) => {
                         const palette = getPalette(rule.raceType);
                         return (
-                            <span key={rule._id} className="flex items-center gap-1.5 text-[11px] text-gray-600">
+                            <span key={rule._id} className="flex items-center gap-1.5 text-[11px] text-text-muted/70">
                                 <span className={`w-2 h-2 rounded-full ${palette.dot}`} /> {rule.raceType}
                             </span>
                         );
@@ -175,13 +175,13 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [], viewMo
             {/* Selected Day Detail */}
             <div className="bg-surface rounded-xl border border-border overflow-hidden">
             <div className="px-5 py-3 border-b border-border">
-                <p className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">
+                <p className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70">
                     {`${DAYS[selected.getDay()]}, ${MONTHS[selected.getMonth()]} ${selected.getDate()}`}
                 </p>
             </div>
             {selectedRaces.length === 0 ? (
                 <div className="px-5 py-8 text-center">
-                    <p className="text-[13px] text-gray-600">No races scheduled.</p>
+                    <p className="text-[13px] text-text-muted/70">No races scheduled.</p>
                 </div>
             ) : (
                 <div>
@@ -192,28 +192,28 @@ export default function HomeCalendar({ races: rawRaces, activeRules = [], viewMo
                             className={`flex items-start gap-3 px-5 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors duration-150 ${i !== selectedRaces.length - 1 ? "border-b border-border/60" : ""}`}
                         >
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${race.status === "confirmed" ? "bg-red-900/40" : "bg-white/5"}`}>
-                                <Flag size={14} className={race.status === "confirmed" ? "text-red-500" : "text-gray-600"} />
+                                <Flag size={14} className={race.status === "confirmed" ? "text-red" : "text-text-muted/70"} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-[14px] font-bold text-white">{race.label}</span>
+                                    <span className="text-[14px] font-bold text-text">{race.label}</span>
                                     <RaceTypeBadge type={race.raceType} />
                                     {race.status === "tentative" && (
-                                        <span className="text-[10px] text-gray-600 border border-border px-1.5 py-0.5 rounded">Tentative</span>
+                                        <span className="text-[10px] text-text-muted/70 border border-border px-1.5 py-0.5 rounded">Tentative</span>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-1.5">
                                     <MapPin size={11} className="text-red-600 shrink-0" />
-                                    <span className="text-[12px] text-gray-300 font-semibold">{race.venue}</span>
+                                    <span className="text-[12px] text-text-muted font-semibold">{race.venue}</span>
                                     {race.trackLocation && (
-                                        <span className="text-[12px] text-gray-600">· {race.trackLocation}</span>
+                                        <span className="text-[12px] text-text-muted/70">· {race.trackLocation}</span>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-3 mt-1 flex-wrap">
-                                    <span className="flex items-center gap-1 text-[12px] text-gray-500">
+                                    <span className="flex items-center gap-1 text-[12px] text-text-muted">
                                         <Clock size={10} className="text-red-600" /> {race.time}
                                     </span>
-                                    <span className="text-[11px] font-semibold text-gray-500 bg-white/6 px-2 py-0.5 rounded">
+                                    <span className="text-[11px] font-semibold text-text-muted bg-white/6 px-2 py-0.5 rounded">
                                         {race.role}
                                     </span>
                                 </div>

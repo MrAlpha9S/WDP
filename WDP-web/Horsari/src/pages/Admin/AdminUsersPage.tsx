@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     Search, User, CheckCircle, XCircle, Clock, Loader2,
-    ArrowUpDown, ArrowUp, ArrowDown,
 } from "lucide-react";
 import UserDetailPanel from "./AdminComponents/UserDetailPanel";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
 import { useSocket } from "../../providers/SocketProvider";
 import { ErrorState } from "../../components/ErrorState";
+import PageHeader from "../../components/ui/PageHeader";
+import SortableTh from "../../components/ui/SortableTh";
+import { useSortableColumns } from "../../hooks/useSortableColumns";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -312,26 +314,8 @@ export default function AdminUsersPage() {
     const [detailLoading, setDetailLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const [sortBy, setSortBy] = useState<string>('createdAt');
-    const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+    const { sortBy, order, setSortBy, setOrder, handleSort } = useSortableColumns("createdAt", "desc", () => setPage(1));
     const totalPages = Math.ceil(totalItems / limit) || 1;
-
-    const handleSort = (field: string) => {
-        if (sortBy === field) {
-            setOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortBy(field);
-            setOrder('asc');
-        }
-        setPage(1);
-    };
-
-    const SortIcon = ({ field }: { field: string }) => {
-        if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
-        return order === 'asc'
-            ? <ArrowUp size={11} className="text-gold ml-1 inline" />
-            : <ArrowDown size={11} className="text-gold ml-1 inline" />;
-    };
 
     // Reset to page 1 when filters change
     useEffect(() => { setPage(1); }, [roleFilter, search, limit]);
@@ -397,47 +381,37 @@ export default function AdminUsersPage() {
     const panelOpen = selectedUser !== null;
 
     return (
-        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-text overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
                 <main className={`flex flex-col min-w-0 h-full transition-all duration-200 ${panelOpen ? "flex-[0_0_50%]" : "flex-1"}`}>
 
                     {/* Header */}
                     <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
-                        {/* Row 1 */}
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
-                                    Users
-                                </h1>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
-                                        All Registered Users
-                                    </span>
-                                    <span className="text-[12px] text-gray-500 truncate">· {totalItems} user{totalItems !== 1 ? "s" : ""}</span>
-                                </div>
-                            </div>
-                            {/* <button className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]">
-                                + Create User
-                            </button> */}
-                        </div>
+                        <PageHeader
+                            title="Users"
+                            eyebrow="All Registered Users"
+                            subtext={`${totalItems} user${totalItems !== 1 ? "s" : ""}`}
+                        />
 
                         {/* Row 2 */}
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="relative flex-1 min-w-0">
-                                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                                 <input
                                     type="text"
                                     placeholder="Search users…"
+                                    aria-label="Search users"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px] transition-colors"
+                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-text placeholder:text-text-muted focus:outline-none focus:border-white/20 h-[32px] transition-colors"
                                 />
                             </div>
 
                             <select
                                 value={roleFilter}
                                 onChange={(e) => setRoleFilter(e.target.value as any)}
-                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Filter by role"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Roles</option>
                                 <option value="HorseOwner">Horse Owner</option>
@@ -454,7 +428,8 @@ export default function AdminUsersPage() {
                                     setOrder(dir as 'asc' | 'desc');
                                     setPage(1);
                                 }}
-                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Sort users"
+                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="createdAt:desc">Newest First</option>
                                 <option value="createdAt:asc">Oldest First</option>
@@ -466,7 +441,8 @@ export default function AdminUsersPage() {
                             <select
                                 value={limit}
                                 onChange={(e) => setLimit(Number(e.target.value))}
-                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Rows per page"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 {USER_LIMIT_OPTIONS.map(n => (
                                     <option key={n} value={n}>{n} rows</option>
@@ -481,23 +457,17 @@ export default function AdminUsersPage() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-surface border-b border-border/60">
-                                        <th onClick={() => handleSort('fullName')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            User <SortIcon field="fullName" />
-                                        </th>
+                                        <SortableTh field="fullName" activeField={sortBy} order={order} onSort={handleSort}>User</SortableTh>
                                         {!panelOpen && (
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Email</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Email</th>
                                         )}
-                                        <th onClick={() => handleSort('role')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Role <SortIcon field="role" />
-                                        </th>
-                                        <th onClick={() => handleSort('status')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Status <SortIcon field="status" />
-                                        </th>
+                                        <SortableTh field="role" activeField={sortBy} order={order} onSort={handleSort}>Role</SortableTh>
+                                        <SortableTh field="status" activeField={sortBy} order={order} onSort={handleSort}>Status</SortableTh>
                                         {!panelOpen && (
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Confirmed</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Confirmed</th>
                                         )}
                                         {!panelOpen && (
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Updated</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Updated</th>
                                         )}
                                     </tr>
                                 </thead>
@@ -506,8 +476,8 @@ export default function AdminUsersPage() {
                                         <tr>
                                             <td colSpan={6}>
                                                 <div className="py-10 text-center flex flex-col items-center justify-center">
-                                                    <Loader2 size={22} className="text-gray-500 animate-spin mb-2" />
-                                                    <p className="text-[12px] text-gray-600">Loading users...</p>
+                                                    <Loader2 size={22} className="text-text-muted animate-spin mb-2" />
+                                                    <p className="text-[12px] text-text-muted">Loading users...</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -521,8 +491,8 @@ export default function AdminUsersPage() {
                                         <tr>
                                             <td colSpan={6}>
                                                 <div className="py-10 text-center">
-                                                    <User size={22} className="text-gray-700 mx-auto mb-2" />
-                                                    <p className="text-[12px] text-gray-600">No users found.</p>
+                                                    <User size={22} className="text-text-muted/60 mx-auto mb-2" />
+                                                    <p className="text-[12px] text-text-muted">No users found.</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -535,21 +505,30 @@ export default function AdminUsersPage() {
                                             return (
                                                 <tr
                                                     key={user.userId}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    aria-pressed={isSelected}
                                                     onClick={() => setSelectedUser(isSelected ? null : user)}
-                                                    className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${isSelected ? "bg-red-900/10" : ""}`}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === " ") {
+                                                            e.preventDefault();
+                                                            setSelectedUser(isSelected ? null : user);
+                                                        }
+                                                    }}
+                                                    className={`hover:bg-white/[0.02] transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/40 ${isSelected ? "bg-red-900/10" : ""}`}
                                                 >
                                                     <td className="p-4">
                                                         <div className="flex items-center gap-2.5 min-w-0">
                                                             <Avatar src={user.image} name={user.fullName} id={user.userId} size="sm" />
                                                             <div className="min-w-0">
-                                                                <p className="text-[13px] text-white font-medium truncate">{user.fullName}</p>
-                                                                {!panelOpen && <p className="text-[11px] text-gray-600 truncate">@{user.userName}</p>}
+                                                                <p className="text-[13px] text-text font-medium truncate">{user.fullName}</p>
+                                                                {!panelOpen && <p className="text-[11px] text-text-muted truncate">@{user.userName}</p>}
                                                             </div>
                                                         </div>
                                                     </td>
                                                     {!panelOpen && (
                                                         <td className="p-4">
-                                                            <p className="text-[12px] text-gray-400 truncate">{user.email}</p>
+                                                            <p className="text-[12px] text-text-muted truncate">{user.email}</p>
                                                         </td>
                                                     )}
                                                     <td className="p-4">
@@ -565,14 +544,14 @@ export default function AdminUsersPage() {
                                                     </td>
                                                     {!panelOpen && (
                                                         <td className="p-4">
-                                                            <span className={user.confirm ? "text-emerald-400" : "text-amber-400"}>
+                                                            <span className={user.confirm ? "text-green" : "text-amber"}>
                                                                 {user.confirm ? <CheckCircle size={14} /> : <Clock size={14} />}
                                                             </span>
                                                         </td>
                                                     )}
                                                     {!panelOpen && (
                                                         <td className="p-4">
-                                                            <p className="text-[11px] text-gray-600">{user.updatedAt}</p>
+                                                            <p className="text-[11px] text-text-muted">{user.updatedAt}</p>
                                                         </td>
                                                     )}
                                                 </tr>

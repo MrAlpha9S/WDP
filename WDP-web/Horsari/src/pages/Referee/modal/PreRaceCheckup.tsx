@@ -29,8 +29,8 @@ function FailToggle({ value, onChange }: { value: FailFlag; onChange: (v: FailFl
                 onClick={() => onChange(value === "fail" ? null : "fail")}
                 className={["px-3 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all duration-150",
                     value === "fail"
-                        ? "bg-red-700 text-white shadow-sm"
-                        : "bg-white/5 text-gray-600 border border-border hover:border-red-800/50 hover:text-red-500",
+                        ? "bg-red text-text shadow-sm"
+                        : "bg-white/5 text-text-muted/70 border border-border hover:border-red-800/50 hover:text-red",
                 ].join(" ")}
             >Fail</button>
         </div>
@@ -40,8 +40,8 @@ function FailToggle({ value, onChange }: { value: FailFlag; onChange: (v: FailFl
 function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }) {
     return (
         <div className="flex items-center gap-2 mb-2">
-            <span className="text-gray-500">{icon}</span>
-            <span className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">{label}</span>
+            <span className="text-text-muted">{icon}</span>
+            <span className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70">{label}</span>
         </div>
     );
 }
@@ -52,15 +52,15 @@ function CheckRow({ label, sub, value, onChange, failNote }: {
 }) {
     return (
         <div className={["rounded-xl border px-3.5 py-2.5 transition-all duration-200",
-            value === "fail" ? "border-red-800/60 bg-red-500/5" : "border-border bg-white/[0.02]",
+            value === "fail" ? "border-red-800/60 bg-red/5" : "border-border bg-white/[0.02]",
         ].join(" ")}>
             <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                     <p className={["text-[13px] font-semibold",
-                        value === "fail" ? "text-red-400" : "text-white",
+                        value === "fail" ? "text-red" : "text-text",
                     ].join(" ")}>{label}</p>
                     {sub && (
-                        <p className={["text-[11.5px] mt-0.5", value === "fail" ? "text-red-600" : "text-gray-500"].join(" ")}>
+                        <p className={["text-[11.5px] mt-0.5", value === "fail" ? "text-red-600" : "text-text-muted"].join(" ")}>
                             {value === "fail" && failNote
                                 ? <span className="flex items-center gap-1"><AlertTriangle size={10} />{failNote}</span>
                                 : sub}
@@ -279,14 +279,14 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0">
                     <div className="flex items-center gap-2.5">
-                        <ClipboardList size={15} className="text-yellow-500" />
-                        <p className="text-[11px] font-black uppercase tracking-widest text-yellow-500">Pre-Race Inspection</p>
+                        <ClipboardList size={15} className="text-amber" />
+                        <p className="text-[11px] font-black uppercase tracking-widest text-amber">Pre-Race Inspection</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
-                            Gate <span className="text-gray-400">#{gateNumber}</span>
+                        <span className="text-[10px] font-bold text-text-muted/70 uppercase tracking-widest">
+                            Gate <span className="text-text-muted">#{gateNumber}</span>
                         </span>
-                        <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-xl border border-border text-gray-500 hover:text-gray-200 hover:border-white/20 transition-all">
+                        <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-xl border border-border text-text-muted hover:text-text hover:border-white/20 transition-all">
                             <X size={13} />
                         </button>
                     </div>
@@ -307,9 +307,9 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                 </p>
                             </div>
                             <div className="rounded-xl border border-border px-4 py-3">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Owner</p>
-                                <p className="text-[13px] font-semibold text-gray-300 mt-0.5">
-                                    {registration.Owner?.fullName ?? <span className="text-gray-600">—</span>}
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted/70">Owner</p>
+                                <p className="text-[13px] font-semibold text-text-muted mt-0.5">
+                                    {registration.Owner?.fullName ?? <span className="text-text-muted/70">—</span>}
                                 </p>
                             </div>
                         </div>
@@ -319,7 +319,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                     {loadingFresh && (
                         <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-white/[0.02]">
                             <div className="w-3 h-3 rounded-full border-2 border-yellow-500 border-t-transparent animate-spin shrink-0" />
-                            <span className="text-[11px] text-gray-500">Refreshing registration data…</span>
+                            <span className="text-[11px] text-text-muted">Refreshing registration data…</span>
                         </div>
                     )}
 
@@ -352,7 +352,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                 }
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                            <span className="absolute top-2.5 left-3 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-black/60 border border-white/15 text-gray-300">
+                            <span className="absolute top-2.5 left-3 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-black/60 border border-white/15 text-text-muted">
                                 Gate #{gateNumber}
                             </span>
                             {(() => {
@@ -360,7 +360,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                 const cls = s === "verified"
                                     ? "border-green-700/70 text-green-300 bg-green-500/20"
                                     : s === "failed"
-                                        ? "border-red-700/70 text-red-300 bg-red-500/20"
+                                        ? "border-red-700/70 text-red-300 bg-red/20"
                                         : "border-yellow-700/70 text-yellow-300 bg-yellow-500/20";
                                 const label = s === "verified" ? "Verified" : s === "failed" ? "Failed" : "Accepted";
                                 return (
@@ -370,11 +370,11 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                 );
                             })()}
                             <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
-                                <h2 className="text-[20px] font-bold text-white leading-tight drop-shadow-lg font-serif">
-                                    {horse?.horseName ?? <span className="italic text-gray-400 text-[16px]">No Horse Assigned</span>}
+                                <h2 className="text-[20px] font-bold text-text leading-tight drop-shadow-lg font-serif">
+                                    {horse?.horseName ?? <span className="italic text-text-muted text-[16px]">No Horse Assigned</span>}
                                 </h2>
                                 {horse?.breed || horse?.color ? (
-                                    <p className="text-[11.5px] text-gray-300/80 mt-0.5 drop-shadow">
+                                    <p className="text-[11.5px] text-text-muted/80 mt-0.5 drop-shadow">
                                         {[horse.breed, horse.color].filter(Boolean).join(" · ")}
                                     </p>
                                 ) : null}
@@ -382,15 +382,15 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                         </div>
                         <div className="grid grid-cols-2 bg-white/[0.03] border-t border-border">
                             <div className="px-4 py-2.5 border-r border-border/60">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Microchip ID</p>
-                                <p className="text-[12px] font-mono font-semibold text-gray-300 mt-0.5">
-                                    {horse?.microchipId ?? <span className="text-gray-600">—</span>}
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted/70">Microchip ID</p>
+                                <p className="text-[12px] font-mono font-semibold text-text-muted mt-0.5">
+                                    {horse?.microchipId ?? <span className="text-text-muted/70">—</span>}
                                 </p>
                             </div>
                             <div className="px-4 py-2.5">
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Owner</p>
-                                <p className="text-[12px] font-semibold text-gray-300 mt-0.5">
-                                    {registration.Owner?.fullName ?? <span className="text-gray-600">—</span>}
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted/70">Owner</p>
+                                <p className="text-[12px] font-semibold text-text-muted mt-0.5">
+                                    {registration.Owner?.fullName ?? <span className="text-text-muted/70">—</span>}
                                 </p>
                             </div>
                         </div>
@@ -402,7 +402,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                         <div className="flex flex-col gap-1.5">
                             {invitations.length === 0 ? (
                                 <div className="bg-white/[0.02] rounded-xl border border-border">
-                                    <p className="px-4 py-3 text-[12px] text-gray-600">No jockey assigned to this registration.</p>
+                                    <p className="px-4 py-3 text-[12px] text-text-muted/70">No jockey assigned to this registration.</p>
                                 </div>
                             ) : invitations.map(inv => {
                                 const jockeyName = (inv.jockeyId?._id as any)?.fullName ?? "Unknown Jockey";
@@ -419,7 +419,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                         onClick={() => { if (canSelect) { userPickedJockeyRef.current = true; setSelectedInvitationId(inv._id); setNoJockeyFail(false); } }}
                                         className={["w-full text-left rounded-xl border overflow-hidden transition-all duration-150",
                                             isSelected ? "border-green-700/60 bg-green-500/8" :
-                                            isNoShow ? "border-red-900/50 bg-red-500/[0.03] opacity-75" :
+                                            isNoShow ? "border-red-900/50 bg-red/[0.03] opacity-75" :
                                             confirmed ? "border-border bg-white/[0.02] hover:border-white/15 cursor-pointer" :
                                             "border-border bg-white/[0.02] cursor-not-allowed opacity-60",
                                         ].join(" ")}
@@ -429,39 +429,39 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                                 isSelected ? "bg-green-700" : isNoShow ? "bg-red-800" : confirmed ? "bg-green-700" : "bg-amber-700",
                                             ].join(" ")}>
                                                 {isNoShow
-                                                    ? <UserX size={13} className="text-white" />
+                                                    ? <UserX size={13} className="text-text" />
                                                     : confirmed
-                                                        ? <CheckCircle2 size={14} className="text-white" />
-                                                        : <AlertTriangle size={13} className="text-white" />}
+                                                        ? <CheckCircle2 size={14} className="text-text" />
+                                                        : <AlertTriangle size={13} className="text-text" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <p className={["text-[13.5px] font-bold",
-                                                        isSelected ? "text-green-400" : isNoShow ? "text-red-400" : confirmed ? "text-white" : "text-amber-400",
+                                                        isSelected ? "text-green" : isNoShow ? "text-red" : confirmed ? "text-text" : "text-amber-400",
                                                     ].join(" ")}>{jockeyName}</p>
                                                     {inv.isBackup && (
-                                                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-blue-700/50 text-blue-400 bg-blue-500/10">
+                                                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-blue-700/50 text-blue bg-blue/10">
                                                             Backup
                                                         </span>
                                                     )}
                                                     {isNoShow && (
-                                                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-red-800/50 text-red-400 bg-red-500/10">
+                                                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border border-red-800/50 text-red bg-red/10">
                                                             No-Show
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-[11.5px] text-gray-500 mt-0.5">
+                                                <p className="text-[11.5px] text-text-muted mt-0.5">
                                                     {isNoShow ? "Did not attend — no payment will be made" : confirmed ? "Confirmed" : "Pending Confirmation"}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
-                                                {isSelected && <span className="text-[11px] font-bold text-green-400">Selected ✓</span>}
-                                                {!isSelected && canSelect && <span className="text-[11px] text-gray-500">Tap to select</span>}
+                                                {isSelected && <span className="text-[11px] font-bold text-green">Selected ✓</span>}
+                                                {!isSelected && canSelect && <span className="text-[11px] text-text-muted">Tap to select</span>}
                                                 {confirmed && !isNoShow && (
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handleMarkNoShow(inv._id); }}
                                                         disabled={markingNoShow}
-                                                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-red-800/50 text-red-400 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-red-800/50 text-red hover:bg-red/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                     >
                                                         {markingNoShow ? <span className="animate-pulse">Marking…</span> : <><UserX size={11} />No-Show</>}
                                                     </button>
@@ -470,7 +470,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handleUnmarkNoShow(inv._id); }}
                                                         disabled={markingNoShow}
-                                                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-border text-gray-400 hover:bg-white/5 hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-border text-text-muted hover:bg-white/5 hover:text-text disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                     >
                                                         {markingNoShow ? <span className="animate-pulse">Undoing…</span> : <><RotateCcw size={11} />Undo No-Show</>}
                                                     </button>
@@ -485,24 +485,24 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                             <button
                                 onClick={() => { userPickedJockeyRef.current = true; setNoJockeyFail(p => !p); setSelectedInvitationId(null); }}
                                 className={["w-full text-left rounded-xl border overflow-hidden transition-all duration-150",
-                                    noJockeyFail ? "border-red-700/60 bg-red-500/8" : "border-border bg-white/[0.02] hover:border-red-800/40",
+                                    noJockeyFail ? "border-red-700/60 bg-red/8" : "border-border bg-white/[0.02] hover:border-red-800/40",
                                 ].join(" ")}
                             >
                                 <div className="flex items-center gap-3 px-4 py-2.5">
                                     <div className={["w-7 h-7 rounded-full flex items-center justify-center shrink-0",
-                                        noJockeyFail ? "bg-red-700" : "bg-white/8",
+                                        noJockeyFail ? "bg-red" : "bg-white/8",
                                     ].join(" ")}>
-                                        <AlertTriangle size={13} className={noJockeyFail ? "text-white" : "text-gray-500"} />
+                                        <AlertTriangle size={13} className={noJockeyFail ? "text-text" : "text-text-muted"} />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className={["text-[13.5px] font-bold", noJockeyFail ? "text-red-400" : "text-gray-500"].join(" ")}>
+                                        <p className={["text-[13.5px] font-bold", noJockeyFail ? "text-red" : "text-text-muted"].join(" ")}>
                                             No Jockey — Disqualify Entry
                                         </p>
-                                        <p className={["text-[11.5px] mt-0.5", noJockeyFail ? "text-red-700" : "text-gray-600"].join(" ")}>
+                                        <p className={["text-[11.5px] mt-0.5", noJockeyFail ? "text-red-700" : "text-text-muted/70"].join(" ")}>
                                             Mark as failed — no eligible rider present
                                         </p>
                                     </div>
-                                    {noJockeyFail && <span className="text-[11px] font-bold text-red-400 shrink-0">Selected ✗</span>}
+                                    {noJockeyFail && <span className="text-[11px] font-bold text-red shrink-0">Selected ✗</span>}
                                 </div>
                             </button>
                         </div>
@@ -512,7 +512,7 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                     {loadingFresh
                         ? null
                         : violationTypes.length === 0
-                            ? <p className="text-[12px] text-gray-600 text-center py-4">No violation types configured.</p>
+                            ? <p className="text-[12px] text-text-muted/70 text-center py-4">No violation types configured.</p>
                             : CATEGORY_ORDER.filter(cat => grouped[cat]?.length > 0).map(cat => (
                                 <div key={cat}>
                                     <SectionHeader
@@ -536,9 +536,9 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                     }
 
                     {submitError && (
-                        <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-red-700/50 bg-red-500/8">
-                            <AlertTriangle size={13} className="text-red-400 shrink-0" />
-                            <p className="text-[12px] text-red-400">{submitError}</p>
+                        <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-red-700/50 bg-red/8">
+                            <AlertTriangle size={13} className="text-red shrink-0" />
+                            <p className="text-[12px] text-red">{submitError}</p>
                         </div>
                     )}
                     </>
@@ -554,8 +554,8 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                             disabled={submitting}
                             className={["flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
                                 submitting
-                                    ? "bg-white/5 text-gray-600 border border-border cursor-not-allowed"
-                                    : "bg-amber-700 text-white hover:bg-amber-600 shadow-lg shadow-amber-900/40",
+                                    ? "bg-white/5 text-text-muted/70 border border-border cursor-not-allowed"
+                                    : "bg-amber-700 text-text hover:bg-amber-600 shadow-lg shadow-amber-900/40",
                             ].join(" ")}
                         >
                             {submitting
@@ -565,14 +565,14 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                     </div>
                 ) : (
                 <div className={["shrink-0 px-5 py-3.5 border-t flex items-center justify-between gap-3",
-                    hasFails ? "border-red-900/60 bg-red-500/5" : "border-border bg-transparent",
+                    hasFails ? "border-red-900/60 bg-red/5" : "border-border bg-transparent",
                 ].join(" ")}>
                     <div className="flex items-center gap-2">
                         {failCount > 0
-                            ? <span className="flex items-center gap-1.5 text-[12px] font-bold text-red-400">
+                            ? <span className="flex items-center gap-1.5 text-[12px] font-bold text-red">
                                 <AlertTriangle size={13} />{failCount} Violation{failCount > 1 ? "s" : ""} Detected
                               </span>
-                            : <span className="text-[12px] text-gray-600 font-medium">Flag any violations found during inspection</span>
+                            : <span className="text-[12px] text-text-muted/70 font-medium">Flag any violations found during inspection</span>
                         }
                     </div>
                     <button
@@ -580,10 +580,10 @@ export default function PreRaceInspectionModal({ registration, raceRoundId, gate
                         disabled={!canSubmit}
                         className={["flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all duration-150",
                             !canSubmit
-                                ? "bg-white/5 text-gray-600 border border-border cursor-not-allowed"
+                                ? "bg-white/5 text-text-muted/70 border border-border cursor-not-allowed"
                                 : hasFails
-                                    ? "bg-red-700 text-white hover:bg-red-600 shadow-lg shadow-red-900/40"
-                                    : "bg-green-700 text-white hover:bg-green-600 shadow-lg shadow-green-900/30",
+                                    ? "bg-red text-text hover:bg-red/85 shadow-lg shadow-red-900/40"
+                                    : "bg-green-700 text-text hover:bg-green-600 shadow-lg shadow-green-900/30",
                         ].join(" ")}
                     >
                         {submitting

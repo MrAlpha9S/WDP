@@ -36,13 +36,13 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
         <div className="bg-white/[0.03] rounded-xl border border-border overflow-hidden h-full flex flex-col">
             {/* Nav */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-                <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
+                <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted/70 hover:text-text-muted hover:bg-white/8 transition-all">
                     <ChevronLeft size={14} />
                 </button>
-                <span className="text-[13px] font-bold text-gray-300 font-serif">
+                <span className="text-[13px] font-bold text-text-muted font-serif">
                     {CAL_MONTHS[viewMonth]} {viewYear}
                 </span>
-                <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/8 transition-all">
+                <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted/70 hover:text-text-muted hover:bg-white/8 transition-all">
                     <ChevronRight size={14} />
                 </button>
             </div>
@@ -50,7 +50,7 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
             {/* Day names */}
             <div className="grid grid-cols-7 px-3 pt-3 shrink-0">
                 {CAL_DAYS.map(d => (
-                    <div key={d} className="text-center text-[10px] font-bold uppercase text-gray-600 pb-1.5">{d}</div>
+                    <div key={d} className="text-center text-[10px] font-bold uppercase text-text-muted/70 pb-1.5">{d}</div>
                 ))}
             </div>
 
@@ -64,7 +64,7 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
                     return (
                         <div
                             key={day}
-                            className={["flex items-center justify-center rounded-lg text-[13px] font-semibold transition-all", isHL ? "bg-red-700 text-white shadow-sm" : "text-gray-500"].join(" ")}
+                            className={["flex items-center justify-center rounded-lg text-[13px] font-semibold transition-all", isHL ? "bg-red text-text shadow-sm" : "text-text-muted"].join(" ")}
                         >
                             {day}
                         </div>
@@ -75,8 +75,8 @@ function MiniCalendar({ highlightDate }: { highlightDate: string }) {
             {/* Race date label */}
             {highlightDay && (
                 <div className="px-4 py-3 border-t border-border/60 flex items-center gap-2 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                    <span className="text-[11.5px] text-gray-500">Race: {highlightDate}</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-red shrink-0" />
+                    <span className="text-[11.5px] text-text-muted">Race: {highlightDate}</span>
                 </div>
             )}
         </div>
@@ -115,11 +115,11 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
 
                     {/* Race Classification */}
                     <div className="mb-4">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Race Classification</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted/70 mb-2">Race Classification</p>
                         <div className="flex items-center gap-2 flex-wrap">
                             <RaceTypeBadge type={invite.raceType} />
                             {RACE_TYPE_DESCRIPTIONS[invite.raceType] && (
-                                <span className="text-[14px] text-gray-400">{RACE_TYPE_DESCRIPTIONS[invite.raceType]}</span>
+                                <span className="text-[14px] text-text-muted">{RACE_TYPE_DESCRIPTIONS[invite.raceType]}</span>
                             )}
                         </div>
                     </div>
@@ -134,8 +134,8 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                             { label: "Assigned", value: invite.assignedBy ?? "—" },
                         ].map(({ label, value }) => (
                             <div key={label} className="flex items-center gap-1">
-                                <span className="text-[11px] text-gray-600">{label}:</span>
-                                <span className="text-[11px] font-medium text-gray-500">{value}</span>
+                                <span className="text-[11px] text-text-muted/70">{label}:</span>
+                                <span className="text-[11px] font-medium text-text-muted">{value}</span>
                             </div>
                         ))}
                     </div>
@@ -143,10 +143,10 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                     {/* Payment — fee amount and status pill already shown in the card's
                         header row above, so only the status-dependent note/action lives here. */}
                     <div className="mb-4">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Payment</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted/70 mb-2">Payment</p>
 
                         {invite.paymentStatus === "processing" && (
-                            <p className="text-[12px] text-yellow-400/80">
+                            <p className="text-[12px] text-amber/80">
                                 Payment is being processed. Funds typically arrive within 2–3 business days.
                             </p>
                         )}
@@ -154,7 +154,7 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                             <button
                                 onClick={handleConfirmClick}
                                 disabled={confirming}
-                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-700 text-white text-[12px] font-bold uppercase tracking-widest hover:bg-red-600 disabled:opacity-50 transition-all duration-150"
+                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red text-text text-[12px] font-bold uppercase tracking-widest hover:bg-red/85 disabled:opacity-50 transition-all duration-150"
                             >
                                 {confirming ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
                                 Confirm Received
@@ -166,7 +166,7 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                             </p>
                         )}
                         {!invite.paymentId && (
-                            <p className="text-[11.5px] text-gray-600 mt-1.5">Payment is created once race results are confirmed.</p>
+                            <p className="text-[11.5px] text-text-muted/70 mt-1.5">Payment is created once race results are confirmed.</p>
                         )}
                     </div>
 
@@ -176,13 +176,13 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                         <div className="flex items-center gap-3 mt-auto pt-4">
                             <button
                                 onClick={() => onDecline(invite.id)}
-                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-border text-[13px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-border text-[13px] font-semibold text-text-muted hover:border-white/20 hover:text-text-muted transition-all duration-150"
                             >
-                                <XCircle size={14} className="text-gray-600" /> Decline
+                                <XCircle size={14} className="text-text-muted/70" /> Decline
                             </button>
                             <button
                                 onClick={() => onAccept(invite.id)}
-                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-700 text-white text-[13px] font-bold hover:bg-red-600 shadow-lg shadow-red-900/30 transition-all duration-150"
+                                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red text-text text-[13px] font-bold hover:bg-red/85 shadow-lg shadow-red-900/30 transition-all duration-150"
                             >
                                 <CheckCircle2 size={14} /> Accept Invitation
                             </button>
@@ -193,7 +193,7 @@ function ExpandedDetail({ invite, onAccept, onDecline, onConfirmPayment }: Expan
                 {/* Right: mini calendar — stretches to fill the row's full height (set by the
                     left column's content), instead of sitting small with dead space below it. */}
                 <div className="px-4 py-4 flex flex-col">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-3 shrink-0">Race Date</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted/70 mb-3 shrink-0">Race Date</p>
                     <div className="flex-1 min-h-[220px]">
                         <MiniCalendar highlightDate={invite.date} />
                     </div>
@@ -228,31 +228,31 @@ export function InviteCard({ invite, onAccept, onDecline, onConfirmPayment }: In
                 {/* Left */}
                 <div className="flex items-start gap-4 flex-1 min-w-0">
                     <div className={["w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5", isPending ? "bg-red-900/40" : "bg-white/5"].join(" ")}>
-                        <Flag size={16} className={isPending ? "text-red-500" : "text-gray-600"} />
+                        <Flag size={16} className={isPending ? "text-red" : "text-text-muted/70"} />
                     </div>
 
                     <div className="flex-1 min-w-0">
                         {invite.tournamentName && invite.tournamentName !== "Non-tournament" && (
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">{invite.tournamentName}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1">{invite.tournamentName}</p>
                         )}
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[15px] font-bold text-white">{invite.raceLabel}</span>
+                            <span className="text-[15px] font-bold text-text">{invite.raceLabel}</span>
                             <RaceTypeBadge type={invite.raceType} />
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-                            <span className="flex items-center gap-1 text-[12px] text-gray-500">
+                            <span className="flex items-center gap-1 text-[12px] text-text-muted">
                                 <MapPin size={11} className="text-red-600 shrink-0" />
-                                <span className="font-semibold text-gray-300">{invite.venue}</span>
-                                <span className="text-gray-600">· {invite.trackLocation}</span>
+                                <span className="font-semibold text-text-muted">{invite.venue}</span>
+                                <span className="text-text-muted/70">· {invite.trackLocation}</span>
                             </span>
-                            <span className="flex items-center gap-1 text-[12px] text-gray-500">
+                            <span className="flex items-center gap-1 text-[12px] text-text-muted">
                                 <Clock size={11} className="text-red-600 shrink-0" />
                                 {invite.date} · {invite.time}
                             </span>
                         </div>
                         <div className="flex items-center gap-3 mt-1.5">
-                            <p className="text-[11px] text-gray-600">Invited {invite.sentAt} · {invite.id}</p>
-                            <span className="text-[12px] font-bold text-gray-300">{invite.fee.toLocaleString()} ₫</span>
+                            <p className="text-[11px] text-text-muted/70">Invited {invite.sentAt} · {invite.id}</p>
+                            <span className="text-[12px] font-bold text-text-muted">{invite.fee.toLocaleString()} ₫</span>
                             <PaymentPill status={invite.paymentStatus} />
                         </div>
                     </div>
@@ -266,13 +266,13 @@ export function InviteCard({ invite, onAccept, onDecline, onConfirmPayment }: In
                             <>
                                 <button
                                     onClick={() => onDecline(invite.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-[12px] font-semibold text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-[12px] font-semibold text-text-muted hover:border-white/20 hover:text-text-muted transition-all duration-150"
                                 >
-                                    <XCircle size={13} className="text-gray-600" /> Decline
+                                    <XCircle size={13} className="text-text-muted/70" /> Decline
                                 </button>
                                 <button
                                     onClick={() => onAccept(invite.id)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-700 text-white text-[12px] font-bold hover:bg-red-600 shadow-lg shadow-red-900/30 transition-all duration-150"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red text-text text-[12px] font-bold hover:bg-red/85 shadow-lg shadow-red-900/30 transition-all duration-150"
                                 >
                                     <CheckCircle2 size={13} /> Accept
                                 </button>
@@ -280,7 +280,7 @@ export function InviteCard({ invite, onAccept, onDecline, onConfirmPayment }: In
                         )} */}
                         <button
                             onClick={() => setExpanded(p => !p)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-gray-500 hover:border-white/20 hover:text-gray-300 transition-all duration-150"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-text-muted hover:border-white/20 hover:text-text-muted transition-all duration-150"
                             aria-label={expanded ? "Collapse" : "Expand"}
                         >
                             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

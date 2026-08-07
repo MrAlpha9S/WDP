@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { adminService } from "../../../api/adminService";
 import CreateRaceBasicInfo from "../AdminComponents/CreateRaceBasicInfo";
 import CreateRacePrizes from "../AdminComponents/CreateRacePrizes";
 import CreateRaceParticipants from "../AdminComponents/CreateRaceParticipants";
 import CreateRaceSummary from "../AdminComponents/CreateRaceSummary";
+import Modal from "../../../components/ui/Modal";
+import Button from "../../../components/ui/Button";
 
 interface CreateRaceModalProps {
     isOpen: boolean;
@@ -387,34 +389,48 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
     const tournamentBlockedByLeadTime = !overrideScheduleConflict
         && !!tournamentEndDateStr && tournamentEndDateStr < twoWeeksStr;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-[600px] bg-surface border border-border rounded-xl overflow-hidden shadow-2xl flex flex-col">
-                <div className="p-6 border-b border-border/60 flex justify-between items-center bg-surface-raised">
-                    <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">
-                        {successInfo
-                            ? (successInfo.type === 'UPDATE' ? "Race Updated" : "Race Created")
-                            : showConfirm ? (raceToEdit ? "Confirm Race Update" : "Confirm Race Creation") : (raceToEdit ? "Edit Race Round" : "Create New Race")}
-                    </h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-                        <X size={20} />
-                    </button>
-                </div>
+    const modalTitle = successInfo
+        ? (successInfo.type === 'UPDATE' ? "Race Updated" : "Race Created")
+        : showConfirm ? (raceToEdit ? "Confirm Race Update" : "Confirm Race Creation") : (raceToEdit ? "Edit Race Round" : "Create New Race");
 
-                <div className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[60vh] custom-scrollbar relative">
+    const modalFooter = successInfo ? (
+        <Button size="sm" variant="secondary" onClick={onClose}>Done</Button>
+    ) : showConfirm ? (
+        <>
+            <Button variant="ghost" size="sm" disabled={submitLoading} onClick={() => setShowConfirm(false)}>
+                Back
+            </Button>
+            <Button variant="destructive" size="sm" loading={submitLoading} onClick={executeCreateRace}>
+                {raceToEdit ? "Confirm & Save Changes" : "Confirm & Create"}
+            </Button>
+        </>
+    ) : (
+        <>
+            <Button variant="ghost" size="sm" disabled={submitLoading} onClick={onClose}>
+                Cancel
+            </Button>
+            <Button size="sm" variant="secondary" disabled={submitLoading} onClick={validateAndConfirm}>
+                Review
+            </Button>
+        </>
+    );
+
+    return (
+        <Modal title={modalTitle} size="lg" onClose={onClose} closeOnBackdrop={!submitLoading} footer={modalFooter}>
+                <div className="flex flex-col gap-5 relative">
                     {loading && (
                         <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface/80 backdrop-blur-sm">
-                            <Loader2 className="animate-spin text-red-500" size={32} />
+                            <Loader2 className="animate-spin text-red" size={32} />
                         </div>
                     )}
 
                     {successInfo ? (
                         <div className="flex flex-col items-center gap-3 py-8 text-center">
-                            <CheckCircle2 className="text-emerald-500" size={48} />
-                            <p className="text-[15px] font-semibold text-white">
+                            <CheckCircle2 className="text-green" size={48} />
+                            <p className="text-[15px] font-semibold text-text">
                                 {successInfo.type === 'UPDATE' ? "Race round updated successfully." : "Race round has been created successfully."}
                             </p>
-                            <p className="text-[13px] text-gray-500">
+                            <p className="text-[13px] text-text-muted">
                                 {raceTitle || "The race"} is now {successInfo.type === 'UPDATE' ? "saved with your changes" : "scheduled"}.
                             </p>
                         </div>
@@ -501,54 +517,12 @@ export default function CreateRaceModal({ isOpen, onClose, onSuccess, raceToEdit
                     )}
 
                     {error && (
-                        <div className="p-3 bg-red-950/50 border border-red-500/50 rounded flex items-start gap-2 text-[13px] text-red-200">
+                        <div className="p-3 bg-error-bg border border-error-border rounded-lg flex items-start gap-2 text-[13px] text-red">
                             <span>⚠️</span>
                             <span>{error}</span>
                         </div>
                     )}
                 </div>
-
-                <div className="p-4 border-t border-border/60 flex justify-end gap-3 bg-surface-raised">
-                    {successInfo ? (
-                        <button
-                            className="bg-white hover:bg-gray-200 text-black text-[13px] font-semibold py-2.5 px-6 rounded transition-colors"
-                            onClick={onClose}
-                        >
-                            Done
-                        </button>
-                    ) : showConfirm ? (
-                        <>
-                            <button onClick={() => setShowConfirm(false)} className="px-6 py-2.5 text-[13px] font-semibold text-white hover:bg-white/5 rounded transition-colors" disabled={submitLoading}>
-                                Back
-                            </button>
-                            <button
-                                className="bg-red-600 hover:bg-red-700 text-white text-[13px] font-semibold py-2.5 px-6 rounded transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                                onClick={executeCreateRace}
-                                disabled={submitLoading}
-                            >
-                                {submitLoading ? (
-                                    <Loader2 className="animate-spin" size={16} />
-                                ) : (
-                                    raceToEdit ? "Confirm & Save Changes" : "Confirm & Create"
-                                )}
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <button onClick={onClose} className="px-6 py-2.5 text-[13px] font-semibold text-white hover:bg-white/5 rounded transition-colors" disabled={submitLoading}>
-                                Cancel
-                            </button>
-                            <button
-                                className="bg-white hover:bg-gray-200 text-black text-[13px] font-semibold py-2.5 px-6 rounded transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                                onClick={validateAndConfirm}
-                                disabled={submitLoading}
-                            >
-                                Review
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
-        </div>
+        </Modal>
     );
 }

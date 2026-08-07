@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { X, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import type { RaceEligibilityRule } from "../AdminRuleManagementPage";
+import Modal from "../../../components/ui/Modal";
+import Button from "../../../components/ui/Button";
 
 interface RuleModalProps {
     isOpen: boolean;
@@ -80,34 +82,39 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" style={{ animation: "fadeIn 0.15s ease-out" }}>
-            <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
-
-            <div className="w-full max-w-2xl bg-surface border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-                    <h2 className="text-[18px] font-semibold text-white">
-                        {rule ? "Edit Eligibility Rule" : "Create Eligibility Rule"}
-                    </h2>
-                    <button onClick={onClose} className="p-1 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-colors">
-                        <X size={18} />
-                    </button>
-                </div>
-
-                {/* Form Body */}
-                <form id="rule-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+        <Modal
+            title={rule ? "Edit Eligibility Rule" : "Create Eligibility Rule"}
+            size="lg"
+            onClose={onClose}
+            closeOnBackdrop={!loading}
+            footer={<>
+                <Button variant="secondary" size="sm" disabled={loading} onClick={onClose}>
+                    Cancel
+                </Button>
+                <Button
+                    size="sm"
+                    variant="secondary"
+                    type="submit"
+                    form="rule-form"
+                    loading={loading}
+                    leftIcon={<Save size={14} />}
+                >
+                    {loading ? "Saving..." : rule ? "Update Rule" : "Create Rule"}
+                </Button>
+            </>}
+        >
+            <form id="rule-form" onSubmit={handleSubmit} className="space-y-6">
 
                     {/* Core Info */}
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Race Type</label>
+                            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Race Type</label>
                             <input
                                 type="text"
                                 value={formData.raceType}
                                 onChange={e => setFormData({ ...formData, raceType: e.target.value })}
                                 placeholder="e.g., Stakes, Claiming, Maiden (Optional)"
-                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-text placeholder:text-text-muted focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                     </div>
@@ -117,25 +124,25 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                     {/* Age Limits */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Min Age</label>
+                            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Min Age</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={formData.minAge}
                                 onChange={e => setFormData({ ...formData, minAge: e.target.value })}
                                 placeholder="Any"
-                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-text placeholder:text-text-muted focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                         <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Max Age</label>
+                            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Max Age</label>
                             <input
                                 type="number"
                                 min="0"
                                 value={formData.maxAge}
                                 onChange={e => setFormData({ ...formData, maxAge: e.target.value })}
                                 placeholder="Any"
-                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-text placeholder:text-text-muted focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                     </div>
@@ -145,25 +152,25 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                     {/* Experience */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Min Races Run</label>
+                            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Min Races Run</label>
                             <input
                                 type="number"
                                 min="0"
                                 required
                                 value={formData.minRacesRun}
                                 onChange={e => setFormData({ ...formData, minRacesRun: parseInt(e.target.value) || 0 })}
-                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-text focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                         <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Min Races Won</label>
+                            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Min Races Won</label>
                             <input
                                 type="number"
                                 min="0"
                                 required
                                 value={formData.minRacesWon}
                                 onChange={e => setFormData({ ...formData, minRacesWon: parseInt(e.target.value) || 0 })}
-                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-text focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                     </div>
@@ -173,11 +180,11 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                     {/* Traits */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Required Gender</label>
+                            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Required Gender</label>
                             <select
                                 value={formData.requiredGender}
                                 onChange={e => setFormData({ ...formData, requiredGender: e.target.value })}
-                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white focus:outline-none focus:border-white/20 transition-colors appearance-none"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-text focus:outline-none focus:border-white/20 transition-colors appearance-none"
                             >
                                 <option value="any">Any Gender</option>
                                 <option value="male">Male</option>
@@ -185,13 +192,13 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                             </select>
                         </div>
                         <div>
-                            <label className="block text-[12px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Required Breed</label>
+                            <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Required Breed</label>
                             <input
                                 type="text"
                                 value={formData.requiredBreed}
                                 onChange={e => setFormData({ ...formData, requiredBreed: e.target.value })}
                                 placeholder="e.g., Thoroughbred (Optional)"
-                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
+                                className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-[14px] text-text placeholder:text-text-muted focus:outline-none focus:border-white/20 transition-colors"
                             />
                         </div>
                     </div>
@@ -199,7 +206,7 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                     <hr className="border-border/60" />
 
                     {/* Requirements */}
-                    <div className="bg-white/[0.02] p-4 rounded-xl border border-border/60">
+                    <div className="bg-white/2 p-4 rounded-xl border border-border/60">
                         <label className="flex items-center gap-3 cursor-pointer">
                             <input
                                 type="checkbox"
@@ -208,8 +215,8 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                                 className="w-5 h-5 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 transition-all"
                             />
                             <div className="flex flex-col">
-                                <span className="text-gray-200 font-medium text-[14px]">License Required</span>
-                                <span className="text-gray-500 text-[12px] mt-0.5">Horse owner must have a valid racing license to register for this race type.</span>
+                                <span className="text-text font-medium text-[14px]">License Required</span>
+                                <span className="text-text-muted text-[12px] mt-0.5">Horse owner must have a valid racing license to register for this race type.</span>
                             </div>
                         </label>
                     </div>
@@ -225,40 +232,14 @@ export default function RuleModal({ isOpen, onClose, onSave, rule }: RuleModalPr
                                     className="w-5 h-5 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/20 focus:ring-offset-0 transition-all"
                                 />
                                 <div className="flex flex-col">
-                                    <span className="text-blue-400 font-medium text-[14px]">Activate Immediately</span>
-                                    <span className="text-gray-500 text-[12px] mt-0.5">Make this rule available for new races immediately.</span>
+                                    <span className="text-blue font-medium text-[14px]">Activate Immediately</span>
+                                    <span className="text-text-muted text-[12px] mt-0.5">Make this rule available for new races immediately.</span>
                                 </div>
                             </label>
                         </div>
                     )}
 
                 </form>
-
-                {/* Footer */}
-                <div className="px-6 py-4 border-t border-border shrink-0 flex justify-end gap-3 bg-bg">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        disabled={loading}
-                        className="px-5 py-2 text-[13px] font-medium text-gray-400 hover:text-white transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        form="rule-form"
-                        disabled={loading}
-                        className="flex items-center gap-2 px-6 py-2 text-[13px] font-medium text-white bg-emerald-600 rounded hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-900/20 disabled:opacity-50"
-                    >
-                        {loading ? "Saving..." : (
-                            <>
-                                <Save size={14} />
-                                {rule ? "Update Rule" : "Create Rule"}
-                            </>
-                        )}
-                    </button>
-                </div>
-            </div>
-        </div>
+        </Modal>
     );
 }

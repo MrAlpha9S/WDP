@@ -63,17 +63,23 @@ export default function GoogleRegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f0ef] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg shadow-black/8 px-9 pt-8 pb-9">
-        <h1 className="text-[26px] font-semibold text-gray-900 text-center tracking-tight mb-1 font-serif">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-10 font-sans">
+      {/* Subtle red glow behind card — matches LoginPage's card treatment. */}
+      <div
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-105 h-105 rounded-full opacity-10 blur-[100px] pointer-events-none"
+        style={{ background: "radial-gradient(circle, #7f1d1d 0%, transparent 70%)" }}
+      />
+
+      <div className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl shadow-black/60 px-9 pt-8 pb-9">
+        <h1 className="text-[24px] font-semibold text-text text-center tracking-tight mb-1">
           Google Sign Up
         </h1>
-        <p className="text-[13.5px] text-gray-500 text-center mb-6">
+        <p className="text-[13.5px] text-text-muted text-center mb-6">
           Complete your profile to join Horsari
         </p>
 
         {error && (
-          <div className="mb-4 px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-[13px] text-red-700">
+          <div className="mb-4 px-4 py-2.5 bg-error-bg border border-error-border rounded-lg text-[12.5px] text-red">
             {error}
           </div>
         )}
@@ -89,13 +95,13 @@ export default function GoogleRegisterPage() {
           />
 
           <button type="submit" disabled={submitting}
-            className="w-full flex items-center justify-center gap-2.5 bg-white border border-gray-200 rounded-xl py-3 text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm disabled:opacity-60 transition-all duration-150 mt-2">
+            className="w-full flex items-center justify-center gap-2.5 bg-surface-raised border border-border rounded-xl py-3 text-sm font-bold text-text hover:border-white/25 disabled:opacity-60 transition-all duration-150 mt-2 cursor-pointer">
             <GoogleIcon /> {submitting ? "Signing up…" : "Complete with Google"}
           </button>
 
-          <p className="text-center text-[13px] text-gray-500 mt-2">
+          <p className="text-center text-[13px] text-text-muted mt-2">
             Already have an account?{" "}
-            <button type="button" onClick={() => navigate("/login")} className="text-red-800 font-semibold hover:underline">
+            <button type="button" onClick={() => navigate("/login")} className="text-red font-semibold hover:text-red/80 transition-colors cursor-pointer">
               Log in
             </button>
           </p>

@@ -35,10 +35,10 @@ const REG_STATUS_CFG: Record<string, string> = {
 };
 
 const INVITATION_TONE_CFG: Record<string, string> = {
-  pending: "text-yellow-400",
+  pending: "text-amber",
   accepted: "text-emerald-400",
   declined: "text-red-400",
-  cancelled: "text-gray-400",
+  cancelled: "text-text-muted",
   didNotAttend: "text-red-400",
 };
 
@@ -113,7 +113,7 @@ function AcceptedRegistrationsPanel({ onClose, registrations, loading, error }: 
         <div className="px-5 py-5 shrink-0 border-b border-border/60 bg-surface">
           <div className="flex justify-between items-start w-full gap-4">
             <div className="flex flex-col gap-2">
-              <h2 className="text-[18px] font-bold tracking-tight leading-tight text-white">
+              <h2 className="text-[18px] font-bold tracking-tight leading-tight text-text">
                 Accepted Registrations
               </h2>
               <div className="flex items-center gap-2 flex-wrap">
@@ -123,14 +123,14 @@ function AcceptedRegistrationsPanel({ onClose, registrations, loading, error }: 
                   }`}>
                   {needsJockeyCount > 0 ? `${needsJockeyCount} Need${needsJockeyCount === 1 ? "s" : ""} Jockey` : "All Set"}
                 </span>
-                <span className="text-[12px] text-gray-500">
+                <span className="text-[12px] text-text-muted">
                   {registrations.length} race{registrations.length !== 1 ? "s" : ""} entered
                 </span>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded border border-border transition-colors shrink-0"
+              className="p-1.5 bg-white/5 hover:bg-white/10 text-text-muted hover:text-text rounded border border-border transition-colors shrink-0"
               title="Close Panel"
             >
               <X size={14} />
@@ -149,7 +149,7 @@ function AcceptedRegistrationsPanel({ onClose, registrations, loading, error }: 
           )}
 
           {!loading && !error && registrations.length === 0 && (
-            <div className="text-[13px] text-gray-500 italic p-8 text-center bg-bg rounded-xl border border-border/60">
+            <div className="text-[13px] text-text-muted italic p-8 text-center bg-bg rounded-xl border border-border/60">
               No accepted registrations yet — join a race from your dashboard.
             </div>
           )}
@@ -158,8 +158,8 @@ function AcceptedRegistrationsPanel({ onClose, registrations, loading, error }: 
             <div key={reg.id} className="p-4 rounded-xl bg-bg border border-border/60 flex flex-col gap-4">
               <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Trophy size={16} className="text-gray-500 shrink-0" />
-                  <span className="text-[14px] font-bold text-white truncate">{reg.raceName}</span>
+                  <Trophy size={16} className="text-text-muted shrink-0" />
+                  <span className="text-[14px] font-bold text-text truncate">{reg.raceName}</span>
                 </div>
                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0 ${REG_STATUS_CFG[reg.status] ?? REG_STATUS_CFG.accepted}`}>
                   {reg.status}
@@ -167,31 +167,31 @@ function AcceptedRegistrationsPanel({ onClose, registrations, loading, error }: 
               </div>
 
               {reg.tournament && (
-                <p className="text-[11px] text-gray-500 -mt-2">{reg.tournament}</p>
+                <p className="text-[11px] text-text-muted -mt-2">{reg.tournament}</p>
               )}
 
               <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-[12px]">
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 font-medium flex items-center gap-1"><Calendar size={12} /> Date</span>
-                  <span className="text-gray-300 font-semibold">{reg.date}</span>
+                  <span className="text-text-muted font-medium flex items-center gap-1"><Calendar size={12} /> Date</span>
+                  <span className="text-text-muted font-semibold">{reg.date}</span>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-gray-500 font-medium flex items-center gap-1"><MapPin size={12} /> Venue</span>
-                  <span className="text-gray-300 font-semibold truncate">{reg.venue}</span>
+                  <span className="text-text-muted font-medium flex items-center gap-1"><MapPin size={12} /> Venue</span>
+                  <span className="text-text-muted font-semibold truncate">{reg.venue}</span>
                 </div>
                 <div className="flex flex-col gap-1 col-span-2">
-                  <span className="text-gray-500 font-medium flex items-center gap-1"><Flag size={12} /> Horse</span>
-                  <span className="text-gray-300 font-semibold">
-                    {reg.horseName ?? <span className="text-gray-600 italic font-normal">N/A</span>}
+                  <span className="text-text-muted font-medium flex items-center gap-1"><Flag size={12} /> Horse</span>
+                  <span className="text-text-muted font-semibold">
+                    {reg.horseName ?? <span className="text-text-muted/70 italic font-normal">N/A</span>}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1 col-span-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-gray-500 font-medium">Jockey</span>
+                    <span className="text-text-muted font-medium">Jockey</span>
                     {reg.invitations.length > 0 && (
                       <button
                         onClick={() => toggleExpanded(reg.id)}
-                        className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-white transition-colors"
+                        className="flex items-center gap-1 text-[10px] text-text-muted hover:text-text transition-colors"
                       >
                         {reg.invitations.length} invite{reg.invitations.length > 1 ? "s" : ""}
                         <ChevronDown size={10} className={`transition-transform duration-150 ${expandedIds.has(reg.id) ? "rotate-180" : ""}`} />
@@ -210,17 +210,17 @@ function AcceptedRegistrationsPanel({ onClose, registrations, loading, error }: 
                       <table className="w-full text-[11px] border-collapse">
                         <thead>
                           <tr className="bg-white/[0.03]">
-                            <th className="text-left font-semibold text-gray-500 px-2 py-1.5">Jockey</th>
-                            <th className="text-left font-semibold text-gray-500 px-2 py-1.5">Role</th>
-                            <th className="text-left font-semibold text-gray-500 px-2 py-1.5">Status</th>
+                            <th className="text-left font-semibold text-text-muted px-2 py-1.5">Jockey</th>
+                            <th className="text-left font-semibold text-text-muted px-2 py-1.5">Role</th>
+                            <th className="text-left font-semibold text-text-muted px-2 py-1.5">Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                           {reg.invitations.map((inv, i) => (
                             <tr key={i}>
-                              <td className="px-2 py-1.5 text-gray-300 truncate max-w-[120px]">{inv.jockeyName ?? "Unknown"}</td>
-                              <td className="px-2 py-1.5 text-gray-500">{inv.isBackup ? "Backup" : "Main"}</td>
-                              <td className={`px-2 py-1.5 font-semibold ${INVITATION_TONE_CFG[inv.status] ?? "text-gray-400"}`}>
+                              <td className="px-2 py-1.5 text-text-muted truncate max-w-[120px]">{inv.jockeyName ?? "Unknown"}</td>
+                              <td className="px-2 py-1.5 text-text-muted">{inv.isBackup ? "Backup" : "Main"}</td>
+                              <td className={`px-2 py-1.5 font-semibold ${INVITATION_TONE_CFG[inv.status] ?? "text-text-muted"}`}>
                                 {INVITATION_LABEL_CFG[inv.status] ?? inv.status}
                               </td>
                             </tr>
@@ -310,11 +310,11 @@ function FilterSelect({ options, value, onChange }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-surface border border-border rounded-lg pl-4 pr-8 py-2 text-[12.5px] text-gray-300 focus:outline-none focus:border-white/25 cursor-pointer transition-colors duration-150"
+        className="appearance-none bg-surface border border-border rounded-lg pl-4 pr-8 py-2 text-[12.5px] text-text-muted focus:outline-none focus:border-white/25 cursor-pointer transition-colors duration-150"
       >
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+      <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
     </div>
   );
 }
@@ -362,7 +362,7 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-surface">
-            <User size={32} className="text-gray-700" />
+            <User size={32} className="text-text-muted/50" />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/10 to-transparent" />
@@ -374,28 +374,28 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
 
       <div className="px-4 pt-3 pb-4 flex flex-col gap-3 flex-1">
         <div>
-          <h3 className="text-[16px] font-bold text-white leading-tight font-serif">
+          <h3 className="text-[16px] font-bold text-text leading-tight font-serif">
             {jockey.name}
           </h3>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-surface rounded-lg px-3 py-2.5 border border-border/60">
-            <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-1">Win Rate</p>
-            <p className={`text-[15px] font-bold ${isUnavailable ? "text-gray-500" : "text-green-400"}`}>
+            <p className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase mb-1">Win Rate</p>
+            <p className={`text-[15px] font-bold ${isUnavailable ? "text-text-muted" : "text-green"}`}>
               {jockey.winRate}%
             </p>
           </div>
           <div className="bg-surface rounded-lg px-3 py-2.5 border border-border/60">
-            <p className="text-[10px] font-semibold tracking-widest text-gray-600 uppercase mb-1">Starts</p>
-            <p className="text-[15px] font-bold text-white">{jockey.starts.toLocaleString()}</p>
+            <p className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase mb-1">Starts</p>
+            <p className="text-[15px] font-bold text-text">{jockey.starts.toLocaleString()}</p>
           </div>
         </div>
 
         <div className="flex gap-2 mt-auto">
           <button
             onClick={onDetail}
-            className="flex-1 py-2.5 rounded-lg border border-white/12 text-gray-300 text-[12px] font-semibold hover:border-white/28 hover:text-white transition-all duration-150"
+            className="flex-1 py-2.5 rounded-lg border border-white/12 text-text-muted text-[12px] font-semibold hover:border-white/28 hover:text-text transition-all duration-150"
           >
             Details
           </button>
@@ -403,11 +403,11 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
             disabled={isUnavailable}
             onClick={isUnavailable ? undefined : onHire}
             className={`flex-1 py-2.5 rounded-lg text-[12px] font-bold transition-all duration-150 flex items-center justify-center gap-1.5 ${isUnavailable
-              ? "bg-[#242424] border border-border text-gray-600 cursor-not-allowed"
-              : "bg-red-700 hover:bg-red-600 text-white shadow-lg shadow-red-900/30"
+              ? "bg-[#242424] border border-border text-text-muted/70 cursor-not-allowed"
+              : "bg-red hover:bg-red/85 text-text shadow-lg shadow-red-900/30"
               }`}
           >
-            {isUnavailable ? "Unavailable" : <><span>Hire</span> <UserSearch size={12} className="text-white stroke-2" /></>}
+            {isUnavailable ? "Unavailable" : <><span>Hire</span> <UserSearch size={12} className="text-text stroke-2" /></>}
           </button>
         </div>
       </div>
@@ -422,11 +422,11 @@ function JockeyTable({ jockeys, onDetail, onHire }: { jockeys: Jockey[]; onDetai
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="bg-surface border-b border-border/60">
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Name</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Win Rate</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Starts</th>
-            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase"></th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Name</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Status</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Win Rate</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Starts</th>
+            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
@@ -435,20 +435,20 @@ function JockeyTable({ jockeys, onDetail, onHire }: { jockeys: Jockey[]; onDetai
             const isUnavailable = jockey.status === "Unavailable";
             return (
               <tr key={jockey.id} className="hover:bg-white/[0.02] transition-colors">
-                <td className="p-4 text-[13px] font-semibold text-white">{jockey.name}</td>
+                <td className="p-4 text-[13px] font-semibold text-text">{jockey.name}</td>
                 <td className="p-4">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10.5px] font-semibold ${cfg.bg} ${cfg.border} ${cfg.text}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                     {jockey.status}
                   </span>
                 </td>
-                <td className={`p-4 text-[13px] font-bold ${isUnavailable ? "text-gray-500" : "text-green-400"}`}>{jockey.winRate}%</td>
-                <td className="p-4 text-[12.5px] text-gray-400">{jockey.starts.toLocaleString()}</td>
+                <td className={`p-4 text-[13px] font-bold ${isUnavailable ? "text-text-muted" : "text-green"}`}>{jockey.winRate}%</td>
+                <td className="p-4 text-[12.5px] text-text-muted">{jockey.starts.toLocaleString()}</td>
                 <td className="p-4 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => onDetail(jockey)}
-                      className="px-3.5 py-1.5 rounded-lg border border-white/12 text-gray-300 text-[11px] font-semibold hover:border-white/28 hover:text-white transition-all duration-150"
+                      className="px-3.5 py-1.5 rounded-lg border border-white/12 text-text-muted text-[11px] font-semibold hover:border-white/28 hover:text-text transition-all duration-150"
                     >
                       Details
                     </button>
@@ -456,8 +456,8 @@ function JockeyTable({ jockeys, onDetail, onHire }: { jockeys: Jockey[]; onDetai
                       disabled={isUnavailable}
                       onClick={isUnavailable ? undefined : () => onHire(jockey)}
                       className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-150 ${isUnavailable
-                        ? "bg-[#242424] border border-border text-gray-600 cursor-not-allowed"
-                        : "bg-red-700 hover:bg-red-600 text-white"
+                        ? "bg-[#242424] border border-border text-text-muted/70 cursor-not-allowed"
+                        : "bg-red hover:bg-red/85 text-text"
                         }`}
                     >
                       {isUnavailable ? "Unavailable" : "Hire"}
@@ -594,10 +594,10 @@ export default function JockeysPage() {
           {/* Header */}
           <div className="flex items-start justify-between mb-6 shrink-0">
             <div>
-              <h1 className="text-[36px] font-bold text-white leading-tight font-serif">
+              <h1 className="text-[36px] font-bold text-text leading-tight font-serif">
                 Jockey Marketplace
               </h1>
-              <p className="text-[13px] text-gray-500 mt-1">
+              <p className="text-[13px] text-text-muted mt-1">
                 Browse, evaluate, and hire elite riders for your stable.
               </p>
             </div>
@@ -605,20 +605,20 @@ export default function JockeysPage() {
               <button
                 onClick={() => setShowRegistrations((v) => !v)}
                 className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border text-[13px] font-medium transition-colors duration-150 ${showRegistrations
-                  ? "border-white/30 bg-white/10 text-white"
-                  : "border-white/15 text-gray-300 hover:border-white/30 hover:text-white"
+                  ? "border-white/30 bg-white/10 text-text"
+                  : "border-white/15 text-text-muted hover:border-white/30 hover:text-text"
                   }`}
               >
                 <ClipboardList size={14} /> My Registrations
                 {needsJockeyCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red text-text text-[9px] font-bold flex items-center justify-center">
                     {needsJockeyCount}
                   </span>
                 )}
               </button>
               <ViewToggle value={viewMode} onChange={setViewMode} />
               <RefetchButton onRefetch={fetchJockeys} lastUpdated={lastUpdated} />
-              <SlidersHorizontal size={14} className="text-gray-500" />
+              <SlidersHorizontal size={14} className="text-text-muted" />
               <FilterSelect options={WEIGHTS} value={weightFilter} onChange={setWeightFilter} />
             </div>
           </div>
@@ -626,7 +626,7 @@ export default function JockeysPage() {
           {/* Loading */}
           {loading && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-gray-600 text-[12px] mb-2">
+              <div className="flex items-center gap-2 text-text-muted/70 text-[12px] mb-2">
                 <Loader2 size={13} className="animate-spin" /> Loading jockeys…
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -644,7 +644,7 @@ export default function JockeysPage() {
 
           {/* Empty */}
           {!loading && !error && jockeys.length === 0 && (
-            <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-gray-600">
+            <div className="rounded-xl border border-border bg-white/3 px-5 py-8 text-center text-[13px] text-text-muted/70">
               No jockeys found.
             </div>
           )}
@@ -666,7 +666,7 @@ export default function JockeysPage() {
                 <div className="flex justify-center mt-10">
                   <button
                     onClick={() => setVisibleCount((c) => c + 4)}
-                    className="flex items-center gap-2 text-[13px] text-gray-400 font-medium hover:text-white transition-colors duration-150"
+                    className="flex items-center gap-2 text-[13px] text-text-muted font-medium hover:text-text transition-colors duration-150"
                   >
                     Load More <ChevronDown size={15} />
                   </button>

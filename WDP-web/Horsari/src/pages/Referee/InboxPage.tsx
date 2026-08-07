@@ -134,11 +134,11 @@ export default function InboxPage() {
                 <div className="mb-7 flex items-start justify-between gap-4">
                     <div>
                         <h1
-                            className="text-[26px] font-bold text-white tracking-tight font-serif"
+                            className="text-[26px] font-bold text-text tracking-tight font-serif"
                         >
                             Inbox
                         </h1>
-                        <p className="text-[13px] text-gray-500 mt-0.5">Race assignments and referee invitations.</p>
+                        <p className="text-[13px] text-text-muted mt-0.5">Race assignments and referee invitations.</p>
                     </div>
                     <RefetchButton onRefetch={refresh} lastUpdated={lastUpdated} />
                 </div>
@@ -152,13 +152,13 @@ export default function InboxPage() {
                             className={[
                                 "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold transition-all duration-150",
                                 tab === key
-                                    ? "bg-red-700 text-white shadow-sm"
-                                    : "text-gray-500 hover:text-gray-300 hover:bg-white/[0.04]",
+                                    ? "bg-red text-text shadow-sm"
+                                    : "text-text-muted hover:text-text-muted hover:bg-white/[0.04]",
                             ].join(" ")}
                         >
                             {label}
                             {tab === key && (
-                                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-white/20 text-white">
+                                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-white/20 text-text">
                                     {pagination.total}
                                 </span>
                             )}
@@ -169,14 +169,14 @@ export default function InboxPage() {
                 {/* List */}
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-surface rounded-xl border border-border">
-                        <Loader2 className="w-8 h-8 text-red-500 animate-spin mb-4" />
-                        <span className="text-[13px] font-medium text-gray-400">Loading invitations...</span>
+                        <Loader2 className="w-8 h-8 text-red animate-spin mb-4" />
+                        <span className="text-[13px] font-medium text-text-muted">Loading invitations...</span>
                     </div>
                 ) : error ? (
                     <ErrorState message={(error as any)?.msg ?? "Failed to load invitations."} onRetry={refresh} />
                 ) : invites.length === 0 ? (
                     <div className="bg-surface rounded-xl border border-border px-5 py-14 text-center">
-                        <p className="text-[13px] text-gray-600">No invitations in this category.</p>
+                        <p className="text-[13px] text-text-muted/70">No invitations in this category.</p>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-3">
@@ -195,8 +195,8 @@ export default function InboxPage() {
                 {/* Footer / Pagination */}
                 {!loading && pagination.totalPages > 1 && (
                     <div className="flex items-center justify-between mt-5 px-1">
-                        <span className="text-[12px] text-gray-500">
-                            Page <strong className="text-white">{page}</strong> of <strong className="text-white">{pagination.totalPages}</strong>
+                        <span className="text-[12px] text-text-muted">
+                            Page <strong className="text-text">{page}</strong> of <strong className="text-text">{pagination.totalPages}</strong>
                             <span className="mx-2">·</span>
                             {pagination.total} total
                         </span>
@@ -204,14 +204,14 @@ export default function InboxPage() {
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1}
-                                className="px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white/5 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white/5 text-text hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 Prev
                             </button>
                             <button
                                 onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                                 disabled={page === pagination.totalPages}
-                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white/5 text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-bold bg-white/5 text-text hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 Next <ChevronRight size={14} />
                             </button>
@@ -220,7 +220,7 @@ export default function InboxPage() {
                 )}
                 {!loading && pagination.totalPages <= 1 && invites.length > 0 && (
                     <div className="flex items-center justify-between mt-5 px-1">
-                        <span className="text-[12px] text-gray-600">
+                        <span className="text-[12px] text-text-muted/70">
                             Showing all {invites.length} invitations
                         </span>
                     </div>

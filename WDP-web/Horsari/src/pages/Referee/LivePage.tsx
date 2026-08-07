@@ -17,7 +17,7 @@ function severityDot(severity?: number) {
     if (!severity) return "bg-gray-600";
     if (severity <= 2) return "bg-yellow-500";
     if (severity === 3) return "bg-orange-500";
-    return "bg-red-500";
+    return "bg-red";
 }
 
 function IncidentButton({
@@ -38,19 +38,19 @@ function IncidentButton({
             onClick={onClick}
             disabled={loading}
             className={["group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border text-center transition-all duration-200 cursor-pointer select-none relative",
-                active ? "border-red-700 bg-red-500/10 text-red-400"
-                    : "border-border bg-white/[0.03] text-gray-500 hover:border-white/15 hover:bg-white/[0.06] hover:text-gray-300",
+                active ? "border-red-700 bg-red/10 text-red"
+                    : "border-border bg-white/[0.03] text-text-muted hover:border-white/15 hover:bg-white/[0.06] hover:text-text-muted",
                 loading ? "opacity-60 cursor-not-allowed" : "",
             ].join(" ")}
         >
             {loading
                 ? <Loader2 size={16} className="animate-spin shrink-0" />
-                : <ShieldAlert size={16} className={active ? "text-red-400" : "text-gray-600 group-hover:text-gray-400"} />
+                : <ShieldAlert size={16} className={active ? "text-red" : "text-text-muted/70 group-hover:text-text-muted"} />
             }
             <span className="text-[11px] font-semibold leading-tight px-1">{vt.violationName}</span>
             <span className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full ${severityDot(vt.severity)}`} />
             {active && (
-                <span className="absolute bottom-2 right-2 text-[9px] font-black text-red-500 uppercase tracking-wider">
+                <span className="absolute bottom-2 right-2 text-[9px] font-black text-red uppercase tracking-wider">
                     ×{activeCount}
                 </span>
             )}
@@ -115,20 +115,20 @@ function HorsePickerModal({
                 {/* Header */}
                 <div className="flex items-start justify-between shrink-0">
                     <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-1">Flag Violation</p>
-                        <h3 className="text-[18px] font-bold text-white leading-tight">{vt.violationName}</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted/70 mb-1">Flag Violation</p>
+                        <h3 className="text-[18px] font-bold text-text leading-tight">{vt.violationName}</h3>
                         {vt.severity && (
-                            <span className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded ${severityDot(vt.severity)} bg-opacity-20 text-white`}>
+                            <span className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded ${severityDot(vt.severity)} bg-opacity-20 text-text`}>
                                 Severity {vt.severity}
                             </span>
                         )}
                     </div>
-                    <button onClick={onClose} className="text-gray-600 hover:text-gray-300 text-[20px] leading-none mt-0.5">✕</button>
+                    <button onClick={onClose} className="text-text-muted/70 hover:text-text-muted text-[20px] leading-none mt-0.5">✕</button>
                 </div>
 
                 {/* Horse list */}
                 <div className="flex-1 min-h-0 flex flex-col">
-                    <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-2.5 shrink-0">
+                    <p className="text-[11px] text-text-muted uppercase tracking-widest font-bold mb-2.5 shrink-0">
                         Select horse(s) involved
                     </p>
                     <div className="flex flex-col gap-2 overflow-y-auto pr-1">
@@ -137,8 +137,8 @@ function HorsePickerModal({
                             className={[
                                 "flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all",
                                 raceWide
-                                    ? "border-yellow-600/60 bg-yellow-500/8 text-yellow-400"
-                                    : "border-border bg-white/[0.03] text-gray-500 hover:border-white/15 hover:text-gray-300",
+                                    ? "border-yellow-600/60 bg-yellow-500/8 text-amber"
+                                    : "border-border bg-white/[0.03] text-text-muted hover:border-white/15 hover:text-text-muted",
                             ].join(" ")}
                         >
                             <input
@@ -149,7 +149,7 @@ function HorsePickerModal({
                             />
                             <div>
                                 <p className="text-[13px] font-semibold">Race-wide</p>
-                                <p className="text-[11px] text-gray-600">No specific horse</p>
+                                <p className="text-[11px] text-text-muted/70">No specific horse</p>
                             </div>
                         </label>
 
@@ -161,8 +161,8 @@ function HorsePickerModal({
                                     className={[
                                         "flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all",
                                         checked
-                                            ? "border-red-700/60 bg-red-500/8 text-red-300"
-                                            : "border-border bg-white/[0.03] text-gray-400 hover:border-white/15 hover:text-gray-200",
+                                            ? "border-red-700/60 bg-red/8 text-red-300"
+                                            : "border-border bg-white/[0.03] text-text-muted hover:border-white/15 hover:text-text",
                                     ].join(" ")}
                                 >
                                     <input
@@ -173,7 +173,7 @@ function HorsePickerModal({
                                     />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[13px] font-semibold">#{h.number} {h.name}</p>
-                                        <p className="text-[11px] text-gray-600 truncate">{h.jockey}</p>
+                                        <p className="text-[11px] text-text-muted/70 truncate">{h.jockey}</p>
                                     </div>
                                 </label>
                             );
@@ -185,14 +185,14 @@ function HorsePickerModal({
                 <div className="flex gap-2 pt-1 border-t border-border shrink-0">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-2.5 rounded-xl border border-border text-gray-500 text-[13px] font-semibold hover:border-white/20 hover:text-gray-300 transition-all"
+                        className="flex-1 py-2.5 rounded-xl border border-border text-text-muted text-[13px] font-semibold hover:border-white/20 hover:text-text-muted transition-all"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={() => onConfirm(Array.from(selectedIds))}
                         disabled={loading || !canConfirm}
-                        className="flex-1 py-2.5 rounded-xl bg-red-700 text-white text-[13px] font-bold uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        className="flex-1 py-2.5 rounded-xl bg-red text-text text-[13px] font-bold uppercase tracking-widest hover:bg-red/85 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                     >
                         {loading ? <Loader2 size={13} className="animate-spin" /> : <ShieldAlert size={13} />}
                         {selectedIds.size > 1 ? `Flag ${selectedIds.size} Horses` : "Flag"}
@@ -243,15 +243,15 @@ function PositionTrack({
     return (
         <div className="bg-bg rounded-xl border border-border p-4">
             <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600">Track Position</h2>
+                <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70">Track Position</h2>
                 <div className="flex items-center gap-2">
                     {showOnStream && (
-                        <span className="flex items-center gap-1 text-[9px] font-bold text-red-400 bg-red-500/10 border border-red-700/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                            <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" /> On Stream
+                        <span className="flex items-center gap-1 text-[9px] font-bold text-red bg-red/10 border border-red/40 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                            <span className="w-1 h-1 rounded-full bg-red animate-pulse" /> On Stream
                         </span>
                     )}
                     {leader && (
-                        <span className="text-[10px] text-gray-600 font-mono">
+                        <span className="text-[10px] text-text-muted/70 font-mono">
                             Leader: {leader.horseName} · {leader.currentDistance.toFixed(0)} m
                         </span>
                     )}
@@ -264,8 +264,8 @@ function PositionTrack({
                 style={{ height: `${Math.max(80, displayHorses.length * 30)}px` }}
             >
                 {/* Corner labels */}
-                <div className="absolute left-10 top-2 text-[8px] font-black uppercase tracking-widest text-gray-700">Start</div>
-                <div className="absolute right-3 top-2 text-[8px] font-black uppercase tracking-widest text-gray-700">{trackLength} m</div>
+                <div className="absolute left-10 top-2 text-[8px] font-black uppercase tracking-widest text-text-muted/50">Start</div>
+                <div className="absolute right-3 top-2 text-[8px] font-black uppercase tracking-widest text-text-muted/50">{trackLength} m</div>
 
                 {/* Lane guide lines */}
                 {displayHorses.map(horse => {
@@ -291,7 +291,7 @@ function PositionTrack({
                             style={{ top: `${topPct}%` }}
                         >
                             <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                            <span className="text-[8px] font-bold text-gray-700">#{horse.number}</span>
+                            <span className="text-[8px] font-bold text-text-muted/50">#{horse.number}</span>
                         </div>
                     );
                 })}
@@ -303,7 +303,7 @@ function PositionTrack({
                         style={{ left: `${(lineMark / trackLength) * 100}%` }}
                     >
                         <div className="w-px h-full bg-yellow-500/40" />
-                        <span className="absolute -top-4 text-[8px] font-bold text-yellow-500/70 -translate-x-1/2">
+                        <span className="absolute -top-4 text-[8px] font-bold text-amber/70 -translate-x-1/2">
                             {lineMark} m
                         </span>
                     </div>
@@ -321,7 +321,7 @@ function PositionTrack({
                             className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-700"
                             style={{ left: `${pct}%`, top: `${topPct}%` }}
                         >
-                            <div className="flex items-center justify-center text-[10px] font-black text-white shadow-lg relative"
+                            <div className="flex items-center justify-center text-[10px] font-black text-text shadow-lg relative"
                                 style={{
                                     width: isLeader ? 26 : 22, height: isLeader ? 26 : 22,
                                     borderRadius: "50%", background: color,
@@ -331,10 +331,10 @@ function PositionTrack({
                             >
                                 {horse.number}
                                 {horse.isFinished && (
-                                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[7px] text-green-400 font-black leading-none">✓</span>
+                                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[7px] text-green font-black leading-none">✓</span>
                                 )}
                                 {isLeader && (
-                                    <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[7px] font-black text-yellow-400 leading-none">▲</span>
+                                    <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-[7px] font-black text-amber leading-none">▲</span>
                                 )}
                             </div>
                         </div>
@@ -347,11 +347,11 @@ function PositionTrack({
                 {[...displayHorses].sort((a, b) => b.currentDistance - a.currentDistance).map(h => (
                     <div key={h.registrationId} className="flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: horseColor(h.number) }} />
-                        <span className="text-[10px] text-gray-400 font-medium">#{h.number} {h.horseName.split(" ")[0]}</span>
-                        {h.finishPosition === 1 && <span className="text-[9px] text-yellow-400 font-black">1st</span>}
-                        {h.finishPosition === 2 && <span className="text-[9px] text-gray-300 font-black">2nd</span>}
+                        <span className="text-[10px] text-text-muted font-medium">#{h.number} {h.horseName.split(" ")[0]}</span>
+                        {h.finishPosition === 1 && <span className="text-[9px] text-amber font-black">1st</span>}
+                        {h.finishPosition === 2 && <span className="text-[9px] text-text-muted font-black">2nd</span>}
                         {h.finishPosition === 3 && <span className="text-[9px] text-amber-600 font-black">3rd</span>}
-                        <span className="text-[9px] text-gray-600 font-mono">{h.raceStyle[0]}</span>
+                        <span className="text-[9px] text-text-muted/70 font-mono">{h.raceStyle[0]}</span>
                     </div>
                 ))}
             </div>
@@ -503,15 +503,15 @@ export default function LivePage() {
                     <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                         <div className="flex items-center gap-2 flex-wrap">
                             {showMux ? (
-                                <span className="flex items-center gap-1.5 text-[11px] font-bold text-red-400">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                                <span className="flex items-center gap-1.5 text-[11px] font-bold text-red">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
                                     Live Stream ('placeholder')
                                 </span>
                             ) : (
                                 CAMERAS.map(c => (
                                     <button key={c.id} onClick={() => setActiveCam(c.id)}
                                         className={["flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all",
-                                            activeCam === c.id ? "bg-red-700 text-white" : "text-gray-500 bg-white/5 hover:bg-white/10 hover:text-gray-300",
+                                            activeCam === c.id ? "bg-red text-text" : "text-text-muted bg-white/5 hover:bg-white/10 hover:text-text-muted",
                                         ].join(" ")}
                                     >
                                         <Camera size={10} />
@@ -521,7 +521,7 @@ export default function LivePage() {
                                 ))
                             )}
                         </div>
-                        <button className="flex items-center gap-1 text-[11px] text-gray-500 font-medium hover:text-gray-200 transition-colors shrink-0">
+                        <button className="flex items-center gap-1 text-[11px] text-text-muted font-medium hover:text-text transition-colors shrink-0">
                             Fullscreen <ChevronRight size={12} />
                         </button>
                     </div>
@@ -549,29 +549,29 @@ export default function LivePage() {
                             <img src={cam.src} alt="Race feed" className="w-full h-full object-cover opacity-90 transition-all duration-300" />
                         )}
 
-                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-red-700/90 backdrop-blur px-2 py-1 rounded-lg">
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-red/90 backdrop-blur px-2 py-1 rounded-lg">
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                            <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                            <span className="text-[10px] font-bold text-text uppercase tracking-wider">
                                 {showMux ? "Live · OBS Stream" : streamTimedOut ? "Placeholder · Awaiting Stream" : `Preview · ${cam.label}`}
                             </span>
                         </div>
 
                         <div className="absolute bottom-2.5 left-2.5 bg-black/70 backdrop-blur px-3 py-1.5 rounded-lg border border-border flex items-center gap-3">
                             <div>
-                                <p className="text-[8px] text-gray-400 uppercase tracking-wider font-medium">Pace</p>
-                                <p className="text-[11px] font-bold text-white">{paceMps}</p>
+                                <p className="text-[8px] text-text-muted uppercase tracking-wider font-medium">Pace</p>
+                                <p className="text-[11px] font-bold text-text">{paceMps}</p>
                             </div>
                             <div className="w-px h-5 bg-white/10" />
                             <div>
-                                <p className="text-[8px] text-gray-400 uppercase tracking-wider font-medium">Leader</p>
-                                <p className="text-[11px] font-bold text-red-400">{leaderLabel}</p>
+                                <p className="text-[8px] text-text-muted uppercase tracking-wider font-medium">Leader</p>
+                                <p className="text-[11px] font-bold text-red">{leaderLabel}</p>
                             </div>
                         </div>
 
                         <button
                             onClick={() => setShowTrackOnStream(v => !v)}
                             className={["absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all",
-                                showTrackOnStream ? "bg-yellow-600 text-white" : "bg-black/60 text-gray-400 border border-white/15 hover:border-white/30 hover:text-white",
+                                showTrackOnStream ? "bg-yellow-600 text-text" : "bg-black/60 text-text-muted border border-white/15 hover:border-white/30 hover:text-text",
                             ].join(" ")}
                         >
                             ⊙ Track
@@ -583,8 +583,8 @@ export default function LivePage() {
                                     className="relative bg-white/[0.06] rounded-xl overflow-visible"
                                     style={{ height: `${Math.max(40, (liveHorses?.length ?? 0) * 18)}px` }}
                                 >
-                                    <div className="absolute left-1 top-1 text-[6px] font-black uppercase tracking-widest text-gray-600">S</div>
-                                    <div className="absolute right-1 top-1 text-[6px] font-black uppercase tracking-widest text-gray-600">F</div>
+                                    <div className="absolute left-1 top-1 text-[6px] font-black uppercase tracking-widest text-text-muted/70">S</div>
+                                    <div className="absolute right-1 top-1 text-[6px] font-black uppercase tracking-widest text-text-muted/70">F</div>
                                     {(liveHorses ?? []).map(horse => {
                                         const pct = trackLength > 0 ? (horse.currentDistance / trackLength) * 100 : 0;
                                         const total = liveHorses?.length ?? 1;
@@ -596,7 +596,7 @@ export default function LivePage() {
                                                 className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-700"
                                                 style={{ left: `${pct}%`, top: `${topPct}%` }}
                                             >
-                                                <div className="flex items-center justify-center text-[8px] font-black text-white"
+                                                <div className="flex items-center justify-center text-[8px] font-black text-text"
                                                     style={{
                                                         width: isLeader ? 18 : 14, height: isLeader ? 18 : 14,
                                                         borderRadius: "50%", background: color,
@@ -616,11 +616,11 @@ export default function LivePage() {
                 {/* Incident log */}
                 <div className="bg-surface rounded-xl border border-border flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-                        <h2 className="text-[13px] font-bold text-white font-serif">Incident Log</h2>
+                        <h2 className="text-[13px] font-bold text-text font-serif">Incident Log</h2>
                         <div className="flex items-center gap-2">
                             {activeViolations.length > 0
-                                ? <span className="text-[11px] font-bold text-red-400 flex items-center gap-1"><AlertTriangle size={11} />{activeViolations.length} flagged</span>
-                                : <span className="text-[11px] text-gray-600 font-medium">0 flagged</span>
+                                ? <span className="text-[11px] font-bold text-red flex items-center gap-1"><AlertTriangle size={11} />{activeViolations.length} flagged</span>
+                                : <span className="text-[11px] text-text-muted/70 font-medium">0 flagged</span>
                             }
                             <RefetchButton onRefetch={fetchViolations} lastUpdated={violationsUpdated} />
                         </div>
@@ -632,7 +632,7 @@ export default function LivePage() {
                             {violationsError
                                 ? <div className="col-span-2"><ErrorState message={violationsError} onRetry={fetchViolations} /></div>
                                 : violationTypes.length === 0
-                                    ? <p className="col-span-2 text-[12px] text-gray-600 text-center py-4">Loading violation types…</p>
+                                    ? <p className="col-span-2 text-[12px] text-text-muted/70 text-center py-4">Loading violation types…</p>
                                     : violationTypes.map(vt => (
                                         <IncidentButton
                                             key={vt._id}
@@ -656,19 +656,19 @@ export default function LivePage() {
                                     ? horseOptions.find(h => h.registrationId === (typeof v.registrationId === 'string' ? v.registrationId : (v.registrationId as any)?._id))?.name
                                     : null;
                                 return (
-                                    <div key={v._id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red-500/5 border border-red-800/30">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                                    <div key={v._id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red/5 border border-red-800/30">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-red shrink-0" />
                                         <div className="flex-1 min-w-0">
-                                            <span className="text-[11px] text-red-400 block truncate">{name}</span>
-                                            {horseName && <span className="text-[9px] text-gray-600 block truncate">{horseName}</span>}
+                                            <span className="text-[11px] text-red block truncate">{name}</span>
+                                            {horseName && <span className="text-[9px] text-text-muted/70 block truncate">{horseName}</span>}
                                         </div>
                                         {vtObj?.severity && (
-                                            <span className="text-[9px] font-bold text-gray-600 shrink-0">S{vtObj.severity}</span>
+                                            <span className="text-[9px] font-bold text-text-muted/70 shrink-0">S{vtObj.severity}</span>
                                         )}
                                         <button
                                             onClick={() => handleDeleteViolation(v._id)}
                                             disabled={deletingId === v._id}
-                                            className="text-gray-700 hover:text-red-400 transition-colors shrink-0 ml-1"
+                                            className="text-text-muted/50 hover:text-red transition-colors shrink-0 ml-1"
                                             title="Remove flag"
                                         >
                                             {deletingId === v._id
@@ -708,7 +708,7 @@ export default function LivePage() {
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_300px] gap-4">
 
                 <div className="bg-surface rounded-xl border border-border p-4">
-                    <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Race Stats</h2>
+                    <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Race Stats</h2>
                     {[
                         { label: "Elapsed", value: elapsed },
                         { label: "Current Pace", value: paceMps },
@@ -717,19 +717,19 @@ export default function LivePage() {
                         { label: "Incidents", value: `${activeViolations.length}` },
                     ].map(item => (
                         <div key={item.label} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
-                            <span className="text-[12px] text-gray-500">{item.label}</span>
-                            <span className="text-[12px] font-semibold text-white">{item.value}</span>
+                            <span className="text-[12px] text-text-muted">{item.label}</span>
+                            <span className="text-[12px] font-semibold text-text">{item.value}</span>
                         </div>
                     ))}
                 </div>
 
                 <div className="bg-surface rounded-xl border border-border p-4">
-                    <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 mb-3">Actions</h2>
+                    <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Actions</h2>
                     <div className="flex flex-col gap-2.5">
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-gray-400 text-[13px] font-semibold hover:border-white/20 hover:text-gray-200 transition-all">
+                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-text-muted text-[13px] font-semibold hover:border-white/20 hover:text-text transition-all">
                             <Camera size={13} /> Review Finish Photo
                         </button>
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-700 text-white text-[13px] font-bold uppercase tracking-widest hover:bg-red-600 shadow-lg shadow-red-900/40 transition-all">
+                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red text-text text-[13px] font-bold uppercase tracking-widest hover:bg-red/85 shadow-lg shadow-red-900/40 transition-all">
                             <Trophy size={13} /> Publish Results
                         </button>
                     </div>
@@ -739,10 +739,10 @@ export default function LivePage() {
                     <button onClick={() => setVerificationOpen(o => !o)}
                         className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
                     >
-                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-gray-600 flex items-center gap-2">
-                            <Shield size={13} className="text-red-500" /> Horses List
+                        <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 flex items-center gap-2">
+                            <Shield size={13} className="text-red" /> Horses List
                         </h2>
-                        <ChevronDown size={13} className={`text-gray-600 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
+                        <ChevronDown size={13} className={`text-text-muted/70 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
                     </button>
                     {verificationOpen && (
                         <div className="p-3 flex flex-col gap-2 border-t border-border">
@@ -754,25 +754,25 @@ export default function LivePage() {
                                     ? sortedByDist.findIndex(h => h.registrationId === horse.registrationId) + 1
                                     : null;
                                 return (
-                                    <div key={horse.registrationId} className={["rounded-xl border overflow-hidden", isReview ? "border-red-800/60 bg-red-500/5" : "border-border bg-white/[0.03]"].join(" ")}>
+                                    <div key={horse.registrationId} className={["rounded-xl border overflow-hidden", isReview ? "border-red-800/60 bg-red/5" : "border-border bg-white/[0.03]"].join(" ")}>
                                         <button
                                             onClick={() => setSelectedHorseRegId(id => id === horse.registrationId ? null : horse.registrationId)}
                                             className="w-full px-3 py-2.5 flex items-center gap-2.5 text-left hover:bg-white/[0.03] transition-colors"
                                         >
                                             <span className={["w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0",
-                                                isReview ? "bg-red-700 text-white" : "bg-white/8 text-gray-400"].join(" ")}>
+                                                isReview ? "bg-red text-text" : "bg-white/8 text-text-muted"].join(" ")}>
                                                 {horse.number}
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <p className={["text-[13.5px] font-bold truncate", isReview ? "text-red-400" : "text-white"].join(" ")}>{horse.name}</p>
-                                                <p className={["text-[11.5px]", isReview ? "text-red-600" : "text-gray-500"].join(" ")}>{horse.jockey}</p>
+                                                <p className={["text-[13.5px] font-bold truncate", isReview ? "text-red" : "text-text"].join(" ")}>{horse.name}</p>
+                                                <p className={["text-[11.5px]", isReview ? "text-red-600" : "text-text-muted"].join(" ")}>{horse.jockey}</p>
                                             </div>
                                             <div className="flex items-center gap-1.5 shrink-0">
                                                 {isReview
-                                                    ? <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-lg border border-red-800/60 text-red-400 bg-red-500/10">Review</span>
+                                                    ? <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-lg border border-red-800/60 text-red bg-red/10">Review</span>
                                                     : <CheckCircle2 size={16} className="text-green-500" />
                                                 }
-                                                <ChevronDown size={11} className={`text-gray-600 transition-transform duration-150 ${isSelected ? "rotate-180" : ""}`} />
+                                                <ChevronDown size={11} className={`text-text-muted/70 transition-transform duration-150 ${isSelected ? "rotate-180" : ""}`} />
                                             </div>
                                         </button>
 
@@ -782,38 +782,38 @@ export default function LivePage() {
                                                     <>
                                                         {position !== null && (
                                                             <div className="flex justify-between">
-                                                                <span className="text-[10px] text-gray-600">Position</span>
-                                                                <span className="text-[10px] font-bold text-yellow-400">#{position}</span>
+                                                                <span className="text-[10px] text-text-muted/70">Position</span>
+                                                                <span className="text-[10px] font-bold text-amber">#{position}</span>
                                                             </div>
                                                         )}
                                                         <div className="flex justify-between">
-                                                            <span className="text-[10px] text-gray-600">Distance</span>
-                                                            <span className="text-[10px] font-mono text-white">{liveData.currentDistance.toFixed(0)} m</span>
+                                                            <span className="text-[10px] text-text-muted/70">Distance</span>
+                                                            <span className="text-[10px] font-mono text-text">{liveData.currentDistance.toFixed(0)} m</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                            <span className="text-[10px] text-gray-600">Speed</span>
-                                                            <span className="text-[10px] font-mono text-white">{liveData.currentSpeed.toFixed(1)} m/s</span>
+                                                            <span className="text-[10px] text-text-muted/70">Speed</span>
+                                                            <span className="text-[10px] font-mono text-text">{liveData.currentSpeed.toFixed(1)} m/s</span>
                                                         </div>
 
                                                         {liveData.isFinished && (
                                                             <>
                                                                 <div className="mt-0.5 border-t border-border/60 pt-1.5 flex justify-between">
-                                                                    <span className="text-[10px] text-gray-600">Finish</span>
-                                                                    <span className="text-[10px] font-bold text-green-400">
+                                                                    <span className="text-[10px] text-text-muted/70">Finish</span>
+                                                                    <span className="text-[10px] font-bold text-green">
                                                                         {liveData.finishPosition === 1 ? "1st" : liveData.finishPosition === 2 ? "2nd" : liveData.finishPosition === 3 ? "3rd" : `#${liveData.finishPosition}`}
                                                                     </span>
                                                                 </div>
                                                                 {liveData.finishTime !== null && (
                                                                     <div className="flex justify-between">
-                                                                        <span className="text-[10px] text-gray-600">Time</span>
-                                                                        <span className="text-[10px] font-mono text-white">{liveData.finishTime}</span>
+                                                                        <span className="text-[10px] text-text-muted/70">Time</span>
+                                                                        <span className="text-[10px] font-mono text-text">{liveData.finishTime}</span>
                                                                     </div>
                                                                 )}
                                                             </>
                                                         )}
                                                     </>
                                                 ) : (
-                                                    <p className="text-[10px] text-gray-600 text-center py-1">No live data yet</p>
+                                                    <p className="text-[10px] text-text-muted/70 text-center py-1">No live data yet</p>
                                                 )}
                                             </div>
                                         )}

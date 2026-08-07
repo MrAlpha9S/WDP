@@ -9,6 +9,15 @@ import { adminService } from "../../api/adminService";
 import TournamentDetailPanel from "./AdminComponents/TournamentDetailPanel";
 import { useSocket } from "../../providers/SocketProvider";
 import { ErrorState } from "../../components/ErrorState";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import StatusBadge, { type BadgeTone } from "../../components/ui/StatusBadge";
+
+const TOURNAMENT_STATUS_TONE: Record<string, BadgeTone> = {
+    live: "green",
+    upcoming: "amber",
+    completed: "neutral",
+};
 
 type AdminViewMode = "table" | "calendar";
 
@@ -189,7 +198,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
     };
 
     return (
-        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-text overflow-hidden font-sans">
 
             {/* ── Top Content Area ── */}
             <div className="flex-1 flex gap-6 p-8 min-h-0 overflow-hidden">
@@ -197,45 +206,46 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                 {/* ── Left Panel (Overview & Filters) ── */}
                 <aside className="w-[240px] shrink-0 h-full bg-surface border border-border/60 rounded-xl flex flex-col overflow-hidden shadow-lg shadow-black/20">
                     <div className="px-5 py-6 shrink-0 border-b border-border/60 bg-surface">
-                        <h2 className="text-[18px] font-bold text-white tracking-tight leading-tight">Overview</h2>
-                        <p className="text-[12px] text-gray-400 mt-1">Filter and view tournament stats.</p>
+                        <h2 className="text-[18px] font-bold text-text tracking-tight leading-tight">Overview</h2>
+                        <p className="text-[12px] text-text-muted mt-1">Filter and view tournament stats.</p>
                     </div>
 
                     <div className="p-5 flex flex-col gap-6 overflow-y-auto">
 
                         {viewMode === "table" && (
                             <div>
-                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Search</label>
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3">Search</label>
                                 <div className="relative w-full">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
                                     <input
                                         type="text"
                                         placeholder="Search name..."
+                                        aria-label="Search tournaments"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-bg border border-border rounded-md py-2.5 pl-9 pr-3 text-[13px] text-white focus:outline-none focus:border-red-500/50"
+                                        className="w-full bg-bg border border-border rounded-md py-2.5 pl-9 pr-3 text-[13px] text-text focus:outline-none focus:border-red/50"
                                     />
                                 </div>
                             </div>
                         )}
                         <div>
-                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Quick Stats</label>
+                            <label className="block text-[11px] font-bold text-text-muted uppercase tracking-widest mb-3">Quick Stats</label>
                             <div className="flex flex-col gap-3">
-                                <div className="bg-[#1f1a1a] border border-border/60 p-3 rounded flex items-center justify-between">
-                                    <span className="text-[13px] text-gray-400 font-medium">Total Live</span>
-                                    <span className="text-[14px] font-bold text-emerald-400">
+                                <div className="bg-surface-raised border border-border/60 p-3 rounded-lg flex items-center justify-between">
+                                    <span className="text-[13px] text-text-muted font-medium">Total Live</span>
+                                    <span className="text-[14px] font-bold text-green">
                                         {stats.live}
                                     </span>
                                 </div>
-                                <div className="bg-[#1f1a1a] border border-border/60 p-3 rounded flex items-center justify-between">
-                                    <span className="text-[13px] text-gray-400 font-medium">Upcoming</span>
-                                    <span className="text-[14px] font-bold text-amber-400">
+                                <div className="bg-surface-raised border border-border/60 p-3 rounded-lg flex items-center justify-between">
+                                    <span className="text-[13px] text-text-muted font-medium">Upcoming</span>
+                                    <span className="text-[14px] font-bold text-amber">
                                         {stats.upcoming}
                                     </span>
                                 </div>
-                                <div className="bg-[#1f1a1a] border border-border/60 p-3 rounded flex items-center justify-between">
-                                    <span className="text-[13px] text-gray-400 font-medium">Completed</span>
-                                    <span className="text-[14px] font-bold text-gray-300">
+                                <div className="bg-surface-raised border border-border/60 p-3 rounded-lg flex items-center justify-between">
+                                    <span className="text-[13px] text-text-muted font-medium">Completed</span>
+                                    <span className="text-[14px] font-bold text-text-muted">
                                         {stats.completed}
                                     </span>
                                 </div>
@@ -249,39 +259,31 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
                     {/* ── Header ── */}
                     <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
-                        {/* Row 1 */}
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight truncate font-serif">
-                                    Tournament Management
-                                </h1>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
-                                        All Tournaments
-                                    </span>
-                                    <span className="text-[12px] text-gray-500 truncate">· Manage schedules and prize pools</span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => openModal()}
-                                className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]"
-                            >
-                                <Plus size={13} /> Create Tournament
-                            </button>
-                        </div>
+                        <PageHeader
+                            title="Tournament Management"
+                            eyebrow="All Tournaments"
+                            subtext="Manage schedules and prize pools"
+                            actions={
+                                <Button size="sm" leftIcon={<Plus size={13} />} onClick={() => openModal()}>
+                                    Create Tournament
+                                </Button>
+                            }
+                        />
 
                         {/* Row 2 */}
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="flex bg-surface p-1 rounded-lg border border-border/60 shrink-0">
                                 <button
                                     onClick={() => setViewMode("table")}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "table" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                                    aria-pressed={viewMode === "table"}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${viewMode === "table" ? "bg-white/10 text-text shadow-sm" : "text-text-muted hover:text-text"}`}
                                 >
                                     <List size={13} /> Table
                                 </button>
                                 <button
                                     onClick={() => setViewMode("calendar")}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${viewMode === "calendar" ? "bg-white/10 text-white shadow-sm" : "text-gray-500 hover:text-white"}`}
+                                    aria-pressed={viewMode === "calendar"}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${viewMode === "calendar" ? "bg-white/10 text-text shadow-sm" : "text-text-muted hover:text-text"}`}
                                 >
                                     <CalendarIcon size={13} /> Calendar
                                 </button>
@@ -291,7 +293,8 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                 <select
                                     value={limit}
                                     onChange={(e) => setLimit(Number(e.target.value))}
-                                    className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                    aria-label="Rows per page"
+                                    className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                                 >
                                     {TOURNAMENT_LIMIT_OPTIONS.map(n => (
                                         <option key={n} value={n}>{n} rows</option>
@@ -305,7 +308,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                     <div className="flex-1 relative mt-6 rounded-xl border border-border/60 overflow-hidden min-h-0">
                         {(viewMode === "table" ? loading : calendarLoading) && (
                             <div className="absolute inset-0 z-20 flex items-center justify-center bg-surface/80 backdrop-blur-sm">
-                                <Loader2 className="animate-spin text-red-500" size={32} />
+                                <Loader2 className="animate-spin text-red" size={32} />
                             </div>
                         )}
                         {viewMode === "table" && !loading && error ? (
@@ -319,50 +322,55 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="bg-surface border-b border-border/60">
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Tournament Name</th>
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Duration</th>
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Status</th>
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase">Prize Pool</th>
-                                            <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase text-right">Actions</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Tournament Name</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Duration</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Status</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase">Prize Pool</th>
+                                            <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
                                         {tournaments.map(t => (
                                             <tr
                                                 key={t.id}
-                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer ${selectedTournamentId === t.id ? 'bg-gold/5 border-l-2 border-gold' : ''}`}
+                                                role="button"
+                                                tabIndex={0}
+                                                aria-pressed={selectedTournamentId === t.id}
+                                                className={`hover:bg-white/[0.02] transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/40 ${selectedTournamentId === t.id ? 'bg-gold/5 border-l-2 border-gold' : ''}`}
                                                 onClick={() => setSelectedTournamentId(prev => prev === t.id ? null : t.id)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        setSelectedTournamentId(prev => prev === t.id ? null : t.id);
+                                                    }
+                                                }}
                                             >
                                                 <td className="p-4">
-                                                    <div className="text-[13px] font-semibold text-white">{t.name}</div>
-                                                    <div className="text-[11px] text-gray-500 mt-0.5">{t.description}</div>
+                                                    <div className="text-[13px] font-semibold text-text">{t.name}</div>
+                                                    <div className="text-[11px] text-text-muted mt-0.5">{t.description}</div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <div className="text-[12px] text-gray-300">{t.startDate} to</div>
-                                                    <div className="text-[12px] text-gray-300">{t.endDate}</div>
+                                                    <div className="text-[12px] text-text-muted">{t.startDate} to</div>
+                                                    <div className="text-[12px] text-text-muted">{t.endDate}</div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${t.status === "live" ? "bg-emerald-500/20 text-emerald-400" :
-                                                        t.status === "upcoming" ? "bg-amber-500/20 text-amber-400" :
-                                                            "bg-gray-500/20 text-gray-400"
-                                                        }`}>
-                                                        {t.status}
-                                                    </span>
+                                                    <StatusBadge label={t.status} tone={TOURNAMENT_STATUS_TONE[t.status] ?? "neutral"} dot={false} />
                                                 </td>
                                                 <td className="p-4">
-                                                    <div className="text-[13px] font-medium text-emerald-400">{t.prizePool}</div>
+                                                    <div className="text-[13px] font-medium text-green">{t.prizePool}</div>
                                                 </td>
                                                 <td className="p-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setActiveTab("Races"); }}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded text-[12px] text-gray-300 transition-colors"
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-md text-[12px] text-text-muted transition-colors cursor-pointer"
                                                         >
                                                             Manage Races <ArrowRight size={12} />
                                                         </button>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); openDeleteModal(t); }}
-                                                            className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                                                            aria-label={`Delete ${t.name}`}
+                                                            className="p-1.5 text-text-muted hover:text-red hover:bg-red/10 rounded-md transition-colors cursor-pointer"
                                                         >
                                                             <Trash2 size={14} />
                                                         </button>
@@ -372,7 +380,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                         ))}
                                         {tournaments.length === 0 && !loading && !error && (
                                             <tr>
-                                                <td colSpan={5} className="p-8 text-center text-[13px] text-gray-500">
+                                                <td colSpan={5} className="p-8 text-center text-[13px] text-text-muted">
                                                     No tournaments found.
                                                 </td>
                                             </tr>
@@ -391,25 +399,25 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                             <div className="bg-surface border border-border/60 rounded-lg p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-4">
-                                        <h3 className="text-[16px] font-bold text-white w-[150px]">{monthName} {currentYear}</h3>
+                                        <h3 className="text-[16px] font-bold text-text w-[150px]">{monthName} {currentYear}</h3>
                                         <div className="flex gap-1">
-                                            <button onClick={prevMonth} className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white">
+                                            <button onClick={prevMonth} aria-label="Previous month" className="p-1 hover:bg-white/10 rounded-md transition-colors text-text-muted hover:text-text cursor-pointer">
                                                 <ChevronLeft size={18} />
                                             </button>
-                                            <button onClick={nextMonth} className="p-1 hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-white">
+                                            <button onClick={nextMonth} aria-label="Next month" className="p-1 hover:bg-white/10 rounded-md transition-colors text-text-muted hover:text-text cursor-pointer">
                                                 <ChevronRight size={18} />
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="flex gap-4 text-[12px] text-gray-400">
-                                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-emerald-500/80"></span> Live</div>
-                                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-amber-500/80"></span> Upcoming</div>
+                                    <div className="flex gap-4 text-[12px] text-text-muted">
+                                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-green/80"></span> Live</div>
+                                        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-sm bg-amber/80"></span> Upcoming</div>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-7 gap-px bg-white/10 border border-border rounded-lg overflow-hidden">
                                     {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                                        <div key={day} className="bg-surface p-3 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                        <div key={day} className="bg-surface p-3 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider">
                                             {day}
                                         </div>
                                     ))}
@@ -427,7 +435,7 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
 
                                         return (
                                             <div key={idx} className={`min-h-[100px] bg-surface p-2 border-t border-r border-border/60 ${!isCurrentMonth && 'opacity-30'}`}>
-                                                <span className={`text-[12px] font-semibold ${isCurrentMonth ? 'text-gray-300' : 'text-gray-600'}`}>
+                                                <span className={`text-[12px] font-semibold ${isCurrentMonth ? 'text-text-muted' : 'text-text-muted/50'}`}>
                                                     {displayNum}
                                                 </span>
                                                 {/* Tournament Blocks */}
@@ -435,9 +443,9 @@ export default function TournamentManagementPage({ setActiveTab }: Props) {
                                                     {cellTournaments.map(t => (
                                                         <div
                                                             key={t.id}
-                                                            className={`p-1.5 border rounded text-[10px] truncate leading-tight ${t.status === "live" ? "bg-emerald-900/40 border-emerald-500/40 text-emerald-200" :
-                                                                t.status === "upcoming" ? "bg-amber-500/20 border-amber-500/40 text-amber-200" :
-                                                                    "bg-gray-500/20 border-gray-500/40 text-gray-300"
+                                                            className={`p-1.5 border rounded text-[10px] truncate leading-tight ${t.status === "live" ? "bg-green/20 border-green/40 text-green" :
+                                                                t.status === "upcoming" ? "bg-amber/20 border-amber/40 text-amber" :
+                                                                    "bg-white/8 border-white/15 text-text-muted"
                                                                 }`}
                                                         >
                                                             {t.name}

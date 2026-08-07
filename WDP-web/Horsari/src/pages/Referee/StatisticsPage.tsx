@@ -38,7 +38,7 @@ function StatCard({
     label,
     value,
     sub,
-    subColor = "text-gray-500",
+    subColor = "text-text-muted",
     icon,
 }: {
     label: string;
@@ -50,13 +50,13 @@ function StatCard({
     return (
         <div className="rounded-xl p-5 flex flex-col gap-3 border border-white/[0.07] bg-surface">
             <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">
+                <p className="text-[11px] font-semibold tracking-widest text-text-muted uppercase">
                     {label}
                 </p>
-                <span className="text-gray-600">{icon}</span>
+                <span className="text-text-muted/70">{icon}</span>
             </div>
             <p
-                className="text-[28px] font-bold leading-none text-white font-sans"
+                className="text-[28px] font-bold leading-none text-text font-sans"
             >
                 {value}
             </p>
@@ -66,8 +66,8 @@ function StatCard({
 }
 
 function violationStatusStyle(s: string) {
-    if (s === 'confirmed') return 'bg-red-500/15 text-red-400';
-    if (s === 'dismissed') return 'bg-white/[0.05] text-gray-500';
+    if (s === 'confirmed') return 'bg-red/15 text-red';
+    if (s === 'dismissed') return 'bg-white/[0.05] text-text-muted';
     return 'bg-amber-500/15 text-amber-400';
 }
 
@@ -85,8 +85,8 @@ function WorkHistorySection() {
     return (
         <div className="mt-6 rounded-xl border border-white/[0.07] bg-surface p-5">
             <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-                <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
-                    <Shield size={15} className="text-red-500" />
+                <h2 className="text-[15px] font-semibold text-text flex items-center gap-2">
+                    <Shield size={15} className="text-red" />
                     Work History
                 </h2>
                 <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ function WorkHistorySection() {
                     <select
                         value={sortValue}
                         onChange={(e) => { setSortValue(e.target.value as typeof sortValue); setPage(1); }}
-                        className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                        className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                     >
                         <option value="raceDate:desc">Newest First</option>
                         <option value="raceDate:asc">Oldest First</option>
@@ -103,19 +103,19 @@ function WorkHistorySection() {
             </div>
 
             {loading ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">Loading work history...</p>
+                <p className="text-[13px] text-text-muted text-center py-6">Loading work history...</p>
             ) : error ? (
                 <ErrorState message={(error as any)?.msg ?? "Failed to load work history."} onRetry={refresh} />
             ) : data.length === 0 ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">No completed races yet.</p>
+                <p className="text-[13px] text-text-muted text-center py-6">No completed races yet.</p>
             ) : (
                 <div className="flex flex-col divide-y divide-white/[0.05]">
                     {data.map((entry) => (
                         <div key={entry.assignmentId} className="py-3">
                             <div className="flex items-start justify-between gap-3 flex-wrap">
                                 <div>
-                                    <p className="text-[13px] font-semibold text-white">{entry.roundName ?? "Unknown Round"}</p>
-                                    <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1 flex-wrap">
+                                    <p className="text-[13px] font-semibold text-text">{entry.roundName ?? "Unknown Round"}</p>
+                                    <p className="text-[11px] text-text-muted mt-0.5 flex items-center gap-1 flex-wrap">
                                         {entry.raceDate && <span>{new Date(entry.raceDate).toLocaleDateString()}</span>}
                                         {entry.location && (
                                             <span className="flex items-center gap-1">
@@ -125,16 +125,16 @@ function WorkHistorySection() {
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[13px] font-bold text-white">{entry.fee.toLocaleString()} ₫</p>
-                                    <p className="text-[11px] text-gray-500 mt-0.5 capitalize">{entry.paymentStatus}</p>
+                                    <p className="text-[13px] font-bold text-text">{entry.fee.toLocaleString()} ₫</p>
+                                    <p className="text-[11px] text-text-muted mt-0.5 capitalize">{entry.paymentStatus}</p>
                                 </div>
                             </div>
 
                             {entry.violations.length > 0 ? (
-                                <div className="mt-2 rounded-md border border-red-500/[0.15] bg-red-500/[0.03] overflow-hidden">
+                                <div className="mt-2 rounded-md border border-red-500/[0.15] bg-red/[0.03] overflow-hidden">
                                     <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-red-500/[0.12]">
-                                        <AlertTriangle size={11} className="text-red-400/70" />
-                                        <span className="text-[10px] font-bold text-red-400/70 uppercase tracking-wider">
+                                        <AlertTriangle size={11} className="text-red/70" />
+                                        <span className="text-[10px] font-bold text-red/70 uppercase tracking-wider">
                                             {entry.violations.length} Violation{entry.violations.length !== 1 ? 's' : ''}
                                         </span>
                                     </div>
@@ -142,8 +142,8 @@ function WorkHistorySection() {
                                         {entry.violations.map((v) => (
                                             <div key={v.violationId} className="px-3 py-2 flex items-start justify-between gap-2">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-[12px] text-gray-300 font-medium truncate">{v.typeName ?? "Unknown Type"}</p>
-                                                    {v.description && <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{v.description}</p>}
+                                                    <p className="text-[12px] text-text-muted font-medium truncate">{v.typeName ?? "Unknown Type"}</p>
+                                                    {v.description && <p className="text-[11px] text-text-muted mt-0.5 line-clamp-1">{v.description}</p>}
                                                 </div>
                                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${violationStatusStyle(v.violationStatus)}`}>
                                                     {v.violationStatus}
@@ -153,7 +153,7 @@ function WorkHistorySection() {
                                     </div>
                                 </div>
                             ) : (
-                                <p className="text-[11px] text-gray-600 mt-1.5">No violations logged.</p>
+                                <p className="text-[11px] text-text-muted/70 mt-1.5">No violations logged.</p>
                             )}
                         </div>
                     ))}
@@ -196,8 +196,8 @@ function FeesEarningsChart() {
     return (
         <div className="mt-6 rounded-xl border border-white/[0.07] bg-surface p-5 flex flex-col h-[380px]">
             <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-                <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
-                    <BarChart2 size={15} className="text-red-500" />
+                <h2 className="text-[15px] font-semibold text-text flex items-center gap-2">
+                    <BarChart2 size={15} className="text-red" />
                     Fees Earned Trend
                 </h2>
                 <div className="flex items-center bg-surface rounded-lg p-1 border border-border">
@@ -205,7 +205,7 @@ function FeesEarningsChart() {
                         <button
                             key={g}
                             onClick={() => setGroupBy(g)}
-                            className={`px-3 py-1 text-[11px] font-bold uppercase rounded-md transition-colors ${groupBy === g ? 'bg-red-500/20 text-red-400' : 'text-gray-500 hover:text-white'}`}
+                            className={`px-3 py-1 text-[11px] font-bold uppercase rounded-md transition-colors ${groupBy === g ? 'bg-red/20 text-red' : 'text-text-muted hover:text-text'}`}
                         >
                             {g}
                         </button>
@@ -215,10 +215,10 @@ function FeesEarningsChart() {
 
             {loading ? (
                 <div className="flex-1 flex items-center justify-center">
-                    <Loader2 size={24} className="animate-spin text-gray-600" />
+                    <Loader2 size={24} className="animate-spin text-text-muted/70" />
                 </div>
             ) : series.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-[12px] text-gray-500">No data</div>
+                <div className="flex-1 flex items-center justify-center text-[12px] text-text-muted">No data</div>
             ) : (
                 <div
                     className="relative flex-1 min-w-0"
@@ -255,11 +255,11 @@ function FeesEarningsChart() {
 
                     {hoveredIdx !== null && (
                         <div
-                            className="absolute bg-[#1e1e1e] border border-border rounded-lg px-3 py-2 text-[11px] text-gray-300 whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
+                            className="absolute bg-[#1e1e1e] border border-border rounded-lg px-3 py-2 text-[11px] text-text-muted whitespace-nowrap pointer-events-none z-10 shadow-xl transition-all duration-75"
                             style={{ left: `${(toX(hoveredIdx) / W) * 100}%`, top: '5%', transform: 'translateX(-50%)' }}
                         >
-                            <p className="font-bold text-white mb-1">{fmtDate(series[hoveredIdx].date, groupBy)}</p>
-                            <p><span className="text-red-400">●</span> Fees Earned: {series[hoveredIdx].feesEarned.toLocaleString()} ₫</p>
+                            <p className="font-bold text-text mb-1">{fmtDate(series[hoveredIdx].date, groupBy)}</p>
+                            <p><span className="text-red">●</span> Fees Earned: {series[hoveredIdx].feesEarned.toLocaleString()} ₫</p>
                         </div>
                     )}
                 </div>
@@ -285,8 +285,8 @@ function AllViolationsSection() {
     return (
         <div className="mt-6 rounded-xl border border-white/[0.07] bg-surface p-5">
             <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-                <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
-                    <AlertTriangle size={15} className="text-red-500" />
+                <h2 className="text-[15px] font-semibold text-text flex items-center gap-2">
+                    <AlertTriangle size={15} className="text-red" />
                     All Violations
                 </h2>
                 <div className="flex items-center gap-2">
@@ -294,7 +294,7 @@ function AllViolationsSection() {
                     <select
                         value={statusFilter}
                         onChange={(e) => { setStatusFilter(e.target.value as typeof statusFilter); setPage(1); }}
-                        className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                        className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                     >
                         <option value="">All Statuses</option>
                         <option value="pending">Pending</option>
@@ -304,7 +304,7 @@ function AllViolationsSection() {
                     <select
                         value={sortValue}
                         onChange={(e) => { setSortValue(e.target.value as typeof sortValue); setPage(1); }}
-                        className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                        className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                     >
                         <option value="created_at:desc">Newest First</option>
                         <option value="created_at:asc">Oldest First</option>
@@ -313,11 +313,11 @@ function AllViolationsSection() {
             </div>
 
             {loading ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">Loading violations...</p>
+                <p className="text-[13px] text-text-muted text-center py-6">Loading violations...</p>
             ) : error ? (
                 <ErrorState message={(error as any)?.msg ?? "Failed to load violations."} onRetry={refresh} />
             ) : data.length === 0 ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">No violations found.</p>
+                <p className="text-[13px] text-text-muted text-center py-6">No violations found.</p>
             ) : (
                 <div className="flex flex-col divide-y divide-white/[0.05]">
                     {data.map((v) => {
@@ -326,16 +326,16 @@ function AllViolationsSection() {
                         return (
                             <div key={v._id} className="py-3 flex items-start justify-between gap-3 flex-wrap">
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[13px] font-semibold text-white">{v.violationTypeId?.violationName ?? "Unknown Type"}</p>
-                                    <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1 flex-wrap">
+                                    <p className="text-[13px] font-semibold text-text">{v.violationTypeId?.violationName ?? "Unknown Type"}</p>
+                                    <p className="text-[11px] text-text-muted mt-0.5 flex items-center gap-1 flex-wrap">
                                         {roundName && <span>{roundName}</span>}
                                         {raceDate && <span>· {new Date(raceDate).toLocaleDateString()}</span>}
                                     </p>
-                                    {v.description && <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">{v.description}</p>}
+                                    {v.description && <p className="text-[11px] text-text-muted mt-1 line-clamp-1">{v.description}</p>}
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                     {v.severity != null && (
-                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/[0.05] text-gray-400">
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/[0.05] text-text-muted">
                                             Sev {v.severity}
                                         </span>
                                     )}
@@ -376,8 +376,8 @@ function ViolationTypesSection() {
     return (
         <div className="mt-6 rounded-xl border border-white/[0.07] bg-surface p-5">
             <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-                <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
-                    <BookOpen size={15} className="text-red-500" />
+                <h2 className="text-[15px] font-semibold text-text flex items-center gap-2">
+                    <BookOpen size={15} className="text-red" />
                     Violation Types Reference
                 </h2>
                 <div className="flex items-center gap-2">
@@ -387,12 +387,12 @@ function ViolationTypesSection() {
                         placeholder="Search..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/20 h-[28px]"
+                        className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-text-muted placeholder-text-muted focus:outline-none focus:border-white/20 h-[28px]"
                     />
                     <select
                         value={phaseFilter}
                         onChange={(e) => { setPhaseFilter(e.target.value as typeof phaseFilter); setPage(1); }}
-                        className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
+                        className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-2.5 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[28px] appearance-none cursor-pointer"
                     >
                         <option value="">All Phases</option>
                         <option value="pre-race">Pre-race</option>
@@ -403,24 +403,24 @@ function ViolationTypesSection() {
             </div>
 
             {loading ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">Loading violation types...</p>
+                <p className="text-[13px] text-text-muted text-center py-6">Loading violation types...</p>
             ) : error ? (
                 <ErrorState message={(error as any)?.msg ?? "Failed to load violation types."} onRetry={refresh} />
             ) : data.length === 0 ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">No violation types found.</p>
+                <p className="text-[13px] text-text-muted text-center py-6">No violation types found.</p>
             ) : (
                 <div className="flex flex-col divide-y divide-white/[0.05]">
                     {data.map((vt) => (
                         <div key={vt._id} className="py-3 flex items-start justify-between gap-3 flex-wrap">
                             <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-semibold text-white">{vt.violationName}</p>
-                                <p className="text-[11px] text-gray-500 mt-0.5 capitalize">
+                                <p className="text-[13px] font-semibold text-text">{vt.violationName}</p>
+                                <p className="text-[11px] text-text-muted mt-0.5 capitalize">
                                     {vt.type} · {vt.category ?? "uncategorized"}
                                 </p>
-                                {vt.defaultPenalty && <p className="text-[11px] text-gray-500 mt-1">Default penalty: {vt.defaultPenalty}</p>}
+                                {vt.defaultPenalty && <p className="text-[11px] text-text-muted mt-1">Default penalty: {vt.defaultPenalty}</p>}
                             </div>
                             {vt.severity != null && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/[0.05] text-gray-400 shrink-0">
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/[0.05] text-text-muted shrink-0">
                                     Sev {vt.severity}
                                 </span>
                             )}
@@ -471,11 +471,11 @@ export default function StatisticsPage() {
             <div className="max-w-5xl mx-auto px-6 py-8">
                 <div className="mb-7">
                     <h1
-                        className="text-[26px] font-bold text-white tracking-tight font-serif"
+                        className="text-[26px] font-bold text-text tracking-tight font-serif"
                     >
                         Statistics
                     </h1>
-                    <p className="text-[13px] text-gray-500 mt-0.5">
+                    <p className="text-[13px] text-text-muted mt-0.5">
                         Your wallet, earnings, and officiating history.
                     </p>
                 </div>
@@ -504,7 +504,7 @@ export default function StatisticsPage() {
                         label="Pending Fees"
                         value={loading ? "..." : (stats?.pendingFeesAmount ?? 0).toLocaleString()}
                         sub="Awaiting confirmation"
-                        subColor={stats && stats.pendingFeesAmount > 0 ? "text-amber-500" : "text-gray-500"}
+                        subColor={stats && stats.pendingFeesAmount > 0 ? "text-amber-500" : "text-text-muted"}
                         icon={<Clock size={16} />}
                     />
                     <StatCard
@@ -523,7 +523,7 @@ export default function StatisticsPage() {
                         label="Violations Filed"
                         value={loading ? "..." : (stats?.totalViolationsFiled ?? 0).toString()}
                         sub={loading ? "..." : `${stats?.confirmedViolationsCount ?? 0} Confirmed · ${stats?.dismissedViolationsCount ?? 0} Dismissed`}
-                        subColor={stats && stats.confirmedViolationsCount > 0 ? "text-red-400" : "text-gray-500"}
+                        subColor={stats && stats.confirmedViolationsCount > 0 ? "text-red" : "text-text-muted"}
                         icon={<AlertTriangle size={16} />}
                     />
                 </div>

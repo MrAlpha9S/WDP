@@ -25,7 +25,32 @@
   --color-error-bg: #2a1215;
   --color-error-border: #3a1218;
 
-  /* Radius scale — inherited from mobile's Radius tokens (sm/md/lg/xl/full). */
+  /* Brand accent — the logo/active-nav red used by Sidebar/TopBar, distinct
+     from --color-red (destructive/error actions). These were previously two
+     unreconciled hardcoded hex values (#AB3030 vs #c81e2e); kept as separate
+     tokens on purpose since they serve different meanings, not merged into one. */
+  --color-brand: #ab3030;
+  --color-brand-tint: #2a1414;
+
+  /* Extended status hues — the app surfaces ~8-10 backend enum categories
+     (violation phases, payment status, user roles, race status) but only had
+     3 semantic colors, so every page fell back to raw Tailwind (blue-400,
+     purple-500/15, etc.) for badges. These give call sites a token to reach
+     for instead. Values picked to sit tonally with the existing red/green/amber
+     (mid-saturation, readable on --color-surface at ~15% bg / 30% border alpha,
+     the convention already used by existing badge call sites). */
+  --color-blue: #3b82f6;
+  --color-purple: #a855f7;
+  --color-violet: #8b5cf6;
+  --color-orange: #f97316;
+  --color-teal: #14b8a6;
+
+  /* Radius scale — inherited from mobile's Radius tokens (sm/md/lg/xl/full).
+     Intended usage (not yet enforced everywhere — see design-audit notes):
+       sm  → badges, chips, small inline controls
+       md  → buttons, inputs, dropdowns
+       lg  → cards, list rows, panels
+       xl  → modals, docked side panels, page-level containers */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;

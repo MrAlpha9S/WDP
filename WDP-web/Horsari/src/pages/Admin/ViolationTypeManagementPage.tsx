@@ -1,23 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
-import { Search, ShieldAlert, CheckCircle, XCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, ShieldAlert, CheckCircle, XCircle } from "lucide-react";
 import ViolationTypeModal from "./AdminComponents/ViolationTypeModal";
 import { adminService } from "../../api/adminService";
 import { Pagination } from "../../components/Pagination";
 import { ErrorState } from "../../components/ErrorState";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import SortableTh from "../../components/ui/SortableTh";
+import { useSortableColumns } from "../../hooks/useSortableColumns";
 import type { ViolationTypeEntity, ViolationRacePhase, ViolationCategory } from "../../shared/types/ViolationTypes";
 
 const PHASE_BADGE: Record<ViolationRacePhase, string> = {
-    'pre-race':    'bg-violet-500/15 text-violet-400 border-violet-500/30',
-    'during-race': 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    'after-race':  'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    'pre-race':    'bg-violet/15 text-violet border-violet/30',
+    'during-race': 'bg-blue/15 text-blue border-blue/30',
+    'after-race':  'bg-orange/15 text-orange border-orange/30',
 };
 
+// 'medication' kept raw (pink) — no pink token exists and this is the only
+// place it's used, so it wasn't worth expanding the token set for one badge.
 const CATEGORY_BADGE: Record<ViolationCategory, string> = {
-    'riding':          'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    'horse-safety':    'bg-red-500/15 text-red-400 border-red-500/30',
+    'riding':          'bg-green/15 text-green border-green/30',
+    'horse-safety':    'bg-red/15 text-red border-red/30',
     'medication':      'bg-pink-500/15 text-pink-400 border-pink-500/30',
-    'betting':         'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    'administrative':  'bg-gray-500/15 text-gray-400 border-gray-500/30',
+    'betting':         'bg-amber/15 text-amber border-amber/30',
+    'administrative':  'bg-white/8 text-text-muted border-white/15',
 };
 
 const SEVERITY_COLOR = ['', 'text-green-400', 'text-yellow-400', 'text-orange-400', 'text-red-400', 'text-red-500'];
@@ -34,26 +40,8 @@ export default function ViolationTypeManagementPage() {
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalItem, setModalItem] = useState<ViolationTypeEntity | null>(null);
-    const [sortBy, setSortBy] = useState<string>('createdAt');
-    const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+    const { sortBy, order, setSortBy, setOrder, handleSort } = useSortableColumns("createdAt", "desc", () => setPage(1));
     const totalPages = Math.ceil(totalItems / limit) || 1;
-
-    const handleSort = (field: string) => {
-        if (sortBy === field) {
-            setOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortBy(field);
-            setOrder('asc');
-        }
-        setPage(1);
-    };
-
-    const SortIcon = ({ field }: { field: string }) => {
-        if (sortBy !== field) return <ArrowUpDown size={11} className="text-gray-600 ml-1 inline" />;
-        return order === 'asc'
-            ? <ArrowUp size={11} className="text-gold ml-1 inline" />
-            : <ArrowDown size={11} className="text-gold ml-1 inline" />;
-    };
 
     const fetchTypes = useCallback(async () => {
         try {
@@ -103,44 +91,36 @@ export default function ViolationTypeManagementPage() {
     const openEdit = (item: ViolationTypeEntity) => { setModalItem(item); setIsModalOpen(true); };
 
     return (
-        <div className="flex flex-col h-full bg-bg text-white overflow-hidden font-sans">
+        <div className="flex flex-col h-full bg-bg text-text overflow-hidden font-sans">
             <div className="flex-1 flex gap-4 p-8 min-h-0 items-start">
                 <main className="flex flex-col min-w-0 h-full flex-1">
 
                     {/* Header */}
                     <header className="pb-5 flex flex-col gap-3 border-b border-border/60 shrink-0">
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                                <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight font-serif">
-                                    Violation Types
-                                </h1>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="text-[10px] font-semibold tracking-wide text-gray-400 bg-white/5 px-2 py-0.5 rounded border border-border uppercase whitespace-nowrap">
-                                        All Types
-                                    </span>
-                                    <span className="text-[12px] text-gray-500">· {totalItems} type{totalItems !== 1 ? 's' : ''}</span>
-                                </div>
-                            </div>
-                            <button onClick={openCreate} className="shrink-0 flex items-center gap-2 px-4 text-[12px] font-medium text-white bg-[#ab3030] rounded hover:bg-[#8f2828] transition-colors shadow-lg shadow-red-900/20 h-[32px]">
-                                + Create Type
-                            </button>
-                        </div>
+                        <PageHeader
+                            title="Violation Types"
+                            eyebrow="All Types"
+                            subtext={`${totalItems} type${totalItems !== 1 ? 's' : ''}`}
+                            actions={<Button size="sm" onClick={openCreate}>+ Create Type</Button>}
+                        />
 
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="relative flex-1 min-w-0">
-                                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                                 <input
                                     type="text"
                                     placeholder="Search violation types…"
+                                    aria-label="Search violation types"
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
-                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-white placeholder:text-gray-500 focus:outline-none focus:border-white/20 h-[32px] transition-colors"
+                                    className="w-full bg-surface border border-border rounded-md pl-8 pr-3 text-[11px] text-text placeholder:text-text-muted focus:outline-none focus:border-white/20 h-[32px] transition-colors"
                                 />
                             </div>
                             <select
                                 value={typeFilter}
                                 onChange={e => setTypeFilter(e.target.value)}
-                                className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Filter by phase"
+                                className="w-[150px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Phases</option>
                                 <option value="pre-race">Pre-Race</option>
@@ -150,7 +130,8 @@ export default function ViolationTypeManagementPage() {
                             <select
                                 value={categoryFilter}
                                 onChange={e => setCategoryFilter(e.target.value)}
-                                className="w-[160px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Filter by category"
+                                className="w-[160px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="All">All Categories</option>
                                 <option value="riding">Riding</option>
@@ -167,7 +148,8 @@ export default function ViolationTypeManagementPage() {
                                     setOrder(dir as 'asc' | 'desc');
                                     setPage(1);
                                 }}
-                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Sort violation types"
+                                className="w-[175px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 <option value="createdAt:desc">Newest First</option>
                                 <option value="createdAt:asc">Oldest First</option>
@@ -181,7 +163,8 @@ export default function ViolationTypeManagementPage() {
                             <select
                                 value={limit}
                                 onChange={e => setLimit(Number(e.target.value))}
-                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-gray-300 focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
+                                aria-label="Rows per page"
+                                className="w-[130px] shrink-0 bg-surface border border-border rounded-md px-3 text-[11px] text-text-muted focus:outline-none focus:border-white/20 h-[32px] appearance-none cursor-pointer"
                             >
                                 {[5, 10, 25, 50, 100].map(n => (
                                     <option key={n} value={n}>{n} rows</option>
@@ -196,25 +179,17 @@ export default function ViolationTypeManagementPage() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-surface border-b border-border/60">
-                                        <th onClick={() => handleSort('violationName')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Name <SortIcon field="violationName" />
-                                        </th>
-                                        <th onClick={() => handleSort('type')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Phase <SortIcon field="type" />
-                                        </th>
-                                        <th onClick={() => handleSort('category')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Category <SortIcon field="category" />
-                                        </th>
-                                        <th onClick={() => handleSort('severity')} className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase cursor-pointer hover:text-gray-300 select-none whitespace-nowrap">
-                                            Severity <SortIcon field="severity" />
-                                        </th>
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase whitespace-nowrap">
+                                        <SortableTh field="violationName" activeField={sortBy} order={order} onSort={handleSort}>Name</SortableTh>
+                                        <SortableTh field="type" activeField={sortBy} order={order} onSort={handleSort}>Phase</SortableTh>
+                                        <SortableTh field="category" activeField={sortBy} order={order} onSort={handleSort}>Category</SortableTh>
+                                        <SortableTh field="severity" activeField={sortBy} order={order} onSort={handleSort}>Severity</SortableTh>
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase whitespace-nowrap">
                                             Default Penalty
                                         </th>
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase whitespace-nowrap">
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase whitespace-nowrap">
                                             Status
                                         </th>
-                                        <th className="p-4 text-[11px] font-bold tracking-widest text-gray-500 uppercase whitespace-nowrap">
+                                        <th className="p-4 text-[11px] font-bold tracking-widest text-text-muted uppercase whitespace-nowrap">
                                             Actions
                                         </th>
                                     </tr>
@@ -223,18 +198,26 @@ export default function ViolationTypeManagementPage() {
                                     {!error && items.map(item => (
                                         <tr
                                             key={item._id}
+                                            role="button"
+                                            tabIndex={0}
                                             onClick={() => openEdit(item)}
-                                            className="hover:bg-white/[0.02] transition-colors cursor-pointer"
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" || e.key === " ") {
+                                                    e.preventDefault();
+                                                    openEdit(item);
+                                                }
+                                            }}
+                                            className="hover:bg-white/[0.02] transition-colors cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/40"
                                         >
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2.5 min-w-0">
-                                                    <div className="w-8 h-8 rounded bg-white/5 border border-border flex items-center justify-center text-gray-400 shrink-0">
+                                                    <div className="w-8 h-8 rounded bg-white/5 border border-border flex items-center justify-center text-text-muted shrink-0">
                                                         <ShieldAlert size={14} />
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <p className="text-[13px] text-white font-medium truncate">{item.violationName}</p>
+                                                        <p className="text-[13px] text-text font-medium truncate">{item.violationName}</p>
                                                         {item.violationDescription && (
-                                                            <p className="text-[11px] text-gray-600 truncate max-w-[200px]">{item.violationDescription}</p>
+                                                            <p className="text-[11px] text-text-muted truncate max-w-[200px]">{item.violationDescription}</p>
                                                         )}
                                                     </div>
                                                 </div>
@@ -250,17 +233,17 @@ export default function ViolationTypeManagementPage() {
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`text-[13px] font-bold ${SEVERITY_COLOR[item.severity] ?? 'text-gray-300'}`}>
+                                                <span className={`text-[13px] font-bold ${SEVERITY_COLOR[item.severity] ?? 'text-text-muted'}`}>
                                                     {item.severity}/5
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-[12px] text-gray-400 truncate max-w-[160px] block">
-                                                    {item.defaultPenalty || <span className="italic text-gray-600">None</span>}
+                                                <span className="text-[12px] text-text-muted truncate max-w-[160px] block">
+                                                    {item.defaultPenalty || <span className="italic text-text-muted/70">None</span>}
                                                 </span>
                                             </td>
                                             <td className="p-4">
-                                                <span className={`flex items-center gap-1 text-[12px] font-medium ${item.isActive ? 'text-emerald-400' : 'text-gray-500'}`}>
+                                                <span className={`flex items-center gap-1 text-[12px] font-medium ${item.isActive ? 'text-green' : 'text-text-muted'}`}>
                                                     {item.isActive
                                                         ? <><CheckCircle size={13} /> Active</>
                                                         : <><XCircle size={13} /> Inactive</>
@@ -270,10 +253,10 @@ export default function ViolationTypeManagementPage() {
                                             <td className="p-4" onClick={e => e.stopPropagation()}>
                                                 <button
                                                     onClick={() => handleToggleActive(item)}
-                                                    className={`text-[11px] font-bold px-2.5 py-1 rounded border transition-colors ${
+                                                    className={`text-[11px] font-bold px-2.5 py-1 rounded-md border transition-colors cursor-pointer ${
                                                         item.isActive
-                                                            ? 'border-gray-600/40 text-gray-400 hover:bg-gray-600/20'
-                                                            : 'border-emerald-600/40 text-emerald-400 hover:bg-emerald-600/10'
+                                                            ? 'border-white/15 text-text-muted hover:bg-white/8'
+                                                            : 'border-green/40 text-green hover:bg-green/10'
                                                     }`}
                                                 >
                                                     {item.isActive ? 'Deactivate' : 'Activate'}
@@ -282,14 +265,14 @@ export default function ViolationTypeManagementPage() {
                                         </tr>
                                     ))}
                                     {loading ? (
-                                        <tr><td colSpan={7} className="p-8 text-center text-[13px] text-gray-500">Loading…</td></tr>
+                                        <tr><td colSpan={7} className="p-8 text-center text-[13px] text-text-muted">Loading…</td></tr>
                                     ) : error ? (
                                         <tr><td colSpan={7} className="p-4"><ErrorState message={error} onRetry={fetchTypes} /></td></tr>
                                     ) : items.length === 0 ? (
                                         <tr><td colSpan={7}>
                                             <div className="py-10 text-center">
-                                                <ShieldAlert size={22} className="text-gray-700 mx-auto mb-2" />
-                                                <p className="text-[12px] text-gray-600">No violation types found.</p>
+                                                <ShieldAlert size={22} className="text-text-muted/60 mx-auto mb-2" />
+                                                <p className="text-[12px] text-text-muted">No violation types found.</p>
                                             </div>
                                         </td></tr>
                                     ) : null}

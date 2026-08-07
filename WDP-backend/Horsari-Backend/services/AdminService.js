@@ -1153,6 +1153,7 @@ class AdminService {
                     sum_prediction,
                     Horse: invitation ? invitation.horseId : null,
                     Jockey: invitation ? invitation.jockeyId : null,
+                    JockeyInvitationStatus: invitation ? invitation.invitationStatus : null,
                     isJockeyInRace: !!reg.jockeyInRaceId,
                     Owner: ownerUser,
                     RaceResult: raceResult || null,
@@ -1285,6 +1286,12 @@ class AdminService {
                 }, {}),
             };
             // ─────────────────────────────────────────────────────────────────────
+
+            rrObj.Violations = await Violation.find({ raceRoundId: raceRound._id })
+                .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                .populate('raceRefereeId', 'refereeId')
+                .sort({ created_at: -1 })
+                .lean();
 
             return { code: 200, data: rrObj, msg: 'Race round detail retrieved successfully' };
         } catch (error) {

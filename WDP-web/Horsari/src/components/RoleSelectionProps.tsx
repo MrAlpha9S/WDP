@@ -12,18 +12,21 @@ export interface RoleSelectorProps {
 export function RoleSelector({ roles, selected, onChange }: RoleSelectorProps) {
     return (
         <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-medium text-gray-700">Role</label>
-            <div className="grid grid-cols-3 gap-2">
+            <label className="text-[12px] font-medium text-text-muted tracking-wider uppercase">Role</label>
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Role">
                 {roles.map((role) => (
                     <button
                         key={role.role}
                         type="button"
+                        role="radio"
+                        aria-checked={selected?.role === role.role}
                         onClick={() => onChange(role)}
                         className={[
-                            "px-2 py-3 rounded-xl border text-center text-[13px] font-semibold transition-all duration-150",
+                            "px-2 py-3 rounded-lg border text-center text-[13px] font-semibold transition-all duration-150 cursor-pointer",
+                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                             selected?.role === role.role
-                                ? "border-red-800 bg-red-50 text-red-900"
-                                : "border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50",
+                                ? "border-brand bg-brand-tint text-brand"
+                                : "border-border text-text-muted hover:border-white/25 hover:text-text",
                         ].join(" ")}
                     >
                         {role.label}

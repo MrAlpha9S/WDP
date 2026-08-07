@@ -29,28 +29,28 @@ export interface Jockey {
 
 // ── Config ────────────────────────────────────────────────────────────────────
 export const STATUS_CFG: Record<JockeyStatus, { dot: string; text: string; bg: string; border: string }> = {
-  Available:   { dot: "bg-green-400",  text: "text-green-400",  bg: "bg-green-500/15",  border: "border-green-500/30"  },
-  "In Talks":  { dot: "bg-yellow-400", text: "text-yellow-400", bg: "bg-yellow-500/15", border: "border-yellow-500/30" },
-  Unavailable: { dot: "bg-gray-500",   text: "text-gray-400",   bg: "bg-white/8",       border: "border-border"       },
+  Available:   { dot: "bg-green-400",  text: "text-green",  bg: "bg-green-500/15",  border: "border-green-500/30"  },
+  "In Talks":  { dot: "bg-yellow-400", text: "text-amber", bg: "bg-yellow-500/15", border: "border-yellow-500/30" },
+  Unavailable: { dot: "bg-gray-500",   text: "text-text-muted",   bg: "bg-white/8",       border: "border-border"       },
 };
 
 const POSITION_COLOR: Record<string, string> = {
-  "1st": "text-yellow-400",
-  "2nd": "text-gray-300",
+  "1st": "text-amber",
+  "2nd": "text-text-muted",
   "3rd": "text-orange-400",
 };
 
 const ATTENDANCE_CFG: Record<string, { label: string; text: string; bg: string; border: string }> = {
-  no_show: { label: "No-Show", text: "text-red-400",  bg: "bg-red-500/10",  border: "border-red-700/40" },
-  main:    { label: "Main",    text: "text-white",     bg: "bg-white/5",     border: "border-border"   },
-  backup:  { label: "Backup",  text: "text-blue-400",  bg: "bg-blue-500/10", border: "border-blue-700/40" },
+  no_show: { label: "No-Show", text: "text-red",  bg: "bg-red/10",  border: "border-red/40" },
+  main:    { label: "Main",    text: "text-text",     bg: "bg-white/5",     border: "border-border"   },
+  backup:  { label: "Backup",  text: "text-blue",  bg: "bg-blue/10", border: "border-blue/40" },
 };
 
 function severityColor(s?: number) {
   if (!s) return "bg-gray-600";
   if (s <= 2) return "bg-yellow-500";
   if (s === 3) return "bg-orange-500";
-  return "bg-red-500";
+  return "bg-red";
 }
 
 type Tab = "overview" | "history" | "violations";
@@ -60,31 +60,31 @@ function OverviewTab({ jockey }: { jockey: Jockey }) {
   return (
     <div className="grid grid-cols-4 gap-3">
       {[
-        { icon: <Trophy    size={13} className="text-yellow-400" />, label: "Win Rate",     value: `${jockey.winRate}%`,          color: "text-green-400" },
-        { icon: <TrendingUp size={13} className="text-blue-400"  />, label: "Total Starts", value: jockey.starts.toLocaleString(), color: "text-white"     },
-        { icon: <Star      size={13} className="text-orange-400" />, label: "Wins",         value: jockey.wins.toLocaleString(),   color: "text-white"     },
-        { icon: <Weight    size={13} className="text-orange-400" />, label: "Weight",       value: jockey.weight,                  color: "text-white"     },
+        { icon: <Trophy    size={13} className="text-amber" />, label: "Win Rate",     value: `${jockey.winRate}%`,          color: "text-green" },
+        { icon: <TrendingUp size={13} className="text-blue"  />, label: "Total Starts", value: jockey.starts.toLocaleString(), color: "text-text"     },
+        { icon: <Star      size={13} className="text-orange-400" />, label: "Wins",         value: jockey.wins.toLocaleString(),   color: "text-text"     },
+        { icon: <Weight    size={13} className="text-orange-400" />, label: "Weight",       value: jockey.weight,                  color: "text-text"     },
       ].map((s) => (
         <div key={s.label} className="bg-surface rounded-xl px-3 py-3 border border-border/60 text-center">
           <div className="flex justify-center mb-1.5">{s.icon}</div>
           <p className={`text-[15px] font-bold ${s.color}`}>{s.value}</p>
-          <p className="text-[10px] text-gray-600 uppercase tracking-wide mt-0.5">{s.label}</p>
+          <p className="text-[10px] text-text-muted/70 uppercase tracking-wide mt-0.5">{s.label}</p>
         </div>
       ))}
       <div className="col-span-2 bg-surface rounded-xl px-3 py-3 border border-border/60 text-center">
-        <p className="text-[15px] font-bold text-white">
+        <p className="text-[15px] font-bold text-text">
           {jockey.rank != null ? `#${jockey.rank} of ${jockey.totalJockeys}` : "Unranked"}
         </p>
-        <p className="text-[10px] text-gray-600 uppercase tracking-wide mt-0.5">Rank</p>
+        <p className="text-[10px] text-text-muted/70 uppercase tracking-wide mt-0.5">Rank</p>
       </div>
       <div className="col-span-2 bg-surface rounded-xl px-3 py-3 border border-border/60 text-center">
-        <p className="text-[15px] font-bold text-white">{jockey.bookingFee.toLocaleString()} ₫</p>
-        <p className="text-[10px] text-gray-600 uppercase tracking-wide mt-0.5">Default Booking Fee</p>
+        <p className="text-[15px] font-bold text-text">{jockey.bookingFee.toLocaleString()} ₫</p>
+        <p className="text-[10px] text-text-muted/70 uppercase tracking-wide mt-0.5">Default Booking Fee</p>
       </div>
       {jockey.totalPrize != null && jockey.totalPrize > 0 && (
         <div className="col-span-4 bg-surface rounded-xl px-3 py-3 border border-border/60 text-center">
-          <p className="text-[15px] font-bold text-yellow-400">{jockey.totalPrize.toLocaleString()} ₫</p>
-          <p className="text-[10px] text-gray-600 uppercase tracking-wide mt-0.5">Total Prize Earned</p>
+          <p className="text-[15px] font-bold text-amber">{jockey.totalPrize.toLocaleString()} ₫</p>
+          <p className="text-[10px] text-text-muted/70 uppercase tracking-wide mt-0.5">Total Prize Earned</p>
         </div>
       )}
     </div>
@@ -96,8 +96,8 @@ function HistoryTab({ recentRaces }: { recentRaces: Jockey["recentRaces"] }) {
   if (recentRaces.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-white/2 px-5 py-10 text-center">
-        <Trophy size={28} className="text-gray-700 mx-auto mb-3" />
-        <p className="text-[13px] text-gray-600">No races yet.</p>
+        <Trophy size={28} className="text-text-muted/50 mx-auto mb-3" />
+        <p className="text-[13px] text-text-muted/70">No races yet.</p>
       </div>
     );
   }
@@ -113,21 +113,21 @@ function HistoryTab({ recentRaces }: { recentRaces: Jockey["recentRaces"] }) {
           >
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-[13px] font-semibold text-white">{r.race}</p>
+                <p className="text-[13px] font-semibold text-text">{r.race}</p>
                 {attCfg && (
                   <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${attCfg.bg} ${attCfg.border} ${attCfg.text}`}>
                     {attCfg.label}
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-gray-500 mt-0.5">on {r.horse} · {r.date}</p>
+              <p className="text-[11px] text-text-muted mt-0.5">on {r.horse} · {r.date}</p>
             </div>
             <div className="text-right">
-              <span className={`text-[14px] font-bold ${POSITION_COLOR[r.position] ?? "text-gray-500"}`}>
+              <span className={`text-[14px] font-bold ${POSITION_COLOR[r.position] ?? "text-text-muted"}`}>
                 {r.attendance === "no_show" ? "—" : r.position}
               </span>
               {r.bookingFees != null && r.bookingFees > 0 && (
-                <p className="text-[10px] text-gray-600 mt-0.5">{r.bookingFees.toLocaleString()} ₫</p>
+                <p className="text-[10px] text-text-muted/70 mt-0.5">{r.bookingFees.toLocaleString()} ₫</p>
               )}
             </div>
           </div>
@@ -142,8 +142,8 @@ function ViolationsTab({ violations }: { violations: JockeyViolationEntry[] }) {
   if (violations.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-white/2 px-5 py-10 text-center">
-        <ShieldAlert size={28} className="text-gray-700 mx-auto mb-3" />
-        <p className="text-[13px] text-gray-600">No violations on record.</p>
+        <ShieldAlert size={28} className="text-text-muted/50 mx-auto mb-3" />
+        <p className="text-[13px] text-text-muted/70">No violations on record.</p>
       </div>
     );
   }
@@ -157,12 +157,12 @@ function ViolationsTab({ violations }: { violations: JockeyViolationEntry[] }) {
         >
           <span className={`w-2 h-2 rounded-full shrink-0 ${severityColor(v.severity ?? v.violationType?.severity)}`} />
           <div className="flex-1 min-w-0">
-            <span className="text-gray-300 font-medium truncate">{v.violationType?.violationName ?? "Violation"}</span>
+            <span className="text-text-muted font-medium truncate">{v.violationType?.violationName ?? "Violation"}</span>
             {v.raceRound?.roundName && (
-              <span className="text-gray-600"> · {v.raceRound.roundName}</span>
+              <span className="text-text-muted/70"> · {v.raceRound.roundName}</span>
             )}
           </div>
-          <span className="text-[10px] text-gray-600 capitalize shrink-0">{v.violationStatus}</span>
+          <span className="text-[10px] text-text-muted/70 capitalize shrink-0">{v.violationStatus}</span>
         </div>
       ))}
     </div>
@@ -209,7 +209,7 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-surface">
-              <User size={56} className="text-gray-700" />
+              <User size={56} className="text-text-muted/50" />
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/30 to-transparent" />
@@ -217,7 +217,7 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
           {/* Close */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 border border-white/15 flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/70 transition-colors duration-150"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 border border-white/15 flex items-center justify-center text-text-muted hover:text-text hover:bg-black/70 transition-colors duration-150"
           >
             <X size={15} />
           </button>
@@ -231,7 +231,7 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
           {/* Name */}
           <div className="absolute bottom-4 left-5">
             <h2
-              className="text-[26px] font-bold text-white leading-tight font-serif"
+              className="text-[26px] font-bold text-text leading-tight font-serif"
             >
               {jockey.name}
             </h2>
@@ -253,13 +253,13 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
                 onClick={() => setTab(id)}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[12px] font-semibold transition-all duration-150 ${
                   tab === id
-                    ? "bg-white/8 text-white border border-white/12"
-                    : "text-gray-500 hover:text-gray-300 border border-transparent"
+                    ? "bg-white/8 text-text border border-white/12"
+                    : "text-text-muted hover:text-text-muted border border-transparent"
                 }`}
               >
                 {label}
                 {count > 0 && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === id ? "bg-red-700 text-white" : "bg-white/8 text-gray-500"}`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === id ? "bg-red text-text" : "bg-white/8 text-text-muted"}`}>
                     {count}
                   </span>
                 )}
@@ -269,7 +269,7 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-3 text-gray-500">
+              <div className="flex items-center gap-3 text-text-muted">
                 <Loader2 size={16} className="animate-spin" />
                 <span className="text-[12px]">Loading profile…</span>
               </div>
@@ -287,12 +287,12 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
         <div className="px-6 py-4 border-t border-border flex gap-3 shrink-0 bg-surface">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-lg border border-white/12 text-gray-400 text-[13px] font-semibold hover:border-white/25 hover:text-white transition-all duration-150"
+            className="flex-1 py-2.5 rounded-lg border border-white/12 text-text-muted text-[13px] font-semibold hover:border-white/25 hover:text-text transition-all duration-150"
           >
             Close
           </button>
           {!isUnavailable && (
-            <button className="flex-1 py-2.5 rounded-lg bg-red-700 hover:bg-red-600 text-white text-[13px] font-bold transition-colors duration-150 shadow-lg shadow-red-900/30 flex items-center justify-center gap-2">
+            <button className="flex-1 py-2.5 rounded-lg bg-red hover:bg-red/85 text-text text-[13px] font-bold transition-colors duration-150 shadow-lg shadow-red-900/30 flex items-center justify-center gap-2">
               Hire Jockey
               <Diamond size={13} className="text-red-300" />
             </button>
