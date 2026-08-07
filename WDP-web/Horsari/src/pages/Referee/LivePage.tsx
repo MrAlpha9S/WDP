@@ -211,6 +211,15 @@ function formatElapsed(seconds: number) {
     return `${m}:${s}`;
 }
 
+// Evenly divides the track height into `total` equal lanes and centers each
+// horse within its own segment — unlike a fixed 8%-92% (or 10%-90%) spread,
+// this doesn't jam a small field's lanes right up against the edges with a
+// huge gap between them; it scales sensibly for any horse count.
+function laneTopPct(number: number, total: number): number {
+    if (total <= 1) return 50;
+    return ((number - 0.5) / total) * 100;
+}
+
 function PositionTrack({
     liveHorses,
     staticHorses,
@@ -270,7 +279,7 @@ function PositionTrack({
                 {/* Lane guide lines */}
                 {displayHorses.map(horse => {
                     const n = displayHorses.length;
-                    const topPct = n <= 1 ? 50 : 8 + ((horse.number - 1) / (n - 1)) * 84;
+                    const topPct = laneTopPct(horse.number, n);
                     const color = horseColor(horse.number);
                     return (
                         <div key={`gl-${horse.registrationId}`}
@@ -283,7 +292,7 @@ function PositionTrack({
                 {/* Lane labels */}
                 {displayHorses.map(horse => {
                     const n = displayHorses.length;
-                    const topPct = n <= 1 ? 50 : 8 + ((horse.number - 1) / (n - 1)) * 84;
+                    const topPct = laneTopPct(horse.number, n);
                     const color = horseColor(horse.number);
                     return (
                         <div key={`lbl-${horse.registrationId}`}
@@ -313,7 +322,7 @@ function PositionTrack({
                 {displayHorses.map(horse => {
                     const pct = trackLength > 0 ? (horse.currentDistance / trackLength) * 100 : 0;
                     const n = displayHorses.length;
-                    const topPct = n <= 1 ? 50 : 8 + ((horse.number - 1) / (n - 1)) * 84;
+                    const topPct = laneTopPct(horse.number, n);
                     const color = horseColor(horse.number);
                     const isLeader = leader?.registrationId === horse.registrationId;
                     return (
@@ -581,7 +590,7 @@ export default function LivePage() {
                                     {(liveHorses ?? []).map(horse => {
                                         const pct = trackLength > 0 ? (horse.currentDistance / trackLength) * 100 : 0;
                                         const total = liveHorses?.length ?? 1;
-                                        const topPct = total <= 1 ? 50 : 10 + ((horse.number - 1) / (total - 1)) * 80;
+                                        const topPct = laneTopPct(horse.number, total);
                                         const color = horseColor(horse.number);
                                         const isLeader = leader?.registrationId === horse.registrationId;
                                         return (
