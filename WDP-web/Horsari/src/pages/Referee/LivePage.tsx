@@ -723,9 +723,9 @@ export default function LivePage() {
                     ))}
                 </div>
 
-                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                <div className="bg-surface rounded-xl border border-border flex flex-col overflow-hidden">
                     <button onClick={() => setVerificationOpen(o => !o)}
-                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors shrink-0"
                     >
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 flex items-center gap-2">
                             <Shield size={13} className="text-red" /> Horses List
@@ -733,8 +733,9 @@ export default function LivePage() {
                         <ChevronDown size={13} className={`text-text-muted/70 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
                     </button>
                     {verificationOpen && (
-                        <div className="p-3 flex flex-col gap-2 border-t border-border">
-                            {horseOptions.map(horse => {
+                        <div className="overflow-y-auto border-t border-border" style={{ maxHeight: 280 }}>
+                            <div className="p-3 flex flex-col gap-2">
+                                {horseOptions.map(horse => {
                                 const isReview = horses.find(h => h.number === horse.number)?.gearStatus === "review";
                                 const isSelected = selectedHorseRegId === horse.registrationId;
                                 const liveData = liveHorses?.find(h => h.registrationId === horse.registrationId);
@@ -808,6 +809,7 @@ export default function LivePage() {
                                     </div>
                                 );
                             })}
+                        </div>
                         </div>
                     )}
                 </div>
