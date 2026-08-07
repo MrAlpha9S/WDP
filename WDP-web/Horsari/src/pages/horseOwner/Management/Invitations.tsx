@@ -84,6 +84,8 @@ interface JockeyInvitation {
   status: InviteJockeyStatus;
   sentAt: string;
   bookingFees: number;
+  isBackup: boolean;
+  percentagePayout: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,6 +105,8 @@ function mapApiToJockeyInvitation(raw: any, i: number): JockeyInvitation {
     status: normalizeJockeyInviteStatus(raw.status ?? raw.registrationStatus),
     sentAt: raw.sentAt ?? raw.createdAt ?? "",
     bookingFees: raw.bookingFees ?? 0,
+    isBackup: raw.isBackup ?? false,
+    percentagePayout: raw.percentagePayout ?? 0,
   };
 }
 
@@ -209,6 +213,121 @@ function InvitationDetailModal({
   );
 }
 
+// ── Jockey Invitation Detail Modal ────────────────────────────────────────────
+function JockeyInvitationDetailModal({
+  inv, hasNoShowHistory, onClose, onCancel, isCancelling,
+}: {
+  inv: JockeyInvitation;
+  hasNoShowHistory?: boolean;
+  onClose: () => void;
+  onCancel?: (id: string) => void;
+  isCancelling?: boolean;
+}) {
+  const stCfg = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
+  const isPending = inv.status === "pending";
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 font-sans">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-2xl bg-surface border border-border rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[90vh]">
+
+        <div className="relative h-52 shrink-0 overflow-hidden bg-bg flex items-center justify-center">
+          {inv.jockeyImage ? (
+            <img src={inv.jockeyImage} alt={inv.jockeyName} className={`w-full h-full object-cover object-top ${!isPending ? "grayscale brightness-40" : "brightness-75"}`} />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-[#2a2a2a] border border-border flex items-center justify-center">
+              <Users size={36} className="text-text-muted/70" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/20 to-transparent" />
+          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/60 border border-white/15 flex items-center justify-center text-text-muted hover:text-text hover:bg-black/80 transition-colors duration-150">
+            <X size={14} />
+          </button>
+          <div className="absolute top-4 left-4 flex items-center gap-2">
+            <span className="text-[10px] font-semibold tracking-widest text-text-muted uppercase px-2.5 py-1 rounded-full bg-black/60 border border-white/15 backdrop-blur-sm">Jockey</span>
+            <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border backdrop-blur-sm ${stCfg.text} ${stCfg.bg} ${stCfg.border}`}>{inv.status}</span>
+            {hasNoShowHistory && (
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-red/10 text-red border border-red/40 backdrop-blur-sm">
+                No-Show
+              </span>
+            )}
+          </div>
+          <div className="absolute bottom-4 left-5 right-5">
+            <h2 className="text-[24px] font-bold text-text leading-tight font-serif">{inv.jockeyName}</h2>
+            <p className="text-[11.5px] text-text-muted mt-0.5">{inv.sentAt ? `Sent ${formatDate(inv.sentAt)}` : "Sent date unknown"}</p>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          <div className="grid grid-cols-2 gap-5">
+            {[
+              { icon: <Flag size={13} className="text-red" />, label: "Race", value: inv.raceName },
+              { icon: <Calendar size={13} className="text-red" />, label: "Date", value: inv.raceDate },
+              { icon: <MapPin size={13} className="text-blue" />, label: "Venue", value: inv.venue },
+              { icon: <Trophy size={13} className="text-amber" />, label: "Horse", value: inv.horse },
+            ].map((item) => (
+              <div key={item.label} className="bg-surface rounded-xl px-4 py-3 border border-border/60 flex items-start gap-3">
+                <div className="mt-0.5 shrink-0">{item.icon}</div>
+                <div>
+                  <p className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase mb-0.5">{item.label}</p>
+                  <p className="text-[13px] font-semibold text-text leading-snug">{item.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Terms */}
+          <div className="bg-surface rounded-xl border border-border/60 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/60">
+              <Info size={13} className="text-blue" />
+              <p className="text-[10px] font-semibold tracking-widest text-text-muted uppercase">Terms</p>
+            </div>
+            <div className="divide-y divide-white/5">
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-[12px] text-text-muted">Booking Fee</span>
+                <span className="text-[13px] font-bold text-text">
+                  {inv.bookingFees > 0 ? `${inv.bookingFees.toLocaleString()} ₫` : "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-[12px] text-text-muted">Payout Share</span>
+                <span className="text-[13px] font-bold text-text">
+                  {inv.percentagePayout > 0 ? `${inv.percentagePayout}%` : "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-[12px] text-text-muted">Role</span>
+                <span className="text-[13px] font-bold text-text">{inv.isBackup ? "Backup Jockey" : "Main Jockey"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-t border-border bg-surface shrink-0 flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-white/12 text-text-muted text-[13px] font-semibold hover:border-white/25 hover:text-text transition-all duration-150">
+            Close
+          </button>
+          {isPending && onCancel && (
+            <button
+              onClick={() => { onCancel(inv.id); onClose(); }}
+              disabled={isCancelling}
+              className="flex-1 py-2.5 rounded-lg border border-red-700/50 text-red text-[13px] font-semibold hover:bg-red/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 flex items-center justify-center gap-2"
+            >
+              {isCancelling ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />} Cancel Invitation
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Race Invitation Card ──────────────────────────────────────────────────────
 function InvitationCard({
   inv, onAccept, onDeny, onDetail,
@@ -298,11 +417,13 @@ function JockeyInvitationCard({
   hasNoShowHistory,
   onCancel,
   isCancelling,
+  onDetail,
 }: {
   inv: JockeyInvitation;
   hasNoShowHistory?: boolean;
   onCancel?: (id: string) => void;
   isCancelling?: boolean;
+  onDetail: () => void;
 }) {
   const stCfg = INVITE_STATUS_CFG[inv.status] ?? INVITE_STATUS_CFG.pending;
   const isPending = inv.status === "pending";
@@ -368,6 +489,13 @@ function JockeyInvitationCard({
               )}
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onDetail}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 text-text-muted text-[12px] font-semibold hover:border-white/28 hover:text-text transition-all duration-150"
+              >
+                <Info size={13} /> Detail
+              </button>
               {isPending && onCancel && (
                 <button
                   type="button"
@@ -515,6 +643,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   const [noShowJockeyIds, setNoShowJockeyIds] = useState<Set<string>>(new Set());
   const [cancellingInvId, setCancellingInvId] = useState<string | null>(null);
   const [cancelInvError, setCancelInvError] = useState<string | null>(null);
+  const [selectedJockeyInv, setSelectedJockeyInv] = useState<JockeyInvitation | null>(null);
 
   // Pending counts across ALL pages, not just the current page — the visible
   // lists are paginated (INV_PAGE_SIZE) and can be search-filtered, so counting
@@ -670,6 +799,9 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
   }
 
   const selectedLive = selected ? invitations.find((i) => i.id === selected.id) ?? null : null;
+  const selectedJockeyInvLive = selectedJockeyInv
+    ? jockeyInvs.find((i) => i.id === selectedJockeyInv.id) ?? null
+    : null;
 
   // Report race pending count (across ALL pages) to the sidebar badge —
   // jockey invitations aren't counted here, only in their own tab.
@@ -689,6 +821,16 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
           onClose={() => setSelected(null)}
           onAccept={handleAccept}
           onDeny={handleDenyRequest}
+        />
+      )}
+
+      {selectedJockeyInvLive && (
+        <JockeyInvitationDetailModal
+          inv={selectedJockeyInvLive}
+          hasNoShowHistory={!!selectedJockeyInvLive.jockeyId && noShowJockeyIds.has(selectedJockeyInvLive.jockeyId)}
+          onClose={() => setSelectedJockeyInv(null)}
+          onCancel={handleCancelJockeyInvitation}
+          isCancelling={cancellingInvId === selectedJockeyInvLive.id}
         />
       )}
 
@@ -828,6 +970,7 @@ export default function InvitationsPage({ onPendingChange }: InvitationsPageProp
                       hasNoShowHistory={!!inv.jockeyId && noShowJockeyIds.has(inv.jockeyId)}
                       onCancel={handleCancelJockeyInvitation}
                       isCancelling={cancellingInvId === inv.id}
+                      onDetail={() => setSelectedJockeyInv(inv)}
                     />
                   ))}
                 </div>
