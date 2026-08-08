@@ -5,6 +5,8 @@ const RaceDateUtil = require('../utils/RaceDateUtil');
 const RaceRefereeRepository = require('../repositories/RaceRefereeRepository');
 const TransactionRepository = require('../repositories/TransactionRepository');
 const NotificationService = require('./NotificationService');
+const PaymentService = require('./PaymentService');
+const CurrencyConverter = require('./CurrencyConverter');
 
 const RaceReferee = require('../entities/RaceReferee');
 const RaceRound = require('../entities/RaceRound');
@@ -438,6 +440,64 @@ class RefereeService {
                 PayoutService.refundRegistrationPredictions(registrationId).catch(err =>
                     console.error('[RefereeService] refundRegistrationPredictions error:', err.message)
                 );
+
+                // A failed horse never races, so it never gets a RaceResult and
+                // confirmRaceResult's payout loop never sees it — without this,
+                // the jockey's booking fee (owed for being booked, unconditional
+                // on race outcome — see confirmRaceResult's isNoShow-only zeroing
+                // rule) would silently never be paid, even though the failure is
+                // the horse/owner's fault, not theirs. Every accepted invitation
+                // on the registration is paid — main AND backup — since a backup
+                // jockey who accepted was just as booked/committed as the main
+                // one; each invitation carries its own bookingFees and its own
+                // _id, so per-invitation dedup below already keeps these
+                // independent (no double-counting across main/backup).
+                //
+                // Note: if this registration is later re-inspected back to
+                // "verified" and the same invitation ends up locked in and
+                // actually races, this payment's (paymentType, sourceType,
+                // sourceId, payeeId) key matches the one confirmRaceResult would
+                // create — its create-if-not-exists will find this row and skip,
+                // so any prize-share cut earned by that jockey would not be
+                // added on top. Re-inspecting a failed horse back into
+                // contention is an unusual correction flow; flagging here
+                // rather than adding reconciliation logic for it.
+                (async () => {
+                    if (!registration.horseOwnerId) return;
+                    const acceptedInvitations = await Invitation.find({
+                        registrationId, invitationStatus: 'accepted',
+                    }).lean();
+                    if (!acceptedInvitations.length) return;
+
+                    const raceRoundDoc = await RaceRound.findById(raceRoundId, 'currencyType').lean();
+                    const originalCurrency = raceRoundDoc?.currencyType || 'VND';
+
+                    for (const inv of acceptedInvitations) {
+                        if (!inv.jockeyId || !inv.bookingFees) continue;
+                        const payment = await PaymentService.createIfNotExists({
+                            paymentType: 'jockey_payout',
+                            payerRole: 'horseowner',
+                            payerId: registration.horseOwnerId,
+                            payeeRole: 'jockey',
+                            payeeId: inv.jockeyId,
+                            amount: CurrencyConverter.convertToVnd(inv.bookingFees, originalCurrency),
+                            originalAmount: inv.bookingFees,
+                            originalCurrency,
+                            sourceType: 'Invitation',
+                            sourceId: inv._id,
+                            raceRoundId,
+                        });
+                        if (payment) {
+                            NotificationService.notify({
+                                recipientIds: [payment.payeeId],
+                                type: 'payment_created',
+                                title: 'New Payment Awaiting Confirmation',
+                                message: `A payment of ${payment.amount} (${payment.paymentType}) has been recorded for you to confirm.`,
+                                actionPayload: { entityType: 'Transaction', entityId: payment._id },
+                            }, io).catch(err => console.error('[verifyRegistration] payment_created notify error:', err.message));
+                        }
+                    }
+                })().catch(err => console.error('[RefereeService] failed-registration booking-fee payout error:', err.message));
             }
 
             // 5. Sync violations — always clear old ones first (handles re-inspect)
