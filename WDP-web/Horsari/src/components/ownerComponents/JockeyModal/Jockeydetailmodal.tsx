@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import {
   X, Trophy, TrendingUp, Star, Weight, Diamond, User, Loader2, ShieldAlert,
+  Phone, Mail, MapPin,
 } from "lucide-react";
 import type { JockeyViolationEntry } from "../../../api/horseOwnerService";
 
@@ -25,6 +26,12 @@ export interface Jockey {
   violations: JockeyViolationEntry[];
   totalPrize?: number;
   bookingFee: number;
+  // Contact info — populated from the linked User document, not stored on
+  // the Jockey entity itself. Only present once the full profile fetch
+  // (openDetail's getJockeyProfile call) resolves; absent on list-level data.
+  phoneNumber?: string | null;
+  email?: string | null;
+  address?: string | null;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -55,10 +62,37 @@ function severityColor(s?: number) {
 
 type Tab = "overview" | "history" | "violations";
 
+// ── Contact info ──────────────────────────────────────────────────────────────
+// Only rendered once at least one field has loaded (list-level Jockey data
+// has none of these — they come from the full getJockeyProfile fetch).
+function ContactInfo({ jockey }: { jockey: Jockey }) {
+  const rows = [
+    { icon: <Phone size={13} className="text-text-muted shrink-0" />, value: jockey.phoneNumber },
+    { icon: <Mail size={13} className="text-text-muted shrink-0" />, value: jockey.email },
+    { icon: <MapPin size={13} className="text-text-muted shrink-0" />, value: jockey.address },
+  ].filter((r) => r.value);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="bg-surface rounded-xl border border-border/60 px-4 py-3 flex flex-col gap-2">
+      <p className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase">Contact</p>
+      {rows.map((r, i) => (
+        <div key={i} className="flex items-center gap-2 text-[13px] text-text">
+          {r.icon}
+          <span className="truncate">{r.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Overview tab ──────────────────────────────────────────────────────────────
 function OverviewTab({ jockey }: { jockey: Jockey }) {
   return (
-    <div className="grid grid-cols-4 gap-3">
+    <div className="flex flex-col gap-3">
+      <ContactInfo jockey={jockey} />
+      <div className="grid grid-cols-4 gap-3">
       {[
         { icon: <Trophy    size={13} className="text-amber" />, label: "Win Rate",     value: `${jockey.winRate}%`,          color: "text-green" },
         { icon: <TrendingUp size={13} className="text-blue"  />, label: "Total Starts", value: jockey.starts.toLocaleString(), color: "text-text"     },
@@ -87,6 +121,7 @@ function OverviewTab({ jockey }: { jockey: Jockey }) {
           <p className="text-[10px] text-text-muted/70 uppercase tracking-wide mt-0.5">Total Prize Earned</p>
         </div>
       )}
+      </div>
     </div>
   );
 }
