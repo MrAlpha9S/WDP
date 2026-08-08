@@ -621,7 +621,7 @@ export default function JockeysPage() {
                 )}
               </button>
               <ViewToggle value={viewMode} onChange={setViewMode} />
-              <RefetchButton onRefetch={() => Promise.all([fetchJockeys(), fetchRegistrations()])} lastUpdated={lastUpdated} />
+              <RefetchButton onRefetch={async () => { await Promise.all([fetchJockeys(), fetchRegistrations()]); }} lastUpdated={lastUpdated} />
               <SlidersHorizontal size={14} className="text-text-muted" />
               <FilterSelect options={WEIGHTS} value={weightFilter} onChange={setWeightFilter} />
             </div>
