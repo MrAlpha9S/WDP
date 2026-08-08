@@ -316,44 +316,42 @@ async function seed() {
     ]);
 
     // --- ViolationType (29 — pre-race, during-race and after-race) ---
+    // defaultPenalty is purely descriptive and mirrors the severity → action
+    // scheme RefereeService.confirmViolation actually applies on confirm:
+    // 1-2 = Warning (no result change), 3-4 = Time Penalty (+5s/+10s, re-ranked),
+    // 5 = Result Cancelled (disqualified, dropped from ranking).
     const violationTypes = await ViolationType.create([
       // ── PRE-RACE / horse-safety ───────────────────────────────────────────
-      { violationName: "Unfit Horse", violationDescription: "Horse is unsafe or unhealthy to race.", defaultPenalty: "Horse scratched", type: "pre-race", category: "horse-safety", severity: 3, isActive: true },
-      { violationName: "Unauthorized Equipment", violationDescription: "Illegal or undeclared racing tack detected.", defaultPenalty: "Disqualification", type: "pre-race", category: "horse-safety", severity: 3, isActive: true },
-      { violationName: "Injury Non-Disclosure", violationDescription: "Failure to report a known injury before race.", defaultPenalty: "Fine", type: "pre-race", category: "horse-safety", severity: 2, isActive: true },
-      { violationName: "Improper Treatment", violationDescription: "Unauthorized veterinary treatment administered pre-race.", defaultPenalty: "Suspension", type: "pre-race", category: "horse-safety", severity: 3, isActive: true },
-      { violationName: "Horse Abuse", violationDescription: "Abuse, neglect, or unsafe handling of the horse in stable/paddock.", defaultPenalty: "Major suspension", type: "pre-race", category: "horse-safety", severity: 4, isActive: true },
+      { violationName: "Unfit Horse", violationDescription: "Horse is unsafe or unhealthy to race.", defaultPenalty: "Time Penalty", type: "pre-race", category: "horse-safety", severity: 3, isActive: true },
+      { violationName: "Unauthorized Equipment", violationDescription: "Illegal or undeclared racing tack detected.", defaultPenalty: "Time Penalty", type: "pre-race", category: "horse-safety", severity: 3, isActive: true },
+      { violationName: "Injury Non-Disclosure", violationDescription: "Failure to report a known injury before race.", defaultPenalty: "Warning", type: "pre-race", category: "horse-safety", severity: 2, isActive: true },
+      { violationName: "Improper Treatment", violationDescription: "Unauthorized veterinary treatment administered pre-race.", defaultPenalty: "Time Penalty", type: "pre-race", category: "horse-safety", severity: 3, isActive: true },
+      { violationName: "Horse Abuse", violationDescription: "Abuse, neglect, or unsafe handling of the horse in stable/paddock.", defaultPenalty: "Time Penalty", type: "pre-race", category: "horse-safety", severity: 4, isActive: true },
       // ── PRE-RACE / medication ─────────────────────────────────────────────
-      { violationName: "Race-Day Medication", violationDescription: "Prohibited medication administered within race-day window.", defaultPenalty: "Fine or DQ", type: "pre-race", category: "medication", severity: 4, isActive: true },
+      { violationName: "Race-Day Medication", violationDescription: "Prohibited medication administered within race-day window.", defaultPenalty: "Time Penalty", type: "pre-race", category: "medication", severity: 4, isActive: true },
       // ── PRE-RACE / administrative ─────────────────────────────────────────
-      { violationName: "False Documentation", violationDescription: "Fake records or fraudulent registration documents submitted.", defaultPenalty: "Suspension", type: "pre-race", category: "administrative", severity: 4, isActive: true },
-      { violationName: "Unlicensed Participation", violationDescription: "Participant racing without valid authorization or license.", defaultPenalty: "Removal", type: "pre-race", category: "administrative", severity: 4, isActive: true },
-      { violationName: "Restricted Area Access", violationDescription: "Unauthorized access to stable, paddock, or restricted zones.", defaultPenalty: "Removal", type: "pre-race", category: "administrative", severity: 2, isActive: true },
-      { violationName: "Failure to Comply", violationDescription: "Ignoring official steward or referee instructions.", defaultPenalty: "Fine", type: "pre-race", category: "administrative", severity: 2, isActive: true },
-      { violationName: "Does not response to invitation", violationDescription: "Participant failed to respond to a race invitation within the required timeframe.", defaultPenalty: "None", type: "pre-race", category: "administrative", severity: 1, isActive: true },
+      { violationName: "False Documentation", violationDescription: "Fake records or fraudulent registration documents submitted.", defaultPenalty: "Time Penalty", type: "pre-race", category: "administrative", severity: 4, isActive: true },
+      { violationName: "Unlicensed Participation", violationDescription: "Participant racing without valid authorization or license.", defaultPenalty: "Time Penalty", type: "pre-race", category: "administrative", severity: 4, isActive: true },
+      { violationName: "Restricted Area Access", violationDescription: "Unauthorized access to stable, paddock, or restricted zones.", defaultPenalty: "Warning", type: "pre-race", category: "administrative", severity: 2, isActive: true },
+      { violationName: "Failure to Comply", violationDescription: "Ignoring official steward or referee instructions.", defaultPenalty: "Warning", type: "pre-race", category: "administrative", severity: 2, isActive: true },
+      { violationName: "Does not response to invitation", violationDescription: "Participant failed to respond to a race invitation within the required timeframe.", defaultPenalty: "Warning", type: "pre-race", category: "administrative", severity: 1, isActive: true },
       // ── DURING-RACE / riding ──────────────────────────────────────────────
-      { violationName: "Interference", violationDescription: "Blocking or impeding another horse during the race.", defaultPenalty: "Warning or demotion", type: "during-race", category: "riding", severity: 2, isActive: true },
-      { violationName: "Careless Riding", violationDescription: "Unsafe riding without reckless intent.", defaultPenalty: "Fine or suspension", type: "during-race", category: "riding", severity: 2, isActive: true },
-      { violationName: "Dangerous Riding", violationDescription: "Reckless riding causing serious danger to others.", defaultPenalty: "Suspension", type: "during-race", category: "riding", severity: 3, isActive: true },
+      { violationName: "Interference", violationDescription: "Blocking or impeding another horse during the race.", defaultPenalty: "Warning", type: "during-race", category: "riding", severity: 2, isActive: true },
+      { violationName: "Careless Riding", violationDescription: "Unsafe riding without reckless intent.", defaultPenalty: "Warning", type: "during-race", category: "riding", severity: 2, isActive: true },
+      { violationName: "Dangerous Riding", violationDescription: "Reckless riding causing serious danger to others.", defaultPenalty: "Time Penalty", type: "during-race", category: "riding", severity: 3, isActive: true },
       { violationName: "Course Deviation", violationDescription: "Failure to maintain the prescribed racing line.", defaultPenalty: "Warning", type: "during-race", category: "riding", severity: 1, isActive: true },
-      { violationName: "Excessive Whip Use", violationDescription: "Whip usage exceeds permitted limits.", defaultPenalty: "Fine", type: "during-race", category: "riding", severity: 2, isActive: true },
-      { violationName: "False Start", violationDescription: "Horse leaves the gate before the official start signal.", defaultPenalty: "Declared non-starter", type: "during-race", category: "riding", severity: 2, isActive: true },
-      { violationName: "Non-Competitive Riding", violationDescription: "Jockey fails to make a full, genuine racing effort.", defaultPenalty: "Investigation", type: "during-race", category: "riding", severity: 2, isActive: true },
-      // ── DURING-RACE / betting ─────────────────────────────────────────────
-      { violationName: "Race Fixing", violationDescription: "Deliberate manipulation of the race outcome.", defaultPenalty: "Permanent ban", type: "during-race", category: "betting", severity: 5, isActive: true },
-      { violationName: "Collusion", violationDescription: "Coordinated manipulation between parties to affect the result.", defaultPenalty: "Ban", type: "during-race", category: "betting", severity: 5, isActive: true },
-      { violationName: "Insider Betting", violationDescription: "Restricted individual placing bets using non-public race information.", defaultPenalty: "Account suspension", type: "during-race", category: "betting", severity: 3, isActive: true },
-      { violationName: "Betting Fraud", violationDescription: "Fraudulent betting activity to gain unlawful advantage.", defaultPenalty: "Account closure", type: "during-race", category: "betting", severity: 4, isActive: true },
-      { violationName: "Odds Manipulation", violationDescription: "Artificially manipulating market odds.", defaultPenalty: "Investigation", type: "during-race", category: "betting", severity: 3, isActive: true },
+      { violationName: "Excessive Whip Use", violationDescription: "Whip usage exceeds permitted limits.", defaultPenalty: "Warning", type: "during-race", category: "riding", severity: 2, isActive: true },
+      { violationName: "False Start", violationDescription: "Horse leaves the gate before the official start signal.", defaultPenalty: "Warning", type: "during-race", category: "riding", severity: 2, isActive: true },
+      { violationName: "Non-Competitive Riding", violationDescription: "Jockey fails to make a full, genuine racing effort.", defaultPenalty: "Warning", type: "during-race", category: "riding", severity: 2, isActive: true },
       // ── AFTER-RACE / riding ───────────────────────────────────────────────
-      { violationName: "Weigh-In Violation", violationDescription: "Incorrect rider weight recorded after the race.", defaultPenalty: "Disqualification", type: "after-race", category: "riding", severity: 3, isActive: true },
+      { violationName: "Weigh-In Violation", violationDescription: "Incorrect rider weight recorded after the race.", defaultPenalty: "Time Penalty", type: "after-race", category: "riding", severity: 3, isActive: true },
       // ── AFTER-RACE / medication ───────────────────────────────────────────
-      { violationName: "Positive Drug Test", violationDescription: "Prohibited substance detected in post-race sample.", defaultPenalty: "Disqualification", type: "after-race", category: "medication", severity: 4, isActive: true },
-      { violationName: "Banned Substance", violationDescription: "Possession of an illegal substance confirmed post-race.", defaultPenalty: "Suspension", type: "after-race", category: "medication", severity: 4, isActive: true },
-      { violationName: "Sample Tampering", violationDescription: "Interfering with or adulterating drug test samples.", defaultPenalty: "Severe suspension", type: "after-race", category: "medication", severity: 5, isActive: true },
-      { violationName: "Test Refusal", violationDescription: "Refusing to participate in mandatory post-race testing.", defaultPenalty: "Automatic violation", type: "after-race", category: "medication", severity: 4, isActive: true },
+      { violationName: "Positive Drug Test", violationDescription: "Prohibited substance detected in post-race sample.", defaultPenalty: "Time Penalty", type: "after-race", category: "medication", severity: 4, isActive: true },
+      { violationName: "Banned Substance", violationDescription: "Possession of an illegal substance confirmed post-race.", defaultPenalty: "Time Penalty", type: "after-race", category: "medication", severity: 4, isActive: true },
+      { violationName: "Sample Tampering", violationDescription: "Interfering with or adulterating drug test samples.", defaultPenalty: "Result Cancelled", type: "after-race", category: "medication", severity: 5, isActive: true },
+      { violationName: "Test Refusal", violationDescription: "Refusing to participate in mandatory post-race testing.", defaultPenalty: "Time Penalty", type: "after-race", category: "medication", severity: 4, isActive: true },
       // ── AFTER-RACE / administrative ───────────────────────────────────────
-      { violationName: "Failure to Attend Inquiry", violationDescription: "Ignoring or failing to appear at a mandatory steward inquiry.", defaultPenalty: "Fine", type: "after-race", category: "administrative", severity: 2, isActive: true },
+      { violationName: "Failure to Attend Inquiry", violationDescription: "Ignoring or failing to appear at a mandatory steward inquiry.", defaultPenalty: "Warning", type: "after-race", category: "administrative", severity: 2, isActive: true },
     ]);
 
     // --- PredictionMethod (3) ---
@@ -496,7 +494,7 @@ async function seed() {
       {
         tournamentId: tournaments[0]._id,
         createdByAdminId: admins[0]._id,
-        roundName: "Semi Final — Allowance 2000m",
+        roundName: "Semi Final — Claiming 2000m",
         raceDate: atHour(daysLater(5), 14),
         trackLength: 2000,
         maxParticipants: 6,
@@ -511,7 +509,7 @@ async function seed() {
         currencyType: "VND",
         location: "Phu Tho Racetrack",
         address: "1 Ly Thuong Kiet, Ward 8, District 11, Ho Chi Minh City",
-        eligibilityRuleId: rules[3]._id,
+        eligibilityRuleId: rules[4]._id,
         muxLiveStreamId: "mux-live-id-round2",
         muxStreamKey: "mux-stream-key-round2",
         muxPlaybackId: "mux-playback-id-round2",

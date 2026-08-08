@@ -2,7 +2,7 @@
 import {
   X, Trophy, Flag, ChevronDown, Check,
   Loader2, AlertCircle, Shield, Repeat2,
-  CheckCircle2, XCircle
+  CheckCircle2, XCircle, Phone, Mail,
 } from "lucide-react";
 import { horseOwnerService, type hireJockey } from "../../../api/horseOwnerService";
 import { type Jockey } from "../../../components/ownerComponents/JockeyModal/Jockeydetailmodal";
@@ -42,6 +42,7 @@ interface EligibilityRule {
   raceType: string | null;
   minWins?: number | null;
   maxWins?: number | null;
+  minRacesRun?: number | null;
   minAge?: number | null;
   maxAge?: number | null;
   requiredGender?: string | null;
@@ -338,6 +339,7 @@ export default function HireJockeyModal({
       return false;
     }
 
+    const racesRun = horse.raceResults ? horse.raceResults.length : 0;
     const wins = horse.raceResults
       ? horse.raceResults.filter((r) => r.finishPosition === 1).length
       : 0;
@@ -348,6 +350,10 @@ export default function HireJockeyModal({
     }
     if (rule.maxWins !== undefined && rule.maxWins !== null && wins > rule.maxWins) {
       console.warn(tag, `❌ wins too high: has ${wins}, needs ≤ ${rule.maxWins}`);
+      return false;
+    }
+    if (rule.minRacesRun !== undefined && rule.minRacesRun !== null && racesRun < rule.minRacesRun) {
+      console.warn(tag, `❌ races run too low: has ${racesRun}, needs ≥ ${rule.minRacesRun}`);
       return false;
     }
 
@@ -370,7 +376,12 @@ export default function HireJockeyModal({
       return false;
     }
 
-    console.log(tag, `✅ eligible (wins=${wins}, age=${horseAge})`);
+    if (rule.requiredBreed && rule.requiredBreed !== horse.breed) {
+      console.warn(tag, `❌ breed mismatch: horse=${horse.breed}, required=${rule.requiredBreed}`);
+      return false;
+    }
+
+    console.log(tag, `✅ eligible (wins=${wins}, racesRun=${racesRun}, age=${horseAge})`);
     return true;
   };
 
@@ -447,6 +458,17 @@ export default function HireJockeyModal({
               <X size={13} />
             </button>
           </div>
+
+          {(jockey.phoneNumber || jockey.email) && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-4 px-3 py-2 rounded-lg border border-border/60 bg-surface text-[11.5px] text-text-muted">
+              {jockey.phoneNumber && (
+                <span className="flex items-center gap-1.5"><Phone size={12} className="shrink-0" /> {jockey.phoneNumber}</span>
+              )}
+              {jockey.email && (
+                <span className="flex items-center gap-1.5"><Mail size={12} className="shrink-0" /> {jockey.email}</span>
+              )}
+            </div>
+          )}
 
           {hasNoShowHistory && (
             <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg border border-red/40 bg-red/10">

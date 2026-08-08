@@ -1761,12 +1761,18 @@ AdminService.prototype.quickAssignHorsesAndJockeys = async function (raceRoundId
                 inv => !inv.isBackup && String(inv.registrationId) === String(reg._id)
             );
             if (existingNonAccepted) {
+                // Reset the dead row's payout terms to this jockey's own
+                // booking price — otherwise it keeps whatever stale value
+                // (often 0) was left on it, and confirmRaceResult silently
+                // skips the booking-fee payment since payoutAmount ends up 0.
                 await Invitation.findByIdAndUpdate(existingNonAccepted._id, {
                     horseId: eligibleHorse._id,
                     jockeyId: jockey._id,
                     ownerConfirmation: true,
                     jockeyConfirmation: true,
                     invitationStatus: 'accepted',
+                    percentagePayout: 10,
+                    bookingFees: jockey.bookingFee ?? 0,
                 });
             } else {
                 await Invitation.create({

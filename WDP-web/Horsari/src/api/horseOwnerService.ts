@@ -126,6 +126,7 @@ export interface JockeyProfileData {
     _id: string; matchesRaced: number; totalWins: number; rank: number | null; totalJockeys: number;
     licenseStatus: string; status: string; weight: number; bookingFee: number;
     fullName: string; image: string | null; dateOfBirth: string;
+    phoneNumber?: string | null; email?: string | null; address?: string | null;
   };
   stats: { totalRaces: number; wins: number; winRate: number; totalPrize: number; };
   recentRaces: { race: string; position: string; horse: string; date: string; attendance?: "no_show" | "main" | "backup"; bookingFees: number; }[];

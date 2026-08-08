@@ -5,6 +5,8 @@ const RaceDateUtil = require('../utils/RaceDateUtil');
 const RaceRefereeRepository = require('../repositories/RaceRefereeRepository');
 const TransactionRepository = require('../repositories/TransactionRepository');
 const NotificationService = require('./NotificationService');
+const PaymentService = require('./PaymentService');
+const CurrencyConverter = require('./CurrencyConverter');
 
 const RaceReferee = require('../entities/RaceReferee');
 const RaceRound = require('../entities/RaceRound');
@@ -438,6 +440,64 @@ class RefereeService {
                 PayoutService.refundRegistrationPredictions(registrationId).catch(err =>
                     console.error('[RefereeService] refundRegistrationPredictions error:', err.message)
                 );
+
+                // A failed horse never races, so it never gets a RaceResult and
+                // confirmRaceResult's payout loop never sees it — without this,
+                // the jockey's booking fee (owed for being booked, unconditional
+                // on race outcome — see confirmRaceResult's isNoShow-only zeroing
+                // rule) would silently never be paid, even though the failure is
+                // the horse/owner's fault, not theirs. Every accepted invitation
+                // on the registration is paid — main AND backup — since a backup
+                // jockey who accepted was just as booked/committed as the main
+                // one; each invitation carries its own bookingFees and its own
+                // _id, so per-invitation dedup below already keeps these
+                // independent (no double-counting across main/backup).
+                //
+                // Note: if this registration is later re-inspected back to
+                // "verified" and the same invitation ends up locked in and
+                // actually races, this payment's (paymentType, sourceType,
+                // sourceId, payeeId) key matches the one confirmRaceResult would
+                // create — its create-if-not-exists will find this row and skip,
+                // so any prize-share cut earned by that jockey would not be
+                // added on top. Re-inspecting a failed horse back into
+                // contention is an unusual correction flow; flagging here
+                // rather than adding reconciliation logic for it.
+                (async () => {
+                    if (!registration.horseOwnerId) return;
+                    const acceptedInvitations = await Invitation.find({
+                        registrationId, invitationStatus: 'accepted',
+                    }).lean();
+                    if (!acceptedInvitations.length) return;
+
+                    const raceRoundDoc = await RaceRound.findById(raceRoundId, 'currencyType').lean();
+                    const originalCurrency = raceRoundDoc?.currencyType || 'VND';
+
+                    for (const inv of acceptedInvitations) {
+                        if (!inv.jockeyId || !inv.bookingFees) continue;
+                        const payment = await PaymentService.createIfNotExists({
+                            paymentType: 'jockey_payout',
+                            payerRole: 'horseowner',
+                            payerId: registration.horseOwnerId,
+                            payeeRole: 'jockey',
+                            payeeId: inv.jockeyId,
+                            amount: CurrencyConverter.convertToVnd(inv.bookingFees, originalCurrency),
+                            originalAmount: inv.bookingFees,
+                            originalCurrency,
+                            sourceType: 'Invitation',
+                            sourceId: inv._id,
+                            raceRoundId,
+                        });
+                        if (payment) {
+                            NotificationService.notify({
+                                recipientIds: [payment.payeeId],
+                                type: 'payment_created',
+                                title: 'New Payment Awaiting Confirmation',
+                                message: `A payment of ${payment.amount} (${payment.paymentType}) has been recorded for you to confirm.`,
+                                actionPayload: { entityType: 'Transaction', entityId: payment._id },
+                            }, io).catch(err => console.error('[verifyRegistration] payment_created notify error:', err.message));
+                        }
+                    }
+                })().catch(err => console.error('[RefereeService] failed-registration booking-fee payout error:', err.message));
             }
 
             // 5. Sync violations — always clear old ones first (handles re-inspect)
@@ -1199,11 +1259,94 @@ class RefereeService {
             }).lean();
             if (!assignment) return { code: 403, msg: 'You do not have permission to confirm this violation.' };
 
-            await Violation.findByIdAndUpdate(violationId, { violationStatus: 'confirmed' });
-            return { code: 200, msg: 'Violation confirmed.' };
+            const raceRound = await RaceRound.findById(violation.raceRoundId).lean();
+            if (raceRound && raceRound.status === 'completed') {
+                return { code: 422, msg: 'Cannot confirm — results for this race have already been published.' };
+            }
+
+            // Steward action + result consequence derived from severity:
+            //   1-2 → warning only, 3-4 → time penalty added to finish time (re-ranked
+            //   against everyone else's time), 5 → disqualify (cancel result).
+            const severity = violation.severity ?? 1;
+            const TIME_PENALTY_SECONDS = { 3: 5, 4: 10 };
+            let stewardAction = 'warning';
+            let actualPenalty = 'Formal warning issued.';
+            if (severity >= 5) {
+                stewardAction = 'disqualified';
+                actualPenalty = 'Result cancelled — disqualified.';
+            } else if (severity >= 3) {
+                stewardAction = 'demoted';
+                actualPenalty = `Time penalty: +${TIME_PENALTY_SECONDS[severity]}s.`;
+            }
+
+            await Violation.findByIdAndUpdate(violationId, {
+                violationStatus: 'confirmed',
+                stewardAction,
+                actualPenalty,
+            });
+
+            if (violation.registrationId && severity >= 3) {
+                if (severity >= 5) {
+                    await this._reorderRaceResults(violation.raceRoundId, violation.registrationId, { cancel: true });
+                } else {
+                    await this._reorderRaceResults(violation.raceRoundId, violation.registrationId, { penaltySeconds: TIME_PENALTY_SECONDS[severity] });
+                }
+            }
+
+            const updated = await Violation.findById(violationId)
+                .populate('violationTypeId', 'violationName type category severity defaultPenalty')
+                .populate('registrationId', '_id registrationStatus')
+                .lean();
+            return { code: 200, data: updated, msg: 'Violation confirmed.' };
         } catch (error) {
             return { code: 500, msg: error.message };
         }
+    }
+
+    // Reorders RaceResult placements for a race round after a time-penalty or
+    // disqualification: a time penalty is added to the horse's own finishTime,
+    // then every active result is re-ranked by (possibly adjusted) finish time —
+    // a cancelled horse is simply dropped from the pool first. Renumbers
+    // finishPosition and refreshes prizeMoney off the race round's prize table.
+    async _reorderRaceResults(raceRoundId, registrationId, { penaltySeconds = 0, cancel = false }) {
+        const raceRound = await RaceRound.findById(raceRoundId).lean();
+        let results = await RaceResult.find({ raceRoundId, resultStatus: { $ne: 'cancelled' } }).lean();
+
+        const entry = results.find(r => String(r.registrationId) === String(registrationId));
+        if (!entry || entry.finishTime == null) return; // no active timed result yet — nothing to reorder
+
+        if (cancel) {
+            await RaceResult.findByIdAndUpdate(entry._id, { resultStatus: 'cancelled', finishPosition: null, prizeMoney: 0 });
+            results = results.filter(r => String(r._id) !== String(entry._id));
+        } else if (penaltySeconds > 0) {
+            entry.finishTime = this._formatRaceTime(this._parseRaceTime(entry.finishTime) + penaltySeconds * 1000);
+        }
+
+        const prizes = [raceRound?.firstPlacePrize ?? 0, raceRound?.secondPlacePrize ?? 0, raceRound?.thirdPlacePrize ?? 0];
+        const ranked = [...results].sort((a, b) => this._parseRaceTime(a.finishTime) - this._parseRaceTime(b.finishTime));
+
+        const bulkOps = ranked.map((r, i) => {
+            const update = { finishPosition: i + 1, prizeMoney: i < 3 ? prizes[i] : 0 };
+            if (!cancel && String(r._id) === String(entry._id)) update.finishTime = entry.finishTime;
+            return { updateOne: { filter: { _id: r._id }, update } };
+        });
+        if (bulkOps.length) await RaceResult.bulkWrite(bulkOps);
+    }
+
+    // "M:SS.ss" ⇄ milliseconds — mirrors SimulationService's own formatTime.
+    _parseRaceTime(timeStr) {
+        if (!timeStr) return Infinity;
+        const [minsPart, secsPart] = String(timeStr).split(':');
+        const mins = Number(minsPart) || 0;
+        const secs = Number(secsPart) || 0;
+        return (mins * 60 + secs) * 1000;
+    }
+
+    _formatRaceTime(ms) {
+        const totalSec = ms / 1000;
+        const mins = Math.floor(totalSec / 60);
+        const secs = (totalSec % 60).toFixed(2);
+        return `${mins}:${secs.padStart(5, '0')}`;
     }
 
     async deleteViolation(refereeId, violationId, io) {

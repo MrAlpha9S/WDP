@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { LayoutDashboard, House, Users, Wallet, Flag, Mail } from "lucide-react";
+import { LayoutDashboard, ChessKnight, Users, Wallet, Flag, Mail } from "lucide-react";
 import TopBar from "../../components/ui/TopBar";
 import Sidebar, { type SidebarGroup } from "../../components/ui/Sidebar";
 import HomePage from "./HomePage";
@@ -46,7 +46,7 @@ const SIDEBAR_GROUPS: SidebarGroup<OwnerNavKey>[] = [
   {
     label: "Stable",
     items: [
-      { key: "Horses", label: "Horses", icon: <House size={16} /> },
+      { key: "Horses", label: "Horses", icon: <ChessKnight size={16} /> },
       { key: "Jockeys", label: "Jockeys", icon: <Users size={16} /> },
       { key: "Financials", label: "Financials", icon: <Wallet size={16} /> },
     ],

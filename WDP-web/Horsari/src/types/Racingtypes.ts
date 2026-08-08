@@ -21,6 +21,7 @@ export interface Invitation {
   type: "Race" | "Tournament";
   date: string;
   venue: string;
+  address?: string;
   prize: string;
   distance: string;
   image: string;

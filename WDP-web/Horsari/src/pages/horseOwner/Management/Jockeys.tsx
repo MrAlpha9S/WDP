@@ -296,6 +296,12 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     image: raw.image || null,
     violations: [],
     bookingFee: raw.bookingFee ?? 0,
+    // The list endpoint merges the linked User doc onto each item already
+    // (JockeyRepository.findAll populates "_id"), so these ride along here
+    // too — openDetail() only needs to fill them in if this ever changes.
+    phoneNumber: raw.phoneNumber ?? null,
+    email: raw.email ?? null,
+    address: raw.address ?? null,
   };
 }
 
@@ -390,6 +396,11 @@ function JockeyCard({ jockey, onDetail, onHire }: { jockey: Jockey; onDetail: ()
             <p className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase mb-1">Starts</p>
             <p className="text-[15px] font-bold text-text">{jockey.starts.toLocaleString()}</p>
           </div>
+        </div>
+
+        <div className="bg-surface rounded-lg px-3 py-2.5 border border-border/60 flex items-center justify-between">
+          <p className="text-[10px] font-semibold tracking-widest text-text-muted/70 uppercase">Booking Fee</p>
+          <p className="text-[15px] font-bold text-text whitespace-nowrap">{jockey.bookingFee.toLocaleString()} ₫</p>
         </div>
 
         <div className="flex gap-2 mt-auto">
@@ -491,30 +502,28 @@ export default function JockeysPage() {
   const [regsError, setRegsError] = useState<string | null>(null);
   const [showRegistrations, setShowRegistrations] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadRegistrations() {
-      try {
-        setRegsLoading(true);
-        setRegsError(null);
-        const res = await horseOwnerService.getHorseOwnerInvitations(1, 50);
-        if (cancelled) return;
-        const items: RaceInvitationEntry[] = res?.data?.items ?? [];
-        const accepted = items.filter((r) => {
-          const registrationStatus = (r.registration as { registrationStatus?: string })?.registrationStatus ?? "";
-          const roundStatus = String((r.raceRound as { status?: string })?.status ?? "").toLowerCase();
-          return ["accepted", "verified"].includes(registrationStatus) && !["completed", "cancelled"].includes(roundStatus);
-        });
-        setRegistrations(accepted.map((r, i) => mapAcceptedRegistration(r, i)));
-      } catch {
-        if (!cancelled) setRegsError("Failed to load your accepted registrations.");
-      } finally {
-        if (!cancelled) setRegsLoading(false);
-      }
+  const fetchRegistrations = useCallback(async () => {
+    try {
+      setRegsLoading(true);
+      setRegsError(null);
+      const res = await horseOwnerService.getHorseOwnerInvitations(1, 50);
+      const items: RaceInvitationEntry[] = res?.data?.items ?? [];
+      const accepted = items.filter((r) => {
+        const registrationStatus = (r.registration as { registrationStatus?: string })?.registrationStatus ?? "";
+        const roundStatus = String((r.raceRound as { status?: string })?.status ?? "").toLowerCase();
+        return ["accepted", "verified"].includes(registrationStatus) && !["completed", "cancelled"].includes(roundStatus);
+      });
+      setRegistrations(accepted.map((r, i) => mapAcceptedRegistration(r, i)));
+    } catch {
+      setRegsError("Failed to load your accepted registrations.");
+    } finally {
+      setRegsLoading(false);
     }
-    loadRegistrations();
-    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    fetchRegistrations();
+  }, [fetchRegistrations]);
 
   const needsJockeyCount = registrations.filter((r) => !r.jockeyName).length;
 
@@ -535,6 +544,9 @@ export default function JockeysPage() {
         bookingFee: jockeyDoc.bookingFee ?? prev.bookingFee,
         rank: jockeyDoc.rank ?? null,
         totalJockeys: jockeyDoc.totalJockeys ?? 0,
+        phoneNumber: jockeyDoc.phoneNumber ?? prev.phoneNumber ?? null,
+        email: jockeyDoc.email ?? prev.email ?? null,
+        address: jockeyDoc.address ?? prev.address ?? null,
       } : prev);
     } catch {
       // silently fall back to the base (list-level) data already in jockey object
@@ -575,7 +587,12 @@ export default function JockeysPage() {
     <div className="h-full flex flex-col overflow-hidden font-sans">
 
       {selected && (
-        <JockeyDetailModal jockey={selected} onClose={() => setSelected(null)} loading={profileLoading} />
+        <JockeyDetailModal
+          jockey={selected}
+          onClose={() => setSelected(null)}
+          onHire={() => { setHiring(selected); setSelected(null); }}
+          loading={profileLoading}
+        />
       )}
       {hiring && (
         <HireJockeyModal
@@ -584,6 +601,7 @@ export default function JockeysPage() {
           onConfirm={async (payload) => {
             console.log("Hire payload:", payload);
             await horseOwnerService.HireJockey(payload)
+            await Promise.all([fetchJockeys(), fetchRegistrations()]);
             setHiring(null);
           }}
         />
@@ -617,7 +635,7 @@ export default function JockeysPage() {
                 )}
               </button>
               <ViewToggle value={viewMode} onChange={setViewMode} />
-              <RefetchButton onRefetch={fetchJockeys} lastUpdated={lastUpdated} />
+              <RefetchButton onRefetch={async () => { await Promise.all([fetchJockeys(), fetchRegistrations()]); }} lastUpdated={lastUpdated} />
               <SlidersHorizontal size={14} className="text-text-muted" />
               <FilterSelect options={WEIGHTS} value={weightFilter} onChange={setWeightFilter} />
             </div>

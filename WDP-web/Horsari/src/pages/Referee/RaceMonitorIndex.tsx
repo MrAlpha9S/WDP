@@ -107,32 +107,6 @@ function PageHeader({ phase, raceRound, onBack, wsConnected, onRefetch, lastUpda
     );
 }
 
-// ── Dev switcher (only rendered in dev builds) ────────────────────────────────
-
-function DevSwitcher({ phase, onChange }: { phase: RacePhase; onChange: (p: RacePhase) => void }) {
-    return (
-        <div className="fixed bottom-5 right-5 z-50 bg-[#111] border border-white/15 rounded-2xl px-4 py-3 shadow-2xl shadow-black/60 flex flex-col gap-2">
-            <p className="text-[9px] font-black uppercase tracking-widest text-text-muted/70">Dev · Phase</p>
-            <div className="flex gap-2">
-                {(["pre", "live", "post"] as RacePhase[]).map(p => (
-                    <button key={p} onClick={() => onChange(p)}
-                        className={[
-                            "px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all",
-                            phase === p
-                                ? p === "pre" ? "bg-yellow-600 text-text"
-                                    : p === "live" ? "bg-red text-text"
-                                        : "bg-green-700 text-text"
-                                : "bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-muted",
-                        ].join(" ")}
-                    >
-                        {p === "pre" ? "Pre" : p === "live" ? "Live" : "Post"}
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 export default function RaceMonitorIndex() {
@@ -296,8 +270,6 @@ export default function RaceMonitorIndex() {
                         </span>
                     </div>
                 </footer>
-
-                {import.meta.env.DEV && <DevSwitcher phase={phase} onChange={setPhase} />}
             </div>
         </RaceSocketContext.Provider>
     );

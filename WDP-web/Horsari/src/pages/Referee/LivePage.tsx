@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import MuxPlayer from "@mux/mux-player-react";
 import {
     AlertTriangle, Camera, CheckCircle2, ChevronDown, ChevronRight,
-    Loader2, Shield, ShieldAlert, Trophy,
+    Loader2, Shield, ShieldAlert,
 } from "lucide-react";
 import { CAMERAS, horseColor } from "../../shared/data/RaceData";
 import type { HorseEntry } from "../../shared/types/RaceTypes";
@@ -704,8 +704,8 @@ export default function LivePage() {
                 showOnStream={showTrackOnStream}
             />
 
-            {/* Row 3: Stats + Actions + Verification */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_300px] gap-4">
+            {/* Row 3: Stats + Verification */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
 
                 <div className="bg-surface rounded-xl border border-border p-4">
                     <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Race Stats</h2>
@@ -723,21 +723,9 @@ export default function LivePage() {
                     ))}
                 </div>
 
-                <div className="bg-surface rounded-xl border border-border p-4">
-                    <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 mb-3">Actions</h2>
-                    <div className="flex flex-col gap-2.5">
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-text-muted text-[13px] font-semibold hover:border-white/20 hover:text-text transition-all">
-                            <Camera size={13} /> Review Finish Photo
-                        </button>
-                        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red text-text text-[13px] font-bold uppercase tracking-widest hover:bg-red/85 shadow-lg shadow-red-900/40 transition-all">
-                            <Trophy size={13} /> Publish Results
-                        </button>
-                    </div>
-                </div>
-
-                <div className="bg-surface rounded-xl border border-border overflow-hidden">
+                <div className="bg-surface rounded-xl border border-border flex flex-col overflow-hidden">
                     <button onClick={() => setVerificationOpen(o => !o)}
-                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors shrink-0"
                     >
                         <h2 className="text-[10.5px] font-bold uppercase tracking-widest text-text-muted/70 flex items-center gap-2">
                             <Shield size={13} className="text-red" /> Horses List
@@ -745,8 +733,9 @@ export default function LivePage() {
                         <ChevronDown size={13} className={`text-text-muted/70 transition-transform duration-200 ${verificationOpen ? "rotate-180" : ""}`} />
                     </button>
                     {verificationOpen && (
-                        <div className="p-3 flex flex-col gap-2 border-t border-border">
-                            {horseOptions.map(horse => {
+                        <div className="overflow-y-auto border-t border-border" style={{ maxHeight: 280 }}>
+                            <div className="p-3 flex flex-col gap-2">
+                                {horseOptions.map(horse => {
                                 const isReview = horses.find(h => h.number === horse.number)?.gearStatus === "review";
                                 const isSelected = selectedHorseRegId === horse.registrationId;
                                 const liveData = liveHorses?.find(h => h.registrationId === horse.registrationId);
@@ -820,6 +809,7 @@ export default function LivePage() {
                                     </div>
                                 );
                             })}
+                        </div>
                         </div>
                     )}
                 </div>

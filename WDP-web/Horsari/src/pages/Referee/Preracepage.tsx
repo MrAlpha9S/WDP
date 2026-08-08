@@ -145,13 +145,17 @@ export default function PreRacePage() {
         setInspecting({ registration, index });
     };
 
-    // Cancelled/rejected registrations never race — nothing left to inspect, so they're
-    // split into their own section below (with the Inspect button hidden) instead of
-    // cluttering the active checklist. Original indices are preserved so openInspection
-    // (and the "Gate N" number) still line up with the full registrations array.
+    // Cancelled/rejected and still-pending registrations are split into their own
+    // sections below (Inspect button hidden for cancelled) instead of cluttering the
+    // active checklist. Original indices are preserved so openInspection (and the
+    // "Gate N" number) still line up with the full registrations array.
     const indexedRegistrations = registrations.map((reg, index) => ({ reg, index }));
+    const pendingIndexedRegistrations = indexedRegistrations.filter(
+        ({ reg }) => (reg.registrationStatus ?? "pending") === "pending"
+    );
     const activeRegistrations = indexedRegistrations.filter(
         ({ reg }) => reg.registrationStatus !== "cancelled" && reg.registrationStatus !== "rejected"
+            && (reg.registrationStatus ?? "pending") !== "pending"
     );
     const cancelledRegistrations = indexedRegistrations.filter(
         ({ reg }) => reg.registrationStatus === "cancelled" || reg.registrationStatus === "rejected"
@@ -262,46 +266,8 @@ export default function PreRacePage() {
                             <h2 className="text-[13px] font-bold text-text flex items-center gap-2 font-serif">
                                 <ClipboardList size={14} className="text-amber" /> Horse Inspection Checklist
                             </h2>
-                            <div className="flex items-center gap-2">
-                                {pendingRegistrations.length > 0 && (
-                                    <button
-                                        onClick={() => setShowBulkCancelConfirm(true)}
-                                        className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-red-800/50 text-red hover:bg-red/10 transition-colors"
-                                    >
-                                        <Ban size={12} /> Cancel All Pending ({pendingRegistrations.length})
-                                    </button>
-                                )}
-                                <RefetchButton onRefetch={refetchRegistrations} lastUpdated={lastUpdated} />
-                            </div>
+                            <RefetchButton onRefetch={refetchRegistrations} lastUpdated={lastUpdated} />
                         </div>
-                        {showBulkCancelConfirm && (
-                            <div className="px-5 py-3 border-b border-red-900/40 bg-red/5 flex items-center justify-between gap-3 flex-wrap">
-                                <p className="text-[12px] text-red">
-                                    Cancel {pendingRegistrations.length} pending registration{pendingRegistrations.length > 1 ? "s" : ""} as no-show? Owners will be notified.
-                                </p>
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <button
-                                        onClick={() => setShowBulkCancelConfirm(false)}
-                                        disabled={bulkCancelling}
-                                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-border text-text-muted hover:text-text transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        Keep
-                                    </button>
-                                    <button
-                                        onClick={handleBulkCancelPending}
-                                        disabled={bulkCancelling}
-                                        className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red text-text hover:bg-red/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {bulkCancelling ? <span className="animate-pulse">Cancelling…</span> : "Confirm Cancel All"}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                        {bulkCancelError && (
-                            <p className="px-5 py-2 text-[11.5px] text-red flex items-center gap-1.5 border-b border-border">
-                                <AlertTriangle size={11} /> {bulkCancelError}
-                            </p>
-                        )}
                         <div className="p-3 flex flex-col gap-2">
                             {registrationsError && (
                                 <ErrorState message={registrationsError} onRetry={refetchRegistrations} />
@@ -310,11 +276,61 @@ export default function PreRacePage() {
                                 <p className="text-[12px] text-text-muted/70 text-center py-6">No horses registered for this race.</p>
                             )}
                             {!registrationsError && activeRegistrations.length === 0 && registrations.length > 0 && (
-                                <p className="text-[12px] text-text-muted/70 text-center py-6">All registrations for this race have been cancelled.</p>
+                                <p className="text-[12px] text-text-muted/70 text-center py-6">No horses ready for inspection.</p>
                             )}
                             {!registrationsError && activeRegistrations.map(({ reg, index }) => renderRegistrationRow(reg, index))}
                         </div>
                     </div>
+
+                    {/* Pending registrations — owner hasn't confirmed a horse/jockey yet
+                        (or the referee hasn't reviewed them), kept separate from the active
+                        checklist above so it's clear what's still awaiting a response. */}
+                    {pendingIndexedRegistrations.length > 0 && (
+                        <div className="bg-surface rounded-xl border border-amber-800/30 overflow-hidden">
+                            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+                                <h2 className="text-[13px] font-bold text-amber-400 flex items-center gap-2 font-serif">
+                                    <Clock size={14} className="text-amber-400" /> Pending Registrations ({pendingIndexedRegistrations.length})
+                                </h2>
+                                <button
+                                    onClick={() => setShowBulkCancelConfirm(true)}
+                                    className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-red-800/50 text-red hover:bg-red/10 transition-colors"
+                                >
+                                    <Ban size={12} /> Cancel All Pending
+                                </button>
+                            </div>
+                            {showBulkCancelConfirm && (
+                                <div className="px-5 py-3 border-b border-red-900/40 bg-red/5 flex items-center justify-between gap-3 flex-wrap">
+                                    <p className="text-[12px] text-red">
+                                        Cancel {pendingRegistrations.length} pending registration{pendingRegistrations.length > 1 ? "s" : ""} as no-show? Owners will be notified.
+                                    </p>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <button
+                                            onClick={() => setShowBulkCancelConfirm(false)}
+                                            disabled={bulkCancelling}
+                                            className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-border text-text-muted hover:text-text transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Keep
+                                        </button>
+                                        <button
+                                            onClick={handleBulkCancelPending}
+                                            disabled={bulkCancelling}
+                                            className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red text-text hover:bg-red/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {bulkCancelling ? <span className="animate-pulse">Cancelling…</span> : "Confirm Cancel All"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {bulkCancelError && (
+                                <p className="px-5 py-2 text-[11.5px] text-red flex items-center gap-1.5 border-b border-border">
+                                    <AlertTriangle size={11} /> {bulkCancelError}
+                                </p>
+                            )}
+                            <div className="p-3 flex flex-col gap-2">
+                                {pendingIndexedRegistrations.map(({ reg, index }) => renderRegistrationRow(reg, index))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Cancelled / rejected registrations — nothing to inspect, kept separate
                         from the active checklist above so they don't clutter it. */}
