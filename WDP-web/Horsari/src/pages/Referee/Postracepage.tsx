@@ -167,7 +167,7 @@ export default function PostRacePage() {
                         <div className="flex items-center gap-2">
                             {hasObjection && (
                                 <span className="flex items-center gap-1.5 text-[11px] font-bold text-red bg-red/10 border border-red-700/50 px-2.5 py-1 rounded-full animate-pulse">
-                                    <AlertTriangle size={10} /> Objection Filed
+                                    <AlertTriangle size={10} /> Violation pending
                                 </span>
                             )}
                             <RefetchButton onRefetch={fetchData} lastUpdated={lastUpdated} />
@@ -252,7 +252,7 @@ export default function PostRacePage() {
                                         )}
                                         {!isCancelled && hasHorseObjection && !objectionResolved && (
                                             <span className="flex items-center gap-1 text-[10px] font-bold text-red bg-red/10 border border-red/40 px-2 py-0.5 rounded-full shrink-0">
-                                                <Flag size={9} /> Objection
+                                                <Flag size={9} /> Violation Pending
                                             </span>
                                         )}
                                     </div>
