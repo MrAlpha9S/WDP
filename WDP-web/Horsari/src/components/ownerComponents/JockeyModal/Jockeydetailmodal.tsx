@@ -208,11 +208,12 @@ function ViolationsTab({ violations }: { violations: JockeyViolationEntry[] }) {
 interface JockeyDetailModalProps {
   jockey:  Jockey;
   onClose: () => void;
+  onHire?: () => void;
   loading?: boolean;
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
-export default function JockeyDetailModal({ jockey, onClose, loading = false }: JockeyDetailModalProps) {
+export default function JockeyDetailModal({ jockey, onClose, onHire, loading = false }: JockeyDetailModalProps) {
   const cfg           = STATUS_CFG[jockey.status];
   const isUnavailable = jockey.status === "Unavailable";
   const [tab, setTab] = useState<Tab>("overview");
@@ -326,8 +327,11 @@ export default function JockeyDetailModal({ jockey, onClose, loading = false }: 
           >
             Close
           </button>
-          {!isUnavailable && (
-            <button className="flex-1 py-2.5 rounded-lg bg-red hover:bg-red/85 text-text text-[13px] font-bold transition-colors duration-150 shadow-lg shadow-red-900/30 flex items-center justify-center gap-2">
+          {!isUnavailable && onHire && (
+            <button
+              onClick={onHire}
+              className="flex-1 py-2.5 rounded-lg bg-red hover:bg-red/85 text-text text-[13px] font-bold transition-colors duration-150 shadow-lg shadow-red-900/30 flex items-center justify-center gap-2"
+            >
               Hire Jockey
               <Diamond size={13} className="text-red-300" />
             </button>

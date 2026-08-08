@@ -587,7 +587,12 @@ export default function JockeysPage() {
     <div className="h-full flex flex-col overflow-hidden font-sans">
 
       {selected && (
-        <JockeyDetailModal jockey={selected} onClose={() => setSelected(null)} loading={profileLoading} />
+        <JockeyDetailModal
+          jockey={selected}
+          onClose={() => setSelected(null)}
+          onHire={() => { setHiring(selected); setSelected(null); }}
+          loading={profileLoading}
+        />
       )}
       {hiring && (
         <HireJockeyModal
