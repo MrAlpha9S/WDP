@@ -190,18 +190,18 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                     </div>
                 )}
                 <div>
-                    <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">Tournament Name</label>
+                    <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">Tournament Name <span className="text-red">*</span></label>
                     <input value={name} onChange={e => setName(e.target.value)} type="text" placeholder="e.g. Winter Cup" className="w-full bg-bg border border-border rounded-lg p-2.5 text-[13px] text-text focus:outline-none focus:border-red/50" />
                 </div>
 
                 <div>
-                    <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">Description</label>
+                    <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">Description <span className="text-red">*</span></label>
                     <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Brief description..." className="w-full bg-bg border border-border rounded-lg p-2.5 text-[13px] text-text focus:outline-none focus:border-red/50 resize-none"></textarea>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">Start Date</label>
+                        <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">Start Date <span className="text-red">*</span></label>
                         <input
                             value={startDate}
                             onChange={e => handleStartDateChange(e.target.value)}
@@ -211,7 +211,7 @@ export function CreateTournamentModal({ isOpen, onClose, onSuccess, editingTourn
                         />
                     </div>
                     <div>
-                        <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">End Date</label>
+                        <label className="block text-[12px] font-semibold text-text-muted uppercase tracking-widest mb-2">End Date <span className="text-red">*</span></label>
                         <input
                             value={endDate}
                             onChange={e => handleEndDateChange(e.target.value)}
