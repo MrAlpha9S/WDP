@@ -639,7 +639,15 @@ export default function RaceDetailsPanel({ selectedRace, onRefresh, onEdit, onCl
                                                 <span className="text-gray-500 font-medium flex items-center gap-1"><DollarSign size={12} /> Prediction Pool</span>
                                                 <span className="text-gold font-semibold">{p.sum_prediction != null ? `${p.sum_prediction} pts` : <span className="text-gray-600 italic font-normal">N/A</span>}</span>
                                             </div>
-                                            {isCompleted && p.raceResult && (
+                                            {isCompleted && p.raceResult && p.raceResult.resultStatus === 'cancelled' && (
+                                                <div className="col-span-2 flex flex-col gap-1">
+                                                    <span className="text-gray-500 font-medium flex items-center gap-1"><Trophy size={12} /> Result</span>
+                                                    <span className="flex items-center gap-1.5 text-red-400 font-semibold">
+                                                        <Ban size={12} /> Disqualified
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {isCompleted && p.raceResult && p.raceResult.resultStatus !== 'cancelled' && (
                                                 <>
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-gray-500 font-medium flex items-center gap-1"><Trophy size={12} /> Finish Pos</span>

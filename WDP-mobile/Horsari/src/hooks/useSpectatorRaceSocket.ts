@@ -17,6 +17,7 @@ export interface LiveHorse {
   isFinished: boolean;
   finishPosition: number | null;
   finishTime: string | null;
+  resultStatus?: string | null;
 }
 
 export interface RaceUpdate {
@@ -34,6 +35,7 @@ export interface FinishResult {
   finishPosition: number | null;
   finishTime: string | null;
   distance?: number | null;
+  resultStatus?: string | null;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

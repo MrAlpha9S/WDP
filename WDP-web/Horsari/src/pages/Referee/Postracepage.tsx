@@ -278,7 +278,7 @@ export default function PostRacePage() {
                                     <AlertTriangle size={13} className="text-red shrink-0" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[13px] font-semibold text-text">{inc.violationTypeId?.violationName || "Unknown Violation"}</p>
-                                        <p className="text-[11.5px] text-text-muted mt-0.5">{horseName} &nbsp;·&nbsp; {inc.description || "No description"}</p>
+                                        <p className="text-[11.5px] text-text-muted mt-0.5">{horseName} &nbsp;·&nbsp;</p>
                                     </div>
                                     <div className="flex gap-2 shrink-0">
                                         {inc.violationStatus === 'pending' ? (
