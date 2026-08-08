@@ -296,6 +296,12 @@ function mapApiToJockey(raw: any, index: number): Jockey {
     image: raw.image || null,
     violations: [],
     bookingFee: raw.bookingFee ?? 0,
+    // The list endpoint merges the linked User doc onto each item already
+    // (JockeyRepository.findAll populates "_id"), so these ride along here
+    // too — openDetail() only needs to fill them in if this ever changes.
+    phoneNumber: raw.phoneNumber ?? null,
+    email: raw.email ?? null,
+    address: raw.address ?? null,
   };
 }
 
@@ -538,6 +544,9 @@ export default function JockeysPage() {
         bookingFee: jockeyDoc.bookingFee ?? prev.bookingFee,
         rank: jockeyDoc.rank ?? null,
         totalJockeys: jockeyDoc.totalJockeys ?? 0,
+        phoneNumber: jockeyDoc.phoneNumber ?? prev.phoneNumber ?? null,
+        email: jockeyDoc.email ?? prev.email ?? null,
+        address: jockeyDoc.address ?? prev.address ?? null,
       } : prev);
     } catch {
       // silently fall back to the base (list-level) data already in jockey object

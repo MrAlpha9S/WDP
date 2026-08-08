@@ -1127,7 +1127,7 @@ class HorseOwnerService {
 
             const [jockeyDoc, user] = await Promise.all([
                 Jockey.findById(jockeyId).lean(),
-                User.findById(jockeyId).select('fullName image dateOfBirth address phoneNumber').lean(),
+                User.findById(jockeyId).select('fullName email image dateOfBirth address phoneNumber').lean(),
             ]);
             if (!jockeyDoc || !user) return { code: 404, msg: 'Jockey not found' };
 

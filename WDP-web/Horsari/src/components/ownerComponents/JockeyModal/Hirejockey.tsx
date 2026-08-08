@@ -2,7 +2,7 @@
 import {
   X, Trophy, Flag, ChevronDown, Check,
   Loader2, AlertCircle, Shield, Repeat2,
-  CheckCircle2, XCircle
+  CheckCircle2, XCircle, Phone, Mail,
 } from "lucide-react";
 import { horseOwnerService, type hireJockey } from "../../../api/horseOwnerService";
 import { type Jockey } from "../../../components/ownerComponents/JockeyModal/Jockeydetailmodal";
@@ -458,6 +458,17 @@ export default function HireJockeyModal({
               <X size={13} />
             </button>
           </div>
+
+          {(jockey.phoneNumber || jockey.email) && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-4 px-3 py-2 rounded-lg border border-border/60 bg-surface text-[11.5px] text-text-muted">
+              {jockey.phoneNumber && (
+                <span className="flex items-center gap-1.5"><Phone size={12} className="shrink-0" /> {jockey.phoneNumber}</span>
+              )}
+              {jockey.email && (
+                <span className="flex items-center gap-1.5"><Mail size={12} className="shrink-0" /> {jockey.email}</span>
+              )}
+            </div>
+          )}
 
           {hasNoShowHistory && (
             <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg border border-red/40 bg-red/10">
